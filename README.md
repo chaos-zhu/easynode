@@ -28,7 +28,7 @@
 
 > https服务需自行配置证书然后构建镜像，或者使用`nginx反代`解决(推荐)
 
-- docker run -d -p 8082:8082 -p 22022:22022 easynode
+- docker run -d -p 8082:8082 -p 22022:22022 chaoszhu/easynode
 
 #### 一键脚本
 
