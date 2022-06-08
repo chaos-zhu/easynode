@@ -1,6 +1,7 @@
 node_modules
 !.gitkeep
 dist
+easynode-server.zip
 server/app/static/upload/*
 server/app/socket/temp/*
 server/app/logs/*
