@@ -4,11 +4,11 @@
 
 ## 功能
 
-> 通过`websocker实时更新`服务器基本信息: **系统、公网IP、CPU、内存、硬盘、网卡**等
+> 多服务器管理; 通过`websocker实时更新`服务器基本信息: **系统、公网IP、CPU、内存、硬盘、网卡**等
 
 ![服务器列表](./images/list.png)
 
-> 解决`SSH跨端同步`问题——**Web SSH**
+> 基于浏览器解决`SSH跨端同步`问题——**Web SSH**
 
 ![webssh功能](./images/webssh.png)
 
@@ -18,9 +18,9 @@
 
 - 依赖Node.js环境
 
-- 建议使用**境外服务器(最好延迟低)**安装服务端，客户端信息监控与webssh功能都将以`该服务器作为跳板机`
-
 - 占用端口：8082(http端口)、8083(https端口)、22022(客户端端口)
+
+- 建议使用**境外服务器(最好延迟低)**安装服务端，客户端信息监控与webssh功能都将以`该服务器作为跳板机`
 
 #### Docker镜像
 
@@ -60,26 +60,19 @@ wget -N --no-check-certificate xxx  && bash easynode-server-install.sh
 
 ### 客户端安装
 
-> 占用端口：22022
+- 占用端口：22022
 
-> 支持后续一键升级、支持重复安装
+> 安装：支持后续一键升级
 
 ```shell
-# 国外环境
-wget -N --no-check-certificate xxx  && bash easynode-client-install.sh
+wget -N --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-install.sh && bash easynode-client-install.sh
 
-# 国内环境
-wget -N --no-check-certificate xxx  && bash easynode-client-install.sh
 ```
 
-> 卸载：无任何文件或服务残留
+> 卸载：无服务残留
 
 ```shell
-# 国外环境
-wget -N --no-check-certificate xxx  && bash easynode-client-uninstall.sh
-
-# 国内环境
-wget -N --no-check-certificate xxx  && bash easynode-client-uninstall.sh
+wget -N --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-uninstall.sh && bash easynode-client-uninstall.sh
 ```
 
 > 查看客户端日志
