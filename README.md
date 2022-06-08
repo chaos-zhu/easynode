@@ -44,11 +44,12 @@ wget -N --no-check-certificate xxx  && bash easynode-server-install.sh
 #### 手动部署
 
 1. 安装Node.js
-2. 拉取代码：
-3. 安装依赖：
-4. 配置域名：
-5. 启动服务：
-6. 访问：http://domain:8082
+2. 安装pm2、安装yarn
+3. 拉取代码：git clone https://github.com/chaos-zhu/easynode.git
+4. 安装依赖：yarn
+5. 配置域名：vim server/app/config/index.js  在domain字段中填写你解析到服务器的域名
+6. 启动服务：pm2 start server/app/main.js
+7. 访问：http://domain:8082
 
 - 默认登录密码：admin(首次部署完成后请及时修改).
 
