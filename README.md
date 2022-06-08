@@ -4,11 +4,11 @@
 
 ## 功能
 
-> 通过`websocker实时更新`服务器基本信息: **系统、公网IP、CPU、内存、硬盘、网卡**等
+> 多服务器管理; 通过`websocker实时更新`服务器基本信息: **系统、公网IP、CPU、内存、硬盘、网卡**等
 
 ![服务器列表](./images/list.png)
 
-> 解决`SSH跨端同步`问题——**Web SSH**
+> 基于浏览器解决`SSH跨端同步`问题——**Web SSH**
 
 ![webssh功能](./images/webssh.png)
 
