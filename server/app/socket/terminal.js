@@ -3,7 +3,7 @@ const { Client: Client } = require('ssh2')
 const { readSSHRecord, verifyToken } = require('../utils')
 
 function createTerminal(socket, vps) {
-  vps.shell({ term: 'xterm-color', cols: 1000, rows: 30 }, (err, stream) => {
+  vps.shell({ term: 'xterm-color', cols: 100, rows: 30 }, (err, stream) => {
     if (err) return socket.emit('output', err.toString())
     stream
       .on('data', (data) => {

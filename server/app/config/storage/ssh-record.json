@@ -1,11 +1,1 @@
-[
-  {
-    "host": "localhost",
-    "port": 22,
-    "username": "ubuntu",
-    "type": "privateKey",
-    "password": "",
-    "privateKey": "test",
-    "command": ""
-  }
-]
+[]
