@@ -1,0 +1,9 @@
+[Unit]
+Description=easynode client server port_22022
+
+[Service]
+ExecStart=/root/local/easynode-client/easynode-client
+WorkingDirectory=/root/local/easynode-client
+
+[Install]
+WantedBy=multi-user.target

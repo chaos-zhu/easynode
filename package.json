@@ -1,0 +1,24 @@
+{
+  "name": "easynode",
+  "version": "1.0.0",
+  "description": "easy to manage the server",
+  "private": true,
+  "workspaces": ["server", "client"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chaos-zhu/easynode.git"
+  },
+  "keywords": [
+    "vps",
+    "node",
+    "easynode",
+    "chaos",
+    "chaoszhu"
+  ],
+  "author": "chaoszhu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chaos-zhu/easynode/issues"
+  },
+  "homepage": "https://github.com/chaos-zhu/easynode#readme"
+}
