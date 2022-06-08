@@ -63,6 +63,7 @@ wget -N --no-check-certificate xxx  && bash easynode-server-install.sh
 - 占用端口：22022
 
 > 安装：支持后续一键升级
+
 ```shell
 wget -N --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-install.sh && bash easynode-client-install.sh
 
