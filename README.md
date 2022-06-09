@@ -41,7 +41,7 @@
 > centos: yum install curl wget git zip tar -y
 
 ```shell
-wget -qO- https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-server-install.sh | bash
+wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-server-install.sh | bash
 ```
 
 访问：http://yourip:8082
@@ -72,14 +72,14 @@ wget -qO- https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easyno
 > 安装：支持后续一键升级
 
 ```shell
-wget -N --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-install.sh && bash easynode-client-install.sh
+wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-install.sh | bash
 
 ```
 
 > 卸载：无服务残留
 
 ```shell
-wget -N --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-uninstall.sh && bash easynode-client-uninstall.sh
+wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-uninstall.sh | bash
 ```
 
 > 查看客户端日志
