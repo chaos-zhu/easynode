@@ -28,7 +28,9 @@
 
 > 注意：网速统计功能可能受限，预计v2.0版本切换方案
 
-- docker run -d -p 8082:8082 -p 22022:22022 chaoszhu/easynode
+```shell
+docker run -d -p 8082:8082 -p 22022:22022 chaoszhu/easynode
+```
 
 访问：http://yourip:8082
 
