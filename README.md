@@ -46,13 +46,18 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 访问：http://yourip:8082
 
+查看日志：`pm2 log easynode-server`
+启动服务：`pm2 start easynode-server`
+停止服务：`pm2 stop easynode-server`
+停止服务：`pm2 delete easynode-server`
+
 #### 手动部署
 
 1. 安装Node.js
 2. 安装pm2、安装yarn
 3. 拉取代码：git clone https://github.com/chaos-zhu/easynode.git
 4. 安装依赖：yarn
-5. 启动服务：pm2 start server/app/main.js
+5. 启动服务：pm2 start server/app/main.js --name easynode-server
 6. 访问：http://yourip:8082
 
 - 默认登录密码：admin(首次部署完成后请及时修改).
@@ -60,7 +65,7 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 6. 部署https服务
 - 部署https服务需要自己上传域名证书至`\server\app\config\pem`，并且证书和私钥分别命名：`key.pem`和`cert.pem`
 - 配置域名：vim server/app/config/index.js  在domain字段中填写你解析到服务器的域名
-- pm2 restart nodels-server
+- pm2 restart easynode-server
 - 不出意外你就可以访问https服务：https://domain:8083
 
 ---

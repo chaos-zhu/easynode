@@ -66,4 +66,4 @@ yarn
 
 echo '启动服务'
 
-pm2 start ${FILE_PATH}/${SERVER_NAME}/app/main.js
+pm2 start ${FILE_PATH}/${SERVER_NAME}/app/main.js --name easynode-server
