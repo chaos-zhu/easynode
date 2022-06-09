@@ -32,14 +32,14 @@
 
 #### 一键脚本
 
-> 编写中...
-<!-- ```shell
-# 国外环境
-wget -N --no-check-certificate xxx  && bash easynode-server-install.sh
+- 依赖Linux基础命令：curl wget git zip tar；如未安装请先安装：
+> ubuntu: apt install curl wget git zip tar -y
+> 
+> centos: yum install curl wget git zip tar -y
 
-# 国内环境
-wget -N --no-check-certificate xxx  && bash easynode-server-install.sh
-``` -->
+```shell
+wget -qO- http://221022.xyz:8000/s/WnGWForqiM48AnA/download/install-nodejs.sh| bash
+```
 
 #### 手动部署
 
