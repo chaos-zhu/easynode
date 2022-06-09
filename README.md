@@ -104,6 +104,8 @@ journalctl --follow -u easynode-client
 
 ## v2.0功能方向
 
+- http传输加密
+
 - 终端快捷键
 
 - 终端常用指令
