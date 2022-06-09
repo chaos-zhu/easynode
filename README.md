@@ -89,11 +89,9 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-uninstall.sh | bash
 ```
 
-> 查看客户端日志
-
-```shell
-journalctl --follow -u easynode-client
-```
+> 查看客户端状态：`systemctl status easynode-client`
+> 
+> 查看客户端日志: `journalctl --follow -u easynode-client`
 
 ---
 
