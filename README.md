@@ -38,7 +38,7 @@ docker run -d -p 8082:8082 -p 22022:22022 chaoszhu/easynode
 
 - 依赖Linux基础命令：curl wget git zip tar；如未安装请先安装：
 
-> ubuntu: apt install curl wget git zip tar -y
+> ubuntu/debian: apt install curl wget git zip tar -y
 > 
 > centos: yum install curl wget git zip tar -y
 
