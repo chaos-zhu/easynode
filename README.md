@@ -48,10 +48,10 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 访问：http://yourip:8082
 
-查看日志：`pm2 log easynode-server`
-启动服务：`pm2 start easynode-server`
-停止服务：`pm2 stop easynode-server`
-停止服务：`pm2 delete easynode-server`
+- 查看日志：`pm2 log easynode-server`
+- 启动服务：`pm2 start easynode-server`
+- 停止服务：`pm2 stop easynode-server`
+- 停止服务：`pm2 delete easynode-server`
 
 #### 手动部署
 
