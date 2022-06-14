@@ -123,6 +123,11 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 - 支持完整功能的docker镜像
 
+## 感谢
+
+[![Stargazers repo roster for @chaos-zhu/easynode](https://reporoster.com/stars/chaos-zhu/easynode)](https://github.com/chaos-zhu/easynode/stargazers)
+
+[![Stargazers over time](https://starchart.cc/chaos-zhu/easynode.svg)](https://starchart.cc/chaos-zhu/easynode)
 
 ## License
 
