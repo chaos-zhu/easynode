@@ -9,7 +9,8 @@
   "scripts": {
     "client": "nodemon ./app/main.js",
     "pkgwin": "pkg . -t node16-win-x64",
-    "pkglinux": "pkg . -t node16-linux-x64"
+    "pkglinux:x86": "pkg . -t node16-linux-x64",
+    "pkglinux:arm": "pkg . -t node16-linux-arm64"
   },
   "keywords": [],
   "author": "",
