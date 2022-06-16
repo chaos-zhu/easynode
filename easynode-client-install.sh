@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 if [ "$(id -u)" != "0" ] ; then
   echo "***********************请切换到root再尝试执行***********************"
@@ -81,5 +81,3 @@ systemctl start ${SERVER_NAME}
 systemctl enable ${SERVER_NAME}
 
 echo "***********************安装成功***********************"
-
-rm  $0
