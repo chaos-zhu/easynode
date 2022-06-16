@@ -78,9 +78,13 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 > 安装：支持后续一键升级
 
+#### X86架构
 ```shell
 wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-install.sh | bash
-
+```
+#### ARM架构
+```shell
+待补充
 ```
 
 > 卸载：无服务残留
@@ -92,6 +96,8 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 > 查看客户端状态：`systemctl status easynode-client`
 > 
 > 查看客户端日志: `journalctl --follow -u easynode-client`
+> 
+> 查看详细日志：journalctl -xe
 
 ---
 
