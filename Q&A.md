@@ -19,5 +19,4 @@ SELINUX=disabled
 
 ## 甲骨文ubuntu20.04客户端服务启动成功，无法连接？
 
-> 端口未开放：`iptables -I INPUT -s 0.0.0.0/0 -p tcp --dport 22022 -j ACCEPT`
-
+> 端口未开放：`iptables -I INPUT -s 0.0.0.0/0 -p tcp --dport 22022 -j ACCEPT` 或者 `rm -rf /etc/iptables && reboot`
