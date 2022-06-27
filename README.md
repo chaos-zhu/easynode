@@ -6,11 +6,11 @@
 
 > 多服务器管理; 通过`websocker实时更新`服务器基本信息: **系统、公网IP、CPU、内存、硬盘、网卡**等
 
-![服务器列表](./images/list.png)
+![服务器列表](./images/v1.1-panel.png)
 
 > 基于浏览器解决`SSH跨端同步`问题——**Web SSH**
 
-![webssh功能](./images/webssh.png)
+![webssh功能](./images/v1.1-webssh.png)
 
 ## 安装指南
 
@@ -26,10 +26,10 @@
 
 #### Docker镜像
 
-> 注意：网速统计功能可能受限，预计v2.0版本切换方案
+> 注意：网速统计功能可能受限，docker网络将使用host模式(与宿主机共享端口，占用: 8082、22022)
 
 ```shell
-docker run -d -p 8082:8082 -p 22022:22022 chaoszhu/easynode
+docker run -d --net=host chaoszhu/easynode
 ```
 
 访问：http://yourip:8082
@@ -43,7 +43,7 @@ docker run -d -p 8082:8082 -p 22022:22022 chaoszhu/easynode
 > centos: yum install curl wget git zip tar -y
 
 ```shell
-wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-server-install.sh | bash
+wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/v1.1/easynode-server-install.sh | bash
 ```
 
 访问：http://yourip:8082
@@ -76,19 +76,22 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 - 占用端口：22022
 
-#### X86架构
+#### X86架构()
+
 ```shell
-wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-install-x86.sh | bash
+wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/v1.1/easynode-client-install-x86.sh | bash
 ```
+
 #### ARM架构
+
 ```shell
-wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-install-arm.sh | bash
+wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/v1.1/easynode-client-install-arm.sh | bash
 ```
 
-> 卸载：无服务残留
+> 卸载
 
 ```shell
-wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-uninstall.sh | bash
+wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/v1.1/easynode-client-uninstall.sh | bash
 ```
 
 > 查看客户端状态：`systemctl status easynode-client`
@@ -99,39 +102,52 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 ---
 
+## 升级指南
+
+- **v1.0 to v1.1**
+
+### 服务端
+
+> v1.1对所有的敏感信息全部加密，所有的v1.0为加密的信息全部失效. 主要影响已存储的ssh密钥.
+> 
+> **还原客户端列表：** 先备份`app\config\storage\host-list.json`, 使用一键脚本或者手动部署的同志安装好使用备份文件覆盖此文件即可。
+> 
+> 使用docker镜像的v1.0一键脚本**未做**文件夹映射，有能力的自己从镜像里把备份抠出来再重新构建镜像.
+
+### 客户端
+
+> v1.1未对客户端包进行改动，客户端无需重复安装. 不会备份的在面板重新添加客户端机器即可.
+
 ## 安全与说明
 
 > 本人非专业后端，此服务全凭兴趣开发. 由于知识受限，并不能保证没有漏洞的存在，生产服务器请慎重使用此服务.
 
-> 所有服务器信息相关接口已做`jwt鉴权`
+> 所有服务器信息相关接口已做`jwt鉴权`, 安全信息均使用加密传输与储存!
 
-> webssh功能需要的密钥信息全部保存在服务端服务器的`app\config\storage\ssh-record.json`中. 在保存ssh密钥信息到服务器时，v1.0版本未做加密，`如果使用此功能最好带上https`, 并且保管好你的服务端服务器密码.
+> webssh功能需要的密钥信息全部保存在服务端服务器的`app\config\storage\ssh-record.json`中. 在保存ssh密钥信息到服务器储存与传输过程皆已加密，`不放心最好套https使用`
 
-## 技术架构
+<!-- ## 技术架构
 
-> 待更新...
+> 待更新... -->
 
-## v2.0功能方向
+<!-- ## 后续版本功能方向
 
-- http传输加密
-
-- 终端快捷键
-
+- SFTP
+- 在线文件编辑
 - 终端常用指令
+- 面板UI优化(列表\卡片\自定义背景)
+- 登录IP白名单
+- 版本更新检测
+- 终端tab一键分屏
+- 登录有效期(目前默认1h)
+- 面板登录通知(tg or wx?)
+- 定时任务 -->
 
-- 终端多tab支持
-
-- 终端主题
-
-- FTP文件系统
-
-- 支持完整功能的docker镜像
-
-## 感谢
+## 感谢Star~
 
 [![Stargazers repo roster for @chaos-zhu/easynode](https://reporoster.com/stars/chaos-zhu/easynode)](https://github.com/chaos-zhu/easynode/stargazers)
 
-[![Stargazers over time](https://starchart.cc/chaos-zhu/easynode.svg)](https://starchart.cc/chaos-zhu/easynode)
+<!-- [![Stargazers over time](https://starchart.cc/chaos-zhu/easynode.svg)](https://starchart.cc/chaos-zhu/easynode) -->
 
 ## License
 
