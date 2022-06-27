@@ -1,6 +1,6 @@
 {
   "name": "easynode-server",
-  "version": "0.0.1",
+  "version": "1.1.0",
   "description": "easynode-server",
   "bin": "./bin/www",
   "pkg": {
@@ -13,7 +13,8 @@
     "server": "cross-env EXEC_ENV=production nodemon ./app/main.js",
     "start": "pm2 start ./app/main.js",
     "pkgwin": "pkg . -t  node16-win-x64",
-    "pkglinux": "pkg . -t  node16-linux-x64"
+    "pkglinux:x86": "pkg . -t node16-linux-x64",
+    "pkglinux:arm": "pkg . -t node16-linux-arm64"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,8 @@
   "dependencies": {
     "@koa/cors": "^3.1.0",
     "axios": "^0.21.4",
+    "crypto-js": "^4.1.1",
+    "global": "^4.4.0",
     "is-ip": "^4.0.0",
     "jsonwebtoken": "^8.5.1",
     "koa": "^2.13.1",

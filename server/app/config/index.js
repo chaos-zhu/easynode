@@ -12,7 +12,7 @@ const getCertificate =() => {
   }
 }
 module.exports = {
-  domain: 'yourDomain', // 域名xxx.com
+  domain: '', // 域名(必须配置, 跨域使用[不配置将所有域名可访问api])
   httpPort: 8082,
   httpsPort: 8083,
   clientPort: 22022, // 勿更改

@@ -25,6 +25,7 @@ function ipSchedule() {
     getIpInfo()
   })
 
+  // 每日凌晨两点整,刷新ip信息(兼容动态ip服务器)
   let rule2 = new schedule.RecurrenceRule()
   rule2.hour = 2
   rule2.minute = 0
@@ -46,6 +47,7 @@ module.exports = (httpServer) => {
   })
 
   serverIo.on('connection', (socket) => {
+    // 存储对应websocket连接的定时器
     serverSockets[socket.id] = setInterval(async () => {
       try {
         osData = await getOsData()
@@ -54,13 +56,15 @@ module.exports = (httpServer) => {
         console.error('客户端错误：', error)
         socket && socket.emit('client_error', { error })
       }
-    }, 1500)
+    }, 1000)
 
     socket.on('disconnect', () => {
+      // 断开时清楚对应的websocket连接
       if(serverSockets[socket.id]) clearInterval(serverSockets[socket.id])
       delete serverSockets[socket.id]
       socket.close && socket.close()
       socket = null
+      // console.log('断开socketId: ', socket.id, '剩余链接数: ', Object.keys(serverSockets).length)
     })
   })
 }

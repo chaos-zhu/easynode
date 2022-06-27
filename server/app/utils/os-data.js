@@ -9,7 +9,7 @@ let osuOs = osu.os
 let users = osu.users
 
 async function cpuInfo() {
-  let cpuUsage = await cpu.usage(300)
+  let cpuUsage = await cpu.usage(200)
   let cpuCount = cpu.count()
   let cpuModel = cpu.model()
   return {
@@ -37,7 +37,7 @@ async function driveInfo() {
 }
 
 async function netstatInfo() {
-  let netstatInfo = await netstat.inOut(300)
+  let netstatInfo = await netstat.inOut()
   return netstatInfo === 'not supported' ? {} : netstatInfo
 }
 

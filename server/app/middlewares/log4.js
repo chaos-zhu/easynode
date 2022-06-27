@@ -3,12 +3,14 @@ const { outDir, flag } = require('../config').logConfig
 
 log4js.configure({
   appenders: {
+    // 控制台输出
     out: {
       type: 'stdout',
       layout: {
         type: 'colored'
       }
     },
+    // 保存日志文件
     cheese: {
       type: 'file',
       maxLogSize: 512*1024, // unit: bytes     1KB = 1024bytes
@@ -17,10 +19,11 @@ log4js.configure({
   },
   categories: {
     default: {
-      appenders: [ 'out', 'cheese' ],
-      level: 'info'
+      appenders: [ 'out', 'cheese' ], // 配置
+      level: 'info' // 只输出info以上级别的日志
     }
   }
+  // pm2: true
 })
 
 const logger = log4js.getLogger()
@@ -37,7 +40,8 @@ const useLog = () => {
       ip,
       headers
     }
-    await next()
+    await next() // 等待路由处理完成，再开始记录日志
+    // 是否记录日志
     if (flag) {
       const { status, params } = ctx
       data.status = status

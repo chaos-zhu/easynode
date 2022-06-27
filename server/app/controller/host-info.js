@@ -1,4 +1,4 @@
-const { readHostList, writeHostList } = require('../utils')
+const { readHostList, writeHostList, readSSHRecord, writeSSHRecord } = require('../utils')
 
 function getHostList({ res }) {
   const data = readHostList()
@@ -33,7 +33,14 @@ function removeHost({ res, request }) {
   if(hostIdx === -1) return res.fail({ msg: `${ host }不存在` })
   hostList.splice(hostIdx, 1)
   writeHostList(hostList)
-  res.success({ data: `${ host }已移除` })
+  // 查询是否存在ssh记录
+  let sshRecord = readSSHRecord()
+  let sshIdx = sshRecord.findIndex(item => item.host === host)
+  let flag = sshIdx !== -1
+  if(flag) sshRecord.splice(sshIdx, 1)
+  writeSSHRecord(sshRecord)
+
+  res.success({ data: `${ host }已移除, ${ flag ? '并移除ssh记录' : '' }` })
 }
 
 function updateHostSort({ res, request }) {

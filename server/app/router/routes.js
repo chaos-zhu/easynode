@@ -1,14 +1,9 @@
-const osInfo = require('../controller/os-info')
 const { updateSSH, removeSSH, existSSH, getCommand } = require('../controller/ssh-info')
 const { getHostList, saveHost, updateHost, removeHost, updateHostSort } = require('../controller/host-info')
-const { login, getpublicKey, updatePwd } = require('../controller/user')
+const { login, getpublicKey, updatePwd, getLoginRecord } = require('../controller/user')
 
+// 路由统一管理
 const routes = [
-  {
-    method: 'get',
-    path: '/os-info',
-    controller: osInfo
-  },
   {
     method: 'post',
     path: '/update-ssh',
@@ -68,6 +63,11 @@ const routes = [
     method: 'put',
     path: '/pwd',
     controller: updatePwd
+  },
+  {
+    method: 'get',
+    path: '/get-login-record',
+    controller: getLoginRecord
   }
 ]
 
