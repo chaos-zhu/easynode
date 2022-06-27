@@ -2,7 +2,26 @@
 
 > 一个简易的个人Linux服务器管理面板(基于Node.js)
 
-## 功能
+<!-- - [EasyNode](#easynode) -->
+  - [功能简介](#功能简介)
+  - [安装指南](#安装指南)
+    - [服务端安装](#服务端安装)
+      - [Docker镜像](#docker镜像)
+      - [一键脚本](#一键脚本)
+      - [手动部署](#手动部署)
+    - [客户端安装](#客户端安装)
+      - [X86架构](#x86架构)
+      - [ARM架构](#arm架构)
+  - [升级指南](#升级指南)
+    - [服务端](#服务端)
+    - [客户端](#客户端)
+    - [版本日志](#版本日志)
+  - [安全与说明](#安全与说明)
+  - [Q&A](#qa)
+  - [感谢Star](#感谢star)
+  - [License](#license)
+
+## 功能简介
 
 > 多服务器管理; 通过`websocker实时更新`服务器基本信息: **系统、公网IP、CPU、内存、硬盘、网卡**等
 
@@ -76,7 +95,7 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 - 占用端口：22022
 
-#### X86架构()
+#### X86架构
 
 ```shell
 wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/v1.1/easynode-client-install-x86.sh | bash
@@ -118,6 +137,10 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 > v1.1未对客户端包进行改动，客户端无需重复安装. 不会备份的在面板重新添加客户端机器即可.
 
+### 版本日志
+
+- [CHANGELOG](./CHANGELOG.md)
+
 ## 安全与说明
 
 > 本人非专业后端，此服务全凭兴趣开发. 由于知识受限，并不能保证没有漏洞的存在，生产服务器请慎重使用此服务.
@@ -143,7 +166,11 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 - 面板登录通知(tg or wx?)
 - 定时任务 -->
 
-## 感谢Star~
+## Q&A
+
+- [Q&A](./Q%26A.md)
+
+## 感谢Star
 
 [![Stargazers repo roster for @chaos-zhu/easynode](https://reporoster.com/stars/chaos-zhu/easynode)](https://github.com/chaos-zhu/easynode/stargazers)
 
