@@ -76,15 +76,13 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 - 占用端口：22022
 
-> 安装：支持后续一键升级
-
 #### X86架构
 ```shell
-wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-install.sh | bash
+wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-install-x86.sh | bash
 ```
 #### ARM架构
 ```shell
-待补充
+wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/master/easynode-client-install-arm.sh | bash
 ```
 
 > 卸载：无服务残留

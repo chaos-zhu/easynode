@@ -41,7 +41,7 @@ echo "pm2 version: $(pm2 -v) 安装成功"
 
 echo '开始下载EasyNode'
 
-DOWNLOAD_FILE_URL="https://ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v1.0/easynode-server.zip"
+DOWNLOAD_FILE_URL="https://ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v1.1/easynode-server.zip"
 SERVER_NAME=easynode-server
 SERVER_ZIP=easynode-server.zip
 FILE_PATH=/root
