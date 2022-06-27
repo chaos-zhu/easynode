@@ -1,1 +1,6 @@
-[]
+[
+  {
+    "host": "localhost",
+    "name": "test"
+  }
+]

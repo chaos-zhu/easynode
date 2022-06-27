@@ -44,11 +44,12 @@ const login = async ({ res, request }) => {
 
 const updatePwd = async ({ res, request }) => {
   let { body: { oldPwd, newPwd } } = request
-  oldPwd = SHA1Encrypt(RSADecrypt(oldPwd))
-  newPwd = SHA1Encrypt(RSADecrypt(newPwd))
-
+  let rsaOldPwd = RSADecrypt(oldPwd)
+  oldPwd = rsaOldPwd === 'admin' ? 'admin' : SHA1Encrypt(rsaOldPwd)
   let keyObj = readKey()
   if(oldPwd !== keyObj.pwd) return res.fail({ data: false, msg: '旧密码校验失败' })
+  // 旧密钥校验通过，加密保存新密码
+  newPwd = SHA1Encrypt(RSADecrypt(newPwd))
   keyObj.pwd = newPwd
   writeKey(keyObj)
   res.success({ data: true, msg: 'success' })
