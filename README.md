@@ -77,9 +77,10 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 1. 安装Node.js
 2. 安装pm2、安装yarn
 3. 拉取代码：git clone https://github.com/chaos-zhu/easynode.git
-4. 安装依赖：yarn
-5. 启动服务：pm2 start server/app/main.js --name easynode-server
-6. 访问：http://yourip:8082
+4. cd server目录
+5. 安装依赖：yarn
+6. 启动服务：pm2 start server/app/main.js --name easynode-server
+7. 访问：http://yourip:8082
 
 - 默认登录密码：admin(首次部署完成后请及时修改).
 
