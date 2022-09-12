@@ -48,7 +48,7 @@
 > 注意：网速统计功能可能受限，docker网络将使用host模式(与宿主机共享端口，占用: 8082、22022)
 
 ```shell
-docker run -d --net=host -v /easynode-server:/easynode-server/server/app/storage chaoszhu/easynode:v1.1
+docker run -d --net=host -v /easynode-server:/easynode-server/server/app/config/storage chaoszhu/easynode:v1.1
 ```
 
 访问：http://yourip:8082
