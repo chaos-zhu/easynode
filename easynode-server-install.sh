@@ -13,7 +13,7 @@ rm -rf /root/.nvm
 # 国内
 bash -c "$(curl -fsSL https://gitee.com/chaoszhu_0/nvm-cn/raw/master/install.sh)"
 # 国外
-# bash -c "$(curl -fsSL https://raw.githubusercontent.com/chaos-zhu/nvm-cn/master/install.sh)" 
+# bash -c "$(curl -fsSL https://raw.githubusercontent.com/chaos-zhu/nvm-cn/master/install.sh)"
 
 if [ $? != "0" ] ; then
  echo '安装失败'
@@ -34,14 +34,14 @@ echo "node version: $(node -v) 安装成功"
 echo "npm version: $(npm -v) 安装成功"
 
 echo '开始安装pm2'
-npm config set registry https://registry.npm.taobao.org 
+npm config set registry https://registry.npm.taobao.org
 npm i -g pm2
 
 echo "pm2 version: $(pm2 -v) 安装成功"
 
 echo '开始下载EasyNode'
 
-DOWNLOAD_FILE_URL="https://ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v1.1/easynode-server.zip"
+DOWNLOAD_FILE_URL="https://ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v1.2/easynode-server.zip"
 SERVER_NAME=easynode-server
 SERVER_ZIP=easynode-server.zip
 FILE_PATH=/root

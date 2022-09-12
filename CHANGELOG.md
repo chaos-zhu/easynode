@@ -1,3 +1,20 @@
+## [1.2.0](https://github.com/chaos-zhu/easynode/releases) (2022-09-12)
+
+### Features
+
+* 新增邮件通知: 包括登录面板、密码修改、服务器到期、服务器离线等 ✔
+* 支持服务器分组(为新版UI作准备的) ✔
+* 面板功能调整，支持http延迟显示、支持服务器控制台直达与到期时间字段 ✔
+* 优化终端输入、支持状态面板收缩 ✔
+* **全新SFTP功能支持，上传下载进度条展示** ✔
+* **支持在线文件编辑与保存** ✔
+
+### Bug Fixes
+
+* v1.1的若干bug...
+
+---
+
 ## [1.1.0](https://github.com/chaos-zhu/easynode/releases) (2022-06-27)
 
 ### Features
