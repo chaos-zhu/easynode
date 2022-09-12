@@ -18,7 +18,7 @@ then
   echo "***********************停用旧服务***********************"
 	systemctl stop ${SERVER_NAME}
 	systemctl disable ${SERVER_NAME}
-	systemctl daemon-reload	
+	systemctl daemon-reload
 fi
 
 if [ -f "${SERVICE_PATH}/${SERVER_NAME}.service" ]
