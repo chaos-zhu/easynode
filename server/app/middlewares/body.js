@@ -7,10 +7,6 @@ module.exports = koaBody({
     uploadDir, // 上传目录
     keepExtensions: true, // 保持文件的后缀
     multipart: true, // 多文件上传
-    maxFieldsSize: 2 * 1024 * 1024, // 文件上传大小 单位：B
-    onFileBegin: (name, file) => { // 文件上传前的设置
-      // console.log(`name: ${name}`)
-      // console.log(file)
-    }
+    maxFieldsSize: 2 * 1024 * 1024 // 文件上传大小 单位：B
   }
 })

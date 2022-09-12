@@ -5,12 +5,11 @@ let whitePath = [
   '/login',
   '/get-pub-pem'
 ].map(item => (apiPrefix + item))
-console.log('路由白名单：', whitePath)
+consola.info('路由白名单：', whitePath)
 
 const useAuth = async ({ request, res }, next) => {
   const { path, headers: { token } } = request
-  console.log('path: ', path)
-  // console.log('token: ', token)
+  consola.info('verify path: ', path)
   if(whitePath.includes(path)) return next()
   if(!token) return res.fail({ msg: '未登录', status: 403 })
   // 验证token

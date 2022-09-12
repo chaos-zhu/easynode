@@ -6,22 +6,22 @@ function getHostList({ res }) {
 }
 
 function saveHost({ res, request }) {
-  let { body: { host: newHost, name } } = request
-  if(!newHost || !name) return res.fail({ msg: '参数错误' })
+  let { body: { host: newHost, name, expired, expiredNotify, group, consoleUrl, remark } } = request
+  if(!newHost || !name) return res.fail({ msg: 'missing params: name or host' })
   let hostList = readHostList()
   if(hostList.some(({ host }) => host === newHost)) return res.fail({ msg: `主机${ newHost }已存在` })
-  hostList.push({ host: newHost, name })
+  hostList.push({ host: newHost, name, expired, expiredNotify, group, consoleUrl, remark })
   writeHostList(hostList)
   res.success()
 }
 
 function updateHost({ res, request }) {
-  let { body: { host: newHost, name: newName, oldHost } } = request
+  let { body: { host: newHost, name: newName, oldHost, expired, expiredNotify, group, consoleUrl, remark } } = request
   if(!newHost || !newName || !oldHost) return res.fail({ msg: '参数错误' })
   let hostList = readHostList()
   if(!hostList.some(({ host }) => host === oldHost)) return res.fail({ msg: `主机${ newHost }不存在` })
   let targetIdx = hostList.findIndex(({ host }) => host === oldHost)
-  hostList.splice(targetIdx, 1, { name: newName, host: newHost })
+  hostList.splice(targetIdx, 1, { name: newName, host: newHost, expired, expiredNotify, group, consoleUrl, remark })
   writeHostList(hostList)
   res.success()
 }

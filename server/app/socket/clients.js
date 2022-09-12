@@ -9,7 +9,7 @@ let clientSockets = {}, clientsData = {}
 function getClientsInfo(socketId) {
   let hostList = readHostList()
   hostList
-    .map(({ host }) => {
+    .map(({ host, name }) => {
       let clientSocket = ClientIO(`http://${ host }:${ clientPort }`, {
         path: '/client/os-info',
         forceNew: true,
@@ -21,13 +21,14 @@ function getClientsInfo(socketId) {
       clientSockets[socketId].push(clientSocket)
       return {
         host,
+        name,
         clientSocket
       }
     })
-    .map(({ host, clientSocket }) => {
+    .map(({ host, name, clientSocket }) => {
       clientSocket
         .on('connect', () => {
-          console.log('client connect success:', host)
+          consola.success('client connect success:', host, name)
           clientSocket.on('client_data', (osData) => {
             clientsData[host] = osData
           })
@@ -36,11 +37,11 @@ function getClientsInfo(socketId) {
           })
         })
         .on('connect_error', (error) => {
-          console.log('client connect fail:', host, error.message)
+          consola.error('client connect fail:', host, name, error.message)
           clientsData[host] = null
         })
         .on('disconnect', () => {
-          console.log('client connect disconnect:', host)
+          consola.info('client connect disconnect:', host, name)
           clientsData[host] = null
         })
     })
@@ -68,7 +69,7 @@ module.exports = (httpServer) => {
 
       // 收集web端连接的id
       clientSockets[socket.id] = []
-      console.log('client连接socketId: ', socket.id, 'clients-socket已连接数: ', Object.keys(clientSockets).length)
+      consola.info('client连接socketId: ', socket.id, 'clients-socket已连接数: ', Object.keys(clientSockets).length)
 
       // 获取客户端数据
       getClientsInfo(socket.id)
@@ -89,7 +90,7 @@ module.exports = (httpServer) => {
         // 当web端与服务端断开连接时, 服务端与每个客户端的socket也应该断开连接
         clientSockets[socket.id].forEach(socket => socket.close && socket.close())
         delete clientSockets[socket.id]
-        console.log('断开socketId: ', socket.id, 'clients-socket剩余连接数: ', Object.keys(clientSockets).length)
+        consola.info('断开socketId: ', socket.id, 'clients-socket剩余连接数: ', Object.keys(clientSockets).length)
       })
     })
   })

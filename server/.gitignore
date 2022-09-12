@@ -1,0 +1,7 @@
+node_modules
+app/static/upload/*
+app/socket/temp/*
+app/socket/.sftp-cache/*
+app/logs/*
+!.gitkeep
+dist

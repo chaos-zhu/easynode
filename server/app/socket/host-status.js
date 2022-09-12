@@ -8,7 +8,7 @@ let hostSockets = {}
 function getHostInfo(serverSocket, host) {
   let hostSocket = ClientIO(`http://${ host }:${ clientPort }`, {
     path: '/client/os-info',
-    forceNew: true,
+    forceNew: false,
     timeout: 5000,
     reconnectionDelay: 3000,
     reconnectionAttempts: 100
@@ -18,7 +18,7 @@ function getHostInfo(serverSocket, host) {
 
   hostSocket
     .on('connect', () => {
-      console.log('客户端状态socket连接成功:', host)
+      consola.success('host-status-socket连接成功:', host)
       hostSocket.on('client_data', (data) => {
         serverSocket.emit('host_data', data)
       })
@@ -27,11 +27,11 @@ function getHostInfo(serverSocket, host) {
       })
     })
     .on('connect_error', (error) => {
-      console.log('客户端状态socket连接[失败]:', host, error.message)
+      consola.error('host-status-socket连接[失败]:', host, error.message)
       serverSocket.emit('host_data', null)
     })
     .on('disconnect', () => {
-      console.log('客户端状态socket连接[断开]:', host)
+      consola.info('host-status-socket连接[断开]:', host)
       serverSocket.emit('host_data', null)
     })
 }
@@ -59,7 +59,7 @@ module.exports = (httpServer) => {
       // 获取客户端数据
       getHostInfo(serverSocket, host)
 
-      console.log('host-socket连接socketId: ', serverSocket.id, 'host-socket已连接数: ', Object.keys(hostSockets).length)
+      consola.info('host-status-socket连接socketId: ', serverSocket.id, 'host-status-socket已连接数: ', Object.keys(hostSockets).length)
 
       // 关闭连接
       serverSocket.on('disconnect', () => {
@@ -67,7 +67,7 @@ module.exports = (httpServer) => {
         let socket = hostSockets[serverSocket.id]
         socket.close && socket.close()
         delete hostSockets[serverSocket.id]
-        console.log('host-socket剩余连接数: ', Object.keys(hostSockets).length)
+        consola.info('host-status-socket剩余连接数: ', Object.keys(hostSockets).length)
       })
     })
   })

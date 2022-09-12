@@ -1,5 +1,5 @@
 const log4js = require('log4js')
-const { outDir, flag } = require('../config').logConfig
+const { outDir, recordLog } = require('../config').logConfig
 
 log4js.configure({
   appenders: {
@@ -42,7 +42,7 @@ const useLog = () => {
     }
     await next() // 等待路由处理完成，再开始记录日志
     // 是否记录日志
-    if (flag) {
+    if (recordLog) {
       const { status, params } = ctx
       data.status = status
       data.params = params

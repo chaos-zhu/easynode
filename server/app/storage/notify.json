@@ -1,0 +1,22 @@
+[
+  {
+    "type": "login",
+    "desc": "登录面板提醒",
+    "sw": true
+  },
+  {
+    "type": "err_login",
+    "desc": "登录错误提醒(连续5次)",
+    "sw": true
+  },
+  {
+    "type": "updatePwd",
+    "desc": "修改密码提醒",
+    "sw": true
+  },
+  {
+    "type": "host_offline",
+    "desc": "客户端离线提醒(每小时最多发送一次提醒)",
+    "sw": true
+  }
+]

@@ -1,6 +1,6 @@
 {
   "name": "easynode-server",
-  "version": "1.1.0",
+  "version": "0.0.1",
   "description": "easynode-server",
   "bin": "./bin/www",
   "pkg": {
@@ -27,9 +27,10 @@
   "dependencies": {
     "@koa/cors": "^3.1.0",
     "axios": "^0.21.4",
+    "consola": "^2.15.3",
+    "cross-env": "^7.0.3",
     "crypto-js": "^4.1.1",
     "global": "^4.4.0",
-    "is-ip": "^4.0.0",
     "jsonwebtoken": "^8.5.1",
     "koa": "^2.13.1",
     "koa-body": "^4.2.0",
@@ -44,12 +45,13 @@
     "node-os-utils": "^1.3.6",
     "node-rsa": "^1.1.1",
     "node-schedule": "^2.1.0",
+    "nodemailer": "^6.7.5",
     "socket.io": "^4.4.1",
     "socket.io-client": "^4.5.1",
-    "ssh2": "^1.10.0"
+    "ssh2": "^1.10.0",
+    "ssh2-sftp-client": "^9.0.1"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
     "eslint": "^7.32.0",
     "nodemon": "^2.0.15",
     "pkg": "5.6"

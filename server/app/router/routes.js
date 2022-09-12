@@ -1,9 +1,10 @@
-const { updateSSH, removeSSH, existSSH, getCommand } = require('../controller/ssh-info')
-const { getHostList, saveHost, updateHost, removeHost, updateHostSort } = require('../controller/host-info')
+const { updateSSH, removeSSH, existSSH, getCommand } = require('../controller/ssh')
+const { getHostList, saveHost, updateHost, removeHost, updateHostSort } = require('../controller/host')
 const { login, getpublicKey, updatePwd, getLoginRecord } = require('../controller/user')
+const { getSupportEmailList, getUserEmailList, updateUserEmailList, removeUserEmail, pushEmail, getNotifyList, updateNotifyList } = require('../controller/notify')
+const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
 
-// 路由统一管理
-const routes = [
+const ssh = [
   {
     method: 'post',
     path: '/update-ssh',
@@ -23,7 +24,9 @@ const routes = [
     method: 'get',
     path: '/command',
     controller: getCommand
-  },
+  }
+]
+const host = [
   {
     method: 'get',
     path: '/host-list',
@@ -48,7 +51,9 @@ const routes = [
     method: 'put',
     path: '/host-sort',
     controller: updateHostSort
-  },
+  }
+]
+const user = [
   {
     method: 'get',
     path: '/get-pub-pem',
@@ -70,5 +75,65 @@ const routes = [
     controller: getLoginRecord
   }
 ]
+const notify = [
+  {
+    method: 'get',
+    path: '/support-email',
+    controller: getSupportEmailList
+  },
+  {
+    method: 'get',
+    path: '/user-email',
+    controller: getUserEmailList
+  },
+  {
+    method: 'post',
+    path: '/push-email',
+    controller: pushEmail
+  },
+  {
+    method: 'post',
+    path: '/user-email',
+    controller: updateUserEmailList
+  },
+  {
+    method: 'delete',
+    path: '/user-email/:email',
+    controller: removeUserEmail
+  },
+  {
+    method: 'get',
+    path: '/notify',
+    controller: getNotifyList
+  },
+  {
+    method: 'put',
+    path: '/notify',
+    controller: updateNotifyList
+  }
+]
 
-module.exports = routes
+const group = [
+  {
+    method: 'get',
+    path: '/group',
+    controller: getGroupList
+  },
+  {
+    method: 'post',
+    path: '/group',
+    controller: addGroupList
+  },
+  {
+    method: 'delete',
+    path: '/group/:id',
+    controller: removeGroup
+  },
+  {
+    method: 'put',
+    path: '/group/:id',
+    controller: updateGroupList
+  }
+]
+
+module.exports = [].concat(ssh, host, user, notify, group)

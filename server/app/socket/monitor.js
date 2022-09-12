@@ -2,16 +2,17 @@ const { Server } = require('socket.io')
 const schedule = require('node-schedule')
 const axios = require('axios')
 let getOsData = require('../utils/os-data')
+const consola = require('consola')
 
 let serverSockets = {}, ipInfo = {}, osData = {}
 
 async function getIpInfo() {
   try {
     let { data } = await axios.get('http://ip-api.com/json?lang=zh-CN')
-    console.log('getIpInfo Success: ', new Date())
+    consola.success('getIpInfo Success: ', new Date())
     ipInfo = data
   } catch (error) {
-    console.log('getIpInfo Error: ', new Date(), error)
+    consola.error('getIpInfo Error: ', new Date(), error)
   }
 }
 
@@ -21,7 +22,7 @@ function ipSchedule() {
   schedule.scheduleJob(rule1, () => {
     let { query, country, city } = ipInfo || {}
     if(query && country && city) return
-    console.log('Task: start getIpInfo', new Date())
+    consola.success('Task: start getIpInfo', new Date())
     getIpInfo()
   })
 
@@ -31,7 +32,7 @@ function ipSchedule() {
   rule2.minute = 0
   rule2.second = 0
   schedule.scheduleJob(rule2, () => {
-    console.log('Task: refresh ip info', new Date())
+    consola.info('Task: refresh ip info', new Date())
     getIpInfo()
   })
 }
@@ -53,7 +54,7 @@ module.exports = (httpServer) => {
         osData = await getOsData()
         socket && socket.emit('client_data', Object.assign(osData, { ipInfo }))
       } catch (error) {
-        console.error('客户端错误：', error)
+        consola.error('客户端错误：', error)
         socket && socket.emit('client_error', { error })
       }
     }, 1000)
