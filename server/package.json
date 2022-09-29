@@ -11,7 +11,7 @@
   "scripts": {
     "local": "cross-env EXEC_ENV=local nodemon ./app/main.js",
     "server": "cross-env EXEC_ENV=production nodemon ./app/main.js",
-    "start": "pm2 start ./app/main.js",
+    "start": "node ./app/main.js",
     "pkgwin": "pkg . -t  node16-win-x64",
     "pkglinux:x86": "pkg . -t node16-linux-x64",
     "pkglinux:arm": "pkg . -t node16-linux-arm64"
