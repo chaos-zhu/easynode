@@ -1,3 +1,0 @@
-#!/usr/bin/env node
-console.log('start time', new Date())
-require('../app/main.js')
