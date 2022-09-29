@@ -17,7 +17,7 @@ const httpServer = () => {
   const server = http.createServer(app.callback())
   serverHandler(app, server)
   // ws一直报跨域的错误：参照官方文档使用createServer API创建服务
-  server.listen(httpPort, () => {
+  server.listen(process.env.PORT || httpPort, () => {
     consola.success(`Server(http) is running on: http://localhost:${ httpPort }`)
   })
 }
