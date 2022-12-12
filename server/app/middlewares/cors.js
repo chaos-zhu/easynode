@@ -1,10 +1,8 @@
 const cors = require('@koa/cors')
-// const { domain } = require('../config')
 
 // 跨域处理
 const useCors = cors({
   origin: ({ req }) => {
-    // return domain || req.headers.origin
     return req.headers.origin
   },
   credentials: true,

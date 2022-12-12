@@ -42,11 +42,9 @@
 
 - 依赖Node.js环境
 
-- 占用端口：8082(http端口)、8083(https端口)、22022(客户端端口)
+- 占用端口：8082(http端口)、22022(客户端端口)
 
 - 建议使用**境外服务器**(最好延迟低)安装服务端，客户端信息监控与webssh功能都将以`该服务器作为跳板机`
-
-- https服务需自行配置证书，或者使用`nginx反代`解决(推荐)
 
 #### Docker镜像
 
@@ -87,12 +85,6 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 6. 访问：http://yourip:8082
 
 - 默认登录密码：admin(首次部署完成后请及时修改).
-
-6. 部署https服务
-- 部署https服务需要自己上传域名证书至`\server\app\config\pem`，并且证书和私钥分别命名：`key.pem`和`cert.pem`
-- 配置域名：vim server/app/config/index.js  在domain字段中填写你解析到服务器的域名
-- pm2 restart easynode-server
-- 不出意外你就可以访问https服务：https://domain:8083
 
 ---
 

@@ -109,21 +109,21 @@ function listenInput(sftpClient, socket) {
       socket.emit('sftp_error', error.message)
     }
   })
-  // socket.on('up_file', async ({ targetPath, fullPath, name, file }) => {
-  //   console.log({ targetPath, fullPath, name, file })
-  //   const exists = await sftpClient.exists(targetPath)
-  //   if(!exists) return socket.emit('not_exists_dir', '文件夹不存在或当前不可访问')
-  //   try {
-  //     const localPath = rawPath.join(sftpCacheDir, name)
-  //     fs.writeFileSync(localPath, file)
-  //     let res = await sftpClient.fastPut(localPath, fullPath)
-  //     consola.success('sftp上传成功: ', res)
-  //     socket.emit('up_file_success', res)
-  //   } catch (error) {
-  //     consola.error('up_file Error', error.message)
-  //     socket.emit('sftp_error', error.message)
-  //   }
-  // })
+  socket.on('up_file', async ({ targetPath, fullPath, name, file }) => {
+    console.log({ targetPath, fullPath, name, file })
+    const exists = await sftpClient.exists(targetPath)
+    if(!exists) return socket.emit('not_exists_dir', '文件夹不存在或当前不可访问')
+    try {
+      const localPath = rawPath.join(sftpCacheDir, name)
+      fs.writeFileSync(localPath, file)
+      let res = await sftpClient.fastPut(localPath, fullPath)
+      consola.success('sftp上传成功: ', res)
+      socket.emit('up_file_success', res)
+    } catch (error) {
+      consola.error('up_file Error', error.message)
+      socket.emit('sftp_error', error.message)
+    }
+  })
 
   /** 分片上传 */
   // 1. 创建本地缓存文件夹
@@ -186,7 +186,7 @@ function listenInput(sftpClient, socket) {
 	    clearDir(resultDirPath, true) // 传服务器后移除文件夹及其文件
     } catch (error) {
 	    consola.error('sftp上传失败: ', error.message)
-      socket.emit('sftp_error', error.message)
+      socket.emit('up_file_fail', error.message)
 	    clearDir(resultDirPath, true) // 传服务器后移除文件夹及其文件
     }
   })

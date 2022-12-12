@@ -1,3 +1,14 @@
+## [1.2.1](https://github.com/chaos-zhu/easynode/releases) (2022-12-12)
+
+### Features
+
+* 新增支持终端长命令输入模式 ✔
+* 新增前端静态文件缓存 ✔
+
+### Bug Fixes
+
+* v1.2的若干bug...
+
 ## [1.2.0](https://github.com/chaos-zhu/easynode/releases) (2022-09-12)
 
 ### Features

@@ -63,7 +63,7 @@ const getNetIPInfo = async (searchIp = '') => {
       let { origip: ip, location: country, city = '', regionName = '' } = res || {}
       searchResult.push({ ip, country, city: `${ regionName } ${ city }`, date })
     }
-    console.log(searchResult)
+    // console.log(searchResult)
     let validInfo = searchResult.find(item => Boolean(item.country))
     consola.info('查询IP信息：', validInfo)
     return validInfo || { ip: '获取IP信息API出错,请排查或更新API', country: '未知', city: '未知', date }
