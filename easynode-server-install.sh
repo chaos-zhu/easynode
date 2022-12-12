@@ -28,7 +28,7 @@ export VM_NODEJS_ORG_MIRROR=https://npm.taobao.org/mirrors/node
 
 echo '开始安装node&npm'
 
-nvm install --lts
+nvm install 16
 
 echo "node version: $(node -v) 安装成功"
 echo "npm version: $(npm -v) 安装成功"
