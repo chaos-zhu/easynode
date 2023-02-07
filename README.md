@@ -1,6 +1,8 @@
 # EasyNode v1.2
 
-> 一个简易的个人Linux服务器管理面板(基于Node.js)
+> 一个简易的个人Linux服务器管理面板(基于Node.js).
+
+> 前端仓库地址：https://github.com/chaos-zhu/easynode_web
 
 <!-- - [EasyNode](#easynode) -->
   - [功能简介](#功能简介)
