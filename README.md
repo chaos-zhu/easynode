@@ -60,11 +60,13 @@ docker run -d --net=host -v /easynode-server:/easynode-server/server/app/storage
 
 #### 一键脚本
 
-- 依赖Linux基础命令：curl wget git zip tar；如未安装请先安装：
+- **依赖Linux基础命令工具：curl wget git zip tar；如未安装请先安装：**
 
 > ubuntu/debian: `apt install curl wget git zip tar -y`
 >
 > centos: `yum install curl wget git zip tar -y`
+
+- 运行环境：[Node.js](https://nodejs.org/en/download/) **v14+**
 
 ```shell
 wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/v1.2/easynode-server-install.sh | bash
