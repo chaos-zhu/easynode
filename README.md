@@ -52,8 +52,18 @@
 
 > 注意：网速统计功能可能受限，docker网络将使用host模式(与宿主机共享端口，占用: 8082、22022)
 
+- 如果你是第一次运行，先创建一个volume用于保存数据
 ```shell
-docker run -d --net=host -v /easynode-server:/easynode-server/server/app/storage chaoszhu/easynode:v1.2.1
+docker volume create --name easynode-server
+```
+
+```shell
+docker run -d --net=host --name=easynode-server -v easynode-server:/easynode-server/app/storage/ chaoszhu/easynode:v1.2.1
+```
+
+- 如果你想清除容器与数据
+```shell
+docker rm -f easynode-server && docker volume remove easynode-server
 ```
 
 访问：http://yourip:8082
