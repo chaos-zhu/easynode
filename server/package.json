@@ -29,7 +29,7 @@
     "axios": "^0.21.4",
     "consola": "^2.15.3",
     "cross-env": "^7.0.3",
-    "crypto-js": "^4.1.1",
+    "crypto-js": "^4.2.0",
     "global": "^4.4.0",
     "jsonwebtoken": "^9.0.0",
     "koa": "^2.13.1",
