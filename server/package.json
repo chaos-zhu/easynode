@@ -25,7 +25,7 @@
     ]
   },
   "dependencies": {
-    "@koa/cors": "^3.1.0",
+    "@koa/cors": "^5.0.0",
     "axios": "^0.21.4",
     "consola": "^2.15.3",
     "cross-env": "^7.0.3",
