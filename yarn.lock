@@ -65,10 +65,10 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@koa/cors@^3.1.0":
-  version "3.3.0"
-  resolved "https://registry.yarnpkg.com/@koa/cors/-/cors-3.3.0.tgz#b4c1c7ee303b7c968c8727f2a638a74675b50bb2"
-  integrity sha512-lzlkqLlL5Ond8jb6JLnVVDmD2OPym0r5kvZlMgAWiS9xle+Q5ulw1T358oW+RVguxUkANquZQz82i/STIRmsqQ==
+"@koa/cors@^5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@koa/cors/-/cors-5.0.0.tgz#0029b5f057fa0d0ae0e37dd2c89ece315a0daffd"
+  integrity sha512-x/iUDjcS90W69PryLDIMgFyV21YLTnG9zOpPXS7Bkt2b8AsY3zZsIpOLBkYr9fBcF3HbkKaER5hOBZLfpLgYNw==
   dependencies:
     vary "^1.1.2"
 
