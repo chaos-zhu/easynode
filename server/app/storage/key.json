@@ -1,6 +1,5 @@
 {
   "pwd": "admin",
-  "jwtExpires": "1h",
   "commonKey": "",
   "publicKey": "",
   "privateKey": ""
