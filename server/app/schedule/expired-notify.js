@@ -3,7 +3,7 @@ const { readHostList, sendEmailToConfList, formatTimestamp } = require('../utils
 
 const expiredNotifyJob = () => {
   consola.info('=====开始检测服务器到期时间=====', new Date())
-  const hostList = readHostList()
+  const hostList = await readHostList()
   for (const item of hostList) {
     if(!item.expiredNotify) continue
     const { host, name, expired, consoleUrl } = item

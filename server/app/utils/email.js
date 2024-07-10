@@ -11,12 +11,12 @@ const emailTransporter = async (params = {}) => {
   let { toEmail, title, html } = params
   try {
     if(!toEmail) throw Error('missing params: toEmail')
-    let userEmail = readUserEmailList().find(({ auth }) => auth.user === toEmail)
+    let userEmail = (await readUserEmailList()).find(({ auth }) => auth.user === toEmail)
     if(!userEmail) throw Error(`${ toEmail } 不存在已保存的配置文件中, 请移除后重新添加`)
     let { target } = userEmail
-    let emailServerConf = readSupportEmailList().find((item) => item.target === target)
+    let emailServerConf = (await readSupportEmailList()).find((item) => item.target === target)
     if(!emailServerConf) throw Error(`邮箱类型不支持：${ target }`)
-    const timeout = 1000*6
+    const timeout = 1000*5
     let options = Object.assign({}, userEmail, emailServerConf, { greetingTimeout: timeout, connectionTimeout: timeout })
     let transporter = nodemailer.createTransport(options)
     let info = await transporter.sendMail({
@@ -36,7 +36,7 @@ const emailTransporter = async (params = {}) => {
 const sendEmailToConfList = (title, content) => {
   // eslint-disable-next-line
   return new Promise(async (res, rej) => {
-    let emailList = readUserEmailList()
+    let emailList = await readUserEmailList()
     if(Array.isArray(emailList) && emailList.length >= 1) {
       for (const item of emailList) {
         const toEmail = item.auth.user

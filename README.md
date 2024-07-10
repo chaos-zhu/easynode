@@ -19,6 +19,7 @@
     - [客户端](#客户端)
     - [版本日志](#版本日志)
   - [安全与说明](#安全与说明)
+  - [开发](#开发)
   - [Q&A](#qa)
   - [感谢Star](#感谢star)
   - [License](#license)
@@ -159,6 +160,13 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 > 所有服务器信息相关接口已做`jwt鉴权`, 安全信息均使用加密传输与储存!
 
 > webssh功能需要的密钥信息全部保存在服务端服务器的`app\storage\ssh-record.json`中. 在保存ssh密钥信息到服务器储存与传输过程皆已加密，`不过最好还是套https使用`
+
+## 开发
+
+1. 拉取代码，准备nodejs环境>=16
+2. cd到项目根目录，yarn执行安装依赖
+3. cd web 启动前端 npm run dev
+4. cd server 启动服务端 npm run local
 
 ## Q&A
 

@@ -88,13 +88,13 @@ const notify = [
   },
   {
     method: 'post',
-    path: '/push-email',
-    controller: pushEmail
+    path: '/user-email',
+    controller: updateUserEmailList
   },
   {
     method: 'post',
-    path: '/user-email',
-    controller: updateUserEmailList
+    path: '/push-email',
+    controller: pushEmail
   },
   {
     method: 'delete',

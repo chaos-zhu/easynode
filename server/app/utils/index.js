@@ -12,9 +12,10 @@ const {
   getNotifySwByType,
   writeNotifyList,
   readGroupList,
-  writeGroupList } = require('./storage')
-const { RSADecrypt, AESEncrypt, AESDecrypt, SHA1Encrypt } = require('./encrypt')
-const { verifyAuth, isProd } = require('./verify-auth')
+  writeGroupList
+} = require('./storage')
+const { RSADecryptSync, AESEncryptSync, AESDecryptSync, SHA1Encrypt } = require('./encrypt')
+const { verifyAuthSync, isProd } = require('./verify-auth')
 const { getNetIPInfo, throwError, isIP, randomStr, getUTCDate, formatTimestamp } = require('./tools')
 const { emailTransporter, sendEmailToConfList } = require('./email')
 
@@ -25,11 +26,11 @@ module.exports = {
   randomStr,
   getUTCDate,
   formatTimestamp,
-  verifyAuth,
+  verifyAuthSync,
   isProd,
-  RSADecrypt,
-  AESEncrypt,
-  AESDecrypt,
+  RSADecryptSync,
+  AESEncryptSync,
+  AESDecryptSync,
   SHA1Encrypt,
   readSSHRecord,
   writeSSHRecord,

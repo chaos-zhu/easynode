@@ -2,7 +2,7 @@ const { Server } = require('socket.io')
 const SFTPClient = require('ssh2-sftp-client')
 const rawPath = require('path')
 const fs = require('fs')
-const { readSSHRecord, verifyAuth, RSADecrypt, AESDecrypt } = require('../utils')
+const { readSSHRecord, verifyAuthSync, RSADecryptSync, AESDecryptSync } = require('../utils')
 const { sftpCacheDir } = require('../config')
 const CryptoJS = require('crypto-js')
 
@@ -205,21 +205,21 @@ module.exports = (httpServer) => {
     let sftpClient = new SFTPClient()
     consola.success('terminal websocket 已连接')
 
-    socket.on('create', ({ host: ip, token }) => {
-      const { code } = verifyAuth(token, clientIp)
+    socket.on('create', async ({ host: ip, token }) => {
+      const { code } = await verifyAuthSync(token, clientIp)
       if(code !== 1) {
         socket.emit('token_verify_fail')
         socket.disconnect()
         return
       }
-      const sshRecord = readSSHRecord()
+      const sshRecord = await readSSHRecord()
       let loginInfo = sshRecord.find(item => item.host === ip)
       if(!sshRecord.some(item => item.host === ip)) return socket.emit('create_fail', `未找到【${ ip }】凭证`)
       let { type, host, port, username, randomKey } = loginInfo
       // 解密放到try里面，防止报错【公私钥必须配对, 否则需要重新添加服务器密钥】
-      randomKey = AESDecrypt(randomKey) // 先对称解密key
-      randomKey = RSADecrypt(randomKey) // 再非对称解密key
-      loginInfo[type] = AESDecrypt(loginInfo[type], randomKey) // 对称解密ssh密钥
+      randomKey = await AESDecryptSync(randomKey) // 先对称解密key
+      randomKey = await RSADecryptSync(randomKey) // 再非对称解密key
+      loginInfo[type] = await AESDecryptSync(loginInfo[type], randomKey) // 对称解密ssh密钥
       consola.info('准备连接Sftp：', host)
       const authInfo = { host, port, username, [type]: loginInfo[type] }
       sftpClient.connect(authInfo)

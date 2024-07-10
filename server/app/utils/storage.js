@@ -1,124 +1,239 @@
 const fs = require('fs')
-const { sshRecordPath, hostListPath, keyPath, emailPath, notifyPath, groupPath } = require('../config')
+const { sshRecordDBPath, hostListDBPath, keyDBPath, emailNotifyDBPath, notifyConfDBPath, groupConfDBPath } = require('../config')
+const { KeyDB, HostListDB, SshRecordDB, NotifyDB, GroupDB, EmailNotifyDB } = require('./db-class')
 
-const readSSHRecord = () => {
-  let list
+const readKey = async () => {
+  return new Promise((resolve, reject) => {
+    const keyDB = new KeyDB().getInstance()
+    keyDB.findOne({}, (err, doc) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve(doc)
+      }
+    })
+  })
+}
+
+const writeKey = async (keyObj = {}) => {
+  const keyDB = new KeyDB().getInstance()
+  return new Promise((resolve, reject) => {
+    keyDB.update({}, { $set: keyObj }, { upsert: true }, (err, numReplaced) => {
+      if (err) {
+        reject(err)
+      } else {
+        keyDB.compactDatafile()
+        resolve(numReplaced)
+      }
+    })
+  })
+}
+
+const readSSHRecord = async () => {
+  const sshRecordDB = new SshRecordDB().getInstance()
+  return new Promise((resolve, reject) => {
+    sshRecordDB.find({}, (err, docs) => {
+      if (err) {
+        consola.error('读取ssh-record-db错误: ', err)
+        reject(err)
+      } else {
+        resolve(docs)
+      }
+    })
+  })
+}
+
+const writeSSHRecord = async (record = []) => {
+  return new Promise((resolve, reject) => {
+    const sshRecordDB = new SshRecordDB().getInstance()
+    sshRecordDB.remove({}, { multi: true }, (err, numRemoved) => {
+      if (err) {
+        consola.error('清空SSHRecord出错:', err)
+        reject(err)
+      } else {
+        sshRecordDB.insert(record, (err, newDocs) => {
+          if (err) {
+            consola.error('写入新的ssh记录出错:', err)
+            reject(err)
+          } else {
+            sshRecordDB.compactDatafile()
+            resolve(newDocs)
+          }
+        })
+      }
+    })
+  })
+}
+
+const readHostList = async () => {
+  return new Promise((resolve, reject) => {
+    const hostListDB = new HostListDB().getInstance()
+    hostListDB.find({}, (err, docs) => {
+      if (err) {
+        consola.error('读取host-list-db错误:', err)
+        reject(err)
+      } else {
+        resolve(docs)
+      }
+    })
+  })
+}
+
+const writeHostList = async (record = []) => {
+  return new Promise((resolve, reject) => {
+    const hostListDB = new HostListDB().getInstance()
+    hostListDB.remove({}, { multi: true }, (err, numRemoved) => {
+      if (err) {
+        consola.error('清空HostList出错:', err)
+        reject(err)
+      } else {
+        // 插入新的数据列表
+        hostListDB.insert(record, (err, newDocs) => {
+          if (err) {
+            consola.error('写入新的HostList出错:', err)
+            reject(err);
+          } else {
+            hostListDB.compactDatafile()
+            resolve(newDocs)
+          }
+        })
+      }
+    })
+  })
+}
+
+const readEmailNotifyConf = () => {
+  return new Promise((resolve, reject) => {
+    const emailNotifyDB = new EmailNotifyDB().getInstance()
+    emailNotifyDB.findOne({}, (err, docs) => {
+      if (err) {
+        consola.error('读取email-notify-conf-db错误:', err)
+        reject(err)
+      } else {
+        resolve(docs)
+      }
+    })
+  })
+}
+const writeUserEmailList = (user) => {
+  const emailNotifyDB = new EmailNotifyDB().getInstance()
+  return new Promise(async (resolve, reject) => {
+    let support = await readSupportEmailList()
+    const emailConf = { support, user }
+    emailNotifyDB.update({}, { $set: emailConf }, { upsert: true }, (err, numReplaced) => {
+      if (err) {
+        reject({ code: -1, msg: err.message || err })
+      } else {
+        emailNotifyDB.compactDatafile()
+        resolve({ code: 0 })
+      }
+    })
+  })
+}
+
+const readSupportEmailList = async () => {
+  let support = []
   try {
-    list = JSON.parse(fs.readFileSync(sshRecordPath, 'utf8'))
-  } catch (error) {
-    consola.error('读取ssh-record错误, 即将重置ssh列表: ', error)
-    writeSSHRecord([])
-  }
-  return list || []
-}
-
-const writeSSHRecord = (record = []) => {
-  fs.writeFileSync(sshRecordPath, JSON.stringify(record, null, 2))
-}
-
-const readHostList = () => {
-  let list
-  try {
-    list = JSON.parse(fs.readFileSync(hostListPath, 'utf8'))
-  } catch (error) {
-    consola.error('读取host-list错误, 即将重置host列表: ', error)
-    writeHostList([])
-  }
-  return list || []
-}
-
-const writeHostList = (record = []) => {
-  fs.writeFileSync(hostListPath, JSON.stringify(record, null, 2))
-}
-
-const readKey = () => {
-  let keyObj = JSON.parse(fs.readFileSync(keyPath, 'utf8'))
-  return keyObj
-}
-
-const writeKey = (keyObj = {}) => {
-  fs.writeFileSync(keyPath, JSON.stringify(keyObj, null, 2))
-}
-
-const readEmailJson = () => {
-  let emailJson = {}
-  try {
-    emailJson = JSON.parse(fs.readFileSync(emailPath, 'utf8'))
-  } catch (error) {
-    consola.error('读取email.json错误: ', error)
-  }
-  return emailJson
-}
-
-const readSupportEmailList = () => {
-  let supportEmailList = []
-  try {
-    supportEmailList = readEmailJson().support
+    support = (await readEmailNotifyConf()).support
   } catch (error) {
     consola.error('读取email support错误: ', error)
   }
-  return supportEmailList
+  return support
 }
 
-const readUserEmailList = () => {
-  let configEmailList = []
+const readUserEmailList = async () => {
+  let user = []
   try {
-    configEmailList = readEmailJson().user
+    user = (await readEmailNotifyConf()).user
   } catch (error) {
     consola.error('读取email config错误: ', error)
   }
-  return configEmailList
+  return user
 }
 
-const writeUserEmailList = (user) => {
-  let support = readSupportEmailList()
-  const emailJson = { support, user }
-  try {
-    fs.writeFileSync(emailPath, JSON.stringify(emailJson, null, 2))
-    return { code: 0 }
-  } catch (error) {
-    return { code: -1, msg: error.message || error }
-  }
-}
 
-const readNotifyList = () => {
-  let notifyList = []
+const getNotifySwByType = async (type) => {
+  if (!type) throw Error('missing params: type')
   try {
-    notifyList = JSON.parse(fs.readFileSync(notifyPath, 'utf8'))
-  } catch (error) {
-    consola.error('读取notify list错误: ', error)
-  }
-  return notifyList
-}
-
-const getNotifySwByType = (type) => {
-  if(!type) throw Error('missing params: type')
-  try {
-    let { sw } = readNotifyList().find((item) => item.type === type)
+    let notifyList = await readNotifyList()
+    let { sw } = notifyList.find((item) => item.type === type)
     return sw
   } catch (error) {
-    consola.error(`通知类型[${ type }]不存在`)
+    consola.error(`通知类型[${type}]不存在`)
     return false
   }
 }
 
-const writeNotifyList = (notifyList) => {
-  fs.writeFileSync(notifyPath, JSON.stringify(notifyList, null, 2))
+const readNotifyList = async () => {
+  return new Promise((resolve, reject) => {
+    const notifyDB = new NotifyDB().getInstance()
+    notifyDB.find({}, (err, docs) => {
+      if (err) {
+        consola.error('读取notify list错误: ', err)
+        reject(err)
+      } else {
+        resolve(docs)
+      }
+    })
+  })
 }
 
-const readGroupList = () => {
-  let list
-  try {
-    list = JSON.parse(fs.readFileSync(groupPath, 'utf8'))
-  } catch (error) {
-    consola.error('读取group-list错误, 即将重置group列表: ', error)
-    writeSSHRecord([])
-  }
-  return list || []
+const writeNotifyList = async (notifyList) => {
+  return new Promise((resolve, reject) => {
+    const notifyDB = new NotifyDB().getInstance()
+    notifyDB.remove({}, { multi: true }, (err, numRemoved) => {
+      if (err) {
+        consola.error('清空notify list出错:', err);
+        reject(err);
+      } else {
+        notifyDB.insert(notifyList, (err, newDocs) => {
+          if (err) {
+            consola.error('写入新的notify list出错:', err);
+            reject(err)
+          } else {
+            notifyDB.compactDatafile()
+            resolve(newDocs);
+          }
+        })
+      }
+    })
+  })
 }
 
-const writeGroupList = (list = []) => {
-  fs.writeFileSync(groupPath, JSON.stringify(list, null, 2))
+const readGroupList = async () => {
+  return new Promise((resolve, reject) => {
+    const groupDB = new GroupDB().getInstance()
+    groupDB.find({}, (err, docs) => {
+      if (err) {
+        consola.error('读取group list错误: ', err)
+        reject(err)
+      } else {
+        resolve(docs)
+      }
+    })
+  })
+}
+
+const writeGroupList = async (list = []) => {
+  return new Promise((resolve, reject) => {
+    const groupDB = new GroupDB().getInstance()
+    groupDB.remove({}, { multi: true }, (err, numRemoved) => {
+      if (err) {
+        consola.error('清空group list出错:', err)
+        reject(err)
+      } else {
+        groupDB.insert(list, (err, newDocs) => {
+          if (err) {
+            consola.error('写入新的group list出错:', err)
+            reject(err)
+          } else {
+            groupDB.compactDatafile()
+            resolve(newDocs)
+          }
+        })
+      }
+    })
+  })
 }
 
 module.exports = {
@@ -128,12 +243,12 @@ module.exports = {
   writeHostList,
   readKey,
   writeKey,
-  readSupportEmailList,
-  readUserEmailList,
-  writeUserEmailList,
   readNotifyList,
   getNotifySwByType,
   writeNotifyList,
   readGroupList,
-  writeGroupList
+  writeGroupList,
+  readSupportEmailList,
+  readUserEmailList,
+  writeUserEmailList
 }

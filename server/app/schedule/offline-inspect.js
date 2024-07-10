@@ -4,11 +4,12 @@ const { readHostList, sendEmailToConfList, getNotifySwByType, formatTimestamp, i
 const testConnectAsync = require('../utils/test-connect')
 
 let sendNotifyRecord = new Map()
-const offlineJob = () => {
+const offlineJob = async () => {
   let sw = getNotifySwByType('host_offline')
   if(!sw) return
   consola.info('=====开始检测服务器状态=====', new Date())
-  for (const item of readHostList()) {
+  const hostList = await readHostList()
+  for (const item of hostList) {
     const { host, name } = item
     // consola.info('start inpect:', host, name )
     testConnectAsync({

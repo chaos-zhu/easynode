@@ -1,7 +1,7 @@
 const { Server: ServerIO } = require('socket.io')
 const { io: ClientIO } = require('socket.io-client')
 const { clientPort } = require('../config')
-const { verifyAuth } = require('../utils')
+const { verifyAuthSync } = require('../utils')
 
 let hostSockets = {}
 
@@ -47,9 +47,9 @@ module.exports = (httpServer) => {
   serverIo.on('connection', (serverSocket) => {
     // 前者兼容nginx反代, 后者兼容nodejs自身服务
     let clientIp = serverSocket.handshake.headers['x-forwarded-for'] || serverSocket.handshake.address
-    serverSocket.on('init_host_data', ({ token, host }) => {
+    serverSocket.on('init_host_data', async ({ token, host }) => {
       // 校验登录态
-      const { code, msg } = verifyAuth(token, clientIp)
+      const { code, msg } = await verifyAuthSync(token, clientIp)
       if(code !== 1) {
         serverSocket.emit('token_verify_fail', msg || '鉴权失败')
         serverSocket.disconnect()

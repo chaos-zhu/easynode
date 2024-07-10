@@ -60,7 +60,7 @@ module.exports = (httpServer) => {
     }, 1000)
 
     socket.on('disconnect', () => {
-      // 断开时清楚对应的websocket连接
+      // 断开时清除对应的websocket连接
       if(serverSockets[socket.id]) clearInterval(serverSockets[socket.id])
       delete serverSockets[socket.id]
       socket.close && socket.close()

@@ -1,3 +1,13 @@
+## [1.3.0](https://github.com/chaos-zhu/easynode/releases) (2024-07-10)
+
+### Features
+
+* 重构文件储存方式 ✔
+* 修复不同ssh密钥算法登录失败的bug ✔
+* 移除上一次IP登录校验的判断 ✔
+* 前端工程迁移至项目根目录 ✔
+* 添加ssh密钥保存至本地功能 ✔
+
 ## [1.2.1](https://github.com/chaos-zhu/easynode/releases) (2022-12-12)
 
 ### Features

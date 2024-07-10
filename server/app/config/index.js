@@ -2,19 +2,19 @@ const path = require('path')
 
 module.exports = {
   httpPort: 8082,
-  clientPort: 22022, // 勿更改
+  clientPort: 22022, // 暂不支持更改
   uploadDir: path.join(process.cwd(),'app/static/upload'),
   staticDir: path.join(process.cwd(),'app/static'),
   sftpCacheDir: path.join(process.cwd(),'app/socket/sftp-cache'),
-  sshRecordPath: path.join(process.cwd(),'app/storage/ssh-record.json'),
-  keyPath: path.join(process.cwd(),'app/storage/key.json'),
-  hostListPath: path.join(process.cwd(),'app/storage/host-list.json'),
-  emailPath: path.join(process.cwd(),'app/storage/email.json'),
-  notifyPath: path.join(process.cwd(),'app/storage/notify.json'),
-  groupPath: path.join(process.cwd(),'app/storage/group.json'),
+  sshRecordDBPath: path.join(process.cwd(),'app/db/ssh-record.db'),
+  keyDBPath: path.join(process.cwd(),'app/db/key.db'),
+  hostListDBPath: path.join(process.cwd(),'app/db/host-list.db'),
+  notifyConfDBPath: path.join(process.cwd(),'app/db/notify.db'),
+  groupConfDBPath: path.join(process.cwd(),'app/db/group.db'),
+  emailNotifyDBPath: path.join(process.cwd(),'app/db/email.db'),
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/logs'),
-    recordLog: false // 是否记录日志
+    recordLog: true // 是否记录日志
   }
 }

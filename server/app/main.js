@@ -1,13 +1,16 @@
 const consola = require('consola')
 global.consola = consola
 const { httpServer, clientHttpServer } = require('./server')
-const initLocal = require('./init')
-const scheduleJob = require('./schedule')
+const initDB = require('./db')
+const initEncryptConf = require('./init')
+// const scheduleJob = require('./schedule')
 
-scheduleJob()
+async function main() {
+  await initDB()
+  await initEncryptConf()
+  httpServer()
+  clientHttpServer()
+  // scheduleJob()
+}
 
-initLocal()
-
-httpServer()
-
-clientHttpServer()
+main()

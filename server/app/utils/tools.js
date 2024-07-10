@@ -1,10 +1,19 @@
+const fs = require('fs')
+const net = require('net')
 const axios = require('axios')
 const request = axios.create({ timeout: 3000 })
 
 // 为空时请求本地IP
 const getNetIPInfo = async (searchIp = '') => {
-  searchIp = searchIp.replace(/::ffff:/g, '') || '' // fix: nginx反代
-  if(['::ffff:', '::1'].includes(searchIp)) searchIp = '127.0.0.1'
+  console.log('searchIp:', searchIp)
+  if (isLocalIP(searchIp)) {
+    return {
+      ip: searchIp,
+      country: '本地',
+      city: '局域网',
+      error: null
+    }
+  }
   try {
     let date = Date.now()
     let ipUrls = [
@@ -63,7 +72,7 @@ const getNetIPInfo = async (searchIp = '') => {
       let { origip: ip, location: country, city = '', regionName = '' } = res || {}
       searchResult.push({ ip, country, city: `${ regionName } ${ city }`, date })
     }
-    // console.log(searchResult)
+    console.log(searchResult)
     let validInfo = searchResult.find(item => Boolean(item.country))
     consola.info('查询IP信息：', validInfo)
     return validInfo || { ip: '获取IP信息API出错,请排查或更新API', country: '未知', city: '未知', date }
@@ -76,6 +85,64 @@ const getNetIPInfo = async (searchIp = '') => {
       error
     }
   }
+}
+
+function isLocalIP(ip) {
+  // Check if IPv4 or IPv6 address
+  const isIPv4 = net.isIPv4(ip)
+  const isIPv6 = net.isIPv6(ip)
+
+  // Local IPv4 ranges
+  const localIPv4Ranges = [
+    { start: '10.0.0.0', end: '10.255.255.255' },
+    { start: '172.16.0.0', end: '172.31.255.255' },
+    { start: '192.168.0.0', end: '192.168.255.255' },
+    { start: '127.0.0.0', end: '127.255.255.255' } // Loopback
+  ]
+
+  // Local IPv6 ranges
+  const localIPv6Ranges = [
+    '::1', // Loopback
+    'fc00::', // Unique local address
+    'fd00::'  // Unique local address
+  ];
+
+  function isInRange(ip, start, end) {
+    const ipNum = ipToNumber(ip)
+    return ipNum >= ipToNumber(start) && ipNum <= ipToNumber(end)
+  }
+
+  function ipToNumber(ip) {
+    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0)
+  }
+
+  if (isIPv4) {
+    for (const range of localIPv4Ranges) {
+      if (isInRange(ip, range.start, range.end)) {
+        return true
+      }
+    }
+  }
+
+  if (isIPv6) {
+    if (localIPv6Ranges.includes(ip)) {
+      return true
+    }
+
+    // Handle IPv4-mapped IPv6 addresses (e.g., ::ffff:192.168.1.1)
+    if (ip.startsWith('::ffff:')) {
+      const ipv4Part = ip.split('::ffff:')[1]
+      if (ipv4Part && net.isIPv4(ipv4Part)) {
+        for (const range of localIPv4Ranges) {
+          if (isInRange(ipv4Part, range.start, range.end)) {
+            return true
+          }
+        }
+      }
+    }
+  }
+
+  return false
 }
 
 const throwError = ({ status = 500, msg = 'defalut error' } = {}) => {
@@ -134,11 +201,16 @@ const formatTimestamp = (timestamp = Date.now(), format = 'time') => {
   }
 }
 
+function resolvePath(dir, path) {
+  return path.resolve(dir, path)
+}
+
 module.exports = {
   getNetIPInfo,
   throwError,
   isIP,
   randomStr,
   getUTCDate,
-  formatTimestamp
+  formatTimestamp,
+  resolvePath
 }

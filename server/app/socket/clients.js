@@ -2,15 +2,15 @@ const { Server: ServerIO } = require('socket.io')
 const { io: ClientIO } = require('socket.io-client')
 const { readHostList } = require('../utils')
 const { clientPort } = require('../config')
-const { verifyAuth } = require('../utils')
+const { verifyAuthSync } = require('../utils')
 
 let clientSockets = {}, clientsData = {}
 
-function getClientsInfo(socketId) {
-  let hostList = readHostList()
+async function getClientsInfo(socketId) {
+  let hostList = await readHostList()
   hostList
-    .map(({ host, name }) => {
-      let clientSocket = ClientIO(`http://${ host }:${ clientPort }`, {
+    ?.map(({ host, name }) => {
+      let clientSocket = ClientIO(`http://${host}:${clientPort}`, {
         path: '/client/os-info',
         forceNew: true,
         timeout: 5000,
@@ -58,10 +58,10 @@ module.exports = (httpServer) => {
   serverIo.on('connection', (socket) => {
     // 前者兼容nginx反代, 后者兼容nodejs自身服务
     let clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
-    socket.on('init_clients_data', ({ token }) => {
+    socket.on('init_clients_data', async ({ token }) => {
       // 校验登录态
-      const { code, msg } = verifyAuth(token, clientIp)
-      if(code !== 1) {
+      const { code, msg } = await verifyAuthSync(token, clientIp)
+      if (code !== 1) {
         socket.emit('token_verify_fail', msg || '鉴权失败')
         socket.disconnect()
         return
@@ -86,7 +86,7 @@ module.exports = (httpServer) => {
       // 关闭连接
       socket.on('disconnect', () => {
         // 防止内存泄漏
-        if(timer) clearInterval(timer)
+        if (timer) clearInterval(timer)
         // 当web端与服务端断开连接时, 服务端与每个客户端的socket也应该断开连接
         clientSockets[socket.id].forEach(socket => socket.close && socket.close())
         delete clientSockets[socket.id]

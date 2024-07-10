@@ -1,7 +1,7 @@
 {
   "name": "easynode",
   "version": "1.0.0",
-  "description": "easy to manage the server",
+  "description": "web ssh",
   "private": true,
   "workspaces": ["server", "client"],
   "repository": {

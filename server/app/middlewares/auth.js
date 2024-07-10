@@ -1,4 +1,4 @@
-const { verifyAuth } = require('../utils')
+const { verifyAuthSync } = require('../utils')
 const { apiPrefix } = require('../config')
 
 let whitePath = [
@@ -13,7 +13,7 @@ const useAuth = async ({ request, res }, next) => {
   if(whitePath.includes(path)) return next()
   if(!token) return res.fail({ msg: '未登录', status: 403 })
   // 验证token
-  const { code, msg } = verifyAuth(token, request.ip)
+  const { code, msg } = await verifyAuthSync(token, request.ip)
   switch(code) {
     case 1:
       return await next()

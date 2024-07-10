@@ -4,4 +4,8 @@ dist
 easynode-server.zip
 server/app/static/upload/*
 server/app/socket/temp/*
+app/socket/.sftp-cache/*
 server/app/logs/*
+server/app/db/*
+!server/app/db/README.md
+plan.md

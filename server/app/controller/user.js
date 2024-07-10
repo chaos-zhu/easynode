@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken')
-const { getNetIPInfo, readKey, writeKey, RSADecrypt, AESEncrypt, SHA1Encrypt, sendEmailToConfList, getNotifySwByType } = require('../utils')
+const { getNetIPInfo, readKey, writeKey, RSADecryptSync, AESEncryptSync, SHA1Encrypt, sendEmailToConfList, getNotifySwByType } = require('../utils')
 
-const getpublicKey = ({ res }) => {
-  let { publicKey: data } = readKey()
+const getpublicKey = async ({ res }) => {
+  let { publicKey: data } = await readKey()
   if(!data) return res.fail({ msg: 'publicKey not found, Try to restart the server', status: 500 })
   res.success({ data })
 }
@@ -50,9 +50,9 @@ const login = async ({ res, request }) => {
   // 登录流程
   try {
     // console.log('ciphertext', ciphertext)
-    let password = RSADecrypt(ciphertext)
+    let password = await RSADecryptSync(ciphertext)
     // console.log('Decrypt解密password:', password)
-    let { pwd } = readKey()
+    let { pwd } = await readKey()
     if(password === 'admin' && pwd === 'admin') {
       const token = await beforeLoginHandler(clientIp, jwtExpires)
       return res.success({ data: { token, jwtExpires }, msg: '登录成功，请及时修改默认密码' })
@@ -72,13 +72,14 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
 
   // consola.success('登录成功, 准备生成token', new Date())
   // 生产token
-  let { commonKey } = readKey()
+  let { commonKey } = await readKey()
   let token = jwt.sign({ date: Date.now() }, commonKey, { expiresIn: jwtExpires }) // 生成token
-  token = AESEncrypt(token) // 对称加密token后再传输给前端
+  token = await AESEncryptSync(token) // 对称加密token后再传输给前端
 
   // 记录客户端登录IP(用于判断是否异地且只保留最近10条)
   const clientIPInfo = await getNetIPInfo(clientIp)
   const { ip, country, city } = clientIPInfo || {}
+  consola.info('登录成功:', new Date(), { ip, country, city })
 
   // 邮件登录通知
   let sw = getNotifySwByType('login')
@@ -91,14 +92,14 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
 
 const updatePwd = async ({ res, request }) => {
   let { body: { oldPwd, newPwd } } = request
-  let rsaOldPwd = RSADecrypt(oldPwd)
+  let rsaOldPwd = await RSADecryptSync(oldPwd)
   oldPwd = rsaOldPwd === 'admin' ? 'admin' : SHA1Encrypt(rsaOldPwd)
-  let keyObj = readKey()
+  let keyObj = await readKey()
   if(oldPwd !== keyObj.pwd) return res.fail({ data: false, msg: '旧密码校验失败' })
   // 旧密钥校验通过，加密保存新密码
-  newPwd = RSADecrypt(newPwd) === 'admin' ? 'admin' : SHA1Encrypt(RSADecrypt(newPwd))
+  newPwd = await RSADecryptSync(newPwd) === 'admin' ? 'admin' : SHA1Encrypt(await RSADecryptSync(newPwd))
   keyObj.pwd = newPwd
-  writeKey(keyObj)
+  await writeKey(keyObj)
 
   let sw = getNotifySwByType('updatePwd')
   if(sw) sendEmailToConfList('密码修改提醒', '面板登录密码已更改')
