@@ -1,0 +1,18 @@
+// element css bug
+.el-notification__content {
+  text-align: initial;
+}
+
+.el-date-editor {
+  --el-date-editor-width: 100%;
+}
+.el-input__wrapper {
+  width: 100%;
+}
+
+.el-tabs__nav-scroll .el-tabs__nav {
+  padding-left: 0;
+}
+.el-tabs__content {
+  padding: 0 10px;
+}

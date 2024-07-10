@@ -1,0 +1,44 @@
+// 滚动条
+html, body, div, ul, section, textarea {
+  box-sizing: border-box;
+  // 滚动条整体部分
+  &::-webkit-scrollbar {
+    height: 8px;
+    width: 2px;
+    background-color: #ffffff;
+  }
+
+  // 底层轨道
+  &::-webkit-scrollbar-track {
+    background-color: #ffffff;
+    border-radius: 10px;
+  }
+
+  // 滚动滑块
+  &::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    // background-color: #1989fa;
+    background-image: -webkit-gradient(linear, 40% 0%, 75% 84%, from(#a18cd1), to(#fbc2eb), color-stop(.6, #54DE5D));
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: #067ef7;
+  }
+}
+
+
+// 全局背景
+body {
+  // background-color: #f4f6f9;
+  background-position: center center;
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-image: url(../bg.jpg), linear-gradient(to bottom, #010179, #F5C4C1, #151799);
+}
+
+html, body {
+  min-width: 1200px;
+  height: 100vh;
+  overflow: hidden;
+}

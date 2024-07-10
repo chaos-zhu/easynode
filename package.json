@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "web ssh",
   "private": true,
-  "workspaces": ["server", "client"],
+  "workspaces": [
+    "server",
+    "web",
+    "client"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chaos-zhu/easynode.git"
@@ -17,8 +21,14 @@
   ],
   "author": "chaoszhu",
   "license": "ISC",
+  "scripts": {
+    "dev": "concurrently \"yarn workspace web run dev\" \"yarn workspace server run local\""
+  },
   "bugs": {
     "url": "https://github.com/chaos-zhu/easynode/issues"
   },
-  "homepage": "https://github.com/chaos-zhu/easynode#readme"
+  "homepage": "https://github.com/chaos-zhu/easynode#readme",
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
 }

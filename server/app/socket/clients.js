@@ -10,7 +10,7 @@ async function getClientsInfo(socketId) {
   let hostList = await readHostList()
   hostList
     ?.map(({ host, name }) => {
-      let clientSocket = ClientIO(`http://${host}:${clientPort}`, {
+      let clientSocket = ClientIO(`http://${ host }:${ clientPort }`, {
         path: '/client/os-info',
         forceNew: true,
         timeout: 5000,

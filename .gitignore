@@ -2,9 +2,9 @@ node_modules
 !.gitkeep
 dist
 easynode-server.zip
-server/app/static/upload/*
-server/app/socket/temp/*
-app/socket/.sftp-cache/*
+server/app/static/*
+server/app/socket/sftp-cache/*
+!server/app/socket/sftp-cache/.gitkeep
 server/app/logs/*
 server/app/db/*
 !server/app/db/README.md

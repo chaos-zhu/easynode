@@ -1,32 +1,61 @@
 // 规则参见：https://cn.eslint.org/docs/rules/
 module.exports = {
-  root: true, // 当前配置文件不能往父级查找
+  root: true,
   env: {
+    browser: true,
     node: true,
     es6: true
   },
-  extends: [
-    'eslint:recommended' // 应用Eslint全部默认规则
-  ],
-  'parserOptions': {
-    'ecmaVersion': 'latest',
-    'sourceType': 'module' // 目标类型 Node项目得添加这个
+  parser: 'vue-eslint-parser',
+  parserOptions: {
+    // parser: 'babel-eslint',
+    ecmaVersion: 2020,
+    sourceType: 'module',
+    ecmaFeatures: {
+      'jsx': true
+    }
   },
-  // 自定义规则，可以覆盖 extends 的配置【安装Eslint插件可以静态检查本地文件是否符合以下规则】
-  'ignorePatterns': ['*.html', 'node-os-utils'],
+  extends: [
+    'eslint:recommended',
+    'plugin:vue/vue3-recommended',
+  ],
+  ignorePatterns: ['*.html',],
   rules: {
-    // 0: 关闭规则(允许)  1/2: 警告warning/错误error(不允许)
+    // vue
+    'vue/max-attributes-per-line': ['error', {
+      singleline: 3,
+      multiline: {
+        max: 1
+      }
+    },],
+    'vue/no-v-model-argument': 0,
+    'vue/multi-word-component-names': 0,
+    'vue/no-multiple-template-root': 0,
+    'vue/singleline-html-element-content-newline': 0,
+
+    // js
+    'import/no-extraneous-dependencies': 0,
     'no-console': 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
-    'template-curly-spacing': ['error', 'always'], // 模板字符串空格
+    'template-curly-spacing': ['error', 'always',], // 模板字符串空格
     'default-case': 0,
-    'object-curly-spacing': ['error', 'always'],
-    'no-multi-spaces': ['error'],
-    indent: ['error', 2, { 'SwitchCase': 1 }], // 缩进：2
-    quotes: ['error', 'single'], // 引号：single单引 double双引
-    semi: ['error', 'never'], // 结尾分号：never禁止 always必须
-    'comma-dangle': ['error', 'never'], // 对象拖尾逗号
-    'no-redeclare': ['error', { builtinGlobals: true }], // 禁止重复对象声明
+    'eslint-comments/no-unlimited-disable': 0,
+    'object-curly-spacing': ['error', 'always',],
+    'no-multi-spaces': ['error',],
+    indent: ['error', 2, { 'SwitchCase': 1 },], // 缩进：2
+    quotes: ['error', 'single',], // 引号：single单引 double双引
+    semi: ['error', 'never',], // 结尾分号：never禁止 always必须
+    'comma-dangle': [
+      'error',
+      {
+        arrays: 'always',
+        objects: 'never',
+        imports: 'never',
+        exports: 'never',
+        functions: 'never'
+      },
+    ], // ['error', 'never'], // 拖尾逗号
+    'no-redeclare': ['error', { builtinGlobals: true },], // 禁止重复对象声明
     'no-multi-assign': 0,
     'no-restricted-globals': 0,
     'space-before-function-paren': 0, // 函数定义时括号前面空格
@@ -71,11 +100,11 @@ module.exports = {
     'no-extra-semi': 2, // 禁止不必要的分号
     // curly: ['error', 'multi'], // if、else、for、while 语句单行代码时不使用大括号
     'dot-notation': 0, // 允许使用点号或方括号来访问对象属性
-    'dot-location': ['error', 'property'], // 点操作符位置，要求跟随下一行
+    'dot-location': ['error', 'property',], // 点操作符位置，要求跟随下一行
     'no-else-return': 2, // 禁止if中有return后又else
-    'no-implicit-coercion': [2, { allow: ['!!', '~', '+'] }], // 禁止隐式转换，allow字段内符号允许
+    'no-implicit-coercion': [2, { allow: ['!!', '~', '+',] },], // 禁止隐式转换，allow字段内符号允许
     'no-trailing-spaces': 1, //一行结束后面不要有空格
-    'no-multiple-empty-lines': [1, { 'max': 1 }], // 空行最多不能超过1行
+    'no-multiple-empty-lines': [1, { 'max': 1 },], // 空行最多不能超过1行
     'no-useless-return': 2,
     'wrap-iife': 0, // 允许自调用函数
     'yoda': 0, // 允许yoda语句

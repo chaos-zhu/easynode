@@ -1,4 +1,4 @@
-# EasyNode v1.2
+# EasyNode
 
 > 一个简易的个人Linux服务器管理面板(基于Node.js).
 
@@ -134,6 +134,10 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 ---
 
 ## 升级指南
+
+- **v1.2 to v1.3**
+
+因储存方式变更，需重新安装服务
 
 - **v1.1 to v1.2**
 

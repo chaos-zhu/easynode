@@ -3,7 +3,7 @@ const path = require('path')
 module.exports = {
   httpPort: 8082,
   clientPort: 22022, // 暂不支持更改
-  uploadDir: path.join(process.cwd(),'app/static/upload'),
+  uploadDir: path.join(process.cwd(),'app/db'),
   staticDir: path.join(process.cwd(),'app/static'),
   sftpCacheDir: path.join(process.cwd(),'app/socket/sftp-cache'),
   sshRecordDBPath: path.join(process.cwd(),'app/db/ssh-record.db'),
