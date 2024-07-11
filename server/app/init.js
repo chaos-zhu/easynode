@@ -20,7 +20,7 @@ async function initRsa() {
   let keyObj = await readKey()
   if(keyObj.privateKey && keyObj.publicKey) return consola.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
   let key = new NodeRSA({ b: 1024 })
-  key.setOptions({ encryptionScheme: 'pkcs1' })
+  key.setOptions({ encryptionScheme: 'pkcs1', environment: "browser" })
   let privateKey = key.exportKey('pkcs1-private-pem')
   let publicKey = key.exportKey('pkcs8-public-pem')
   keyObj.privateKey = await AESEncryptSync(privateKey) // 加密私钥

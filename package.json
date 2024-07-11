@@ -22,13 +22,15 @@
   "author": "chaoszhu",
   "license": "ISC",
   "scripts": {
-    "dev": "concurrently \"yarn workspace web run dev\" \"yarn workspace server run local\""
+    "dev": "concurrently \"yarn workspace web run dev\" \"yarn workspace server run local\"",
+    "clean": "rimraf web/node_modules server/node_modules client/node_modules node_modules"
   },
   "bugs": {
     "url": "https://github.com/chaos-zhu/easynode/issues"
   },
   "homepage": "https://github.com/chaos-zhu/easynode#readme",
-  "dependencies": {
-    "concurrently": "^8.2.2"
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^6.0.1"
   }
 }

@@ -18,7 +18,7 @@ async function getIpInfo() {
 
 function ipSchedule() {
   let rule1 = new schedule.RecurrenceRule()
-  rule1.second = [0, 30]
+  rule1.second = [0]
   schedule.scheduleJob(rule1, () => {
     let { query, country, city } = ipInfo || {}
     if(query && country && city) return

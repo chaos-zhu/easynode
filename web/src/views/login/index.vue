@@ -9,7 +9,7 @@
     :show-close="false"
     center
   >
-    <template #title>
+    <template #header>
       <h2 v-if="notKey" style="color: #f56c6c;"> Error </h2>
       <h2 v-else style="color: #409eff;"> LOGIN </h2>
     </template>
@@ -53,8 +53,8 @@
           label="有效期"
         >
           <el-radio-group v-model="isSession" class="login-indate">
-            <el-radio :label="true">一次性会话</el-radio>
-            <el-radio :label="false">自定义(小时)</el-radio>
+            <el-radio :value="true">一次性会话</el-radio>
+            <el-radio :value="false">自定义(小时)</el-radio>
             <el-input-number
               v-model="loginForm.jwtExpires"
               :disabled="isSession"

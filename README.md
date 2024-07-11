@@ -167,10 +167,10 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 ## 开发
 
-1. 拉取代码，准备nodejs环境>=16
-2. cd到项目根目录，yarn执行安装依赖
-3. cd web 启动前端 npm run dev
-4. cd server 启动服务端 npm run local
+1. 拉取代码，环境 `nodejs``>=20`
+2. cd到项目根目录，`yarn install` 执行安装依赖
+3. `yarn dev`启动项目
+4. web: `http://localhost:18090/`
 
 ## Q&A
 

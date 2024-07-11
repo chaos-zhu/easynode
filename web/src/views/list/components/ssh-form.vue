@@ -37,8 +37,8 @@
         </el-autocomplete>
       </el-form-item>
       <el-form-item label="认证方式" prop="type">
-        <el-radio v-model.trim="sshForm.type" label="privateKey">密钥</el-radio>
-        <el-radio v-model.trim="sshForm.type" label="password">密码</el-radio>
+        <el-radio v-model.trim="sshForm.type" value="privateKey">密钥</el-radio>
+        <el-radio v-model.trim="sshForm.type" value="password">密码</el-radio>
       </el-form-item>
       <el-form-item v-if="sshForm.type === 'password'" prop="password" label="密码">
         <el-input

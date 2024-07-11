@@ -34,7 +34,7 @@ const useStore = defineStore({
               item.ping = res
             })
         })
-        console.clear()
+        // console.clear()
         // console.warn('Please tick \'Preserve Log\'')
       }, 1500)
     },

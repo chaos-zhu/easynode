@@ -353,7 +353,7 @@ export default {
           .then(res => {
             this.ping = res
             if(!import.meta.env.DEV) {
-              console.clear()
+              // console.clear()
               console.warn('Please tick \'Preserve Log\'')
             }
           })

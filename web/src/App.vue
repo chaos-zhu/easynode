@@ -4,17 +4,11 @@
   </el-config-provider>
 </template>
 
-<script>
+<script setup>
+import { ref } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
-export default {
-  name: 'App',
-  data() {
-    return {
-      locale: zhCn
-    }
-  }
-}
+const locale = ref(zhCn)
 </script>
 
 <style lang="scss" scoped>

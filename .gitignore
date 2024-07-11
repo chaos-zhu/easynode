@@ -9,3 +9,5 @@ server/app/logs/*
 server/app/db/*
 !server/app/db/README.md
 plan.md
+.env
+.env.local

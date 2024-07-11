@@ -9,7 +9,7 @@ const RSADecryptSync = async (ciphertext) => {
   let { privateKey } = await readKey()
   privateKey = await AESDecryptSync(privateKey) // 先解密私钥
   const rsakey = new NodeRSA(privateKey)
-  rsakey.setOptions({ encryptionScheme: 'pkcs1' }) // Must Set It When Frontend Use jsencrypt
+  rsakey.setOptions({ encryptionScheme: 'pkcs1', environment: "browser" }) // Must Set It When Frontend Use jsencrypt
   const plaintext = rsakey.decrypt(ciphertext, 'utf8')
   return plaintext
 }

@@ -6,7 +6,6 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
-import styleImport from 'vite-plugin-style-import'
 import viteCompression from 'vite-plugin-compression'
 
 const serviceURI = 'http://localhost:8082/'
@@ -53,19 +52,6 @@ export default defineConfig({
     Components({
       resolvers: [
         ElementPlusResolver(),
-      ]
-    }),
-    styleImport({
-      libs: [
-        {
-          libraryName: 'element-plus',
-          esModule: true,
-          resolveStyle: (name) => {
-            if (name.includes('el-')) name = name.replace('el-', '')
-            return `element-plus/theme-chalk/src/${ name }.scss` // 按需引入样式
-            // return `element-plus/theme-chalk/${ name }.css`
-          }
-        },
       ]
     }),
     viteCompression({

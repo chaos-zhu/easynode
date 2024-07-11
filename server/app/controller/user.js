@@ -51,7 +51,7 @@ const login = async ({ res, request }) => {
   try {
     // console.log('ciphertext', ciphertext)
     let password = await RSADecryptSync(ciphertext)
-    // console.log('Decrypt解密password:', password)
+    console.log('Decrypt解密password:', password)
     let { pwd } = await readKey()
     if(password === 'admin' && pwd === 'admin') {
       const token = await beforeLoginHandler(clientIp, jwtExpires)
