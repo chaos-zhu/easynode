@@ -11,7 +11,7 @@ function getHostInfo(serverSocket, host) {
     forceNew: false,
     timeout: 5000,
     reconnectionDelay: 3000,
-    reconnectionAttempts: 100
+    reconnectionAttempts: 3
   })
   // 将与客户端连接的socket实例保存起来，web端断开时关闭与客户端的连接
   hostSockets[serverSocket.id] = hostSocket

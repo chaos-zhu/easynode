@@ -307,7 +307,7 @@ export default {
         forceNew: true, // 强制新的实例
         timeout: 5000,
         reconnectionDelay: 3000,
-        reconnectionAttempts: 100
+        reconnectionAttempts: 3
       })
       this.socket.on('connect', () => {
         console.log('/host-status socket已连接：', this.socket.id)
