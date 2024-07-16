@@ -3,10 +3,10 @@
     v-model="visible"
     title="SSH连接"
     :close-on-click-modal="false"
-    @closed="$nextTick(() => formRef.resetFields())"
+    @closed="clearFormInfo"
   >
     <el-form
-      ref="form"
+      ref="formRef"
       :model="sshForm"
       :rules="rules"
       :hide-required-asterisk="true"
@@ -55,7 +55,7 @@
           选择私钥...
         </el-button>
         <input
-          ref="privateKey"
+          ref="privateKeyRef"
           type="file"
           name="privateKey"
           style="display: none;"
@@ -86,121 +86,117 @@
       <span class="dialog-footer">
         <el-button @click="visible = false">取消</el-button>
         <el-button type="primary" @click="handleSaveSSH">保存</el-button>
-        <!-- <el-button type="primary" @click="handleSaveSSH">保存并连接</el-button> -->
       </span>
     </template>
   </el-dialog>
 </template>
 
-<script>
-import $api from '@/api'
+<script setup>
+import { ref, reactive, computed, watch, getCurrentInstance, nextTick } from 'vue'
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import { randomStr, AESEncrypt, RSAEncrypt } from '@utils/index.js'
 
-export default {
-  name: 'SSHForm',
-  props: {
-    show: {
-      required: true,
-      type: Boolean
-    },
-    tempHost: {
-      required: true,
-      type: String
-    },
-    name: {
-      required: true,
-      type: String
-    }
+const props = defineProps({
+  show: {
+    required: true,
+    type: Boolean
   },
-  emits: ['update:show',],
-  data() {
-    return {
-      sshForm: {
-        host: '',
-        port: 22,
-        username: '',
-        type: 'privateKey',
-        password: '',
-        privateKey: '',
-        command: ''
-      },
-      defaultUsers: [
-        { value: 'root' },
-        { value: 'ubuntu' },
-      ],
-      rules: {
-        host: { required: true, message: '需输入主机', trigger: 'change' },
-        port: { required: true, message: '需输入端口', trigger: 'change' },
-        username: { required: true, message: '需输入用户名', trigger: 'change' },
-        type: { required: true },
-        password: { required: true, message: '需输入密码', trigger: 'change' },
-        privateKey: { required: true, message: '需输入密钥', trigger: 'change' },
-        command: { required: false }
-      }
-    }
+  tempHost: {
+    required: true,
+    type: String
   },
-  computed: {
-    visible: {
-      get() {
-        return this.show
-      },
-      set(newVal) {
-        this.$emit('update:show', newVal)
-      }
-    },
-    formRef() {
-      return this.$refs['form']
-    }
-  },
-  watch: {
-    tempHost: {
-      handler(newVal) {
-        this.sshForm.host = newVal
-      }
-    }
-  },
-  methods: {
-    handleClickUploadBtn() {
-      this.$refs['privateKey'].click()
-    },
-    handleSelectPrivateKeyFile(event) {
-      let file = event.target.files[0]
-      let reader = new FileReader()
-      reader.onload = (e) => {
-        this.sshForm.privateKey = e.target.result
-        this.$refs['privateKey'].value = ''
-      }
-      reader.readAsText(file)
-    },
-    handleSaveSSH() {
-      this.formRef.validate()
-        .then(async () => {
-          let randomKey = randomStr(16)
-          let formData = JSON.parse(JSON.stringify(this.sshForm))
-          // 加密传输
-          if(formData.password) formData.password = AESEncrypt(formData.password, randomKey)
-          if(formData.privateKey) formData.privateKey = AESEncrypt(formData.privateKey, randomKey)
-          formData.randomKey = RSAEncrypt(randomKey)
-          await $api.updateSSH(formData)
-          this.$notification({
-            title: '保存成功',
-            message: '下次点击 [Web SSH] 可直接登录终端\n如无法登录请 [移除凭证] 后重新添加',
-            type: 'success'
-          })
-          this.visible = false
-          // this.$message({ type: 'success', center: true, message: data })
-          // setTimeout(() => {
-          //   window.open(`/terminal?host=${ this.tempHost }&name=${ this.name }`)
-          // }, 1000)
-        })
-    },
-    userSearch(keyword, cb) {
-      let res = keyword
-        ? this.defaultUsers.filter((item) => item.value.includes(keyword))
-        : this.defaultUsers
-      cb(res)
-    }
+  name: {
+    required: true,
+    type: String
   }
+})
+
+const emit = defineEmits(['update:show'])
+
+const formRef = ref(null)
+const privateKeyRef = ref(null)
+const sshForm = reactive({
+  host: '',
+  port: 22,
+  username: '',
+  type: 'privateKey',
+  password: '',
+  privateKey: '',
+  command: ''
+})
+
+const defaultUsers = [
+  { value: 'root' },
+  { value: 'ubuntu' },
+]
+
+const rules = reactive({
+  host: { required: true, message: '需输入主机', trigger: 'change' },
+  port: { required: true, message: '需输入端口', trigger: 'change' },
+  username: { required: true, message: '需输入用户名', trigger: 'change' },
+  type: { required: true },
+  password: { required: true, message: '需输入密码', trigger: 'change' },
+  privateKey: { required: true, message: '需输入密钥', trigger: 'change' },
+  command: { required: false }
+})
+
+const { proxy: { $api, $tools } } = getCurrentInstance()
+
+const visible = computed({
+  get() {
+    return props.show
+  },
+  set(newVal) {
+    emit('update:show', newVal)
+  }
+})
+
+watch(() => props.tempHost, (newVal) => {
+  sshForm.host = newVal
+})
+
+const handleClickUploadBtn = () => {
+  privateKeyRef.value.click()
+}
+
+const handleSelectPrivateKeyFile = (event) => {
+  let file = event.target.files[0]
+  let reader = new FileReader()
+  reader.onload = (e) => {
+    sshForm.privateKey = e.target.result
+    privateKeyRef.value.value = ''
+  }
+  reader.readAsText(file)
+}
+
+const handleSaveSSH = () => {
+  formRef.value.validate()
+    .then(async () => {
+      let randomKey = randomStr(16)
+      let formData = JSON.parse(JSON.stringify(sshForm))
+      // 加密传输
+      if (formData.password) formData.password = AESEncrypt(formData.password, randomKey)
+      if (formData.privateKey) formData.privateKey = AESEncrypt(formData.privateKey, randomKey)
+      formData.randomKey = RSAEncrypt(randomKey)
+      await $api.updateSSH(formData)
+      ElNotification({
+        title: '保存成功',
+        message: '下次点击 [Web SSH] 可直接登录终端\n如无法登录请 [移除凭证] 后重新添加',
+        type: 'success'
+      })
+      visible.value = false
+    })
+}
+
+const userSearch = (keyword, cb) => {
+  let res = keyword
+    ? defaultUsers.filter((item) => item.value.includes(keyword))
+    : defaultUsers
+  cb(res)
+}
+
+const clearFormInfo = () => {
+  nextTick(() => formRef.value.resetFields())
 }
 </script>
 

@@ -12,7 +12,7 @@ async function getIpInfo() {
     consola.success('getIpInfo Success: ', new Date())
     ipInfo = data
   } catch (error) {
-    consola.error('getIpInfo Error: ', new Date(), error)
+    consola.error('getIpInfo Error: ', new Date(), error.message)
   }
 }
 

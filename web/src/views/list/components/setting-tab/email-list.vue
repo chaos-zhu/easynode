@@ -1,7 +1,7 @@
 <template>
   <div v-loading="loading">
     <el-form
-      ref="email-form"
+      ref="emailFormRef"
       :model="emailForm"
       :rules="rules"
       :inline="true"
@@ -61,7 +61,7 @@
       <el-table-column prop="email" label="Email" />
       <el-table-column prop="name" label="服务商" />
       <el-table-column label="操作">
-        <template #default="{row}">
+        <template #default="{ row }">
           <el-button
             type="primary"
             :loading="row.loading"
@@ -81,99 +81,103 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'UserEmailList',
-  data() {
-    return {
-      loading: false,
-      userEmailList: [],
-      supportEmailList: [],
-      emailForm: {
-        target: 'qq',
-        auth: {
-          user: '',
-          pass: ''
-        }
-      },
-      rules: {
-        'auth.user': { required: true, type: 'email', message: '需输入邮箱', trigger: 'change' },
-        'auth.pass': { required: true, message: '需输入SMTP授权码', trigger: 'change' }
-      }
-    }
-  },
-  mounted() {
-    this.getUserEmailList()
-    this.getSupportEmailList()
-  },
-  methods: {
-    getUserEmailList() {
-      this.loading = true
-      this.$api.getUserEmailList()
-        .then(({ data }) => {
-          this.userEmailList = data.map(item => {
-            item.loading = false
-            return item
-          })
-        })
-        .finally(() => this.loading = false)
-    },
-    getSupportEmailList() {
-      this.$api.getSupportEmailList()
-        .then(({ data }) => {
-          this.supportEmailList = data
-        })
-    },
-    addEmail() {
-      let emailFormRef = this.$refs['email-form']
-      emailFormRef.validate()
-        .then(() => {
-          this.$api.updateUserEmailList({ ...this.emailForm })
-            .then(() => {
-              this.$message.success('添加成功, 点击[测试]按钮发送测试邮件')
-              let { target } = this.emailForm
-              this.emailForm = { target, auth: { user: '', pass: '' } }
-              this.$nextTick(() => emailFormRef.resetFields())
-              this.getUserEmailList()
-            })
-        })
-    },
-    pushTestEmail(row) {
-      row.loading = true
-      const { email: toEmail } = row
-      this.$api.pushTestEmail({ isTest: true, toEmail })
-        .then(() => {
-          this.$message.success(`发送成功, 请检查邮箱: ${ toEmail }`)
-        })
-        .catch((error) => {
-          this.$notification({
-            title: '发送测试邮件失败, 请检查邮箱SMTP配置',
-            message: error.response?.data.msg,
-            type: 'error'
-          })
-        })
-        .finally(() => {
-          row.loading = false
-        })
-    },
-    deleteUserEmail({ email }) {
-      this.$messageBox.confirm(
-        `确认删除邮箱：${ email }`,
-        'Warning',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      )
-        .then(async () => {
-          await this.$api.deleteUserEmail(email)
-          this.$message.success('success')
-          this.getUserEmailList()
-        })
-    }
+<script setup>
+import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
+
+const { proxy: { $api, $message, $messageBox, $notification } } = getCurrentInstance()
+
+const loading = ref(false)
+const userEmailList = ref([])
+const supportEmailList = ref([])
+const emailFormRef = ref(null)
+
+const emailForm = reactive({
+  target: 'qq',
+  auth: {
+    user: '',
+    pass: ''
   }
+})
+
+const rules = reactive({
+  'auth.user': { required: true, type: 'email', message: '需输入邮箱', trigger: 'change' },
+  'auth.pass': { required: true, message: '需输入SMTP授权码', trigger: 'change' }
+})
+
+const getUserEmailList = () => {
+  loading.value = true
+  $api.getUserEmailList()
+    .then(({ data }) => {
+      userEmailList.value = data.map(item => {
+        item.loading = false
+        return item
+      })
+    })
+    .finally(() => loading.value = false)
 }
+
+const getSupportEmailList = () => {
+  $api.getSupportEmailList()
+    .then(({ data }) => {
+      supportEmailList.value = data
+    })
+}
+
+const addEmail = () => {
+  emailFormRef.value.validate()
+    .then(() => {
+      $api.updateUserEmailList({ ...emailForm })
+        .then(() => {
+          $message.success('添加成功, 点击[测试]按钮发送测试邮件')
+          let { target } = emailForm
+          emailForm.target = target
+          emailForm.auth.user = ''
+          emailForm.auth.pass = ''
+          getUserEmailList()
+        })
+    })
+}
+
+const pushTestEmail = (row) => {
+  row.loading = true
+  const { email: toEmail } = row
+  $api.pushTestEmail({ isTest: true, toEmail })
+    .then(() => {
+      $message.success(`发送成功, 请检查邮箱: ${toEmail}`)
+    })
+    .catch((error) => {
+      $notification({
+        title: '发送测试邮件失败, 请检查邮箱SMTP配置',
+        message: error.response?.data.msg,
+        type: 'error'
+      })
+    })
+    .finally(() => {
+      row.loading = false
+    })
+}
+
+const deleteUserEmail = ({ email }) => {
+  $messageBox.confirm(
+    `确认删除邮箱：${email}`,
+    'Warning',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
+    .then(async () => {
+      await $api.deleteUserEmail(email)
+      $message.success('success')
+      getUserEmailList()
+    })
+}
+
+onMounted(() => {
+  getUserEmailList()
+  getSupportEmailList()
+})
 </script>
 
 <style lang="scss" scoped>

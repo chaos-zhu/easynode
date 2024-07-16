@@ -6,10 +6,7 @@
     :close-on-click-modal="false"
     :close-on-press-escape="false"
   >
-    <el-tabs
-      style="height: 500px;"
-      tab-position="left"
-    >
+    <el-tabs style="height: 500px;" tab-position="left">
       <el-tab-pane label="分组管理">
         <Group />
       </el-tab-pane>
@@ -17,7 +14,7 @@
         <Record />
       </el-tab-pane>
       <el-tab-pane label="主机排序" lazy>
-        <Sort @update-list="$emit('update-list')" />
+        <Sort @update-list="emitUpdateList" />
       </el-tab-pane>
       <el-tab-pane label="全局通知" lazy>
         <NotifyList />
@@ -32,8 +29,8 @@
   </el-dialog>
 </template>
 
-<script>
-
+<script setup>
+import { computed } from 'vue'
 import NotifyList from './setting-tab/notify-list.vue'
 import EmailList from './setting-tab/email-list.vue'
 import Sort from './setting-tab/sort.vue'
@@ -41,37 +38,22 @@ import Record from './setting-tab/record.vue'
 import Group from './setting-tab/group.vue'
 import Password from './setting-tab/password.vue'
 
-export default {
-  name: 'Setting',
-  components: {
-    NotifyList,
-    EmailList,
-    Sort,
-    Record,
-    Group,
-    Password
-  },
-  props: {
-    show: {
-      required: true,
-      type: Boolean
-    }
-  },
-  emits: ['update:show', 'update-list',],
-  data() {
-    return {
-    }
-  },
-  computed: {
-    visible: {
-      get() {
-        return this.show
-      },
-      set(newVal) {
-        this.$emit('update:show', newVal)
-      }
-    }
+const props = defineProps({
+  show: {
+    required: true,
+    type: Boolean
   }
+})
+
+const emit = defineEmits(['update:show', 'update-list'])
+
+const visible = computed({
+  get: () => props.show,
+  set: (newVal) => emit('update:show', newVal)
+})
+
+const emitUpdateList = () => {
+  emit('update-list')
 }
 </script>
 

@@ -45,118 +45,106 @@
   />
 </template>
 
-<script>
+<script setup>
+import { ref, reactive, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 import { io } from 'socket.io-client'
 import HostForm from './components/host-form.vue'
 import Setting from './components/setting.vue'
 import HostCard from './components/host-card.vue'
 
-export default {
-  name: 'App',
-  components: {
-    HostCard,
-    HostForm,
-    Setting
-  },
-  data() {
-    return {
-      socket: null,
-      loading: true,
-      hostListStatus: [],
-      updateHostData: null,
-      hostFormVisible: false,
-      settingVisible: false,
-      hiddenIp: Number(localStorage.getItem('hiddenIp') || 0)
-    }
-  },
-  mounted() {
-    this.getHostList()
-  },
-  beforeUnmount() {
-    this.socket?.close && this.socket.close()
-  },
-  methods: {
-    handleLogout() {
-      this.$store.clearJwtToken()
-      this.$message({ type: 'success', message: '已安全退出', center: true })
-      this.$router.push('/login')
-    },
-    async getHostList() {
-      try {
-        this.loading = true
-        await this.$store.getHostList()
-        this.connectIo()
-      } catch(err) {
-        this.loading = false
-      }
-    },
-    connectIo() {
-      let socket = io(this.$serviceURI, {
-        path: '/clients',
-        forceNew: true, // 强制新的实例
-        reconnectionDelay: 5000,
-        reconnectionAttempts: 2 // 每5s后尝试重新连接次数
-      })
-      this.socket = socket
-      socket.on('connect', () => {
-        let flag = 5
-        this.loading = false
-        console.log('clients websocket 已连接: ', socket.id)
-        let token = this.$store.token
-        socket.emit('init_clients_data', { token })
-        socket.on('clients_data', (data) => {
-          if((flag++ % 5) === 0) this.$store.getHostPing()
-          this.hostListStatus = this.$store.hostList.map(item => {
-            const { host } = item
-            if(data[host] === null) return { ...item }// 为null时表示该服务器断开连接
-            return Object.assign({}, item, data[host])
-          })
-        })
-        socket.on('token_verify_fail', (message) => {
-          this.$notification({
-            title: '鉴权失败',
-            message,
-            type: 'error'
-          })
-          this.$router.push('/login')
-        })
-      })
-      socket.on('disconnect', () => {
-        // this.$notification({
-        //   title: 'server websocket error',
-        //   message: '与服务器连接断开',
-        //   type: 'error'
-        // })
-        console.error('clients websocket 连接断开')
-      })
-      socket.on('connect_error', (message) => {
-        this.loading = false
-        console.error('clients websocket 连接出错: ', message)
-      })
-    },
-    handleUpdateList() {
-      this.socket.close && this.socket.close()
-      this.getHostList()
-    },
-    handleUpdateHost(defaultData) {
-      this.hostFormVisible = true
-      this.updateHostData = defaultData
-    },
-    handleHiddenIP() {
-      this.hiddenIp = this.hiddenIp ? 0 : 1
-      localStorage.setItem('hiddenIp', String(this.hiddenIp))
-    }
+const { proxy: { $store, $api, $message, $notification, $router, $serviceURI } } = getCurrentInstance()
+
+const socket = ref(null)
+const loading = ref(true)
+const hostListStatus = ref([])
+const updateHostData = ref(null)
+const hostFormVisible = ref(false)
+const settingVisible = ref(false)
+const hiddenIp = ref(Number(localStorage.getItem('hiddenIp') || 0))
+
+const handleLogout = () => {
+  $store.clearJwtToken()
+  $message({ type: 'success', message: '已安全退出', center: true })
+  $router.push('/login')
+}
+
+const getHostList = async () => {
+  try {
+    loading.value = true
+    await $store.getHostList()
+    connectIo()
+  } catch (err) {
+    loading.value = false
   }
 }
+
+const connectIo = () => {
+  let socketInstance = io($serviceURI, {
+    path: '/clients',
+    forceNew: true,
+    reconnectionDelay: 5000,
+    reconnectionAttempts: 2
+  })
+  socket.value = socketInstance
+  socketInstance.on('connect', () => {
+    let flag = 5
+    loading.value = false
+    console.log('clients websocket 已连接: ', socketInstance.id)
+    let token = $store.token
+    socketInstance.emit('init_clients_data', { token })
+    socketInstance.on('clients_data', (data) => {
+      if ((flag++ % 5) === 0) $store.getHostPing()
+      hostListStatus.value = $store.hostList.map(item => {
+        const { host } = item
+        if (data[host] === null) return { ...item }
+        return Object.assign({}, item, data[host])
+      })
+    })
+    socketInstance.on('token_verify_fail', (message) => {
+      $notification({
+        title: '鉴权失败',
+        message,
+        type: 'error'
+      })
+      $router.push('/login')
+    })
+  })
+  socketInstance.on('disconnect', () => {
+    console.error('clients websocket 连接断开')
+  })
+  socketInstance.on('connect_error', (message) => {
+    loading.value = false
+    console.error('clients websocket 连接出错: ', message)
+  })
+}
+
+const handleUpdateList = () => {
+  if (socket.value) socket.value.close()
+  getHostList()
+}
+
+const handleUpdateHost = (defaultData) => {
+  hostFormVisible.value = true
+  updateHostData.value = defaultData
+}
+
+const handleHiddenIP = () => {
+  hiddenIp.value = hiddenIp.value ? 0 : 1
+  localStorage.setItem('hiddenIp', String(hiddenIp.value))
+}
+
+onMounted(() => {
+  getHostList()
+})
+
+onBeforeUnmount(() => {
+  if (socket.value) socket.value.close()
+})
 </script>
 
 <style lang="scss" scoped>
 $height:70px;
 header {
-  // position: sticky;
-  // top: 0px;
-  // z-index: 1;
-  // background: rgba(255,255,255,0);
   padding: 0 30px;
   height: $height;
   display: flex;

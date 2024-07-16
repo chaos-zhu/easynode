@@ -1,6 +1,6 @@
 <template>
   <el-form
-    ref="group-form"
+    ref="groupFormRef"
     :model="groupForm"
     :rules="rules"
     :inline="true"
@@ -17,7 +17,6 @@
       />
     </el-form-item>
     <el-form-item label="" prop="index" style="width: 200px;">
-      <!-- <el-input-number v-model="groupForm.index" :min="1" :max="10" /> -->
       <el-input
         v-model.number="groupForm.index"
         clearable
@@ -51,7 +50,7 @@
     <el-table-column prop="id" label="ID" />
     <el-table-column prop="name" label="分组名称" />
     <el-table-column label="关联服务器数量">
-      <template #default="{row}">
+      <template #default="{ row }">
         <el-popover
           v-if="row.hosts.list.length !== 0"
           placement="right"
@@ -73,7 +72,7 @@
       </template>
     </el-table-column>
     <el-table-column label="操作">
-      <template #default="{row}">
+      <template #default="{ row }">
         <el-button type="primary" @click="handleChange(row)">修改</el-button>
         <el-button v-show="row.id !== 'default'" type="danger" @click="deleteGroup(row)">删除</el-button>
       </template>
@@ -86,7 +85,7 @@
     :close-on-click-modal="false"
   >
     <el-form
-      ref="update-form"
+      ref="updateFormRef"
       :model="updateForm"
       :rules="rules"
       :hide-required-asterisk="true"
@@ -119,109 +118,113 @@
   </el-dialog>
 </template>
 
-<script>
-export default {
-  name: 'NotifyList',
-  data() {
-    return {
-      loading: false,
-      visible: false,
-      groupList: [],
-      groupForm: {
-        name: '',
-        index: ''
-      },
-      updateForm: {
-        name: '',
-        index: ''
-      },
-      rules: {
-        'name': { required: true, message: '需输入分组名称', trigger: 'change' },
-        'index': { required: true, type: 'number', message: '需输入数字', trigger: 'change' }
+<script setup>
+import { ref, reactive, computed, onMounted, getCurrentInstance } from 'vue'
+
+const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
+
+const loading = ref(false)
+const visible = ref(false)
+const groupList = ref([])
+const groupForm = reactive({
+  name: '',
+  index: ''
+})
+const updateForm = reactive({
+  name: '',
+  index: ''
+})
+const rules = reactive({
+  name: { required: true, message: '需输入分组名称', trigger: 'change' },
+  index: { required: true, type: 'number', message: '需输入数字', trigger: 'change' }
+})
+
+const groupFormRef = ref(null)
+const updateFormRef = ref(null)
+
+const hostGroupInfo = computed(() => {
+  const total = $store.hostList.length
+  const notGroupCount = $store.hostList.reduce((prev, next) => {
+    if (!next.group) prev++
+    return prev
+  }, 0)
+  return { total, notGroupCount }
+})
+
+const list = computed(() => {
+  return groupList.value.map(item => {
+    const hosts = $store.hostList.reduce((prev, next) => {
+      if (next.group === item.id) {
+        prev.count++
+        prev.list.push(next)
       }
-    }
-  },
-  computed: {
-    hostGroupInfo() {
-      let total = this.$store.hostList.length
-      let notGroupCount = this.$store.hostList.reduce((prev, next) => {
-        if(!next.group) prev++
-        return prev
-      }, 0)
-      return { total, notGroupCount }
-    },
-    list() {
-      return this.groupList.map(item => {
-        let hosts = this.$store.hostList.reduce((prev, next) => {
-          if(next.group === item.id) {
-            prev.count++
-            prev.list.push(next)
-          }
-          return prev
-        }, { count: 0, list: [] })
-        return { ...item, hosts }
-      })
-    }
-  },
-  mounted() {
-    this.getGroupList()
-  },
-  methods: {
-    getGroupList() {
-      this.loading = true
-      this.$api.getGroupList()
-        .then(({ data }) => {
-          this.groupList = data
-          this.groupForm.index = data.length
-        })
-        .finally(() => this.loading = false)
-    },
-    addGroup() {
-      let formRef = this.$refs['group-form']
-      formRef.validate()
-        .then(() => {
-          const { name, index } = this.groupForm
-          this.$api.addGroup({ name, index })
-            .then(() => {
-              this.$message.success('success')
-              this.groupForm = { name: '', index: '' }
-              this.$nextTick(() => formRef.resetFields())
-              this.getGroupList()
-            })
-        })
-    },
-    handleChange({ id, name, index }) {
-      this.updateForm = { id, name, index }
-      this.visible = true
-    },
-    updateGroup() {
-      let formRef = this.$refs['update-form']
-      formRef.validate()
-        .then(() => {
-          const { id, name, index } = this.updateForm
-          this.$api.updateGroup(id, { name, index })
-            .then(() => {
-              this.$message.success('success')
-              this.visible = false
-              this.getGroupList()
-            })
-        })
-    },
-    deleteGroup({ id, name }) {
-      this.$messageBox.confirm( `确认删除分组：${ name }`, 'Warning', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
-        .then(async () => {
-          await this.$api.deleteGroup(id)
-          await this.$store.getHostList()
-          this.$message.success('success')
-          this.getGroupList()
-        })
-    }
-  }
+      return prev
+    }, { count: 0, list: [] })
+    return { ...item, hosts }
+  })
+})
+
+const getGroupList = () => {
+  loading.value = true
+  $api.getGroupList()
+    .then(({ data }) => {
+      groupList.value = data
+      groupForm.index = data.length
+    })
+    .finally(() => loading.value = false)
 }
+
+const addGroup = () => {
+  groupFormRef.value.validate()
+    .then(() => {
+      const { name, index } = groupForm
+      $api.addGroup({ name, index })
+        .then(() => {
+          $message.success('success')
+          groupForm.name = ''
+          groupForm.index = ''
+          getGroupList()
+        })
+    })
+}
+
+const handleChange = ({ id, name, index }) => {
+  updateForm.id = id
+  updateForm.name = name
+  updateForm.index = index
+  visible.value = true
+}
+
+const updateGroup = () => {
+  updateFormRef.value.validate()
+    .then(() => {
+      const { id, name, index } = updateForm
+      $api.updateGroup(id, { name, index })
+        .then(() => {
+          $message.success('success')
+          visible.value = false
+          getGroupList()
+        })
+    })
+}
+
+const deleteGroup = ({ id, name }) => {
+  $messageBox.confirm(`确认删除分组：${name}`, 'Warning', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(async () => {
+      await $api.deleteGroup(id)
+      await $store.getHostList()
+      $message.success('success')
+      getGroupList()
+    })
+}
+
+onMounted(() => {
+  getGroupList()
+})
 </script>
 
 <style lang="scss" scoped>

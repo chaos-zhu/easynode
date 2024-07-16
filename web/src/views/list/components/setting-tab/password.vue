@@ -1,6 +1,6 @@
 <template>
   <el-form
-    ref="form"
+    ref="formRef"
     class="password-form"
     :model="formData"
     :rules="rules"
@@ -40,46 +40,39 @@
   </el-form>
 </template>
 
-<script>
+<script setup>
+import { ref, reactive, getCurrentInstance } from 'vue'
 import { RSAEncrypt } from '@utils/index.js'
 
-export default {
-  name: 'UpdatePassword',
-  data() {
-    return {
-      loading: false,
-      formData: {
-        oldPwd: '',
-        newPwd: '',
-        confirmPwd: ''
-      },
-      rules: {
-        oldPwd: { required: true, message: '输入旧密码', trigger: 'change' },
-        newPwd: { required: true, message: '输入新密码', trigger: 'change' },
-        confirmPwd: { required: true, message: '输入确认密码', trigger: 'change' }
-      }
-    }
-  },
-  computed: {
-    formRef() {
-      return this.$refs['form']
-    }
-  },
-  methods: {
-    handleUpdate() {
-      this.formRef.validate()
-        .then(async () => {
-          let { oldPwd, newPwd, confirmPwd } = this.formData
-          if(newPwd !== confirmPwd) return this.$message.error({ center: true, message: '两次密码输入不一致' })
-          oldPwd = RSAEncrypt(oldPwd)
-          newPwd = RSAEncrypt(newPwd)
-          let { msg } = await this.$api.updatePwd({ oldPwd, newPwd })
-          this.$message({ type: 'success', center: true, message: msg })
-          this.formData = { oldPwd: '', newPwd: '', confirmPwd: '' }
-          this.formRef.resetFields()
-        })
-    }
-  }
+const { proxy: { $api, $message } } = getCurrentInstance()
+
+const loading = ref(false)
+const formRef = ref(null)
+const formData = reactive({
+  oldPwd: '',
+  newPwd: '',
+  confirmPwd: ''
+})
+const rules = reactive({
+  oldPwd: { required: true, message: '输入旧密码', trigger: 'change' },
+  newPwd: { required: true, message: '输入新密码', trigger: 'change' },
+  confirmPwd: { required: true, message: '输入确认密码', trigger: 'change' }
+})
+
+const handleUpdate = () => {
+  formRef.value.validate()
+    .then(async () => {
+      let { oldPwd, newPwd, confirmPwd } = formData
+      if(newPwd !== confirmPwd) return $message.error({ center: true, message: '两次密码输入不一致' })
+      oldPwd = RSAEncrypt(oldPwd)
+      newPwd = RSAEncrypt(newPwd)
+      let { msg } = await $api.updatePwd({ oldPwd, newPwd })
+      $message({ type: 'success', center: true, message: msg })
+      formData.oldPwd = ''
+      formData.newPwd = ''
+      formData.confirmPwd = ''
+      formRef.value.resetFields()
+    })
 }
 </script>
 

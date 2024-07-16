@@ -77,7 +77,7 @@ const getNetIPInfo = async (searchIp = '') => {
     consola.info('查询IP信息：', validInfo)
     return validInfo || { ip: '获取IP信息API出错,请排查或更新API', country: '未知', city: '未知', date }
   } catch (error) {
-    consola.error('getIpInfo Error: ', error)
+    // consola.error('getIpInfo Error: ', error)
     return {
       ip: '未知',
       country: '未知',

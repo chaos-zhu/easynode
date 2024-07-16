@@ -15,36 +15,32 @@
   </el-table>
 </template>
 
-<script>
-export default {
-  name: 'LoginRecord',
-  data() {
-    return {
-      loginRecordList: [],
-      loading: false
-    }
-  },
-  created() {
-    this.handleLookupLoginRecord()
-  },
-  methods: {
-    handleLookupLoginRecord() {
-      this.loading = true
-      this.$api.getLoginRecord()
-        .then(({ data }) => {
-          this.loginRecordList = data.map((item) => {
-            item.date = this.$tools.formatTimestamp(item.date)
-            return item
-          })
-        })
-        .finally(() => {
-          this.loading = false
-        })
-    }
-  }
+<script setup>
+import { ref, onMounted, getCurrentInstance } from 'vue'
+
+const { proxy: { $api, $tools } } = getCurrentInstance()
+
+const loginRecordList = ref([])
+const loading = ref(false)
+
+const handleLookupLoginRecord = () => {
+  loading.value = true
+  $api.getLoginRecord()
+    .then(({ data }) => {
+      loginRecordList.value = data.map((item) => {
+        item.date = $tools.formatTimestamp(item.date)
+        return item
+      })
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
+
+onMounted(() => {
+  handleLookupLoginRecord()
+})
 </script>
 
 <style lang="scss" scoped>
-
 </style>

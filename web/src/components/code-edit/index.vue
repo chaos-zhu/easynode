@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     width="80%"
-    :top="'20px'"
+    :top="'30px'"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     :show-close="false"
@@ -10,7 +10,7 @@
     custom-class="container"
     @closed="handleClosed"
   >
-    <template #title>
+    <template #header>
       <div class="title">
         FileName - <span>{{ status }}</span>
       </div>
@@ -30,8 +30,8 @@
     />
     <template #footer>
       <footer>
-        <div>
-          <el-select v-model="curLang" placeholder="Select language" size="small">
+        <div class="select_wrap">
+          <el-select v-model="curLang" placeholder="Select language">
             <el-option
               v-for="item in languageKey"
               :key="item"
@@ -56,7 +56,7 @@ import languages from './languages'
 import { sortString, getSuffix } from '@/utils'
 
 const languageKey = sortString(Object.keys(languages))
-// console.log('languages: ', languages)
+// console.log('languages: ', languageKey)
 
 export default {
   name: 'CodeEdit',
@@ -139,8 +139,8 @@ export default {
           case 'md': return this.curLang = 'markdown'
           case 'py': return this.curLang = 'python'
           default:
-            console.log('不支持的文件类型: ', newVal)
-            console.log('默认: ', 'shell')
+            // console.log('不支持的文件类型: ', newVal)
+            // console.log('默认: ', 'shell')
             return this.curLang = 'shell'
         }
       } catch (error) {
@@ -229,6 +229,10 @@ export default {
     align-items: center;
     padding: 0 15px;
     justify-content: space-between;
+    .select_wrap {
+      width: 150px;
+      margin-right: 15px;
+    }
   }
 }
 </style>

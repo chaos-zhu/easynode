@@ -1,6 +1,6 @@
 <template>
   <div class="sftp-container">
-    <div ref="adjust" class="adjust" />
+    <div ref="adjustRef" class="adjust" />
     <section>
       <div class="left box">
         <div class="header">
@@ -62,10 +62,10 @@
                 <img
                   src="@/assets/image/system/upload.png"
                   style=" width: 19px; height: 19px; "
-                  @click="$refs['upload_file'].click()"
+                  @click="uploadFileRef.click()"
                 >
                 <input
-                  ref="upload_file"
+                  ref="uploadFileRef"
                   type="file"
                   style="display: none;"
                   multiple
@@ -101,7 +101,7 @@
         </div>
         <ul
           v-if="fileList.length !== 0"
-          ref="child-dir"
+          ref="childDirRef"
           v-loading="childDirLoading"
           element-loading-text="加载中..."
           class="dir-list"
@@ -132,7 +132,8 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, reactive, computed, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 import socketIo from 'socket.io-client'
 import CodeEdit from '@/components/code-edit/index.vue'
 import { isDir, isFile, sortDirTree, downloadFile } from '@/utils'
@@ -142,407 +143,390 @@ import fileIcon from '@/assets/image/system/file.png'
 import unknowIcon from '@/assets/image/system/unknow.png'
 
 const { io } = socketIo
-export default {
-  name: 'Sftp',
-  components: { CodeEdit },
-  props: {
-    token: {
-      required: true,
-      type: String
-    },
-    host: {
-      required: true,
-      type: String
-    }
-  },
-  emits: ['resize',],
-  data() {
-    return {
-      visible: false,
-      originalCode: '',
-      filename: '',
-      filterKey: '',
-      socket: null,
-      icons: {
-        '-': fileIcon,
-        l: linkIcon,
-        d: dirIcon,
-        c: dirIcon,
-        p: unknowIcon,
-        s: unknowIcon,
-        b: unknowIcon
-      },
-      paths: ['/',],
-      rootLs: [],
-      childDir: [],
-      childDirLoading: false,
-      curTarget: null,
-      showFileProgress: false,
-      upFileProgress: 0,
-      curUploadFileName: ''
-    }
-  },
-  computed: {
-    curPath() {
-      return this.paths.join('/').replace(/\/{2,}/g, '/')
-    },
-    fileList() {
-      return this.childDir.filter(({ name }) => name.includes(this.filterKey))
-    }
-  },
-  mounted() {
-    this.connectSftp()
-    this.adjustHeight()
-  },
-  beforeUnmount() {
-    this.socket && this.socket.close()
-  },
-  methods: {
-    connectSftp() {
-      let { host, token } = this
-      this.socket = io(this.$serviceURI, {
-        path: '/sftp',
-        forceNew: false, // 强制新的连接
-        reconnectionAttempts: 1 // 尝试重新连接次数
-      })
-      this.socket.on('connect', () => {
-        console.log('/sftp socket已连接：', this.socket.id)
-        this.listenSftp()
-        // 验证身份并连接终端
-        this.socket.emit('create', { host, token })
-        this.socket.on('root_ls', (tree) => {
-          // console.log(tree)
-          let temp = sortDirTree(tree).filter((item) => isDir(item.type)) // 只保留文件夹类型的文件
-          temp.unshift({ name: '/', type: 'd' })
-          this.rootLs = temp
-        })
-        this.socket.on('create_fail', (message) => {
-          // console.error(message)
-          this.$notification({
-            title: 'Sftp连接失败',
-            message,
-            type: 'error'
-          })
-        })
-        this.socket.on('token_verify_fail', () => {
-          this.$notification({
-            title: 'Error',
-            message: 'token校验失败，需重新登录',
-            type: 'error'
-          })
-          // this.$router.push('/login')
-        })
-      })
-      this.socket.on('disconnect', () => {
-        console.warn('sftp websocket 连接断开')
-        if(this.showFileProgress) {
-          this.$notification({
-            title: '上传失败',
-            message: '请检查socket服务是否正常',
-            type: 'error'
-          })
-          this.handleRefresh()
-          this.resetFileStatusFlag()
-        }
-      })
-      this.socket.on('connect_error', (err) => {
-        console.error('sftp websocket 连接错误：', err)
-        this.$notification({
-          title: 'sftp连接失败',
-          message: '请检查socket服务是否正常',
-          type: 'error'
-        })
-      })
-    },
-    // 这个方法连接socket只能调用一次，否则on回调会执行多次
-    listenSftp() {
-      this.socket.on('dir_ls', (dirLs) => {
-        // console.log('dir_ls: ', dirLs)
-        this.childDir = sortDirTree(dirLs)
-        this.childDirLoading = false
-      })
-      this.socket.on('not_exists_dir', (errMsg) => {
-        this.$message.error(errMsg)
-        this.childDirLoading = false
-      })
-      this.socket.on('rm_success', (res) => {
-        this.$message.success(res)
-        this.childDirLoading = false
-        this.handleRefresh()
-      })
-      // this.socket.on('down_dir_success', (res) => {
-      //   console.log(res)
-      //   this.$message.success(res)
-      //   this.childDirLoading = false
-      // })
-      this.socket.on('down_file_success', (res) => {
-        const { buffer, name } = res
-        downloadFile({ buffer, name })
-        this.$message.success('success')
-        this.resetFileStatusFlag()
-      })
-      this.socket.on('preview_file_success', (res) => {
-        const { buffer, name } = res
-        console.log('preview_file: ', name, buffer)
-        // String.fromCharCode.apply(null, new Uint8Array(temp1))
-        this.originalCode = new TextDecoder().decode(buffer)
-        this.filename = name
-        this.visible = true
-      })
-      this.socket.on('sftp_error', (res) => {
-        console.log('操作失败:', res)
-        this.$message.error(res)
-        this.resetFileStatusFlag()
-      })
-      this.socket.on('up_file_progress', (res) => {
-        // console.log('上传进度:', res)
-        // 浏览器到服务端占比50%，服务端到服务器占比50%
-        let progress = Math.ceil(50 + (res / 2))
-        this.upFileProgress = progress > 100 ? 100 : progress
-      })
-      this.socket.on('down_file_progress', (res) => {
-        // console.log('下载进度:', res)
-        this.upFileProgress = res
-      })
-    },
-    openRootChild(item) {
-      const { name, type } = item
-      if(isDir(type)) {
-        this.childDirLoading = true
-        this.paths.length = 2
-        this.paths[1] = name
-        this.$refs['child-dir']?.scrollTo(0, 0)
-        this.openDir()
-        this.filterKey = '' // 移除搜索条件
-      }else {
-        console.log('暂不支持打开文件', name, type)
-        this.$message.warning(`暂不支持打开文件${ name } ${ type }`)
-      }
-    },
-    openTarget(item) {
-      console.log(item)
-      const { name, type, size } = item
-      if(isDir(type)) {
-        this.paths.push(name)
-        this.$refs['child-dir']?.scrollTo(0, 0)
-        this.openDir()
-      } else if(isFile(type)) {
-        if(size/1024/1024 > 1) return this.$message.warning('暂不支持打开1M及以上文件, 请下载本地查看')
-        const path = this.getPath(name)
-        this.socket.emit('down_file', { path, name, size, target: 'preview' })
-      } else {
-        this.$message.warning(`暂不支持打开文件${ name } ${ type }`)
-      }
-    },
-    handleSaveCode(code) {
-      // console.log('code: ', code)
-      let file = new TextEncoder('utf-8').encode(code)
-      let name = this.filename
-      const fullPath = this.getPath(name)
-      const targetPath = this.curPath
-      this.socket.emit('up_file', { targetPath, fullPath, name, file })
-    },
-    handleClosedCode() {
-      this.filename = ''
-      this.originalCode = ''
-    },
-    selectFile(item) {
-      this.curTarget = item
-    },
-    handleReturn() {
-      if(this.paths.length === 1) return
-      this.paths.pop()
-      this.openDir()
-    },
-    handleRefresh() {
-      this.openDir()
-    },
-    handleDownload() {
-      if(this.curTarget === null) return this.$message.warning('先选择一个文件')
-      const { name, size, type } = this.curTarget
-      if(isDir(type)) return this.$message.error('暂不支持下载文件夹')
-      this.$messageBox.confirm( `确认下载：${ name }`, 'Warning', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
-        .then(() => {
-          this.childDirLoading = true
-          const path = this.getPath(name)
-          if(isDir(type)) {
-            // '暂不支持下载文件夹'
-            // this.socket.emit('down_dir', path)
-          }else if(isFile(type)) {
-            this.showFileProgress = true
-            this.socket.emit('down_file', { path, name, size, target: 'down' })
-          }else {
-            this.$message.error('不支持下载的文件类型')
-          }
-        })
-    },
-    handleDelete() {
-      if(this.curTarget === null) return this.$message.warning('先选择一个文件(夹)')
-      const { name, type } = this.curTarget
-      this.$messageBox.confirm( `确认删除：${ name }`, 'Warning', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
-        .then(() => {
-          this.childDirLoading = true
-          const path = this.getPath(name)
-          if(isDir(type)) {
-            this.socket.emit('rm_dir', path)
-          }else {
-            this.socket.emit('rm_file', path)
-          }
-        })
-    },
-    async handleUpload(event) {
-      if(this.showFileProgress) return this.$message.warning('需等待当前任务完成')
-      let { files } = event.target
-      for(let file of files) {
-        console.log(file)
-        try {
-          await this.uploadFile(file)
-        } catch (error) {
-          this.$message.error(error)
-        }
-      }
-      this.$refs['upload_file'].value = ''
-    },
-    uploadFile(file) {
-      return new Promise((resolve, reject) => {
-        if(!file) return reject('file is not defined')
-        if((file.size/1024/1024)> 1000) {
-          this.$message.warn('用网页传这么大文件你是认真的吗?')
-        }
-        let reader = new FileReader()
-        reader.onload = async (e) => {
-          // console.log('buffer:', e.target.result)
-          const { name } = file
-          const fullPath = this.getPath(name)
-          const targetPath = this.curPath
-          this.curUploadFileName = name
-          this.socket.emit('create_cache_dir', { targetPath, name })
-          // 每次上传只监听一次，多次监听会导致回调重复执行
-          this.socket.once('create_cache_success', async () => {
-            let start = 0
-            let end = 0
-            let range = 1024 * 512 // 每段512KB
-            let size = file.size
-            let fileIndex = 0
-            let multipleFlag = false // 用于防止上一个文件失败导致多次执行once
-            try {
-              console.log('=========开始上传分片=========')
-              this.upFileProgress = 0
-              this.showFileProgress = true
-              this.childDirLoading = true
-              let totalSliceCount = Math.ceil(size / range)
-              while(end < size) {
-                fileIndex++
-                end += range
-                let sliceFile = file.slice(start, end)
-                start = end
-                await this.uploadSliceFile({ name, sliceFile, fileIndex })
-                // 浏览器到服务端占比50%，服务端到服务器占比50%
-                this.upFileProgress = parseInt((fileIndex / totalSliceCount * 100) / 2)
-              }
-              console.log('=========分片上传完成(等待服务端上传至客户端)=========')
-              this.socket.emit('up_file_slice_over', { name, fullPath, range, size })
-              this.socket.once('up_file_success', (res) => {
-                if(multipleFlag) return
-                console.log('=========服务端上传至客户端上传完成✔=========')
-                // console.log('up_file_success:', res)
-                // this.$message.success(res)
-                this.handleRefresh()
-                this.resetFileStatusFlag()
-                multipleFlag = true
-                resolve()
-              })
-              this.socket.once('up_file_fail', (res) => {
-                if(multipleFlag) return
-                console.log('=========服务端上传至客户端上传失败❌=========')
-                // console.log('up_file_fail:', res)
-                this.$message.error(res)
-                this.handleRefresh()
-                this.resetFileStatusFlag()
-                multipleFlag = true
-                reject()
-              })
-            } catch (err) {
-              reject(err)
-              let errMsg = `上传失败, ${ err }`
-              console.error(errMsg)
-              this.$message.error(errMsg)
-              this.handleRefresh()
-              this.resetFileStatusFlag()
-            }
-          })
-        }
-        reader.readAsArrayBuffer(file)
-      })
-    },
-    resetFileStatusFlag() {
-      this.upFileProgress = 0
-      this.curUploadFileName = ''
-      this.showFileProgress = false
-      this.childDirLoading = false
-    },
-    uploadSliceFile(fileInfo) {
-      return new Promise((resolve, reject) => {
-        this.socket.emit('up_file_slice', fileInfo)
-        this.socket.once('up_file_slice_success', () => {
-          resolve()
-        })
-        this.socket.once('up_file_slice_fail', () => {
-          reject('分片文件上传失败')
-        })
-        this.socket.once('not_exists_dir', (errMsg) => {
-          reject(errMsg)
-        })
-      })
-    },
-    openDir() {
-      this.childDirLoading = true
-      this.curTarget = null
-      this.socket.emit('open_dir', this.curPath)
-    },
-    getPath(name = '') {
-      return this.curPath.length === 1 ? `/${ name }` : `${ this.curPath }/${ name }`
-    },
-    adjustHeight() {
-      let startAdjust = false
-      let timer = null
-      this.$nextTick(() => {
-        let sftpHeight = localStorage.getItem('sftpHeight')
-        if(sftpHeight) document.querySelector('.sftp-container').style.height = sftpHeight
-        else document.querySelector('.sftp-container').style.height = '33vh' // 默认占据页面高度1/3
 
-        this.$refs['adjust'].addEventListener('mousedown', () => {
-          // console.log('开始调整')
-          startAdjust = true
-        })
-        document.addEventListener('mousemove', (e) => {
-          if(!startAdjust) return
-          if(timer) clearTimeout(timer)
-          timer = setTimeout(() => {
-            sftpHeight = `calc(100vh - ${ e.pageY }px)`
-            document.querySelector('.sftp-container').style.height = sftpHeight
-            this.$emit('resize')
-          })
-        })
-        document.addEventListener('mouseup', (e) => {
-          if(!startAdjust) return
-          startAdjust = false
-          sftpHeight = `calc(100vh - ${ e.pageY }px)`
-          localStorage.setItem('sftpHeight', sftpHeight)
-        })
+const props = defineProps({
+  token: {
+    required: true,
+    type: String
+  },
+  host: {
+    required: true,
+    type: String
+  }
+})
+
+const emit = defineEmits(['resize'])
+
+const { proxy: { $notification, $message, $messageBox, $serviceURI, $nextTick } } = getCurrentInstance()
+
+const visible = ref(false)
+const originalCode = ref('')
+const filename = ref('')
+const filterKey = ref('')
+const socket = ref(null)
+const icons = {
+  '-': fileIcon,
+  l: linkIcon,
+  d: dirIcon,
+  c: dirIcon,
+  p: unknowIcon,
+  s: unknowIcon,
+  b: unknowIcon
+}
+const paths = ref(['/',])
+const rootLs = ref([])
+const childDir = ref([])
+const childDirLoading = ref(false)
+const curTarget = ref(null)
+const showFileProgress = ref(false)
+const upFileProgress = ref(0)
+const curUploadFileName = ref('')
+const adjustRef = ref(null)
+const childDirRef = ref(null)
+const uploadFileRef = ref(null)
+
+const curPath = computed(() => paths.value.join('/').replace(/\/{2,}/g, '/'))
+const fileList = computed(() => childDir.value.filter(({ name }) => name.includes(filterKey.value)))
+
+onMounted(() => {
+  connectSftp()
+  adjustHeight()
+})
+
+onBeforeUnmount(() => {
+  if (socket.value) socket.value.close()
+})
+
+const connectSftp = () => {
+  socket.value = io($serviceURI, {
+    path: '/sftp',
+    forceNew: false,
+    reconnectionAttempts: 1
+  })
+  socket.value.on('connect', () => {
+    console.log('/sftp socket已连接：', socket.value.id)
+    listenSftp()
+    socket.value.emit('create', { host: props.host, token: props.token })
+    socket.value.on('root_ls', (tree) => {
+      let temp = sortDirTree(tree).filter((item) => isDir(item.type))
+      temp.unshift({ name: '/', type: 'd' })
+      rootLs.value = temp
+    })
+    socket.value.on('create_fail', (message) => {
+      $notification({
+        title: 'Sftp连接失败',
+        message,
+        type: 'error'
       })
+    })
+    socket.value.on('token_verify_fail', () => {
+      $notification({
+        title: 'Error',
+        message: 'token校验失败，需重新登录',
+        type: 'error'
+      })
+    })
+  })
+  socket.value.on('disconnect', () => {
+    console.warn('sftp websocket 连接断开')
+    if (showFileProgress.value) {
+      $notification({
+        title: '上传失败',
+        message: '请检查socket服务是否正常',
+        type: 'error'
+      })
+      handleRefresh()
+      resetFileStatusFlag()
     }
+  })
+  socket.value.on('connect_error', (err) => {
+    console.error('sftp websocket 连接错误：', err)
+    $notification({
+      title: 'sftp连接失败',
+      message: '请检查socket服务是否正常',
+      type: 'error'
+    })
+  })
+}
+
+const listenSftp = () => {
+  socket.value.on('dir_ls', (dirLs) => {
+    childDir.value = sortDirTree(dirLs)
+    childDirLoading.value = false
+  })
+  socket.value.on('not_exists_dir', (errMsg) => {
+    $message.error(errMsg)
+    childDirLoading.value = false
+  })
+  socket.value.on('rm_success', (res) => {
+    $message.success(res)
+    childDirLoading.value = false
+    handleRefresh()
+  })
+  socket.value.on('down_file_success', (res) => {
+    const { buffer, name } = res
+    downloadFile({ buffer, name })
+    $message.success('success')
+    resetFileStatusFlag()
+  })
+  socket.value.on('preview_file_success', (res) => {
+    const { buffer, name } = res
+    originalCode.value = new TextDecoder().decode(buffer)
+    filename.value = name
+    visible.value = true
+  })
+  socket.value.on('sftp_error', (res) => {
+    $message.error(res)
+    resetFileStatusFlag()
+  })
+  socket.value.on('up_file_progress', (res) => {
+    let progress = Math.ceil(50 + (res / 2))
+    upFileProgress.value = progress > 100 ? 100 : progress
+  })
+  socket.value.on('down_file_progress', (res) => {
+    upFileProgress.value = res
+  })
+}
+
+const openRootChild = (item) => {
+  const { name, type } = item
+  if (isDir(type)) {
+    childDirLoading.value = true
+    paths.value.length = 2
+    paths.value[1] = name
+    $nextTick(() => {
+      if (childDirRef.value) childDirRef.value.scrollTo(0, 0)
+    })
+    openDir()
+    filterKey.value = ''
+  } else {
+    $message.warning(`暂不支持打开文件${name} ${type}`)
   }
 }
+
+const openTarget = (item) => {
+  const { name, type, size } = item
+  if (isDir(type)) {
+    paths.value.push(name)
+    $nextTick(() => {
+      if (childDirRef.value) childDirRef.value.scrollTo(0, 0)
+    })
+    openDir()
+  } else if (isFile(type)) {
+    if (size / 1024 / 1024 > 1) return $message.warning('暂不支持打开1M及以上文件, 请下载本地查看')
+    const path = getPath(name)
+    socket.value.emit('down_file', { path, name, size, target: 'preview' })
+  } else {
+    $message.warning(`暂不支持打开文件${name} ${type}`)
+  }
+}
+
+const handleSaveCode = (code) => {
+  let file = new TextEncoder('utf-8').encode(code)
+  let name = filename.value
+  const fullPath = getPath(name)
+  const targetPath = curPath.value
+  socket.value.emit('up_file', { targetPath, fullPath, name, file })
+}
+
+const handleClosedCode = () => {
+  filename.value = ''
+  originalCode.value = ''
+}
+
+const selectFile = (item) => {
+  curTarget.value = item
+}
+
+const handleReturn = () => {
+  if (paths.value.length === 1) return
+  paths.value.pop()
+  openDir()
+}
+
+const handleRefresh = () => {
+  openDir()
+}
+
+const handleDownload = () => {
+  if (curTarget.value === null) return $message.warning('先选择一个文件')
+  const { name, size, type } = curTarget.value
+  if (isDir(type)) return $message.error('暂不支持下载文件夹')
+  $messageBox.confirm(`确认下载：${name}`, 'Warning', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    childDirLoading.value = true
+    const path = getPath(name)
+    if (isDir(type)) {
+      // '暂不支持下载文件夹'
+    } else if (isFile(type)) {
+      showFileProgress.value = true
+      socket.value.emit('down_file', { path, name, size, target: 'down' })
+    } else {
+      $message.error('不支持下载的文件类型')
+    }
+  })
+}
+
+const handleDelete = () => {
+  if (curTarget.value === null) return $message.warning('先选择一个文件(夹)')
+  const { name, type } = curTarget.value
+  $messageBox.confirm(`确认删除：${name}`, 'Warning', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    childDirLoading.value = true
+    const path = getPath(name)
+    if (isDir(type)) {
+      socket.value.emit('rm_dir', path)
+    } else {
+      socket.value.emit('rm_file', path)
+    }
+  })
+}
+
+const handleUpload = async (event) => {
+  if (showFileProgress.value) return $message.warning('需等待当前任务完成')
+  let { files } = event.target
+  for (let file of files) {
+    try {
+      await uploadFile(file)
+    } catch (error) {
+      $message.error(error)
+    }
+  }
+  uploadFileRef.value = null
+}
+
+const uploadFile = (file) => {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject('file is not defined')
+    if ((file.size / 1024 / 1024) > 1000) {
+      $message.warn('用网页传这么大文件你是认真的吗?')
+    }
+    let reader = new
+    FileReader()
+    reader.onload = async (e) => {
+      const { name } = file
+      const fullPath = getPath(name)
+      const targetPath = curPath.value
+      curUploadFileName.value = name
+      socket.value.emit('create_cache_dir', { targetPath, name })
+      socket.value.once('create_cache_success', async () => {
+        let start = 0
+        let end = 0
+        const range = 1024 * 512 // 每段512KB
+        const size = file.size
+        let fileIndex = 0
+        let multipleFlag = false
+        try {
+          upFileProgress.value = 0
+          showFileProgress.value = true
+          childDirLoading.value = true
+          const totalSliceCount = Math.ceil(size / range)
+          while (end < size) {
+            fileIndex++
+            end += range
+            const sliceFile = file.slice(start, end)
+            start = end
+            await uploadSliceFile({ name, sliceFile, fileIndex })
+            upFileProgress.value = parseInt((fileIndex / totalSliceCount * 100) / 2)
+          }
+          socket.value.emit('up_file_slice_over', { name, fullPath, range, size })
+          socket.value.once('up_file_success', (res) => {
+            if (multipleFlag) return
+            handleRefresh()
+            resetFileStatusFlag()
+            multipleFlag = true
+            resolve()
+          })
+          socket.value.once('up_file_fail', (res) => {
+            if (multipleFlag) return
+            $message.error(res)
+            handleRefresh()
+            resetFileStatusFlag()
+            multipleFlag = true
+            reject()
+          })
+        } catch (err) {
+          reject(err)
+          const errMsg = `上传失败, ${err}`
+          $message.error(errMsg)
+          handleRefresh()
+          resetFileStatusFlag()
+        }
+      })
+    }
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+const resetFileStatusFlag = () => {
+  upFileProgress.value = 0
+  curUploadFileName.value = ''
+  showFileProgress.value = false
+  childDirLoading.value = false
+}
+
+const uploadSliceFile = (fileInfo) => {
+  return new Promise((resolve, reject) => {
+    socket.value.emit('up_file_slice', fileInfo)
+    socket.value.once('up_file_slice_success', () => {
+      resolve()
+    })
+    socket.value.once('up_file_slice_fail', () => {
+      reject('分片文件上传失败')
+    })
+    socket.value.once('not_exists_dir', (errMsg) => {
+      reject(errMsg)
+    })
+  })
+}
+
+const openDir = () => {
+  childDirLoading.value = true
+  curTarget.value = null
+  socket.value.emit('open_dir', curPath.value)
+}
+
+const getPath = (name = '') => {
+  return curPath.value.length === 1 ? `/${name}` : `${curPath.value}/${name}`
+}
+
+const adjustHeight = () => {
+  let startAdjust = false
+  let timer = null
+  $nextTick(() => {
+    let sftpHeight = localStorage.getItem('sftpHeight')
+    if (sftpHeight) document.querySelector('.sftp-container').style.height = sftpHeight
+    else document.querySelector('.sftp-container').style.height = '33vh'
+
+    adjustRef.value.addEventListener('mousedown', () => {
+      startAdjust = true
+    })
+    document.addEventListener('mousemove', (e) => {
+      if (!startAdjust) return
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        sftpHeight = `calc(100vh - ${e.pageY}px)`
+        document.querySelector('.sftp-container').style.height = sftpHeight
+        emit('resize')
+      })
+    })
+    document.addEventListener('mouseup', (e) => {
+      if (!startAdjust) return
+      startAdjust = false
+      sftpHeight = `calc(100vh - ${e.pageY}px)`
+      localStorage.setItem('sftpHeight', sftpHeight)
+    })
+  })
+}
+
 </script>
+
 
 <style lang="scss" scoped>
 .sftp-container {

@@ -8,7 +8,7 @@
     @closed="handleClosed"
   >
     <el-form
-      ref="form"
+      ref="formRef"
       :model="hostForm"
       :rules="rules"
       :hide-required-asterisk="true"
@@ -103,111 +103,100 @@
   </el-dialog>
 </template>
 
-<script>
-const resetForm = () => {
-  return {
-    group: 'default',
-    name: '',
-    host: '',
-    expired: null,
-    expiredNotify: false,
-    consoleUrl: '',
-    remark: ''
-  }
-}
-export default {
-  name: 'HostForm',
-  props: {
-    show: {
-      required: true,
-      type: Boolean
-    },
-    defaultData: {
-      required: false,
-      type: Object,
-      default: null
-    }
-  },
-  emits: ['update:show', 'update-list', 'closed',],
-  data() {
-    return {
-      hostForm: resetForm(),
-      oldHost: '',
-      groupList: [],
-      rules: {
-        group: { required: true, message: '选择一个分组' },
-        name: { required: true, message: '输入主机别名', trigger: 'change' },
-        host: { required: true, message: '输入IP/域名', trigger: 'change' },
-        expired: { required: false },
-        expiredNotify: { required: false },
-        consoleUrl: { required: false },
-        remark: { required: false }
-      }
-    }
-  },
-  computed: {
-    visible: {
-      get() {
-        return this.show
-      },
-      set(newVal) {
-        this.$emit('update:show', newVal)
-      }
-    },
-    title() {
-      return this.defaultData ? '修改服务器' : '新增服务器'
-    },
-    formRef() {
-      return this.$refs['form']
-    }
-  },
-  watch: {
-    show(newVal) {
-      if(!newVal) return
-      this.getGroupList()
-    }
-  },
-  methods: {
-    getGroupList() {
-      this.$api.getGroupList()
-        .then(({ data }) => {
-          this.groupList = data
-        })
-    },
-    handleClosed() {
-      console.log('handleClosed')
-      this.hostForm = resetForm()
-      this.$emit('closed')
-      this.$nextTick(() => this.formRef.resetFields())
-    },
-    setDefaultData() {
-      if(!this.defaultData) return
-      let { name, host, expired, expiredNotify, consoleUrl, group, remark } = this.defaultData
-      this.oldHost = host // 保存旧的host用于后端查找
-      this.hostForm = { name, host, expired, expiredNotify, consoleUrl, group, remark }
+<script setup>
+import { ref, reactive, computed, watch, getCurrentInstance, nextTick } from 'vue'
 
-    },
-    handleSave() {
-      this.formRef.validate()
-        .then(async () => {
-          if(!this.hostForm.expired || !this.hostForm.expiredNotify) {
-            this.hostForm.expired = null
-            this.hostForm.expiredNotify = false
-          }
-          if(this.defaultData) {
-            let { oldHost } = this
-            let { msg } = await this.$api.updateHost(Object.assign({}, this.hostForm, { oldHost }))
-            this.$message({ type: 'success', center: true, message: msg })
-          }else {
-            let { msg } = await this.$api.saveHost(this.hostForm)
-            this.$message({ type: 'success', center: true, message: msg })
-          }
-          this.visible = false
-          this.$emit('update-list')
-          this.hostForm = resetForm()
-        })
-    }
+const { proxy: { $api, $message } } = getCurrentInstance()
+
+const props = defineProps({
+  show: {
+    required: true,
+    type: Boolean
+  },
+  defaultData: {
+    required: false,
+    type: Object,
+    default: null
   }
+})
+const emit = defineEmits(['update:show', 'update-list', 'closed'])
+
+const resetForm = () => ({
+  group: 'default',
+  name: '',
+  host: '',
+  expired: null,
+  expiredNotify: false,
+  consoleUrl: '',
+  remark: ''
+})
+
+const hostForm = reactive(resetForm())
+const oldHost = ref('')
+const groupList = ref([])
+const rules = reactive({
+  group: { required: true, message: '选择一个分组' },
+  name: { required: true, message: '输入主机别名', trigger: 'change' },
+  host: { required: true, message: '输入IP/域名', trigger: 'change' },
+  expired: { required: false },
+  expiredNotify: { required: false },
+  consoleUrl: { required: false },
+  remark: { required: false }
+})
+
+const formRef = ref(null)
+
+const visible = computed({
+  get: () => props.show,
+  set: (newVal) => emit('update:show', newVal)
+})
+
+const title = computed(() => props.defaultData ? '修改服务器' : '新增服务器')
+
+watch(() => props.show, (newVal) => {
+  if (!newVal) return
+  getGroupList()
+})
+
+const getGroupList = () => {
+  $api.getGroupList()
+    .then(({ data }) => {
+      groupList.value = data
+    })
+}
+
+const handleClosed = () => {
+  // console.log('handleClosed')
+  Object.assign(hostForm, resetForm())
+  emit('closed')
+  nextTick(() => formRef.value.resetFields())
+}
+
+const setDefaultData = () => {
+  if (!props.defaultData) return
+  let { name, host, expired, expiredNotify, consoleUrl, group, remark } = props.defaultData
+  oldHost.value = host
+  Object.assign(hostForm, { name, host, expired, expiredNotify, consoleUrl, group, remark })
+}
+
+const handleSave = () => {
+  formRef.value.validate()
+    .then(async () => {
+      if (!hostForm.expired || !hostForm.expiredNotify) {
+        hostForm.expired = null
+        hostForm.expiredNotify = false
+      }
+      if (props.defaultData) {
+        let { msg } = await $api.updateHost(Object.assign({}, hostForm, { oldHost: oldHost.value }))
+        $message({ type: 'success', center: true, message: msg })
+      } else {
+        let { msg } = await $api.saveHost(hostForm)
+        $message({ type: 'success', center: true, message: msg })
+      }
+      visible.value = false
+      emit('update-list')
+      Object.assign(hostForm, resetForm())
+    })
 }
 </script>
 

@@ -1,5 +1,4 @@
 <template>
-  <!-- 提示 -->
   <el-alert type="success" :closable="false">
     <template #title>
       <span style="letter-spacing: 2px;"> Tips: 请添加邮箱并确保测试邮件通过 </span>
@@ -21,43 +20,42 @@
   </el-table>
 </template>
 
-<script>
-export default {
-  name: 'NotifyList',
-  data() {
-    return {
-      notifyListLoading: false,
-      notifyList: []
-    }
-  },
-  mounted() {
-    this.getNotifyList()
-  },
-  methods: {
-    getNotifyList(flag = true) {
-      if(flag) this.notifyListLoading = true
-      this.$api.getNotifyList()
-        .then(({ data }) => {
-          this.notifyList = data.map((item) => {
-            item.loading = false
-            return item
-          })
-        })
-        .finally(() => this.notifyListLoading = false)
-    },
-    async handleChangeSw(row) {
-      row.loading = true
-      const { type, sw } = row
-      try {
-        await this.$api.updateNotifyList({ type, sw })
-        // if(this.userEmailList.length === 0) this.$message.warning('未配置邮箱, 此开关将不会生效')
-      } finally {
-        row.loading = true
-      }
-      this.getNotifyList(false)
-    }
-  }
+<script setup>
+import { ref, onMounted } from 'vue'
+import { getCurrentInstance } from 'vue'
+
+const { proxy: { $api, $message } } = getCurrentInstance()
+
+const notifyListLoading = ref(false)
+const notifyList = ref([])
+
+const getNotifyList = (flag = true) => {
+  if (flag) notifyListLoading.value = true
+  $api.getNotifyList()
+    .then(({ data }) => {
+      notifyList.value = data.map((item) => {
+        item.loading = false
+        return item
+      })
+    })
+    .finally(() => notifyListLoading.value = false)
 }
+
+const handleChangeSw = async (row) => {
+  row.loading = true
+  const { type, sw } = row
+  try {
+    await $api.updateNotifyList({ type, sw })
+    // if (this.userEmailList.length === 0) $message.warning('未配置邮箱, 此开关将不会生效')
+  } finally {
+    row.loading = false
+  }
+  getNotifyList(false)
+}
+
+onMounted(() => {
+  getNotifyList()
+})
 </script>
 
 <style lang="scss" scoped>
