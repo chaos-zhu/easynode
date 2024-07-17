@@ -119,7 +119,7 @@ const props = defineProps({
     default: null
   }
 })
-const emit = defineEmits(['update:show', 'update-list', 'closed'])
+const emit = defineEmits(['update:show', 'update-list', 'closed',])
 
 const resetForm = () => ({
   group: 'default',

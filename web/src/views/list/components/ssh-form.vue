@@ -93,7 +93,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, getCurrentInstance, nextTick } from 'vue'
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+import { ElNotification } from 'element-plus'
 import { randomStr, AESEncrypt, RSAEncrypt } from '@utils/index.js'
 
 const props = defineProps({
@@ -111,7 +111,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:show'])
+const emit = defineEmits(['update:show',])
 
 const formRef = ref(null)
 const privateKeyRef = ref(null)
@@ -140,7 +140,7 @@ const rules = reactive({
   command: { required: false }
 })
 
-const { proxy: { $api, $tools } } = getCurrentInstance()
+const { proxy: { $api } } = getCurrentInstance()
 
 const visible = computed({
   get() {

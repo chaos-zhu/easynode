@@ -23,7 +23,7 @@ const updateGroupList = async ({ res, request }) => {
   let groupList = await readGroupList()
   let idx = groupList.findIndex(item => item.id === id)
   let group = { id, name, index: Number(index) || 0 }
-  if (idx === -1) return res.fail({ data: false, msg: `分组ID${id}不存在` })
+  if (idx === -1) return res.fail({ data: false, msg: `分组ID${ id }不存在` })
   groupList.splice(idx, 1, group)
   await writeGroupList(groupList)
   res.success({ data: '修改成功' })

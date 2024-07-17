@@ -8,7 +8,7 @@ function request_image(url) {
 }
 
 function ping(url, timeout = 5000) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     let start = Date.now()
     let response = () => {
       let delay = (Date.now() - start) + 'ms'

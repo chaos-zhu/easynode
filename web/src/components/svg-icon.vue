@@ -3,7 +3,7 @@
     <use :xlink:href="href" />
   </svg>
 </template>
-<script >
+<script>
 export default {
   name: 'IconSvg',
   props: {

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 5050",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
+    "lint": "eslint . --ext .js,.vue",
+    "lint:fix": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.2",
@@ -43,7 +44,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.5",
     "@vitejs/plugin-vue-jsx": "^4.0.0",
-    "eslint": "^9.6.0",
+    "eslint": "^8.56.0",
     "eslint-plugin-vue": "^9.27.0",
     "sass": "^1.77.7",
     "unplugin-auto-import": "^0.17.6",

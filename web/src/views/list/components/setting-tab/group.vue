@@ -209,7 +209,7 @@ const updateGroup = () => {
 }
 
 const deleteGroup = ({ id, name }) => {
-  $messageBox.confirm(`确认删除分组：${name}`, 'Warning', {
+  $messageBox.confirm(`确认删除分组：${ name }`, 'Warning', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'

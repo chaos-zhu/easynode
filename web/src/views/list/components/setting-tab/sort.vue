@@ -29,7 +29,7 @@
 <script setup>
 import { ref, onMounted, getCurrentInstance } from 'vue'
 
-const emit = defineEmits(['update-list'])
+const emit = defineEmits(['update-list',])
 const { proxy: { $api, $message, $store } } = getCurrentInstance()
 
 const targetIndex = ref(0)

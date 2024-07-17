@@ -198,11 +198,11 @@ const onSelectionChange = () => {
   term.value.onSelectionChange(() => {
     let str = term.value.getSelection()
     if (!str) return
-    const text = new Blob([str], { type: 'text/plain' })
+    const text = new Blob([str,], { type: 'text/plain' })
     const item = new ClipboardItem({
       'text/plain': text
     })
-    navigator.clipboard.write([item])
+    navigator.clipboard.write([item,])
   })
 }
 
@@ -251,11 +251,11 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
 })
 
-
 defineExpose({
   focusTab,
   handleResize,
   handleInputCommand,
+  handleClear,
   tabKey
 })
 </script>

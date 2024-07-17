@@ -1,13 +1,25 @@
 <template>
-  <el-dialog v-model="visible" width="800px" :top="'20vh'" :close-on-click-modal="false" :close-on-press-escape="false"
-    :show-close="false" center custom-class="container">
+  <el-dialog
+    v-model="visible"
+    width="800px"
+    :top="'20vh'"
+    :close-on-click-modal="false"
+    :close-on-press-escape="false"
+    :show-close="false"
+    center
+    custom-class="container"
+  >
     <template #header>
       <div class="title">
         输入多行命令发送到终端执行
       </div>
     </template>
-    <el-input v-model="command" :autosize="{ minRows: 10, maxRows: 20 }" type="textarea"
-      placeholder="Please input command" />
+    <el-input
+      v-model="command"
+      :autosize="{ minRows: 10, maxRows: 20 }"
+      type="textarea"
+      placeholder="Please input command"
+    />
     <template #footer>
       <footer>
         <div class="btns">
@@ -28,7 +40,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:show', 'closed', 'input-command'])
+const emit = defineEmits(['update:show', 'closed', 'input-command',])
 
 const command = ref('')
 
@@ -45,7 +57,6 @@ const handleSave = () => {
   emit('input-command', command.value)
 }
 </script>
-
 
 <style lang="scss" scoped></style>
 

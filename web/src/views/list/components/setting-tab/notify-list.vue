@@ -24,7 +24,7 @@
 import { ref, onMounted } from 'vue'
 import { getCurrentInstance } from 'vue'
 
-const { proxy: { $api, $message } } = getCurrentInstance()
+const { proxy: { $api } } = getCurrentInstance()
 
 const notifyListLoading = ref(false)
 const notifyList = ref([])

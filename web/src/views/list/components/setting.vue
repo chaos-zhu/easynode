@@ -45,7 +45,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:show', 'update-list'])
+const emit = defineEmits(['update:show', 'update-list',])
 
 const visible = computed({
   get: () => props.show,

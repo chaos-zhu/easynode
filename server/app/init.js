@@ -4,6 +4,7 @@ const { getNetIPInfo, readHostList, writeHostList, readKey, writeKey, randomStr,
 const isDev = !isProd()
 
 // 存储本机IP, 供host列表接口调用
+// eslint-disable-next-line no-unused-vars
 async function initLocalIp() {
   if(isDev) return consola.info('非生产环境不初始化保存本地IP')
   const localNetIPInfo = await getNetIPInfo()
@@ -20,7 +21,7 @@ async function initRsa() {
   let keyObj = await readKey()
   if(keyObj.privateKey && keyObj.publicKey) return consola.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
   let key = new NodeRSA({ b: 1024 })
-  key.setOptions({ encryptionScheme: 'pkcs1', environment: "browser" })
+  key.setOptions({ encryptionScheme: 'pkcs1', environment: 'browser' })
   let privateKey = key.exportKey('pkcs1-private-pem')
   let publicKey = key.exportKey('pkcs8-public-pem')
   keyObj.privateKey = await AESEncryptSync(privateKey) // 加密私钥

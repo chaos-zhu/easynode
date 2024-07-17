@@ -12,7 +12,12 @@
       </div> -->
     </header>
     <el-divider class="first-divider" content-position="center">POSITION</el-divider>
-    <el-descriptions class="margin-top" :column="1" size="small" border>
+    <el-descriptions
+      class="margin-top"
+      :column="1"
+      size="small"
+      border
+    >
       <el-descriptions-item>
         <template #label>
           <div class="item-title">
@@ -43,14 +48,24 @@
     </el-descriptions>
 
     <el-divider content-position="center">INDICATOR</el-divider>
-    <el-descriptions class="margin-top" :column="1" size="small" border>
+    <el-descriptions
+      class="margin-top"
+      :column="1"
+      size="small"
+      border
+    >
       <el-descriptions-item>
         <template #label>
           <div class="item-title">
             CPU
           </div>
         </template>
-        <el-progress :text-inside="true" :stroke-width="18" :percentage="cpuUsage" :color="handleColor(cpuUsage)" />
+        <el-progress
+          :text-inside="true"
+          :stroke-width="18"
+          :percentage="cpuUsage"
+          :color="handleColor(cpuUsage)"
+        />
       </el-descriptions-item>
       <el-descriptions-item>
         <template #label>
@@ -58,8 +73,12 @@
             内存
           </div>
         </template>
-        <el-progress :text-inside="true" :stroke-width="18" :percentage="usedMemPercentage"
-          :color="handleColor(usedMemPercentage)" />
+        <el-progress
+          :text-inside="true"
+          :stroke-width="18"
+          :percentage="usedMemPercentage"
+          :color="handleColor(usedMemPercentage)"
+        />
         <div class="position-right">
           {{ $tools.toFixed(memInfo.usedMemMb / 1024) }}/{{ $tools.toFixed(memInfo.totalMemMb / 1024) }}G
         </div>
@@ -70,8 +89,12 @@
             硬盘
           </div>
         </template>
-        <el-progress :text-inside="true" :stroke-width="18" :percentage="usedPercentage"
-          :color="handleColor(usedPercentage)" />
+        <el-progress
+          :text-inside="true"
+          :stroke-width="18"
+          :percentage="usedPercentage"
+          :color="handleColor(usedPercentage)"
+        />
         <div class="position-right">
           {{ driveInfo.usedGb || '--' }}/{{ driveInfo.totalGb || '--' }}G
         </div>
@@ -96,7 +119,12 @@
     </el-descriptions>
 
     <el-divider content-position="center">INFORMATION</el-divider>
-    <el-descriptions class="margin-top" :column="1" size="small" border>
+    <el-descriptions
+      class="margin-top"
+      :column="1"
+      size="small"
+      border
+    >
       <el-descriptions-item>
         <template #label>
           <div class="item-title">
@@ -160,18 +188,24 @@
     </el-descriptions>
 
     <el-divider content-position="center">FEATURE</el-divider>
-    <el-button :type="sftpStatus ? 'primary' : 'success'" style="display: block;width: 80%;margin: 30px auto;"
-      @click="handleSftp">
+    <el-button
+      :type="sftpStatus ? 'primary' : 'success'"
+      style="display: block;width: 80%;margin: 30px auto;"
+      @click="handleSftp"
+    >
       {{ sftpStatus ? '关闭SFTP' : '连接SFTP' }}
     </el-button>
-    <el-button :type="inputCommandStyle ? 'primary' : 'success'" style="display: block;width: 80%;margin: 30px auto;"
-      @click="clickInputCommand">
+    <el-button
+      :type="inputCommandStyle ? 'primary' : 'success'"
+      style="display: block;width: 80%;margin: 30px auto;"
+      @click="clickInputCommand"
+    >
       命令输入框
     </el-button>
   </div>
 </template>
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, computed, getCurrentInstance } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, getCurrentInstance } from 'vue'
 import socketIo from 'socket.io-client'
 
 const { proxy: { $router, $serviceURI, $message, $notification, $tools } } = getCurrentInstance()
@@ -192,10 +226,10 @@ const props = defineProps({
   showInputCommand: {
     required: true,
     type: Boolean
-  },
+  }
 })
 
-const emit = defineEmits(['update:inputCommandStyle', 'connect-sftp', 'click-input-command'])
+const emit = defineEmits(['update:inputCommandStyle', 'connect-sftp', 'click-input-command',])
 
 const socket = ref(null)
 const name = ref('')
@@ -205,7 +239,7 @@ const pingTimer = ref(null)
 const sftpStatus = ref(false)
 
 const ipInfo = computed(() => hostData.value?.ipInfo || {})
-const isError = computed(() => !Boolean(hostData.value?.osInfo))
+// const isError = computed(() => !Boolean(hostData.value?.osInfo))
 const cpuInfo = computed(() => hostData.value?.cpuInfo || {})
 const memInfo = computed(() => hostData.value?.memInfo || {})
 const osInfo = computed(() => hostData.value?.osInfo || {})
@@ -214,19 +248,19 @@ const netstatInfo = computed(() => {
   let { total: netTotal, ...netCards } = hostData.value?.netstatInfo || {}
   return { netTotal, netCards: netCards || {} }
 })
-const openedCount = computed(() => hostData.value?.openedCount || 0)
+// const openedCount = computed(() => hostData.value?.openedCount || 0)
 const cpuUsage = computed(() => Number(cpuInfo.value?.cpuUsage) || 0)
 const usedMemPercentage = computed(() => Number(memInfo.value?.usedMemPercentage) || 0)
 const usedPercentage = computed(() => Number(driveInfo.value?.usedPercentage) || 0)
 const output = computed(() => {
   let outputMb = Number(netstatInfo.value.netTotal?.outputMb) || 0
-  if (outputMb >= 1) return `${outputMb.toFixed(2)} MB/s`
-  return `${(outputMb * 1024).toFixed(1)} KB/s`
+  if (outputMb >= 1) return `${ outputMb.toFixed(2) } MB/s`
+  return `${ (outputMb * 1024).toFixed(1) } KB/s`
 })
 const input = computed(() => {
   let inputMb = Number(netstatInfo.value.netTotal?.inputMb) || 0
-  if (inputMb >= 1) return `${inputMb.toFixed(2)} MB/s`
-  return `${(inputMb * 1024).toFixed(1)} KB/s`
+  if (inputMb >= 1) return `${ inputMb.toFixed(2) } MB/s`
+  return `${ (inputMb * 1024).toFixed(1) } KB/s`
 })
 const inputCommandStyle = computed({
   get: () => props.showInputCommand,
@@ -298,7 +332,7 @@ const handleColor = (num) => {
 
 const getHostPing = () => {
   pingTimer.value = setInterval(() => {
-    $tools.ping(`http://${props.host}:22022`)
+    $tools.ping(`http://${ props.host }:22022`)
       .then(res => {
         ping.value = res
         if (!import.meta.env.DEV) {
@@ -319,7 +353,6 @@ onBeforeUnmount(() => {
   pingTimer.value && clearInterval(pingTimer.value)
 })
 </script>
-
 
 <style lang="scss" scoped>
 .info-container {

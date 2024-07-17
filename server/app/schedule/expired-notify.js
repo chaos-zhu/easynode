@@ -1,7 +1,7 @@
 const schedule = require('node-schedule')
 const { readHostList, sendEmailToConfList, formatTimestamp } = require('../utils')
 
-const expiredNotifyJob = () => {
+const expiredNotifyJob = async () => {
   consola.info('=====开始检测服务器到期时间=====', new Date())
   const hostList = await readHostList()
   for (const item of hostList) {

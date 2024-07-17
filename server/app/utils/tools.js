@@ -1,4 +1,3 @@
-const fs = require('fs')
 const net = require('net')
 const axios = require('axios')
 const request = axios.create({ timeout: 3000 })
@@ -104,8 +103,8 @@ function isLocalIP(ip) {
   const localIPv6Ranges = [
     '::1', // Loopback
     'fc00::', // Unique local address
-    'fd00::'  // Unique local address
-  ];
+    'fd00::' // Unique local address
+  ]
 
   function isInRange(ip, start, end) {
     const ipNum = ipToNumber(ip)

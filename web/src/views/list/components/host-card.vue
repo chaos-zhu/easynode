@@ -166,11 +166,11 @@ const props = defineProps({
   },
   hiddenIp: {
     required: true,
-    type: [Number, Boolean]
+    type: [Number, Boolean,]
   }
 })
 
-const emit = defineEmits(['update-list', 'update-host'])
+const emit = defineEmits(['update-list', 'update-host',])
 
 const sshFormVisible = ref(false)
 const tempHost = ref('')
@@ -218,7 +218,7 @@ const handleToConsole = () => {
 
 const handleSSH = async () => {
   let { data } = await $api.existSSH(host.value)
-  if (data) return window.open(`/terminal?host=${host.value}&name=${name.value}`)
+  if (data) return window.open(`/terminal?host=${ host.value }&name=${ name.value }`)
   if (!host.value) {
     return ElMessage({
       message: '请等待获取服务器ip或刷新页面重试',

@@ -46,13 +46,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
+import { ref, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 import { io } from 'socket.io-client'
 import HostForm from './components/host-form.vue'
 import Setting from './components/setting.vue'
 import HostCard from './components/host-card.vue'
 
-const { proxy: { $store, $api, $message, $notification, $router, $serviceURI } } = getCurrentInstance()
+const { proxy: { $store, $message, $notification, $router, $serviceURI } } = getCurrentInstance()
 
 const socket = ref(null)
 const loading = ref(true)

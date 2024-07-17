@@ -29,7 +29,7 @@ const useStore = defineStore({
       setTimeout(() => {
         this.hostList.forEach((item) => {
           const { host } = item
-          ping(`http://${ host }:${this.$clientPort}`)
+          ping(`http://${ host }:${ this.$clientPort }`)
             .then((res) => {
               item.ping = res
             })

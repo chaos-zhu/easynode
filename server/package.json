@@ -14,7 +14,9 @@
     "start": "node ./app/index.js",
     "pkgwin": "pkg . -t  node20-win-x64",
     "pkglinux:x86": "pkg . -t node20-linux-x64",
-    "pkglinux:arm": "pkg . -t node20-linux-arm64"
+    "pkglinux:arm": "pkg . -t node20-linux-arm64",
+    "lint": "eslint . --ext .js,.vue",
+    "lint:fix": "eslint . --ext .js,.jsx,.cjs,.mjs --fix"
   },
   "keywords": [],
   "author": "",
@@ -54,7 +56,7 @@
     "ssh2-sftp-client": "^10.0.3"
   },
   "devDependencies": {
-    "eslint": "^9.6.0",
+    "eslint": "^8.56.0",
     "nodemon": "^3.1.4",
     "pkg": "5.8"
   }

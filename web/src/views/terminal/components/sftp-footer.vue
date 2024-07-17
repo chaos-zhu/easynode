@@ -133,7 +133,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 import socketIo from 'socket.io-client'
 import CodeEdit from '@/components/code-edit/index.vue'
 import { isDir, isFile, sortDirTree, downloadFile } from '@/utils'
@@ -155,7 +155,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['resize'])
+const emit = defineEmits(['resize',])
 
 const { proxy: { $notification, $message, $messageBox, $serviceURI, $nextTick } } = getCurrentInstance()
 
@@ -300,7 +300,7 @@ const openRootChild = (item) => {
     openDir()
     filterKey.value = ''
   } else {
-    $message.warning(`暂不支持打开文件${name} ${type}`)
+    $message.warning(`暂不支持打开文件${ name } ${ type }`)
   }
 }
 
@@ -317,7 +317,7 @@ const openTarget = (item) => {
     const path = getPath(name)
     socket.value.emit('down_file', { path, name, size, target: 'preview' })
   } else {
-    $message.warning(`暂不支持打开文件${name} ${type}`)
+    $message.warning(`暂不支持打开文件${ name } ${ type }`)
   }
 }
 
@@ -352,7 +352,7 @@ const handleDownload = () => {
   if (curTarget.value === null) return $message.warning('先选择一个文件')
   const { name, size, type } = curTarget.value
   if (isDir(type)) return $message.error('暂不支持下载文件夹')
-  $messageBox.confirm(`确认下载：${name}`, 'Warning', {
+  $messageBox.confirm(`确认下载：${ name }`, 'Warning', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
@@ -373,7 +373,7 @@ const handleDownload = () => {
 const handleDelete = () => {
   if (curTarget.value === null) return $message.warning('先选择一个文件(夹)')
   const { name, type } = curTarget.value
-  $messageBox.confirm(`确认删除：${name}`, 'Warning', {
+  $messageBox.confirm(`确认删除：${ name }`, 'Warning', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
@@ -409,7 +409,7 @@ const uploadFile = (file) => {
     }
     let reader = new
     FileReader()
-    reader.onload = async (e) => {
+    reader.onload = async () => {
       const { name } = file
       const fullPath = getPath(name)
       const targetPath = curPath.value
@@ -436,7 +436,7 @@ const uploadFile = (file) => {
             upFileProgress.value = parseInt((fileIndex / totalSliceCount * 100) / 2)
           }
           socket.value.emit('up_file_slice_over', { name, fullPath, range, size })
-          socket.value.once('up_file_success', (res) => {
+          socket.value.once('up_file_success', () => {
             if (multipleFlag) return
             handleRefresh()
             resetFileStatusFlag()
@@ -453,7 +453,7 @@ const uploadFile = (file) => {
           })
         } catch (err) {
           reject(err)
-          const errMsg = `上传失败, ${err}`
+          const errMsg = `上传失败, ${ err }`
           $message.error(errMsg)
           handleRefresh()
           resetFileStatusFlag()
@@ -493,7 +493,7 @@ const openDir = () => {
 }
 
 const getPath = (name = '') => {
-  return curPath.value.length === 1 ? `/${name}` : `${curPath.value}/${name}`
+  return curPath.value.length === 1 ? `/${ name }` : `${ curPath.value }/${ name }`
 }
 
 const adjustHeight = () => {
@@ -511,7 +511,7 @@ const adjustHeight = () => {
       if (!startAdjust) return
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
-        sftpHeight = `calc(100vh - ${e.pageY}px)`
+        sftpHeight = `calc(100vh - ${ e.pageY }px)`
         document.querySelector('.sftp-container').style.height = sftpHeight
         emit('resize')
       })
@@ -519,14 +519,13 @@ const adjustHeight = () => {
     document.addEventListener('mouseup', (e) => {
       if (!startAdjust) return
       startAdjust = false
-      sftpHeight = `calc(100vh - ${e.pageY}px)`
+      sftpHeight = `calc(100vh - ${ e.pageY }px)`
       localStorage.setItem('sftpHeight', sftpHeight)
     })
   })
 }
 
 </script>
-
 
 <style lang="scss" scoped>
 .sftp-container {

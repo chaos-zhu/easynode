@@ -143,7 +143,7 @@ const pushTestEmail = (row) => {
   const { email: toEmail } = row
   $api.pushTestEmail({ isTest: true, toEmail })
     .then(() => {
-      $message.success(`发送成功, 请检查邮箱: ${toEmail}`)
+      $message.success(`发送成功, 请检查邮箱: ${ toEmail }`)
     })
     .catch((error) => {
       $notification({
@@ -159,7 +159,7 @@ const pushTestEmail = (row) => {
 
 const deleteUserEmail = ({ email }) => {
   $messageBox.confirm(
-    `确认删除邮箱：${email}`,
+    `确认删除邮箱：${ email }`,
     'Warning',
     {
       confirmButtonText: '确定',

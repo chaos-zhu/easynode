@@ -1,5 +1,3 @@
-const fs = require('fs')
-const { sshRecordDBPath, hostListDBPath, keyDBPath, emailNotifyDBPath, notifyConfDBPath, groupConfDBPath } = require('../config')
 const { KeyDB, HostListDB, SshRecordDB, NotifyDB, GroupDB, EmailNotifyDB } = require('./db-class')
 
 const readKey = async () => {
@@ -46,7 +44,7 @@ const readSSHRecord = async () => {
 const writeSSHRecord = async (record = []) => {
   return new Promise((resolve, reject) => {
     const sshRecordDB = new SshRecordDB().getInstance()
-    sshRecordDB.remove({}, { multi: true }, (err, numRemoved) => {
+    sshRecordDB.remove({}, { multi: true }, (err) => {
       if (err) {
         consola.error('清空SSHRecord出错:', err)
         reject(err)
@@ -82,7 +80,7 @@ const readHostList = async () => {
 const writeHostList = async (record = []) => {
   return new Promise((resolve, reject) => {
     const hostListDB = new HostListDB().getInstance()
-    hostListDB.remove({}, { multi: true }, (err, numRemoved) => {
+    hostListDB.remove({}, { multi: true }, (err) => {
       if (err) {
         consola.error('清空HostList出错:', err)
         reject(err)
@@ -91,7 +89,7 @@ const writeHostList = async (record = []) => {
         hostListDB.insert(record, (err, newDocs) => {
           if (err) {
             consola.error('写入新的HostList出错:', err)
-            reject(err);
+            reject(err)
           } else {
             hostListDB.compactDatafile()
             resolve(newDocs)
@@ -117,10 +115,11 @@ const readEmailNotifyConf = () => {
 }
 const writeUserEmailList = (user) => {
   const emailNotifyDB = new EmailNotifyDB().getInstance()
+  // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     let support = await readSupportEmailList()
     const emailConf = { support, user }
-    emailNotifyDB.update({}, { $set: emailConf }, { upsert: true }, (err, numReplaced) => {
+    emailNotifyDB.update({}, { $set: emailConf }, { upsert: true }, (err) => {
       if (err) {
         reject({ code: -1, msg: err.message || err })
       } else {
@@ -151,7 +150,6 @@ const readUserEmailList = async () => {
   return user
 }
 
-
 const getNotifySwByType = async (type) => {
   if (!type) throw Error('missing params: type')
   try {
@@ -159,7 +157,7 @@ const getNotifySwByType = async (type) => {
     let { sw } = notifyList.find((item) => item.type === type)
     return sw
   } catch (error) {
-    consola.error(`通知类型[${type}]不存在`)
+    consola.error(`通知类型[${ type }]不存在`)
     return false
   }
 }
@@ -181,18 +179,18 @@ const readNotifyList = async () => {
 const writeNotifyList = async (notifyList) => {
   return new Promise((resolve, reject) => {
     const notifyDB = new NotifyDB().getInstance()
-    notifyDB.remove({}, { multi: true }, (err, numRemoved) => {
+    notifyDB.remove({}, { multi: true }, (err) => {
       if (err) {
-        consola.error('清空notify list出错:', err);
-        reject(err);
+        consola.error('清空notify list出错:', err)
+        reject(err)
       } else {
         notifyDB.insert(notifyList, (err, newDocs) => {
           if (err) {
-            consola.error('写入新的notify list出错:', err);
+            consola.error('写入新的notify list出错:', err)
             reject(err)
           } else {
             notifyDB.compactDatafile()
-            resolve(newDocs);
+            resolve(newDocs)
           }
         })
       }
@@ -217,7 +215,7 @@ const readGroupList = async () => {
 const writeGroupList = async (list = []) => {
   return new Promise((resolve, reject) => {
     const groupDB = new GroupDB().getInstance()
-    groupDB.remove({}, { multi: true }, (err, numRemoved) => {
+    groupDB.remove({}, { multi: true }, (err) => {
       if (err) {
         consola.error('清空group list出错:', err)
         reject(err)

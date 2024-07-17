@@ -51,7 +51,7 @@ module.exports = (httpServer) => {
       }
       const sshRecord = await readSSHRecord()
       let loginInfo = sshRecord.find(item => item.host === ip)
-      if (!sshRecord.some(item => item.host === ip)) return socket.emit('create_fail', `未找到【${ip}】凭证`)
+      if (!sshRecord.some(item => item.host === ip)) return socket.emit('create_fail', `未找到【${ ip }】凭证`)
       let { type, host, port, username, randomKey } = loginInfo
       try {
         // 解密放到try里面，防止报错【公私钥必须配对, 否则需要重新添加服务器密钥】
@@ -64,7 +64,7 @@ module.exports = (httpServer) => {
         sshClient
           .on('ready', () => {
             consola.success('已连接到终端：', host)
-            socket.emit('connect_success', `已连接到终端：${host}`)
+            socket.emit('connect_success', `已连接到终端：${ host }`)
             createTerminal(socket, sshClient)
           })
           .on('error', (err) => {
@@ -73,7 +73,7 @@ module.exports = (httpServer) => {
             socket.emit('connect_fail', err.message)
           })
           .connect({
-            ...authInfo,
+            ...authInfo
             // debug: (info) => console.log(info)
           })
       } catch (err) {
