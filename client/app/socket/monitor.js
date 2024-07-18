@@ -25,13 +25,13 @@ function ipSchedule() {
     getIpInfo()
   })
 
-  // 每日凌晨两点整,刷新ip信息(兼容动态ip服务器)
+  // 每日凌晨两点整,刷新ip信息
   let rule2 = new schedule.RecurrenceRule()
   rule2.hour = 2
   rule2.minute = 0
   rule2.second = 0
   schedule.scheduleJob(rule2, () => {
-    console.log('Task: refresh ip info', new Date())
+    console.log('Task: refresh ip info: ', new Date())
     getIpInfo()
   })
 }

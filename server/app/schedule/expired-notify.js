@@ -25,5 +25,6 @@ const expiredNotifyJob = async () => {
 }
 
 module.exports = () => {
+  // 每天中午12点执行一次。
   schedule.scheduleJob('0 0 12 1/1 * ?', expiredNotifyJob)
 }

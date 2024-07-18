@@ -7,29 +7,41 @@
     :hide-required-asterisk="true"
     label-suffix="："
     label-width="90px"
+    :show-message="false"
   >
-    <el-form-item label="旧密码" prop="oldPwd">
+    <el-form-item label="原用户名" prop="oldLoginName">
+      <el-input
+        v-model.trim="formData.oldLoginName"
+        clearable
+        placeholder=""
+        autocomplete="off"
+      />
+    </el-form-item>
+    <el-form-item label="原密码" prop="oldPwd">
       <el-input
         v-model.trim="formData.oldPwd"
+        type="password"
         clearable
-        placeholder="旧密码"
+        show-password
+        placeholder=""
+        autocomplete="off"
+      />
+    </el-form-item>
+    <el-form-item label="新用户名" prop="oldPwd">
+      <el-input
+        v-model.trim="formData.newLoginName"
+        clearable
+        placeholder=""
         autocomplete="off"
       />
     </el-form-item>
     <el-form-item label="新密码" prop="newPwd">
       <el-input
         v-model.trim="formData.newPwd"
+        type="password"
+        show-password
         clearable
-        placeholder="新密码"
-        autocomplete="off"
-        @keyup.enter="handleUpdate"
-      />
-    </el-form-item>
-    <el-form-item label="确认密码" prop="confirmPwd">
-      <el-input
-        v-model.trim="formData.confirmPwd"
-        clearable
-        placeholder="确认密码"
+        placeholder=""
         autocomplete="off"
         @keyup.enter="handleUpdate"
       />
@@ -49,28 +61,30 @@ const { proxy: { $api, $message } } = getCurrentInstance()
 const loading = ref(false)
 const formRef = ref(null)
 const formData = reactive({
+  oldLoginName: '',
   oldPwd: '',
-  newPwd: '',
-  confirmPwd: ''
+  newLoginName: '',
+  newPwd: ''
 })
 const rules = reactive({
-  oldPwd: { required: true, message: '输入旧密码', trigger: 'change' },
-  newPwd: { required: true, message: '输入新密码', trigger: 'change' },
-  confirmPwd: { required: true, message: '输入确认密码', trigger: 'change' }
+  oldLoginName: { required: true, message: '输入原用户名', trigger: 'change' },
+  oldPwd: { required: true, message: '输入原密码', trigger: 'change' },
+  newLoginName: { required: true, message: '输入新用户名', trigger: 'change' },
+  newPwd: { required: true, message: '输入新密码', trigger: 'change' }
 })
 
 const handleUpdate = () => {
   formRef.value.validate()
     .then(async () => {
-      let { oldPwd, newPwd, confirmPwd } = formData
-      if(newPwd !== confirmPwd) return $message.error({ center: true, message: '两次密码输入不一致' })
+      let { oldLoginName, oldPwd, newLoginName, newPwd } = formData
       oldPwd = RSAEncrypt(oldPwd)
       newPwd = RSAEncrypt(newPwd)
-      let { msg } = await $api.updatePwd({ oldPwd, newPwd })
+      let { msg } = await $api.updatePwd({ oldLoginName, oldPwd, newLoginName, newPwd })
       $message({ type: 'success', center: true, message: msg })
+      formData.oldLoginName = ''
       formData.oldPwd = ''
+      formData.newLoginName = ''
       formData.newPwd = ''
-      formData.confirmPwd = ''
       formRef.value.resetFields()
     })
 }

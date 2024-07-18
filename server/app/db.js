@@ -12,6 +12,7 @@ function initKeyDB() {
         if (count === 0) {
           consola.log('初始化keyDB✔')
           const defaultData = {
+            user: 'admin',
             pwd: 'admin',
             commonKey: '',
             publicKey: '',

@@ -3,7 +3,7 @@ const { getNetIPInfo, readKey, writeKey, RSADecryptSync, AESEncryptSync, SHA1Enc
 
 const getpublicKey = async ({ res }) => {
   let { publicKey: data } = await readKey()
-  if(!data) return res.fail({ msg: 'publicKey not found, Try to restart the server', status: 500 })
+  if (!data) return res.fail({ msg: 'publicKey not found, Try to restart the server', status: 500 })
   res.success({ data })
 }
 
@@ -16,18 +16,16 @@ let loginCountDown = forbidTimer
 let forbidLogin = false
 
 const login = async ({ res, request }) => {
-  let { body: { ciphertext, jwtExpires }, ip: clientIp } = request
-  if(!ciphertext) return res.fail({ msg: '参数错误' })
-
-  if(forbidLogin) return res.fail({ msg: `禁止登录! 倒计时[${ loginCountDown }s]后尝试登录或重启面板服务` })
-
+  let { body: { loginName, ciphertext, jwtExpires }, ip: clientIp } = request
+  if (!loginName && !ciphertext) return res.fail({ msg: '请求非法!' })
+  if (forbidLogin) return res.fail({ msg: `禁止登录! 倒计时[${ loginCountDown }s]后尝试登录或重启面板服务` })
   loginErrCount++
   loginErrTotal++
-  if(loginErrCount >= allowErrCount) {
+  if (loginErrCount >= allowErrCount) {
     const { ip, country, city } = await getNetIPInfo(clientIp)
     // 发送通知&禁止登录
     let sw = getNotifySwByType('err_login')
-    if(sw) sendEmailToConfList('登录错误提醒', `重新登录次数: ${ loginErrTotal }<br/>地点：${ country + city }<br/>IP: ${ ip }`)
+    if (sw) sendEmailToConfList('登录错误提醒', `重新登录次数: ${ loginErrTotal }<br/>地点：${ country + city }<br/>IP: ${ ip }`)
     forbidLogin = true
     loginErrCount = 0
 
@@ -38,8 +36,9 @@ const login = async ({ res, request }) => {
 
     // 计算登录倒计时
     timer = setInterval(() => {
-      if(loginCountDown <= 0){
+      if (loginCountDown <= 0) {
         clearInterval(timer)
+        timer = null
         loginCountDown = forbidTimer
         return
       }
@@ -50,15 +49,15 @@ const login = async ({ res, request }) => {
   // 登录流程
   try {
     // console.log('ciphertext', ciphertext)
-    let password = await RSADecryptSync(ciphertext)
-    console.log('Decrypt解密password:', password)
-    let { pwd } = await readKey()
-    if(password === 'admin' && pwd === 'admin') {
+    let loginPwd = await RSADecryptSync(ciphertext)
+    // console.log('Decrypt解密password:', loginPwd)
+    let { user, pwd } = await readKey()
+    if (loginName === user && loginPwd === 'admin' && pwd === 'admin') {
       const token = await beforeLoginHandler(clientIp, jwtExpires)
-      return res.success({ data: { token, jwtExpires }, msg: '登录成功，请及时修改默认密码' })
+      return res.success({ data: { token, jwtExpires }, msg: '登录成功，请及时修改默认用户名和密码' })
     }
-    password = SHA1Encrypt(password)
-    if(password !== pwd) return res.fail({ msg: '密码错误' })
+    loginPwd = SHA1Encrypt(loginPwd)
+    if (loginName !== user || loginPwd !== pwd) return res.fail({ msg: `用户名或密码错误 ${ loginErrTotal }/${ allowErrCount }` })
     const token = await beforeLoginHandler(clientIp, jwtExpires)
     return res.success({ data: { token, jwtExpires }, msg: '登录成功' })
   } catch (error) {
@@ -83,26 +82,28 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
 
   // 邮件登录通知
   let sw = getNotifySwByType('login')
-  if(sw) sendEmailToConfList('登录提醒', `地点：${ country + city }<br/>IP: ${ ip }`)
+  if (sw) sendEmailToConfList('登录提醒', `地点：${ country + city }<br/>IP: ${ ip }`)
 
   global.loginRecord.unshift(clientIPInfo)
-  if(global.loginRecord.length > 10) global.loginRecord = global.loginRecord.slice(0, 10)
+  if (global.loginRecord.length > 10) global.loginRecord = global.loginRecord.slice(0, 10)
   return token
 }
 
 const updatePwd = async ({ res, request }) => {
-  let { body: { oldPwd, newPwd } } = request
+  let { body: { oldLoginName, oldPwd, newLoginName, newPwd } } = request
   let rsaOldPwd = await RSADecryptSync(oldPwd)
   oldPwd = rsaOldPwd === 'admin' ? 'admin' : SHA1Encrypt(rsaOldPwd)
   let keyObj = await readKey()
-  if(oldPwd !== keyObj.pwd) return res.fail({ data: false, msg: '旧密码校验失败' })
+  let { user, pwd } = keyObj
+  if (oldLoginName !== user || oldPwd !== pwd) return res.fail({ data: false, msg: '原用户名或密码校验失败' })
   // 旧密钥校验通过，加密保存新密码
   newPwd = await RSADecryptSync(newPwd) === 'admin' ? 'admin' : SHA1Encrypt(await RSADecryptSync(newPwd))
+  keyObj.user = newLoginName
   keyObj.pwd = newPwd
   await writeKey(keyObj)
 
   let sw = getNotifySwByType('updatePwd')
-  if(sw) sendEmailToConfList('密码修改提醒', '面板登录密码已更改')
+  if (sw) sendEmailToConfList(`登录信息修改提醒, 新用户名: ${ newLoginName }`)
 
   res.success({ data: true, msg: 'success' })
 }

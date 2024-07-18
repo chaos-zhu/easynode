@@ -1,10 +1,8 @@
 const Koa = require('koa')
 const compose = require('koa-compose') // 组合中间件，简化写法
 const http = require('http')
-const { clientPort } = require('./config')
 const { httpPort } = require('./config')
 const middlewares = require('./middlewares')
-const wsMonitorOsInfo = require('./socket/monitor')
 const wsTerminal = require('./socket/terminal')
 const wsSftp = require('./socket/sftp')
 const wsHostStatus = require('./socket/host-status')
@@ -18,15 +16,6 @@ const httpServer = () => {
   // ws一直报跨域的错误：参照官方文档使用createServer API创建服务
   server.listen(httpPort, () => {
     consola.success(`Server(http) is running on: http://localhost:${ httpPort }`)
-  })
-}
-
-const clientHttpServer = () => {
-  const app = new Koa()
-  const server = http.createServer(app.callback())
-  wsMonitorOsInfo(server) // 监控本机信息
-  server.listen(clientPort, () => {
-    consola.success(`Client(http) is running on: http://localhost:${ clientPort }`)
   })
 }
 
@@ -50,6 +39,5 @@ function serverHandler(app, server) {
 }
 
 module.exports = {
-  httpServer,
-  clientHttpServer
+  httpServer
 }
