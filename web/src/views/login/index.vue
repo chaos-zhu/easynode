@@ -113,6 +113,7 @@ const handleLogin = () => {
       .then(({ data, msg }) => {
         const { token } = data
         $store.setJwtToken(token, isSession.value)
+        $store.setUser(loginName)
         $message.success({ message: msg || 'success', center: true })
         $router.push('/')
       })
@@ -140,9 +141,10 @@ onMounted(async () => {
   justify-content: center;
   align-items: center;
   background: rgba(171, 181, 196, 0.3); // #f0f2f5;
-  padding-top: 70px;
+  padding-top: 1px;
 
   .login_box {
+    margin-top: -80px;
     width: 500px;
     min-height: 250px;
     padding: 20px;

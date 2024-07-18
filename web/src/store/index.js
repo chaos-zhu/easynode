@@ -6,7 +6,10 @@ const useStore = defineStore({
   id: 'global',
   state: () => ({
     hostList: [],
-    token: sessionStorage.getItem('token') || localStorage.getItem('token') || null
+    groupList: [],
+    user: localStorage.getItem('user') || null,
+    token: sessionStorage.getItem('token') || localStorage.getItem('token') || null,
+    title: ''
   }),
   actions: {
     async setJwtToken(token, isSession = true) {
@@ -14,16 +17,24 @@ const useStore = defineStore({
       else localStorage.setItem('token', token)
       this.$patch({ token })
     },
+    async setUser(username) {
+      localStorage.setItem('user', username)
+      this.$patch({ user: username })
+    },
+    async setTitle(title) {
+      this.$patch({ title })
+    },
     async clearJwtToken() {
       localStorage.clear('token')
       sessionStorage.clear('token')
       this.$patch({ token: null })
     },
     async getHostList() {
+      const { data: groupList } = await $api.getGroupList()
       const { data: hostList } = await $api.getHostList()
-      this.$patch({ hostList })
-      // console.log('pinia: ', this.hostList)
-      // this.getHostPing()
+      // console.log('hostList:', hostList)
+      // console.log('groupList:', groupList)
+      this.$patch({ hostList, groupList })
     },
     getHostPing() {
       setTimeout(() => {

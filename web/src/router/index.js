@@ -1,18 +1,45 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// import hostList from '@views/list/index.vue'
-// import login from '@views/login/index.vue'
+// import HostList from '@views/list/index.vue'
+// import Login from '@views/login/index.vue'
 // import terminal from '@views/terminal/index.vue'
 // import test from '@views/test/index.vue'
 
-const hostList = () => import('@views/list/index.vue')
-const login = () => import('@views/login/index.vue')
-const terminal = () => import('@views/terminal/index.vue')
+const HostList = () => import('@views/list/index.vue')
+
+const Login = () => import('@views/login/index.vue')
+const Container = () => import('@views/index.vue')
+const Server = () => import('@views/server/index.vue')
+const Terminal = () => import('@views/terminal/index.vue')
+const Credentials = () => import('@views/credentials/index.vue')
+const Group = () => import('@views/group/index.vue')
+const Onekey = () => import('@views/onekey/index.vue')
+const Scripts = () => import('@views/scripts/index.vue')
+const Setting = () => import('@views/setting/index.vue')
 
 const routes = [
-  { path: '/', component: hostList },
-  { path: '/login', component: login },
-  { path: '/terminal', component: terminal },
+  { path: '/login', component: Login },
+  {
+    path: '/',
+    component: Container,
+    children: [
+      { path: '/server', component: Server },
+      { path: '/terminal', component: Terminal },
+      { path: '/credentials', component: Credentials },
+      { path: '/group', component: Group },
+      { path: '/onekey', component: Onekey },
+      { path: '/scripts', component: Scripts },
+      { path: '/setting', component: Setting },
+      { path: '', redirect: 'server' }, // 这里添加重定向
+    ]
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/server'
+  },
+  // { path: '/server', component: Server },
+  // { path: '/', component: HostList },
+  // { path: '/terminal', component: Terminal },
   // { path: '/test', component: test },
 ]
 
