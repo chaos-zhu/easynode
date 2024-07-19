@@ -8,7 +8,7 @@
     </div>
     <div class="server_group_collapse">
       <el-collapse v-model="activeGroup">
-        <el-collapse-item v-for="(servers, groupName) in resList" :key="groupName" :name="groupName">
+        <el-collapse-item v-for="(servers, groupName) in groupHostList" :key="groupName" :name="groupName">
           <template #title>
             <div class="group_title">
               {{ groupName }}
@@ -37,40 +37,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, getCurrentInstance, reactive, computed, watch } from 'vue'
+import { ref, onBeforeUnmount, getCurrentInstance, computed, watch, onMounted } from 'vue'
 import { io } from 'socket.io-client'
 import HostForm from './components/host-form.vue'
-import Setting from './components/setting.vue'
 import HostCard from './components/host-card.vue'
 
-const { proxy: { $api, $store, $message, $notification, $router, $serviceURI } } = getCurrentInstance()
+const { proxy: { $store, $notification, $router, $serviceURI, $message } } = getCurrentInstance()
 
 const socket = ref(null)
-const loading = ref(true)
-const hostListStatus = ref([])
 const updateHostData = ref(null)
 const hostFormVisible = ref(false)
-const settingVisible = ref(false)
 const hiddenIp = ref(Number(localStorage.getItem('hiddenIp') || 0))
 const activeGroup = ref([])
 
-const handleLogout = () => {
-  $store.clearJwtToken()
-  $message({ type: 'success', message: '已安全退出', center: true })
-  $router.push('/login')
-}
-
-const getHostList = async () => {
-  try {
-    loading.value = true
-    await $store.getHostList()
-    connectIo()
-  } catch (err) {
-    loading.value = false
-  }
-}
-
 const connectIo = () => {
+  if (socket.value) socket.value.close()
   let socketInstance = io($serviceURI, {
     path: '/clients',
     forceNew: true,
@@ -80,16 +61,15 @@ const connectIo = () => {
   socket.value = socketInstance
   socketInstance.on('connect', () => {
     let flag = 5
-    loading.value = false
     console.log('clients websocket 已连接: ', socketInstance.id)
     let token = $store.token
     socketInstance.emit('init_clients_data', { token })
     socketInstance.on('clients_data', (data) => {
       if ((flag++ % 5) === 0) $store.getHostPing()
-      hostListStatus.value = $store.hostList.map(item => {
+      $store.hostList.forEach(item => {
         const { host } = item
         if (data[host] === null) return { ...item }
-        return Object.assign({}, item, data[host])
+        return Object.assign(item, data[host])
       })
     })
     socketInstance.on('token_verify_fail', (message) => {
@@ -105,14 +85,18 @@ const connectIo = () => {
     console.error('clients websocket 连接断开')
   })
   socketInstance.on('connect_error', (message) => {
-    loading.value = false
     console.error('clients websocket 连接出错: ', message)
   })
 }
 
-const handleUpdateList = () => {
-  if (socket.value) socket.value.close()
-  getHostList()
+const handleUpdateList = async () => {
+  try {
+    await $store.getHostList()
+    // connectIo()
+  } catch (err) {
+    $message.error('获取主机列表失败')
+    console.error('获取主机列表失败: ', err)
+  }
 }
 
 const handleUpdateHost = (defaultData) => {
@@ -125,7 +109,7 @@ const handleHiddenIP = () => {
   localStorage.setItem('hiddenIp', String(hiddenIp.value))
 }
 
-let resList = computed(() => {
+let groupHostList = computed(() => {
   let res = {}
   let hostList = $store.hostList
   let groupList = $store.groupList
@@ -146,15 +130,15 @@ let resList = computed(() => {
   return res
 })
 
-watch(resList, () => {
-  activeGroup.value = [...Object.keys(resList.value),]
+watch(groupHostList, () => {
+  activeGroup.value = [...Object.keys(groupHostList.value),]
 }, {
   immediate: true,
   deep: false
 })
 
-onMounted(async () => {
-  await getHostList()
+onMounted(() => {
+  connectIo()
 })
 
 onBeforeUnmount(() => {

@@ -122,13 +122,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, getCurrentInstance } from 'vue'
+import { ref, reactive, computed, getCurrentInstance } from 'vue'
 
 const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
 
 const loading = ref(false)
 const visible = ref(false)
-const groupList = ref([])
 const groupForm = reactive({
   name: '',
   index: ''
@@ -167,15 +166,7 @@ const list = computed(() => {
   })
 })
 
-const getGroupList = () => {
-  loading.value = true
-  $api.getGroupList()
-    .then(({ data }) => {
-      groupList.value = data
-      // groupForm.index = data.length
-    })
-    .finally(() => loading.value = false)
-}
+let groupList = computed(() => $store.groupList || [])
 
 const addGroup = () => {
   groupFormRef.value.validate()
@@ -186,7 +177,8 @@ const addGroup = () => {
           $message.success('success')
           groupForm.name = ''
           groupForm.index = ''
-          getGroupList()
+          $store.getGroupList()
+          groupFormRef.value.resetFields()
         })
     })
 }
@@ -206,7 +198,7 @@ const updateGroup = () => {
         .then(() => {
           $message.success('success')
           visible.value = false
-          getGroupList()
+          $store.getGroupList()
         })
     })
 }
@@ -220,14 +212,11 @@ const deleteGroup = ({ id, name }) => {
     .then(async () => {
       await $api.deleteGroup(id)
       await $store.getHostList()
+      await $store.getGroupList()
       $message.success('success')
-      getGroupList()
     })
 }
 
-onMounted(() => {
-  getGroupList()
-})
 </script>
 
 <style lang="scss" scoped>

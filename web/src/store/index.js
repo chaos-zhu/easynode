@@ -29,12 +29,23 @@ const useStore = defineStore({
       sessionStorage.clear('token')
       this.$patch({ token: null })
     },
-    async getHostList() {
+    async getMainData() {
       const { data: groupList } = await $api.getGroupList()
       const { data: hostList } = await $api.getHostList()
+      // const { data: sshList } = await $api.getSshList()
       // console.log('hostList:', hostList)
       // console.log('groupList:', groupList)
       this.$patch({ hostList, groupList })
+    },
+    async getHostList() {
+      const { data: hostList } = await $api.getHostList()
+      // console.log('hostList:', hostList)
+      this.$patch({ hostList })
+    },
+    async getGroupList() {
+      const { data: groupList } = await $api.getGroupList()
+      // console.log('groupList:', groupList)
+      this.$patch({ groupList })
     },
     getHostPing() {
       setTimeout(() => {

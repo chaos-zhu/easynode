@@ -3,7 +3,7 @@
     <AsideBox />
     <div class="main_container">
       <TopBar />
-      <router-view v-slot="{ Component }" class="router_box">
+      <router-view v-slot="{ Component }" v-loading="loading" class="router_box">
         <keep-alive>
           <component :is="Component" />
         </keep-alive>
@@ -13,8 +13,26 @@
 </template>
 
 <script setup>
+import { ref, onBeforeMount, getCurrentInstance } from 'vue'
 import AsideBox from '@/components/aside-box.vue'
 import TopBar from '@/components/top-bar.vue'
+
+const { proxy: { $store } } = getCurrentInstance()
+const loading = ref(true)
+
+const getMainData = async () => {
+  try {
+    loading.value = true
+    await $store.getMainData()
+  } finally {
+    loading.value = false
+  }
+}
+
+onBeforeMount(async () => {
+  await getMainData()
+})
+
 </script>
 
 <style lang="scss" scoped>

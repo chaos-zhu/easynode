@@ -113,9 +113,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, getCurrentInstance, nextTick } from 'vue'
+import { ref, reactive, computed, getCurrentInstance, nextTick } from 'vue'
 
-const { proxy: { $api, $message } } = getCurrentInstance()
+const { proxy: { $api, $message, $store } } = getCurrentInstance()
 
 const props = defineProps({
   show: {
@@ -143,7 +143,6 @@ const resetForm = () => ({
 
 const hostForm = reactive(resetForm())
 const oldHost = ref('')
-const groupList = ref([])
 const rules = reactive({
   group: { required: true, message: '选择一个分组' },
   name: { required: true, message: '输入主机别名', trigger: 'change' },
@@ -164,17 +163,7 @@ const visible = computed({
 
 const title = computed(() => props.defaultData ? '修改服务器' : '新增服务器')
 
-watch(() => props.show, (newVal) => {
-  if (!newVal) return
-  getGroupList()
-})
-
-const getGroupList = () => {
-  $api.getGroupList()
-    .then(({ data }) => {
-      groupList.value = data
-    })
-}
+let groupList = computed(() => $store.groupList || [])
 
 const handleClosed = () => {
   // console.log('handleClosed')
@@ -185,7 +174,7 @@ const handleClosed = () => {
 
 const setDefaultData = () => {
   if (!props.defaultData) return
-  console.log(props.defaultData)
+  // console.log(props.defaultData)
   let { name, host, index, expired, expiredNotify, consoleUrl, group, remark } = props.defaultData
   oldHost.value = host
   Object.assign(hostForm, { name, host, index, expired, expiredNotify, consoleUrl, group, remark })
