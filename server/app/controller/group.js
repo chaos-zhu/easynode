@@ -2,7 +2,7 @@ const { readGroupList, writeGroupList, readHostList, writeHostList, randomStr } 
 
 async function getGroupList({ res }) {
   const data = await readGroupList()
-  data?.sort((a, b) => a.index - b.index)
+  data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
   res.success({ data })
 }
 

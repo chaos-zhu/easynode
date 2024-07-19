@@ -3,6 +3,7 @@ const { readHostList, writeHostList, readSSHRecord, writeSSHRecord } = require('
 async function getHostList({ res }) {
   // console.log('get-host-list')
   const data = await readHostList()
+  data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
   res.success({ data })
 }
 
