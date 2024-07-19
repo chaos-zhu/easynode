@@ -1,5 +1,5 @@
 const { updateSSH, removeSSH, existSSH, getCommand } = require('../controller/ssh')
-const { getHostList, saveHost, updateHost, removeHost, updateHostSort } = require('../controller/host')
+const { getHostList, saveHost, updateHost, removeHost } = require('../controller/host')
 const { login, getpublicKey, updatePwd, getLoginRecord } = require('../controller/user')
 const { getSupportEmailList, getUserEmailList, updateUserEmailList, removeUserEmail, pushEmail, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
@@ -46,12 +46,12 @@ const host = [
     method: 'post',
     path: '/host-remove',
     controller: removeHost
-  },
-  {
-    method: 'put',
-    path: '/host-sort',
-    controller: updateHostSort
   }
+  // {
+  //   method: 'put',
+  //   path: '/host-sort',
+  //   controller: updateHostSort
+  // }
 ]
 const user = [
   {

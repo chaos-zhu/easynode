@@ -132,20 +132,32 @@
           <span>↓ {{ $tools.formatNetSpeed(netstatInfo.netTotal?.inputMb) || 0 }}</span>
         </div>
       </div>
-      <div class="fields terminal">
-        <el-dropdown class="web-ssh" type="primary" trigger="click">
-          <!-- <el-button type="primary" @click="handleSSH">Web SSH</el-button> -->
-          <el-button type="primary">功能</el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="handleSSH">连接终端</el-dropdown-item>
-              <el-dropdown-item v-if="consoleUrl" @click="handleToConsole">控制台</el-dropdown-item>
-              <el-dropdown-item @click="handleUpdate">修改服务器</el-dropdown-item>
-              <el-dropdown-item @click="handleRemoveHost"><span style="color: #727272;">移除主机</span></el-dropdown-item>
-              <el-dropdown-item @click="handleRemoveSSH"><span style="color: #727272;">移除凭证</span></el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+      <div class="field actions">
+        <svg-icon
+          name="icon-zhongduanguanli24"
+          title="终端"
+          class="actions-icon"
+          @click="handleSSH"
+        />
+        <svg-icon
+          v-show="consoleUrl"
+          name="icon-a-zu391"
+          title="服务商控制台"
+          class="actions-icon"
+          @click="handleToConsole"
+        />
+        <svg-icon
+          name="icon-bianji1"
+          title="编辑"
+          class="actions-icon"
+          @click="handleUpdate"
+        />
+        <svg-icon
+          name="icon-shanchu1"
+          title="删除"
+          class="actions-icon"
+          @click="handleRemoveHost"
+        />
       </div>
     </div>
     <SSHForm v-model:show="sshFormVisible" :temp-host="tempHost" :name="name" />
@@ -155,6 +167,7 @@
 <script setup>
 import { ref, computed, getCurrentInstance } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+
 import SSHForm from './ssh-form.vue'
 
 const { proxy: { $api, $tools } } = getCurrentInstance()
@@ -208,8 +221,8 @@ const setColor = (num) => {
 }
 
 const handleUpdate = () => {
-  let { expired, expiredNotify, group, consoleUrl, remark } = props.hostInfo
-  emit('update-host', { name: name.value, host: host.value, expired, expiredNotify, group, consoleUrl, remark })
+  let { expired, expiredNotify, group, consoleUrl, remark, index } = props.hostInfo
+  emit('update-host', { name: name.value, host: host.value, index, expired, expiredNotify, group, consoleUrl, remark })
 }
 
 const handleToConsole = () => {
@@ -350,6 +363,16 @@ const handleRemoveHost = async () => {
             height: 13px;
           }
         }
+      }
+    }
+
+    .actions {
+      .actions-icon {
+        margin: 0 10px;
+        width: 16px;
+        height: 16px;
+        color: #1989fa;
+        cursor: pointer;
       }
     }
 

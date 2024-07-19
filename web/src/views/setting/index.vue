@@ -10,9 +10,9 @@
       <el-tab-pane label="登录日志">
         <Record />
       </el-tab-pane>
-      <el-tab-pane label="主机排序" lazy>
+      <!-- <el-tab-pane label="主机排序" lazy>
         <Sort @update-list="emitUpdateList" />
-      </el-tab-pane>
+      </el-tab-pane> -->
       <el-tab-pane label="全局通知" lazy>
         <NotifyList />
       </el-tab-pane>
@@ -27,7 +27,7 @@
 import { computed } from 'vue'
 import NotifyList from './components/notify-list.vue'
 import EmailList from './components/email-list.vue'
-import Sort from './components/sort.vue'
+// import Sort from './components/sort.vue'
 import Record from './components/record.vue'
 // import Group from './components/group.vue'
 import Password from './components/password.vue'

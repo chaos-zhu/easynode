@@ -1,5 +1,6 @@
 <template>
   <svg class="icon" aria-hidden="true">
+    <title v-if="title">{{ title }}</title>
     <use :xlink:href="href" />
   </svg>
 </template>
@@ -8,6 +9,12 @@ export default {
   name: 'IconSvg',
   props: {
     name: {
+      required: true,
+      type: String,
+      default: ''
+    },
+    title: {
+      required: false,
       type: String,
       default: ''
     }

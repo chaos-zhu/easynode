@@ -14,6 +14,7 @@
       :hide-required-asterisk="true"
       label-suffix="："
       label-width="100px"
+      :show-message="false"
     >
       <transition-group
         name="list"
@@ -34,27 +35,27 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item key="name" label="主机别名" prop="name">
+        <el-form-item key="name" label="服务器名称" prop="name">
           <el-input
             v-model.trim="hostForm.name"
             clearable
-            placeholder="主机别名"
+            placeholder=""
             autocomplete="off"
           />
         </el-form-item>
-        <el-form-item key="host" label="IP/域名" prop="host">
+        <el-form-item key="host" label="服务器IP" prop="host">
           <el-input
             v-model.trim="hostForm.host"
             clearable
-            placeholder="IP/域名"
+            placeholder=""
             autocomplete="off"
-            @keyup.enter="handleSave"
           />
         </el-form-item>
         <el-form-item key="expired" label="到期时间" prop="expired">
           <el-date-picker
             v-model="hostForm.expired"
             type="date"
+            style="width: 100%;"
             value-format="x"
             placeholder="服务器到期时间"
           />
@@ -73,11 +74,19 @@
             />
           </el-tooltip>
         </el-form-item>
+        <el-form-item key="index" label="序号" prop="index">
+          <el-input
+            v-model.trim.number="hostForm.index"
+            clearable
+            placeholder="用于服务器列表中排序(填写数字)"
+            autocomplete="off"
+          />
+        </el-form-item>
         <el-form-item key="consoleUrl" label="控制台URL" prop="consoleUrl">
           <el-input
             v-model.trim="hostForm.consoleUrl"
             clearable
-            placeholder="用于直达服务器控制台"
+            placeholder="用于直达云服务商控制台"
             autocomplete="off"
             @keyup.enter="handleSave"
           />
@@ -89,7 +98,7 @@
             :rows="3"
             clearable
             autocomplete="off"
-            placeholder="用于简单记录服务器用途"
+            placeholder="简单记录服务器用途"
           />
         </el-form-item>
       </transition-group>
@@ -125,6 +134,7 @@ const resetForm = () => ({
   group: 'default',
   name: '',
   host: '',
+  index: 0,
   expired: null,
   expiredNotify: false,
   consoleUrl: '',
@@ -138,6 +148,7 @@ const rules = reactive({
   group: { required: true, message: '选择一个分组' },
   name: { required: true, message: '输入主机别名', trigger: 'change' },
   host: { required: true, message: '输入IP/域名', trigger: 'change' },
+  index: { required: true, type: 'number', message: '输入数字', trigger: 'change' },
   expired: { required: false },
   expiredNotify: { required: false },
   consoleUrl: { required: false },
@@ -174,9 +185,10 @@ const handleClosed = () => {
 
 const setDefaultData = () => {
   if (!props.defaultData) return
-  let { name, host, expired, expiredNotify, consoleUrl, group, remark } = props.defaultData
+  console.log(props.defaultData)
+  let { name, host, index, expired, expiredNotify, consoleUrl, group, remark } = props.defaultData
   oldHost.value = host
-  Object.assign(hostForm, { name, host, expired, expiredNotify, consoleUrl, group, remark })
+  Object.assign(hostForm, { name, host, index, expired, expiredNotify, consoleUrl, group, remark })
 }
 
 const handleSave = () => {

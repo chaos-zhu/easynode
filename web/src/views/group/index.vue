@@ -7,6 +7,7 @@
       :inline="true"
       :hide-required-asterisk="true"
       label-suffix="："
+      :show-message="false"
     >
       <el-form-item label="" prop="name" style="width: 200px;">
         <el-input
@@ -171,7 +172,7 @@ const getGroupList = () => {
   $api.getGroupList()
     .then(({ data }) => {
       groupList.value = data
-      groupForm.index = data.length
+      // groupForm.index = data.length
     })
     .finally(() => loading.value = false)
 }

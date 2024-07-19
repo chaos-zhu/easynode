@@ -1,24 +1,38 @@
 <template>
-  <div class="server_group_collapse">
-    <el-collapse v-model="activeGroup">
-      <el-collapse-item v-for="(servers, groupName) in resList" :key="groupName" :name="groupName">
-        <template #title>
-          <div class="group_title">
-            {{ groupName }}
+  <div class="server_group_container">
+    <div class="server_group_header">
+      <el-button type="primary" @click="hostFormVisible = true">添加服务器</el-button>
+      <el-button type="primary" @click="handleHiddenIP">
+        {{ hiddenIp ? '显示IP' : '隐藏IP' }}
+      </el-button>
+    </div>
+    <div class="server_group_collapse">
+      <el-collapse v-model="activeGroup">
+        <el-collapse-item v-for="(servers, groupName) in resList" :key="groupName" :name="groupName">
+          <template #title>
+            <div class="group_title">
+              {{ groupName }}
+            </div>
+          </template>
+          <div class="host_card_container">
+            <HostCard
+              v-for="(item, index) in servers"
+              :key="index"
+              :host-info="item"
+              :hidden-ip="hiddenIp"
+              @update-list="handleUpdateList"
+              @update-host="handleUpdateHost"
+            />
           </div>
-        </template>
-        <div class="host_card_container">
-          <HostCard
-            v-for="(item, index) in servers"
-            :key="index"
-            :host-info="item"
-            :hidden-ip="hiddenIp"
-            @update-list="handleUpdateList"
-            @update-host="handleUpdateHost"
-          />
-        </div>
-      </el-collapse-item>
-    </el-collapse>
+        </el-collapse-item>
+      </el-collapse>
+    </div>
+    <HostForm
+      v-model:show="hostFormVisible"
+      :default-data="updateHostData"
+      @update-list="handleUpdateList"
+      @closed="updateHostData = null"
+    />
   </div>
 </template>
 
@@ -150,15 +164,23 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-.server_group_collapse {
-  .group_title {
-    margin: 0 15px;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 22px;
+.server_group_container {
+  .server_group_header {
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: end;
   }
-  .host_card_container {
-    padding-top: 25px;
+  .server_group_collapse {
+    .group_title {
+      margin: 0 15px;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 22px;
+    }
+    .host_card_container {
+      padding-top: 25px;
+    }
   }
 }
 </style>

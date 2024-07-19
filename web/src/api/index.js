@@ -43,9 +43,9 @@ export default {
   updatePwd(data) {
     return axios({ url: '/pwd', method: 'put', data })
   },
-  updateHostSort(data) {
-    return axios({ url: '/host-sort', method: 'put', data })
-  },
+  // updateHostSort(data) {
+  //   return axios({ url: '/host-sort', method: 'put', data })
+  // },
   getUserEmailList() {
     return axios({ url: '/user-email', method: 'get' })
   },
