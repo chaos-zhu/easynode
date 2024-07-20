@@ -46,6 +46,7 @@ onBeforeMount(async () => {
     .router_box {
       min-height: calc(100vh - 60px - 20px);
       background-color: #fff;
+      border-radius: 6px;
       margin: 10px;
     }
   }

@@ -2,6 +2,9 @@
   <el-dialog
     v-model="visible"
     width="600px"
+    top="45px"
+    modal-class="host_form_dialog"
+    append-to-body
     :title="title"
     :close-on-click-modal="false"
     @open="setDefaultData"
@@ -46,8 +49,8 @@
         <div key="instance_info" class="instance_info">
           <el-form-item
             key="host"
-            class="form_item"
-            label="实例"
+            class="form_item_host"
+            label="主机"
             prop="host"
           >
             <el-input
@@ -59,7 +62,7 @@
           </el-form-item>
           <el-form-item
             key="port"
-            class="form_item"
+            class="form_item_port"
             label="端口"
             prop="port"
           >
@@ -86,6 +89,7 @@
         <el-form-item key="authType" label="认证方式" prop="authType">
           <el-radio v-model.trim="hostForm.authType" value="privateKey">密钥</el-radio>
           <el-radio v-model.trim="hostForm.authType" value="password">密码</el-radio>
+          <el-radio v-model.trim="hostForm.authType" value="credential">凭据</el-radio>
         </el-form-item>
         <el-form-item
           v-if="hostForm.authType === 'privateKey'"
@@ -130,6 +134,29 @@
             clearable
             show-password
           />
+        </el-form-item>
+        <el-form-item
+          v-if="hostForm.authType === 'credential'"
+          key="credential"
+          prop="credential"
+          label="凭据"
+        >
+          <el-select v-model="hostForm.credential" class="credential_select" placeholder="">
+            <template #empty>
+              <div class="empty_credential">
+                <span>无凭据数据,</span>
+                <el-button type="primary" link @click="toCredentials">
+                  去添加
+                </el-button>
+              </div>
+            </template>
+            <el-option
+              v-for="item in sshList"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item key="command" prop="command" label="执行指令">
           <el-input
@@ -204,8 +231,9 @@
 
 <script setup>
 import { ref, reactive, computed, getCurrentInstance, nextTick } from 'vue'
+import { RSAEncrypt, AESEncrypt, randomStr } from '@utils/index.js'
 
-const { proxy: { $api, $message, $store } } = getCurrentInstance()
+const { proxy: { $api, $router, $message, $store } } = getCurrentInstance()
 
 const props = defineProps({
   show: {
@@ -229,6 +257,7 @@ const resetForm = () => ({
   authType: 'privateKey',
   password: '',
   privateKey: '',
+  credential: '', // credentials -> _id
   index: 0,
   expired: null,
   expiredNotify: false,
@@ -265,7 +294,8 @@ const visible = computed({
 
 const title = computed(() => props.defaultData ? '修改实例' : '新增实例')
 
-let groupList = computed(() => $store.groupList || [])
+let groupList = computed(() => $store.groupList)
+let sshList = computed(() => $store.sshList)
 
 const handleClosed = () => {
   // console.log('handleClosed')
@@ -312,14 +342,25 @@ const userSearch = (keyword, cb) => {
   cb(res)
 }
 
+const toCredentials = () => {
+  visible.value = false
+  $router.push({ path: '/credentials' })
+}
+
 const handleSave = () => {
   formRef.value.validate()
     .then(async () => {
+      let tempKey = randomStr(16)
+      let formData = { ...hostForm }
+      // 加密传输
+      if (formData.password) formData.password = AESEncrypt(formData.password, tempKey)
+      if (formData.privateKey) formData.privateKey = AESEncrypt(formData.privateKey, tempKey)
+      formData.tempKey = RSAEncrypt(tempKey)
       if (props.defaultData) {
-        let { msg } = await $api.updateHost(Object.assign({}, hostForm, { oldHost: oldHost.value }))
+        let { msg } = await $api.updateHost(Object.assign({}, formData, { oldHost: oldHost.value }))
         $message({ type: 'success', center: true, message: msg })
       } else {
-        let { msg } = await $api.saveHost(hostForm)
+        let { msg } = await $api.addHost(formData)
         $message({ type: 'success', center: true, message: msg })
       }
       visible.value = false
@@ -332,9 +373,18 @@ const handleSave = () => {
 <style lang="scss" scoped>
 .instance_info {
   display: flex;
-  .form_item {
-    width: 50%;
+  justify-content: space-between;
+  .form_item_host {
+    width: 60%;
   }
+  .form_item_port {
+    flex: 1;
+  }
+}
+.empty_credential {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .dialog-footer {
   display: flex;

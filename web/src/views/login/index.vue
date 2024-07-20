@@ -86,7 +86,6 @@ const { proxy: { $store, $api, $message, $router } } = getCurrentInstance()
 
 const loginFormRefs = ref(null)
 const isSession = ref(true)
-const visible = ref(true)
 const notKey = ref(false)
 const loading = ref(false)
 const loginForm = reactive({

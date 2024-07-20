@@ -52,6 +52,7 @@ module.exports = (httpServer) => {
       const sshRecord = await readSSHRecord()
       let loginInfo = sshRecord.find(item => item.host === ip)
       if (!sshRecord.some(item => item.host === ip)) return socket.emit('create_fail', `未找到【${ ip }】凭证`)
+      // :TODO: 不用tempKey加密了，统一使用commonKey加密
       let { type, host, port, username, randomKey } = loginInfo
       try {
         // 解密放到try里面，防止报错【公私钥必须配对, 否则需要重新添加服务器密钥】

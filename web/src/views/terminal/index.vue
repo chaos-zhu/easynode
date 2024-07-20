@@ -3,7 +3,7 @@
     <div v-if="showLinkTips" class="terminal_link_tips">
       <h2 class="quick_link_text">快速连接</h2>
       <el-table
-        :data="tabelData"
+        :data="hostList"
         :show-header="false"
       >
         <el-table-column prop="name" label="name" />
@@ -16,7 +16,7 @@
           <template #default="{ row }">
             <div class="actios_btns">
               <el-button
-                v-if="row.username && row.port"
+                v-if="row.isConfig"
                 type="primary"
                 link
                 @click="linkTerminal(row)"
@@ -27,7 +27,7 @@
                 v-else
                 type="success"
                 link
-                @click="confSSH(row)"
+                @click="handleUpdateHost(row)"
               >
                 配置ssh
               </el-button>
@@ -37,45 +37,58 @@
       </el-table>
     </div>
     <div v-else>
-      <Terminal />
+      <Terminal :ternimal-tabs="ternimalTabs" />
     </div>
+    <HostForm
+      v-model:show="hostFormVisible"
+      :default-data="updateHostData"
+      @update-list="handleUpdateList"
+      @closed="updateHostData = null"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance } from 'vue'
+import { ref, computed, onActivated, getCurrentInstance } from 'vue'
 import Terminal from './components/terminal.vue'
+import HostForm from '../server/components/host-form.vue'
 
-const { proxy: { $store } } = getCurrentInstance()
+const { proxy: { $store, $message } } = getCurrentInstance()
 
-let showLinkTips = ref(true)
 let ternimalTabs = ref([])
+const hostFormVisible = ref(false)
+const updateHostData = ref(null)
+
+let showLinkTips = computed(() => !Boolean(ternimalTabs.value.length))
 
 let hostList = computed(() => $store.hostList)
-let sshList = computed(() => $store.sshList)
-let tabelData = computed(() => {
-  return hostList.value.map(hostConf => {
-    // console.log(sshList.value)
-    let target = sshList.value?.find(sshConf => sshConf.host === hostConf.host)
-    if (target !== -1) {
-      return { ...hostConf, ...target }
-    }
-    return hostConf
-  })
-})
+
 let isAllConfssh = computed(() => {
-  return tabelData.value?.every(item => item.username && item.port)
+  return hostList.value?.every(item => item.isConfig)
 })
 
 function linkTerminal(row) {
   // console.log(row)
   ternimalTabs.value.push(row)
-  showLinkTips.value = false
 }
 
-function confSSH(row) {
-
+function handleUpdateHost(row) {
+  hostFormVisible.value = true
+  updateHostData.value = { ...row }
 }
+
+const handleUpdateList = async () => {
+  try {
+    await $store.getHostList()
+  } catch (err) {
+    $message.error('获取实例列表失败')
+    console.error('获取实例列表失败: ', err)
+  }
+}
+
+onActivated(() => {
+  console.log()
+})
 
 </script>
 

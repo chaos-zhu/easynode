@@ -52,11 +52,11 @@ let menuList = reactive([
     icon: markRaw(ScaleToOriginal),
     index: '/terminal'
   },
-  // {
-  //   name: '凭据管理',
-  //   icon: markRaw(Key),
-  //   index: '/credentials'
-  // },
+  {
+    name: '凭据管理',
+    icon: markRaw(Key),
+    index: '/credentials'
+  },
   {
     name: '分组管理',
     icon: markRaw(FolderOpened),

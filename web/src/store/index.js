@@ -49,6 +49,11 @@ const useStore = defineStore({
       // console.log('groupList:', groupList)
       this.$patch({ groupList })
     },
+    async getSSHList() {
+      const { data: sshList } = await $api.getSSHList()
+      // console.log('sshList:', sshList)
+      this.$patch({ sshList })
+    },
     getHostPing() {
       setTimeout(() => {
         this.hostList.forEach((item) => {

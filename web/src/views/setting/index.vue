@@ -2,7 +2,7 @@
   <div class="setting_container">
     <el-tabs tab-position="top">
       <el-tab-pane label="修改密码" lazy>
-        <Password />
+        <User />
       </el-tab-pane>
       <!-- <el-tab-pane label="分组管理">
         <Group />
@@ -24,31 +24,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import NotifyList from './components/notify-list.vue'
 import EmailList from './components/email-list.vue'
-// import Sort from './components/sort.vue'
 import Record from './components/record.vue'
-// import Group from './components/group.vue'
-import Password from './components/password.vue'
+import User from './components/user.vue'
 
-// const props = defineProps({
-//   show: {
-//     required: true,
-//     type: Boolean
-//   }
-// })
-
-const emit = defineEmits(['update:show', 'update-list',])
-
-// const visible = computed({
-//   get: () => props.show,
-//   set: (newVal) => emit('update:show', newVal)
-// })
-
-const emitUpdateList = () => {
-  emit('update-list')
-}
 </script>
 
 <style lang="scss" scoped>

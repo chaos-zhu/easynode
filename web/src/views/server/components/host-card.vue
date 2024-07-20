@@ -164,12 +164,10 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance } from 'vue'
+import { computed, getCurrentInstance } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import SSHForm from './ssh-form.vue'
-
-const { proxy: { $api, $tools } } = getCurrentInstance()
+const { proxy: { $api, $router, $tools } } = getCurrentInstance()
 
 const props = defineProps({
   hostInfo: {
@@ -226,22 +224,16 @@ const handleToConsole = () => {
 }
 
 const handleSSH = async () => {
-  let { data } = host.value
-}
-
-const handleRemoveSSH = async () => {
-  ElMessageBox.confirm('确认删除SSH凭证', 'Warning', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    let { data } = await $api.removeSSH(host.value)
+  if(!hostInfo.value?.isConfig) {
     ElMessage({
-      message: data,
-      type: 'success',
+      message: '请先配置SSH连接信息',
+      type: 'warning',
       center: true
     })
-  })
+    handleUpdate()
+    return
+  }
+  $router.push({ path: '/terminal', query: { host: host.value } })
 }
 
 const handleRemoveHost = async () => {

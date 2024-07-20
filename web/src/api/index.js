@@ -10,22 +10,25 @@ export default {
   getSSHList(params = {}) {
     return axios({ url: '/get-ssh-list', method: 'get', params })
   },
+  addSSH(data) {
+    return axios({ url: '/add-ssh', method: 'post', data })
+  },
   updateSSH(data) {
     return axios({ url: '/update-ssh', method: 'post', data })
   },
-  removeSSH(host) {
-    return axios({ url: '/remove-ssh', method: 'post', data: { host } })
+  removeSSH(id) {
+    return axios({ url: `/remove-ssh/${ id }`, method: 'delete' })
   },
-  existSSH(host) {
-    return axios({ url: '/exist-ssh', method: 'post', data: { host } })
-  },
+  // existSSH(host) {
+  //   return axios({ url: '/exist-ssh', method: 'post', data: { host } })
+  // },
   getCommand(host) {
     return axios({ url: '/command', method: 'get', params: { host } })
   },
   getHostList() {
     return axios({ url: '/host-list', method: 'get' })
   },
-  saveHost(data) {
+  addHost(data) {
     return axios({ url: '/host-save', method: 'post', data })
   },
   updateHost(data) {

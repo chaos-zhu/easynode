@@ -51,13 +51,20 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onBeforeMount, getCurrentInstance } from 'vue'
+import { ref, reactive, computed, onBeforeMount,defineProps, getCurrentInstance } from 'vue'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
 import SftpFooter from './sftp-footer.vue'
 import InputCommand from '@/components/input-command/index.vue'
 
 const { proxy: { $store, $router, $route, $nextTick } } = getCurrentInstance()
+
+const props = defineProps({
+  ternimalTabs: {
+    type: Array,
+    required: true
+  }
+})
 
 const name = ref('')
 const host = ref('')
@@ -71,6 +78,7 @@ const visible = ref(true)
 const infoSideRef = ref(null)
 const terminalTabRefs = ref([])
 const token = computed(() => $store.token)
+const ternimalTabs = computed(() => props.ternimalTabs)
 
 const closable = computed(() => terminalTabs.length > 1)
 

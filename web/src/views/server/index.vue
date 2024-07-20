@@ -106,7 +106,7 @@ const unwatchHost = watch(hostList, () => {
 
 const connectIo = () => {
   if (socket.value) socket.value.close()
-  unwatchHost()
+  if (typeof(unwatchHost) === 'function') unwatchHost()
   let socketInstance = io($serviceURI, {
     path: '/clients',
     forceNew: true,

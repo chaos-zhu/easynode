@@ -14,21 +14,11 @@ export const randomStr = (e) =>{
 // rsa公钥加密
 export const RSAEncrypt = (text) => {
   const publicKey = localStorage.getItem('publicKey')
-  if(!publicKey) return -1 // 公钥不存在
+  if (!publicKey) return -1 // 公钥不存在
   const RSAPubEncrypt = new JSRsaEncrypt() // 生成实例
   RSAPubEncrypt.setPublicKey(publicKey) // 配置公钥(不是将公钥实例化时传入!!!)
   const ciphertext = RSAPubEncrypt.encrypt(text) // 加密
-  // console.log('rsa加密：', ciphertext)
-  return ciphertext
-}
-
-// rsa公钥解密
-export const RSADecrypt = (text) => {
-  const publicKey = localStorage.getItem('publicKey')
-  if(!publicKey) return -1 // 公钥不存在
-  const RSAPubEncrypt = new JSRsaEncrypt() // 生成实例
-  RSAPubEncrypt.setPublicKey(publicKey) // 配置公钥(不是将公钥实例化时传入!!!)
-  const ciphertext = RSAPubEncrypt.encrypt(text) // 加密
+  // console.log('rsa公钥加密：', ciphertext)
   return ciphertext
 }
 
