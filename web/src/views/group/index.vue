@@ -37,21 +37,21 @@
     <el-alert type="success" :closable="false">
       <template #title>
         <span style="letter-spacing: 2px;">
-          Tips: 已添加服务器数量 <u>{{ hostGroupInfo.total }}</u>
-          <span v-show="hostGroupInfo.notGroupCount">, 有 <u>{{ hostGroupInfo.notGroupCount }}</u> 台服务器尚未分组</span>
+          Tips: 已添加实例数量 <u>{{ hostGroupInfo.total }}</u>
+          <span v-show="hostGroupInfo.notGroupCount">, 有 <u>{{ hostGroupInfo.notGroupCount }}</u> 台实例尚未分组</span>
         </span>
       </template>
     </el-alert><br>
     <el-alert type="success" :closable="false">
       <template #title>
-        <span style="letter-spacing: 2px;"> Tips: 删除分组会将分组内所有服务器移至默认分组 </span>
+        <span style="letter-spacing: 2px;"> Tips: 删除分组会将分组内所有实例移至默认分组 </span>
       </template>
     </el-alert>
     <el-table v-loading="loading" :data="list">
       <el-table-column prop="index" label="序号" />
       <el-table-column prop="id" label="ID" />
       <el-table-column prop="name" label="分组名称" />
-      <el-table-column label="关联服务器数量">
+      <el-table-column label="关联实例数量">
         <template #default="{ row }">
           <el-popover
             v-if="row.hosts.list.length !== 0"

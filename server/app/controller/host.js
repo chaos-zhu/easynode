@@ -1,4 +1,4 @@
-const { readHostList, writeHostList, readSSHRecord, writeSSHRecord } = require('../utils')
+const { readHostList, writeHostList } = require('../utils')
 
 async function getHostList({ res }) {
   // console.log('get-host-list')
@@ -7,30 +7,52 @@ async function getHostList({ res }) {
   res.success({ data })
 }
 
-async function saveHost({ res, request }) {
-  let { body: { host: newHost, name, index, expired, expiredNotify, group, consoleUrl, remark } } = request
+async function saveHost({
+  res, request
+}) {
+  let {
+    body: {
+      name, host: newHost, index, expired, expiredNotify, group, consoleUrl, remark,
+      port, username, authType, password, privateKey, command
+    }
+  } = request
   // console.log(request)
   if (!newHost || !name) return res.fail({ msg: 'missing params: name or host' })
   let hostList = await readHostList()
   if (hostList?.some(({ host }) => host === newHost)) return res.fail({ msg: `主机${ newHost }已存在` })
   if (!Array.isArray(hostList)) hostList = []
-  hostList.push({ host: newHost, name, index, expired, expiredNotify, group, consoleUrl, remark })
+  hostList.push({
+    host: newHost, name, index, expired, expiredNotify, group, consoleUrl, remark,
+    port, username, authType, password, privateKey, command
+  })
   await writeHostList(hostList)
   res.success()
 }
 
-async function updateHost({ res, request }) {
-  let { body: { host: newHost, name: newName, index, oldHost, expired, expiredNotify, group, consoleUrl, remark } } = request
+async function updateHost({
+  res, request
+}) {
+  let {
+    body: {
+      host: newHost, name: newName, index, oldHost, expired, expiredNotify, group, consoleUrl, remark,
+      port, username, authType, password, privateKey, command
+    }
+  } = request
   if (!newHost || !newName || !oldHost) return res.fail({ msg: '参数错误' })
   let hostList = await readHostList()
-  if (!hostList.some(({ host }) => host === oldHost)) return res.fail({ msg: `主机${ newHost }不存在` })
+  if (!hostList.some(({ host }) => host === oldHost)) return res.fail({ msg: `原实例[${ oldHost }]不存在,请尝试新增实例` })
   let targetIdx = hostList.findIndex(({ host }) => host === oldHost)
-  hostList.splice(targetIdx, 1, { name: newName, host: newHost, index, expired, expiredNotify, group, consoleUrl, remark })
+  hostList.splice(targetIdx, 1, {
+    name: newName, host: newHost, index, expired, expiredNotify, group, consoleUrl, remark,
+    port, username, authType, password, privateKey, command
+  })
   writeHostList(hostList)
   res.success()
 }
 
-async function removeHost({ res, request }) {
+async function removeHost({
+  res, request
+}) {
   let { body: { host } } = request
   let hostList = await readHostList()
   let hostIdx = hostList.findIndex(item => item.host === host)
@@ -38,13 +60,14 @@ async function removeHost({ res, request }) {
   hostList.splice(hostIdx, 1)
   writeHostList(hostList)
   // 查询是否存在ssh记录
-  let sshRecord = await readSSHRecord()
-  let sshIdx = sshRecord.findIndex(item => item.host === host)
-  let flag = sshIdx !== -1
-  if (flag) sshRecord.splice(sshIdx, 1)
-  writeSSHRecord(sshRecord)
+  // let sshRecord = await readSSHRecord()
+  // let sshIdx = sshRecord.findIndex(item => item.host === host)
+  // let flag = sshIdx !== -1
+  // if (flag) sshRecord.splice(sshIdx, 1)
+  // writeSSHRecord(sshRecord)
 
-  res.success({ data: `${ host }已移除, ${ flag ? '并移除ssh记录' : '' }` })
+  // res.success({ data: `${ host }已移除, ${ flag ? '并移除ssh记录' : '' }` })
+  res.success({ data: `${ host }已移除` })
 }
 
 // 原手动排序接口-废弃

@@ -13,7 +13,7 @@
       label-suffix="："
       label-width="90px"
     >
-      <el-form-item label="主机" prop="host">
+      <el-form-item label="实例" prop="host">
         <el-input
           v-model.trim="sshForm.host"
           disabled
@@ -52,7 +52,7 @@
       </el-form-item>
       <el-form-item v-if="sshForm.type === 'privateKey'" prop="privateKey" label="密钥">
         <el-button type="primary" size="small" @click="handleClickUploadBtn">
-          选择私钥...
+          本地私钥...
         </el-button>
         <input
           ref="privateKeyRef"

@@ -1,5 +1,15 @@
 const { readSSHRecord, writeSSHRecord, AESEncryptSync } = require('../utils')
 
+async function getSSHList({ res }) {
+  // console.log('get-host-list')
+  let data = await readSSHRecord()
+  data = data?.map(item => {
+    const { host, port, username, _id } = item
+    return { host, port, username, _id }
+  }) || []
+  res.success({ data })
+}
+
 const updateSSH = async ({ res, request }) => {
   let { body: { host, port, username, type, password, privateKey, randomKey, command } } = request
   let record = { host, port, username, type, password, privateKey, randomKey, command }
@@ -50,6 +60,7 @@ const getCommand = async ({ res, request }) => {
 }
 
 module.exports = {
+  getSSHList,
   updateSSH,
   removeSSH,
   existSSH,

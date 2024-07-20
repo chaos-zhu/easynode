@@ -10,7 +10,7 @@
       <el-tab-pane label="登录日志">
         <Record />
       </el-tab-pane>
-      <!-- <el-tab-pane label="主机排序" lazy>
+      <!-- <el-tab-pane label="实例排序" lazy>
         <Sort @update-list="emitUpdateList" />
       </el-tab-pane> -->
       <el-tab-pane label="全局通知" lazy>

@@ -29,7 +29,6 @@
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
-    "eslint": "^9.6.0",
     "nodemon": "^3.1.4",
     "pkg": "5.8"
   }

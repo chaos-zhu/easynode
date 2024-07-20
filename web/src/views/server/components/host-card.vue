@@ -160,7 +160,6 @@
         />
       </div>
     </div>
-    <SSHForm v-model:show="sshFormVisible" :temp-host="tempHost" :name="name" />
   </el-card>
 </template>
 
@@ -185,11 +184,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update-list', 'update-host',])
 
-const sshFormVisible = ref(false)
-const tempHost = ref('')
-
 const hostIp = computed(() => {
-  let ip = props.hostInfo?.ipInfo?.query || props.hostInfo?.host || '--'
+  let ip = hostInfo.value?.ipInfo?.query || hostInfo.value?.host || '--'
   try {
     let formatIp = ip.replace(/\d/g, '*').split('.').map((item) => item.padStart(3, '*')).join('.')
     return props.hiddenIp ? formatIp : ip
@@ -198,22 +194,23 @@ const hostIp = computed(() => {
   }
 })
 
-const host = computed(() => props.hostInfo?.host)
-const name = computed(() => props.hostInfo?.name)
-const ping = computed(() => props.hostInfo?.ping || '')
-const expiredTime = computed(() => $tools.formatTimestamp(props.hostInfo?.expired, 'date'))
-const consoleUrl = computed(() => props.hostInfo?.consoleUrl)
-const ipInfo = computed(() => props.hostInfo?.ipInfo || {})
-const isError = computed(() => !Boolean(props.hostInfo?.osInfo))
-const cpuInfo = computed(() => props.hostInfo?.cpuInfo || {})
-const memInfo = computed(() => props.hostInfo?.memInfo || {})
-const osInfo = computed(() => props.hostInfo?.osInfo || {})
-const driveInfo = computed(() => props.hostInfo?.driveInfo || {})
+const hostInfo = computed(() => props.hostInfo || {})
+const host = computed(() => hostInfo.value?.host)
+const name = computed(() => hostInfo.value?.name)
+const ping = computed(() => hostInfo.value?.ping || '')
+const expiredTime = computed(() => $tools.formatTimestamp(hostInfo.value?.expired, 'date'))
+const consoleUrl = computed(() => hostInfo.value?.consoleUrl)
+const ipInfo = computed(() => hostInfo.value?.ipInfo || {})
+const isError = computed(() => !Boolean(hostInfo.value?.osInfo))
+const cpuInfo = computed(() => hostInfo.value?.cpuInfo || {})
+const memInfo = computed(() => hostInfo.value?.memInfo || {})
+const osInfo = computed(() => hostInfo.value?.osInfo || {})
+const driveInfo = computed(() => hostInfo.value?.driveInfo || {})
 const netstatInfo = computed(() => {
-  let { total: netTotal, ...netCards } = props.hostInfo?.netstatInfo || {}
+  let { total: netTotal, ...netCards } = hostInfo.value?.netstatInfo || {}
   return { netTotal, netCards: netCards || {} }
 })
-const openedCount = computed(() => props.hostInfo?.openedCount || 0)
+const openedCount = computed(() => hostInfo.value?.openedCount || 0)
 
 const setColor = (num) => {
   num = Number(num)
@@ -221,8 +218,7 @@ const setColor = (num) => {
 }
 
 const handleUpdate = () => {
-  let { expired, expiredNotify, group, consoleUrl, remark, index } = props.hostInfo
-  emit('update-host', { name: name.value, host: host.value, index, expired, expiredNotify, group, consoleUrl, remark })
+  emit('update-host', hostInfo.value)
 }
 
 const handleToConsole = () => {
@@ -230,17 +226,7 @@ const handleToConsole = () => {
 }
 
 const handleSSH = async () => {
-  let { data } = await $api.existSSH(host.value)
-  if (data) return window.open(`/terminal?host=${ host.value }&name=${ name.value }`)
-  if (!host.value) {
-    return ElMessage({
-      message: '请等待获取服务器ip或刷新页面重试',
-      type: 'warning',
-      center: true
-    })
-  }
-  tempHost.value = host.value
-  sshFormVisible.value = true
+  let { data } = host.value
 }
 
 const handleRemoveSSH = async () => {
@@ -259,7 +245,7 @@ const handleRemoveSSH = async () => {
 }
 
 const handleRemoveHost = async () => {
-  ElMessageBox.confirm('确认删除主机', 'Warning', {
+  ElMessageBox.confirm('确认删除实例', 'Warning', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'

@@ -1,10 +1,15 @@
-const { updateSSH, removeSSH, existSSH, getCommand } = require('../controller/ssh')
+const { getSSHList, updateSSH, removeSSH, existSSH, getCommand } = require('../controller/ssh')
 const { getHostList, saveHost, updateHost, removeHost } = require('../controller/host')
 const { login, getpublicKey, updatePwd, getLoginRecord } = require('../controller/user')
 const { getSupportEmailList, getUserEmailList, updateUserEmailList, removeUserEmail, pushEmail, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
 
 const ssh = [
+  {
+    method: 'get',
+    path: '/get-ssh-list',
+    controller: getSSHList
+  },
   {
     method: 'post',
     path: '/update-ssh',

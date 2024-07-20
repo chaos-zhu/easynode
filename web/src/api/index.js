@@ -7,6 +7,9 @@ export default {
   getIpInfo (params = {}) {
     return axios({ url: '/ip-info', method: 'get', params })
   },
+  getSSHList(params = {}) {
+    return axios({ url: '/get-ssh-list', method: 'get', params })
+  },
   updateSSH(data) {
     return axios({ url: '/update-ssh', method: 'post', data })
   },

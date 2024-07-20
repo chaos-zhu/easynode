@@ -7,6 +7,7 @@ const useStore = defineStore({
   state: () => ({
     hostList: [],
     groupList: [],
+    sshList: [],
     user: localStorage.getItem('user') || null,
     token: sessionStorage.getItem('token') || localStorage.getItem('token') || null,
     title: ''
@@ -32,10 +33,11 @@ const useStore = defineStore({
     async getMainData() {
       const { data: groupList } = await $api.getGroupList()
       const { data: hostList } = await $api.getHostList()
-      // const { data: sshList } = await $api.getSshList()
+      const { data: sshList } = await $api.getSSHList()
       // console.log('hostList:', hostList)
       // console.log('groupList:', groupList)
-      this.$patch({ hostList, groupList })
+      // console.log('sshList:', sshList)
+      this.$patch({ groupList, hostList, sshList })
     },
     async getHostList() {
       const { data: hostList } = await $api.getHostList()

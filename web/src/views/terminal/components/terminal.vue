@@ -52,16 +52,15 @@
 
 <script setup>
 import { ref, reactive, computed, onBeforeMount, getCurrentInstance } from 'vue'
-import TerminalTab from './components/terminal-tab.vue'
-import InfoSide from './components/info-side.vue'
-import SftpFooter from './components/sftp-footer.vue'
+import TerminalTab from './terminal-tab.vue'
+import InfoSide from './info-side.vue'
+import SftpFooter from './sftp-footer.vue'
 import InputCommand from '@/components/input-command/index.vue'
 
 const { proxy: { $store, $router, $route, $nextTick } } = getCurrentInstance()
 
 const name = ref('')
 const host = ref('')
-const token = $store.token
 const activeTab = ref('')
 const terminalTabs = reactive([])
 const isFullScreen = ref(false)
@@ -71,11 +70,12 @@ const showInputCommand = ref(false)
 const visible = ref(true)
 const infoSideRef = ref(null)
 const terminalTabRefs = ref([])
+const token = computed(() => $store.token)
 
 const closable = computed(() => terminalTabs.length > 1)
 
 onBeforeMount(() => {
-  if (!token) return $router.push('login')
+  if (!token.value) return $router.push('login')
   let { host: routeHost, name: routeName } = $route.query
   name.value = routeName
   host.value = routeHost
