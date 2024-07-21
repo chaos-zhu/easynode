@@ -25,6 +25,7 @@ app.config.globalProperties.$store = useStore()
 const serviceURI = import.meta.env.DEV ? process.env.serviceURI : location.origin
 app.config.globalProperties.$serviceURI = serviceURI
 app.config.globalProperties.$clientPort = process.env.clientPort || 22022
+app.config.globalProperties.$store.$patch({ serviceURI })
 console.warn('ISDEV: ', import.meta.env.DEV)
 console.warn('serviceURI: ', serviceURI)
 

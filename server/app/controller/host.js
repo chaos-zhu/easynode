@@ -5,9 +5,11 @@ async function getHostList({ res }) {
   let data = await readHostList()
   data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
   data = data.map((item) => {
-    const isConfig = Boolean(item.username && item.port && (item[item.authType]))
+    const { username, port, authType, _id: id } = item
+    const isConfig = Boolean(username && port && (item[authType]))
     return {
       ...item,
+      id,
       isConfig,
       password: '',
       privateKey: ''

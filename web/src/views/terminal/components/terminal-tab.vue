@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance } from 'vue'
 import { Terminal } from 'xterm'
 import 'xterm/css/xterm.css'
 import { FitAddon } from 'xterm-addon-fit'
@@ -22,18 +22,10 @@ import { WebLinksAddon } from 'xterm-addon-web-links'
 import socketIo from 'socket.io-client'
 
 const { io } = socketIo
-const { proxy: { $api, $serviceURI, $notification, $router, $messageBox } } = getCurrentInstance()
+const { proxy: { $api, $store, $serviceURI, $notification, $router, $messageBox } } = getCurrentInstance()
 
 const props = defineProps({
-  token: {
-    required: true,
-    type: String
-  },
   host: {
-    required: true,
-    type: String
-  },
-  tabKey: {
     required: true,
     type: String
   }
@@ -48,7 +40,7 @@ const searchBar = ref(null)
 const isManual = ref(false)
 const terminalRefs = ref(null)
 
-const tabKey = ref(props.tabKey)
+const token = computed(() => $store.token)
 
 const getCommand = async () => {
   let { data } = await $api.getCommand(props.host)
@@ -56,7 +48,7 @@ const getCommand = async () => {
 }
 
 const connectIO = () => {
-  const { host, token } = props
+  const { host } = props
   socket.value = io($serviceURI, {
     path: '/terminal',
     forceNew: false,
@@ -65,7 +57,7 @@ const connectIO = () => {
 
   socket.value.on('connect', () => {
     console.log('/terminal socket已连接：', socket.value.id)
-    socket.value.emit('create', { host, token })
+    socket.value.emit('create', { host, token: token.value })
     socket.value.on('connect_success', () => {
       onData()
       socket.value.on('connect_terminal', () => {
@@ -241,7 +233,7 @@ const handleInputCommand = (command) => {
 
 onMounted(async () => {
   createLocalTerminal()
-  await getCommand()
+  // await getCommand()
   connectIO()
 })
 
@@ -255,8 +247,7 @@ defineExpose({
   focusTab,
   handleResize,
   handleInputCommand,
-  handleClear,
-  tabKey
+  handleClear
 })
 </script>
 

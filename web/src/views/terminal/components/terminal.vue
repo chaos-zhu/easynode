@@ -3,8 +3,7 @@
     <InfoSide
       ref="infoSideRef"
       v-model:show-input-command="showInputCommand"
-      :token="token"
-      :host="host"
+      :host-info="curHost"
       :visible="visible"
       @connect-sftp="connectSftp"
       @click-input-command="clickInputCommand"
@@ -18,26 +17,23 @@
           <svg-icon name="icon-jiantou_zuoyouqiehuan" class="svg-icon" />
         </div>
         <el-tabs
-          v-model="activeTab"
+          v-model="activeTabIndex"
           type="border-card"
           addable
           tab-position="top"
           @tab-remove="removeTab"
           @tab-change="tabChange"
-          @tab-add="tabAdd"
         >
           <el-tab-pane
-            v-for="item in terminalTabs"
-            :key="item.key"
-            :label="item.title"
-            :name="item.key"
-            :closable="closable"
+            v-for="(item, index) in terminalTabs"
+            :key="index"
+            :label="item.name"
+            :name="index"
+            :closable="true"
           >
             <TerminalTab
               ref="terminalTabRefs"
-              :token="token"
-              :host="host"
-              :tab-key="item.key"
+              :host="item.host"
             />
           </el-tab-pane>
         </el-tabs>
@@ -51,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onBeforeMount,defineProps, getCurrentInstance } from 'vue'
+import { ref, reactive, defineEmits, computed, onBeforeMount,defineProps, getCurrentInstance, watch } from 'vue'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
 import SftpFooter from './sftp-footer.vue'
@@ -60,16 +56,16 @@ import InputCommand from '@/components/input-command/index.vue'
 const { proxy: { $store, $router, $route, $nextTick } } = getCurrentInstance()
 
 const props = defineProps({
-  ternimalTabs: {
+  terminalTabs: {
     type: Array,
     required: true
   }
 })
 
-const name = ref('')
-const host = ref('')
-const activeTab = ref('')
-const terminalTabs = reactive([])
+const emit = defineEmits(['closed', 'removeTab',])
+
+const activeTabIndex = ref(0)
+// const terminalTabs = reactive([])
 const isFullScreen = ref(false)
 const timer = ref(null)
 const showSftp = ref(false)
@@ -77,21 +73,24 @@ const showInputCommand = ref(false)
 const visible = ref(true)
 const infoSideRef = ref(null)
 const terminalTabRefs = ref([])
+
 const token = computed(() => $store.token)
-const ternimalTabs = computed(() => props.ternimalTabs)
+const terminalTabs = computed(() => props.terminalTabs)
+const curHost = computed(() => terminalTabs.value[activeTabIndex.value])
 
-const closable = computed(() => terminalTabs.length > 1)
+// const closable = computed(() => terminalTabs.length > 1)
 
-onBeforeMount(() => {
-  if (!token.value) return $router.push('login')
-  let { host: routeHost, name: routeName } = $route.query
-  name.value = routeName
-  host.value = routeHost
-  document.title = `${ document.title }-${ routeName }`
-  let key = Date.now().toString()
-  terminalTabs.push({ title: routeName, key })
-  activeTab.value = key
-  registryDbClick()
+watch(terminalTabs, () => {
+  console.log('add tab:', terminalTabs.value)
+  let len = terminalTabs.value.length
+  if (len > 0) {
+    activeTabIndex.value = len - 1
+    // registryDbClick()
+    // tabChange(terminalTabs.value[0].key)
+  }
+}, {
+  immediate: true,
+  deep: false
 })
 
 // const windowBeforeUnload = () => {
@@ -114,23 +113,23 @@ const tabAdd = () => {
   timer.value = setTimeout(() => {
     let title = name.value
     let key = Date.now().toString()
-    terminalTabs.push({ title, key })
-    activeTab.value = key
+    terminalTabs.value.push({ title, key })
+    activeTabIndex.value = key
     tabChange(key)
-    registryDbClick()
+    // registryDbClick()
   }, 200)
 }
 
-const removeTab = (removeKey) => {
-  let idx = terminalTabs.findIndex(({ key }) => removeKey === key)
-  terminalTabs.splice(idx, 1)
-  if (removeKey !== activeTab.value) return
-  activeTab.value = terminalTabs[0].key
+const removeTab = (index) => {
+  // terminalTabs.value.splice(index, 1)
+  emit('removeTab', index)
+  if (index !== activeTabIndex.value) return
+  activeTabIndex.value = 0
 }
 
-const tabChange = async (key) => {
+const tabChange = async (index) => {
   await $nextTick()
-  const curTabTerminal = terminalTabRefs.value.find(({ tabKey }) => key === tabKey)
+  const curTabTerminal = terminalTabRefs.value[index]
   curTabTerminal?.focusTab()
 }
 
@@ -140,23 +139,20 @@ const handleFullScreen = () => {
   isFullScreen.value = !isFullScreen.value
 }
 
-const registryDbClick = () => {
-  $nextTick(() => {
-    let tabItems = Array.from(document.getElementsByClassName('el-tabs__item'))
-    tabItems.forEach(item => {
-      item.removeEventListener('dblclick', handleDblclick)
-      item.addEventListener('dblclick', handleDblclick)
-    })
-  })
-}
+// const registryDbClick = () => {
+//   $nextTick(() => {
+//     let tabItems = Array.from(document.getElementsByClassName('el-tabs__item'))
+//     tabItems.forEach(item => {
+//       item.removeEventListener('dblclick', handleDblclick)
+//       item.addEventListener('dblclick', handleDblclick)
+//     })
+//   })
+// }
 
-const handleDblclick = (e) => {
-  if (terminalTabs.length > 1) {
-    let key = e.target.id.substring(4)
-    // console.log('dblclick', key)
-    removeTab(key)
-  }
-}
+// const handleDblclick = (e) => {
+//   let key = e.target.id.substring(4)
+//   removeTab(key)
+// }
 
 const handleVisibleSidebar = () => {
   visible.value = !visible.value
@@ -171,7 +167,7 @@ const resizeTerminal = () => {
 }
 
 const handleInputCommand = async (command) => {
-  const curTabTerminal = terminalTabRefs.value.find(({ tabKey }) => activeTab.value === tabKey)
+  const curTabTerminal = terminalTabRefs.value.find(({ tabKey }) => activeTabIndex.value === tabKey)
   await $nextTick()
   curTabTerminal?.focusTab()
   curTabTerminal.handleInputCommand(`${ command }\n`)

@@ -5,8 +5,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 // import terminal from '@views/terminal/index.vue'
 // import test from '@views/test/index.vue'
 
-const HostList = () => import('@views/list/index.vue')
-
 const Login = () => import('@views/login/index.vue')
 const Container = () => import('@views/index.vue')
 const Server = () => import('@views/server/index.vue')

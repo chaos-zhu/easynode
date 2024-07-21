@@ -37,7 +37,7 @@
       </el-table>
     </div>
     <div v-else>
-      <Terminal :ternimal-tabs="ternimalTabs" />
+      <Terminal :terminal-tabs="terminalTabs" @remove-tab="handleRemoveTab" />
     </div>
     <HostForm
       v-model:show="hostFormVisible"
@@ -49,17 +49,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onActivated, getCurrentInstance } from 'vue'
+import { ref, computed, onActivated, getCurrentInstance, reactive } from 'vue'
 import Terminal from './components/terminal.vue'
 import HostForm from '../server/components/host-form.vue'
 
 const { proxy: { $store, $message } } = getCurrentInstance()
 
-let ternimalTabs = ref([])
+let terminalTabs = reactive([])
 const hostFormVisible = ref(false)
 const updateHostData = ref(null)
 
-let showLinkTips = computed(() => !Boolean(ternimalTabs.value.length))
+let showLinkTips = computed(() => !Boolean(terminalTabs.length))
 
 let hostList = computed(() => $store.hostList)
 
@@ -69,12 +69,16 @@ let isAllConfssh = computed(() => {
 
 function linkTerminal(row) {
   // console.log(row)
-  ternimalTabs.value.push(row)
+  terminalTabs.push(row)
 }
 
 function handleUpdateHost(row) {
   hostFormVisible.value = true
   updateHostData.value = { ...row }
+}
+
+function handleRemoveTab(index) {
+  terminalTabs.splice(index, 1)
 }
 
 const handleUpdateList = async () => {

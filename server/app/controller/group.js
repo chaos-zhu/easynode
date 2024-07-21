@@ -1,7 +1,10 @@
 const { readGroupList, writeGroupList, readHostList, writeHostList, randomStr } = require('../utils')
 
 async function getGroupList({ res }) {
-  const data = await readGroupList()
+  let data = await readGroupList()
+  data = data.map(item => {
+    return { ...item, id: item._id }
+  })
   data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
   res.success({ data })
 }

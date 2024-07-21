@@ -11,7 +11,7 @@
         />
       </div> -->
     </header>
-    <el-divider class="first-divider" content-position="center">POSITION</el-divider>
+    <el-divider class="first-divider" content-position="center">地理位置</el-divider>
     <el-descriptions
       class="margin-top"
       :column="1"
@@ -47,7 +47,7 @@
       </el-descriptions-item>
     </el-descriptions>
 
-    <el-divider content-position="center">INDICATOR</el-divider>
+    <el-divider content-position="center">实时监控</el-divider>
     <el-descriptions
       class="margin-top"
       :column="1"
@@ -118,7 +118,7 @@
       </el-descriptions-item>
     </el-descriptions>
 
-    <el-divider content-position="center">INFORMATION</el-divider>
+    <el-divider content-position="center">系统信息</el-divider>
     <el-descriptions
       class="margin-top"
       :column="1"
@@ -208,16 +208,12 @@
 import { ref, onMounted, onBeforeUnmount, computed, getCurrentInstance } from 'vue'
 import socketIo from 'socket.io-client'
 
-const { proxy: { $router, $serviceURI, $message, $notification, $tools } } = getCurrentInstance()
+const { proxy: { $router, $store, $serviceURI, $message, $notification, $tools } } = getCurrentInstance()
 
 const props = defineProps({
-  token: {
+  hostInfo: {
     required: true,
-    type: String
-  },
-  host: {
-    required: true,
-    type: String
+    type: Object
   },
   visible: {
     required: true,
@@ -233,11 +229,13 @@ const emit = defineEmits(['update:inputCommandStyle', 'connect-sftp', 'click-inp
 
 const socket = ref(null)
 const name = ref('')
-const hostData = ref(null)
 const ping = ref(0)
 const pingTimer = ref(null)
 const sftpStatus = ref(false)
 
+const token = computed(() => $store.token)
+const hostData = computed(() => props.hostInfo)
+const host = computed(() => hostData.value.host)
 const ipInfo = computed(() => hostData.value?.ipInfo || {})
 // const isError = computed(() => !Boolean(hostData.value?.osInfo))
 const cpuInfo = computed(() => hostData.value?.cpuInfo || {})
@@ -280,7 +278,6 @@ const clickInputCommand = () => {
 }
 
 const connectIO = () => {
-  const { host, token } = props
   socket.value = socketIo($serviceURI, {
     path: '/host-status',
     forceNew: true,
@@ -291,8 +288,8 @@ const connectIO = () => {
 
   socket.value.on('connect', () => {
     console.log('/host-status socket已连接：', socket.value.id)
-    socket.value.emit('init_host_data', { token, host })
-    getHostPing()
+    socket.value.emit('init_host_data', { token: token.value, host: props.host })
+    // getHostPing()
     socket.value.on('host_data', (data) => {
       if (!data) return hostData.value = null
       hostData.value = data
@@ -343,9 +340,9 @@ const getHostPing = () => {
 }
 
 onMounted(() => {
-  name.value = $router.currentRoute.value.query.name || ''
-  if (!props.host || !name.value) return $message.error('参数错误')
-  connectIO()
+  // name.value = $router.currentRoute.value.query.name || ''
+  // if (!props.host || !name.value) return $message.error('参数错误')
+  // connectIO()
 })
 
 onBeforeUnmount(() => {
