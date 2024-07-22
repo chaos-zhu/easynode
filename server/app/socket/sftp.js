@@ -2,7 +2,7 @@ const { Server } = require('socket.io')
 const SFTPClient = require('ssh2-sftp-client')
 const rawPath = require('path')
 const fs = require('fs')
-const { readSSHRecord, verifyAuthSync, RSADecryptSync, AESDecryptSync } = require('../utils')
+const { readHostList, readSSHRecord, verifyAuthSync, RSADecryptSync, AESDecryptSync } = require('../utils')
 const { sftpCacheDir } = require('../config')
 const CryptoJS = require('crypto-js')
 
@@ -212,17 +212,27 @@ module.exports = (httpServer) => {
         socket.disconnect()
         return
       }
-      const sshRecord = await readSSHRecord()
-      let loginInfo = sshRecord.find(item => item.host === ip)
-      if(!sshRecord.some(item => item.host === ip)) return socket.emit('create_fail', `未找到【${ ip }】凭证`)
-      let { type, host, port, username, randomKey } = loginInfo
-      // 解密放到try里面，防止报错【公私钥必须配对, 否则需要重新添加服务器密钥】
-      randomKey = await AESDecryptSync(randomKey) // 先对称解密key
-      randomKey = await RSADecryptSync(randomKey) // 再非对称解密key
-      loginInfo[type] = await AESDecryptSync(loginInfo[type], randomKey) // 对称解密ssh密钥
-      consola.info('准备连接Sftp：', host)
-      const authInfo = { host, port, username, [type]: loginInfo[type] }
-      sftpClient.connect(authInfo)
+
+      const hostList = await readHostList()
+      const targetHostInfo = hostList.find(item => item.host === ip) || {}
+      let { authType, host, port, username } = targetHostInfo
+      if (!host) return socket.emit('create_fail', `查找【${ ip }】凭证信息失败`)
+      let authInfo = { host, port, username }
+
+      // 解密放到try里面，防止报错【commonKey必须配对, 否则需要重新添加服务器密钥】
+      if (authType === 'credential') {
+        let credentialId = await AESDecryptSync(targetHostInfo[authType])
+        const sshRecordList = await readSSHRecord()
+        const sshRecord = sshRecordList.find(item => item._id === credentialId)
+        authInfo.authType = sshRecord.authType
+        authInfo[authInfo.authType] = await AESDecryptSync(sshRecord[authInfo.authType])
+      }
+      consola.info('准备连接Sftp面板：', host)
+      targetHostInfo[targetHostInfo.authType] = await AESDecryptSync(targetHostInfo[targetHostInfo.authType])
+
+      consola.log('连接信息', { username, port, authType })
+      sftpClient
+        .connect(authInfo)
         .then(() => {
           consola.success('连接Sftp成功：', host)
           return sftpClient.list('/')

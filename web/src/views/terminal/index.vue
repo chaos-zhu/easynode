@@ -2,14 +2,12 @@
   <div class="terminal_container">
     <div v-if="showLinkTips" class="terminal_link_tips">
       <h2 class="quick_link_text">快速连接</h2>
-      <el-table
-        :data="hostList"
-        :show-header="false"
-      >
+      <el-table :data="hostList" :show-header="false">
         <el-table-column prop="name" label="name" />
         <el-table-column>
           <template #default="{ row }">
-            <span>{{ row.username ? `ssh ${row.username}@` : '' }}{{ row.host }}{{ row.port ? ` -p ${row.port}` : '' }}</span>
+            <span>{{ row.username ? `ssh ${row.username}@` : '' }}{{ row.host }}{{ row.port ? ` -p ${row.port}` : ''
+            }}</span>
           </template>
         </el-table-column>
         <el-table-column v-show="!isAllConfssh">
@@ -37,7 +35,7 @@
       </el-table>
     </div>
     <div v-else>
-      <Terminal :terminal-tabs="terminalTabs" @remove-tab="handleRemoveTab" />
+      <Terminal ref="terminalRef" :terminal-tabs="terminalTabs" @remove-tab="handleRemoveTab" />
     </div>
     <HostForm
       v-model:show="hostFormVisible"
@@ -49,15 +47,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onActivated, getCurrentInstance, reactive } from 'vue'
+import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import Terminal from './components/terminal.vue'
 import HostForm from '../server/components/host-form.vue'
 
-const { proxy: { $store, $message } } = getCurrentInstance()
+const { proxy: { $store, $route, $message } } = getCurrentInstance()
 
 let terminalTabs = reactive([])
 const hostFormVisible = ref(false)
 const updateHostData = ref(null)
+const terminalRef = ref(null)
+const route = useRoute()
 
 let showLinkTips = computed(() => !Boolean(terminalTabs.length))
 
@@ -90,22 +91,29 @@ const handleUpdateList = async () => {
   }
 }
 
-onActivated(() => {
-  console.log()
+onActivated(async () => {
+  await nextTick()
+  const { host } = route.query
+  if (!host) return
+  let targetHost = hostList.value.find(item => item.host === host)
+  if (!targetHost) return
+  terminalTabs.push(targetHost)
 })
 
 </script>
 
 <style lang="scss" scoped>
 .terminal_container {
+  height: calc(100vh - 60px - 20px);
+  overflow: auto;
   .terminal_link_tips {
     width: 50%;
-    // margin: 0 auto;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 20px;
+
     .quick_link_text {
       align-self: self-start;
       margin: 0 10px;
@@ -114,6 +122,7 @@ onActivated(() => {
       line-height: 22px;
       margin-bottom: 15px;
     }
+
     .actios_btns {
       display: flex;
       justify-content: flex-end;

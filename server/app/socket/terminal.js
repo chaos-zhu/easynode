@@ -1,6 +1,6 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const { readSSHRecord, verifyAuthSync, RSADecryptSync, AESDecryptSync } = require('../utils')
+const { readHostList, readSSHRecord, verifyAuthSync, RSADecryptSync, AESDecryptSync } = require('../utils')
 
 function createTerminal(socket, sshClient) {
   sshClient.shell({ term: 'xterm-color' }, (err, stream) => {
@@ -49,19 +49,25 @@ module.exports = (httpServer) => {
         socket.disconnect()
         return
       }
-      const sshRecord = await readSSHRecord()
-      let loginInfo = sshRecord.find(item => item.host === ip)
-      if (!sshRecord.some(item => item.host === ip)) return socket.emit('create_fail', `未找到【${ ip }】凭证`)
-      // :TODO: 不用tempKey加密了，统一使用commonKey加密
-      let { type, host, port, username, randomKey } = loginInfo
+      const hostList = await readHostList()
+      const targetHostInfo = hostList.find(item => item.host === ip) || {}
+      let { authType, host, port, username } = targetHostInfo
+      if (!host) return socket.emit('create_fail', `查找【${ ip }】凭证信息失败`)
+      let authInfo = { host, port, username }
+      // 统一使用commonKey解密
       try {
-        // 解密放到try里面，防止报错【公私钥必须配对, 否则需要重新添加服务器密钥】
-        randomKey = await AESDecryptSync(randomKey) // 先对称解密key
-        randomKey = await RSADecryptSync(randomKey) // 再非对称解密key
-        loginInfo[type] = await AESDecryptSync(loginInfo[type], randomKey) // 对称解密ssh密钥
+        // 解密放到try里面，防止报错【commonKey必须配对, 否则需要重新添加服务器密钥】
+        if (authType === 'credential') {
+          let credentialId = await AESDecryptSync(targetHostInfo[authType])
+          const sshRecordList = await readSSHRecord()
+          const sshRecord = sshRecordList.find(item => item._id === credentialId)
+          authInfo.authType = sshRecord.authType
+          authInfo[authInfo.authType] = await AESDecryptSync(sshRecord[authInfo.authType])
+        }
         consola.info('准备连接终端：', host)
-        const authInfo = { host, port, username, [type]: loginInfo[type] } // .replace(/\n/g, '')
-        // console.log(authInfo)
+        targetHostInfo[targetHostInfo.authType] = await AESDecryptSync(targetHostInfo[targetHostInfo.authType])
+
+        consola.log('连接信息', { username, port, authType })
         sshClient
           .on('ready', () => {
             consola.success('已连接到终端：', host)

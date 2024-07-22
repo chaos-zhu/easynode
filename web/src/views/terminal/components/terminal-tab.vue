@@ -1,14 +1,5 @@
 <template>
-  <header>
-    <!-- 功能 -->
-    <!-- <el-button type="primary" @click="handleClear">
-      清空
-    </el-button>
-    <el-button type="primary" @click="handlePaste">
-      粘贴
-    </el-button> -->
-  </header>
-  <div ref="terminalRefs" class="terminal-container" />
+  <div ref="terminalRefs" class="terminal_tab_container" />
 </template>
 
 <script setup>
@@ -22,7 +13,7 @@ import { WebLinksAddon } from 'xterm-addon-web-links'
 import socketIo from 'socket.io-client'
 
 const { io } = socketIo
-const { proxy: { $api, $store, $serviceURI, $notification, $router, $messageBox } } = getCurrentInstance()
+const { proxy: { $api, $store, $serviceURI, $notification, $router, $message, $messageBox } } = getCurrentInstance()
 
 const props = defineProps({
   host: {
@@ -110,16 +101,17 @@ const connectIO = () => {
 
 const reConnect = () => {
   socket.value.close && socket.value.close()
-  $messageBox.alert(
-    '<strong>终端连接断开</strong>',
-    'Error',
-    {
-      dangerouslyUseHTMLString: true,
-      confirmButtonText: '刷新页面'
-    }
-  ).then(() => {
-    location.reload()
-  })
+  $message.warn('终端连接断开')
+  // $messageBox.alert(
+  //   '<strong>终端连接断开</strong>',
+  //   'Error',
+  //   {
+  //     dangerouslyUseHTMLString: true,
+  //     confirmButtonText: '刷新页面'
+  //   }
+  // ).then(() => {
+  //   location.reload()
+  // })
 }
 
 const createLocalTerminal = () => {
@@ -252,20 +244,17 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-header {
-  position: fixed;
-  z-index: 1;
-  right: 10px;
-  top: 50px;
-}
+.terminal_tab_container {
+  min-height: 200px;
 
-.terminal-container {
-  height: 100%;
+  :deep(.xterm) {
+    height: 100%;
+  }
 
   :deep(.xterm-viewport),
   :deep(.xterm-screen) {
-    width: 100% !important;
-    height: 100% !important;
+    padding: 0 0 0 10px;
+    border-radius: var(--el-border-radius-base);
 
     // 滚动条整体部分
     &::-webkit-scrollbar {

@@ -352,9 +352,11 @@ const handleSave = () => {
     .then(async () => {
       let tempKey = randomStr(16)
       let formData = { ...hostForm }
+      console.log('formData:', formData)
       // 加密传输
       if (formData.password) formData.password = AESEncrypt(formData.password, tempKey)
       if (formData.privateKey) formData.privateKey = AESEncrypt(formData.privateKey, tempKey)
+      if (formData.credential) formData.credential = AESEncrypt(formData.credential, tempKey)
       formData.tempKey = RSAEncrypt(tempKey)
       if (props.defaultData) {
         let { msg } = await $api.updateHost(Object.assign({}, formData, { oldHost: oldHost.value }))

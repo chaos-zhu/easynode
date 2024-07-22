@@ -4,17 +4,13 @@ async function getHostList({ res }) {
   // console.log('get-host-list')
   let data = await readHostList()
   data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
-  data = data.map((item) => {
-    const { username, port, authType, _id: id } = item
+  for (const item of data) {
+    let { username, port, authType, _id: id, credential } = item
+    if (credential) credential = await AESDecryptSync(credential)
+    // console.log(credential)
     const isConfig = Boolean(username && port && (item[authType]))
-    return {
-      ...item,
-      id,
-      isConfig,
-      password: '',
-      privateKey: ''
-    }
-  })
+    Object.assign(item, { id, isConfig, password: '', privateKey: '', credential })
+  }
   res.success({ data })
 }
 

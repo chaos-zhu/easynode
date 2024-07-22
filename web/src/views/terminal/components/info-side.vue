@@ -1,5 +1,5 @@
 <template>
-  <div class="info-container" :style="{ width: visible ? `250px` : 0 }">
+  <div class="info_container" :style="{ width: visible ? `250px` : 0 }">
     <header>
       <a href="/">
         <img src="@/assets/logo-easynode.png" alt="logo">
@@ -208,7 +208,7 @@
 import { ref, onMounted, onBeforeUnmount, computed, getCurrentInstance } from 'vue'
 import socketIo from 'socket.io-client'
 
-const { proxy: { $router, $store, $serviceURI, $message, $notification, $tools } } = getCurrentInstance()
+const { proxy: { $store, $serviceURI, $message, $notification, $tools } } = getCurrentInstance()
 
 const props = defineProps({
   hostInfo: {
@@ -352,14 +352,11 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-.info-container {
-  // min-width: 250px;
-  // max-width: 250px;
-  // flex-shrink: 0;
-  // width: 250px;
+.info_container {
+  flex-shrink: 0;
   overflow: scroll;
   background-color: #fff; //#E0E2EF;
-  transition: all 0.3s;
+  transition: all 0.15s;
 
   header {
     display: flex;

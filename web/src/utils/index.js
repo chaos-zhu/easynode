@@ -1,6 +1,24 @@
 
+import { reactive } from 'vue'
 import JSRsaEncrypt from 'jsencrypt'
 import CryptoJS from 'crypto-js'
+
+export const EventBus = reactive({})
+
+// 在组件中触发事件
+EventBus.$emit = (event, data) => {
+  if (EventBus[event]) {
+    EventBus[event].forEach(callback => callback(data))
+  }
+}
+
+// 在组件中监听事件
+EventBus.$on = (event, callback) => {
+  if (!EventBus[event]) {
+    EventBus[event] = []
+  }
+  EventBus[event].push(callback)
+}
 
 export const randomStr = (e) =>{
   e = e || 16
