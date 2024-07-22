@@ -4,6 +4,8 @@
       <div class="top">
         <el-dropdown trigger="click">
           <div class="action_wrap">
+            <!-- 全屏 -->
+            <el-icon><FullScreen /></el-icon>
             <span class="link_host">连接<el-icon class="el-icon--right"><arrow-down /></el-icon></span>
           </div>
           <template #dropdown>
@@ -57,7 +59,7 @@
 
 <script setup>
 import { ref, defineEmits, computed, defineProps, getCurrentInstance, watch, onMounted, onBeforeUnmount } from 'vue'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, FullScreen } from '@element-plus/icons-vue'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
 import Sftp from './sftp.vue'
@@ -75,9 +77,7 @@ const props = defineProps({
 const emit = defineEmits(['closed', 'removeTab', 'add-host',])
 
 const activeTabIndex = ref(0)
-// const terminalTabs = reactive([])
 const isFullScreen = ref(false)
-const timer = ref(null)
 const showInputCommand = ref(false)
 const visible = ref(true)
 const infoSideRef = ref(null)
@@ -137,18 +137,6 @@ watch(terminalTabsLen, () => {
 
 const clickInputCommand = () => {
   showInputCommand.value = true
-}
-
-const tabAdd = () => {
-  if (timer.value) clearTimeout(timer.value)
-  timer.value = setTimeout(() => {
-    let title = name.value
-    let key = Date.now().toString()
-    terminalTabs.value.push({ title, key })
-    activeTabIndex.value = key
-    tabChange(key)
-    // registryDbClick()
-  }, 200)
 }
 
 const removeTab = (index) => {

@@ -66,7 +66,8 @@ module.exports = (httpServer) => {
         }
         consola.info('准备连接终端：', host)
         targetHostInfo[targetHostInfo.authType] = await AESDecryptSync(targetHostInfo[targetHostInfo.authType])
-
+        // :TODO: 初始化后连接失败...
+        // console.log('targetHostInfo:', targetHostInfo)
         consola.log('连接信息', { username, port, authType })
         sshClient
           .on('ready', () => {

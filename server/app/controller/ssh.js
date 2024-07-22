@@ -79,8 +79,8 @@ const removeSSH = async ({ res, request }) => {
 const getCommand = async ({ res, request }) => {
   let { host } = request.query
   if(!host) return res.fail({ data: false, msg: '参数错误' })
-  let sshRecord = await readSSHRecord()
-  let record = sshRecord?.find(item => item.host === host)
+  let hostInfo = await readHostList()
+  let record = hostInfo?.find(item => item.host === host)
   consola.info('查询登录后执行的指令：', host)
   if(!record) return res.fail({ data: false, msg: 'host not found' }) // host不存在
   const { command } = record

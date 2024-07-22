@@ -13,7 +13,7 @@ import { WebLinksAddon } from 'xterm-addon-web-links'
 import socketIo from 'socket.io-client'
 
 const { io } = socketIo
-const { proxy: { $api, $store, $serviceURI, $notification, $router, $message, $messageBox } } = getCurrentInstance()
+const { proxy: { $api, $store, $serviceURI, $notification, $router, $message } } = getCurrentInstance()
 
 const props = defineProps({
   host: {
@@ -225,7 +225,7 @@ const handleInputCommand = (command) => {
 
 onMounted(async () => {
   createLocalTerminal()
-  // await getCommand()
+  await getCommand()
   connectIO()
 })
 
