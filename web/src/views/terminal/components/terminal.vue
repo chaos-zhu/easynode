@@ -1,12 +1,28 @@
 <template>
   <div class="terminal_wrap">
-    <InfoSide
-      ref="infoSideRef"
-      v-model:show-input-command="showInputCommand"
-      :host-info="curHost"
-      :visible="visible"
-      @click-input-command="clickInputCommand"
-    />
+    <div class="info_box">
+      <div class="top">
+        <el-dropdown trigger="click">
+          <div class="action_wrap">
+            <span class="link_host">连接<el-icon class="el-icon--right"><arrow-down /></el-icon></span>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-for="(item, index) in hostList" :key="index" @click="handleCommandHost(item)">
+                {{ item.name }} {{ item.host }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+      <InfoSide
+        ref="infoSideRef"
+        v-model:show-input-command="showInputCommand"
+        :host-info="curHost"
+        :visible="visible"
+        @click-input-command="clickInputCommand"
+      />
+    </div>
     <div class="terminals_sftp_wrap">
       <!-- <el-button class="full-screen-button" type="success" @click="handleFullScreen">
         {{ isFullScreen ? '退出全屏' : '全屏' }}
@@ -40,13 +56,14 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, computed, defineProps, getCurrentInstance, watch, onMounted } from 'vue'
+import { ref, defineEmits, computed, defineProps, getCurrentInstance, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ArrowDown } from '@element-plus/icons-vue'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
 import Sftp from './sftp.vue'
 import InputCommand from '@/components/input-command/index.vue'
 
-const { proxy: { $nextTick } } = getCurrentInstance()
+const { proxy: { $nextTick, $store } } = getCurrentInstance()
 
 const props = defineProps({
   terminalTabs: {
@@ -55,13 +72,12 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['closed', 'removeTab',])
+const emit = defineEmits(['closed', 'removeTab', 'add-host',])
 
 const activeTabIndex = ref(0)
 // const terminalTabs = reactive([])
 const isFullScreen = ref(false)
 const timer = ref(null)
-const showSftp = ref(false)
 const showInputCommand = ref(false)
 const visible = ref(true)
 const infoSideRef = ref(null)
@@ -71,14 +87,28 @@ let mainHeight = ref('')
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
 const curHost = computed(() => terminalTabs.value[activeTabIndex.value])
+let hostList = computed(() => $store.hostList)
 
 // const closable = computed(() => terminalTabs.length > 1)
 
 onMounted(() => {
-  $nextTick(() => {
-    mainHeight.value = document.querySelector('.terminals_sftp_wrap').offsetHeight - 45 // 45 is tab-header height+10
-  })
+  handleResizeTerminalSftp()
+  window.addEventListener('resize', handleResizeTerminalSftp)
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResizeTerminalSftp)
+})
+
+function handleResizeTerminalSftp() {
+  $nextTick(() => {
+    mainHeight.value = document.querySelector('.terminals_sftp_wrap').offsetHeight - 45 // 45 is tab-header height+15
+  })
+}
+
+const handleCommandHost = (host) => {
+  emit('add-host', host)
+}
 
 const tabChange = async (index) => {
   await $nextTick()
@@ -178,10 +208,40 @@ const handleInputCommand = async (command) => {
   :deep(.el-tabs__content) {
     flex: 1;
     width: 100%;
-    padding: 5px;
-    padding-top: 0px;
+    padding: 0 5px 5px 0;
   }
 
+  :deep(.el-tabs--border-card) {
+    border: none;
+  }
+
+  .info_box {
+    height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    .top {
+      position: sticky;
+      top: 0px;
+      z-index: 1;
+      background-color: rgb(255, 255, 255);
+      padding-right: 15px;
+      display: flex;
+      :deep(.el-dropdown) {
+        margin-left: auto;
+      }
+      .action_wrap {
+        height: 39px;
+        display: flex;
+        align-items: center;
+        .link_host {
+          font-size: var(--el-font-size-base);
+          color: var(--el-color-primary);
+          cursor: pointer;
+        }
+      }
+    }
+  }
   .terminals_sftp_wrap {
     height: 100%;
     overflow: hidden;
@@ -228,25 +288,12 @@ const handleInputCommand = async (command) => {
 </style>
 
 <style lang="scss">
-// .el-tabs {
-//   border: none;
-// }
-
-// .el-tabs--border-card>.el-tabs__content {
-//   padding: 0;
-// }
 
 // .el-tabs__header {
 //   position: sticky;
 //   top: 0;
 //   z-index: 1;
 //   user-select: none;
-// }
-
-// .el-tabs__nav-scroll {
-//   .el-tabs__nav {
-//     // padding-left: 60px;
-//   }
 // }
 
 // .el-tabs__new-tab {

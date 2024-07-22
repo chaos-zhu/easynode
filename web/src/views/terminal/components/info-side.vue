@@ -1,17 +1,6 @@
 <template>
   <div class="info_container" :style="{ width: visible ? `250px` : 0 }">
-    <header>
-      <a href="/">
-        <img src="@/assets/logo-easynode.png" alt="logo">
-      </a>
-      <!-- <div class="visible" @click="visibleSidebar">
-        <svg-icon
-          name="icon-xianshi"
-          class="svg-icon"
-        />
-      </div> -->
-    </header>
-    <el-divider class="first-divider" content-position="center">地理位置</el-divider>
+    <!-- <el-divider class="first-divider" content-position="center">地理位置</el-divider> -->
     <el-descriptions
       class="margin-top"
       :column="1"
@@ -47,7 +36,9 @@
       </el-descriptions-item>
     </el-descriptions>
 
-    <el-divider content-position="center">实时监控</el-divider>
+    <!-- <el-divider content-position="center">实时监控</el-divider> -->
+    <br>
+
     <el-descriptions
       class="margin-top"
       :column="1"
@@ -118,7 +109,9 @@
       </el-descriptions-item>
     </el-descriptions>
 
-    <el-divider content-position="center">系统信息</el-divider>
+    <!-- <el-divider content-position="center">系统信息</el-divider> -->
+    <br>
+
     <el-descriptions
       class="margin-top"
       :column="1"
@@ -188,13 +181,13 @@
     </el-descriptions>
 
     <el-divider content-position="center">FEATURE</el-divider>
-    <el-button
+    <!-- <el-button
       :type="sftpStatus ? 'primary' : 'success'"
       style="display: block;width: 80%;margin: 30px auto;"
       @click="handleSftp"
     >
       {{ sftpStatus ? '关闭SFTP' : '连接SFTP' }}
-    </el-button>
+    </el-button> -->
     <el-button
       :type="inputCommandStyle ? 'primary' : 'success'"
       style="display: block;width: 80%;margin: 30px auto;"
@@ -267,10 +260,10 @@ const inputCommandStyle = computed({
   }
 })
 
-const handleSftp = () => {
-  sftpStatus.value = !sftpStatus.value
-  emit('connect-sftp', sftpStatus.value)
-}
+// const handleSftp = () => {
+//   sftpStatus.value = !sftpStatus.value
+//   emit('connect-sftp', sftpStatus.value)
+// }
 
 const clickInputCommand = () => {
   inputCommandStyle.value = true
@@ -353,24 +346,25 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .info_container {
+  // border-top: 1px solid var(--el-border-color);
   flex-shrink: 0;
   overflow: scroll;
   background-color: #fff; //#E0E2EF;
   transition: all 0.15s;
 
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 30px;
-    margin: 10px;
-    position: relative;
+  // header {
+  //   display: flex;
+  //   justify-content: space-between;
+  //   align-items: center;
+  //   height: 30px;
+  //   margin: 10px;
+  //   position: relative;
 
-    img {
-      cursor: pointer;
-      height: 80%;
-    }
-  }
+  //   img {
+  //     cursor: pointer;
+  //     height: 80%;
+  //   }
+  // }
 
   // 表格中系统标识的title
   .item-title {

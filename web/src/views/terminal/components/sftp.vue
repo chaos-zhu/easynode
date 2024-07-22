@@ -533,6 +533,7 @@ const getPath = (name = '') => {
 .sftp_tab_container {
   position: relative;
   background: #ffffff;
+  border: 1px solid var(--el-border-color);
   .adjust {
     user-select: none;
     position: absolute;

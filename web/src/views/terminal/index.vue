@@ -35,7 +35,12 @@
       </el-table>
     </div>
     <div v-else>
-      <Terminal ref="terminalRef" :terminal-tabs="terminalTabs" @remove-tab="handleRemoveTab" />
+      <Terminal
+        ref="terminalRef"
+        :terminal-tabs="terminalTabs"
+        @remove-tab="handleRemoveTab"
+        @add-host="linkTerminal"
+      />
     </div>
     <HostForm
       v-model:show="hostFormVisible"
@@ -47,12 +52,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick, watch } from 'vue'
+import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import Terminal from './components/terminal.vue'
 import HostForm from '../server/components/host-form.vue'
 
-const { proxy: { $store, $route, $message } } = getCurrentInstance()
+const { proxy: { $store, $message } } = getCurrentInstance()
 
 let terminalTabs = reactive([])
 const hostFormVisible = ref(false)
