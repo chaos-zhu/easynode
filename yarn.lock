@@ -1360,6 +1360,26 @@
   dependencies:
     vue-demi "*"
 
+"@xterm/addon-fit@^0.10.0":
+  version "0.10.0"
+  resolved "https://registry.yarnpkg.com/@xterm/addon-fit/-/addon-fit-0.10.0.tgz#bebf87fadd74e3af30fdcdeef47030e2592c6f55"
+  integrity sha512-UFYkDm4HUahf2lnEyHvio51TNGiLK66mqP2JoATy7hRZeXaGMRDr00JiSF7m63vR5WKATF605yEggJKsw0JpMQ==
+
+"@xterm/addon-search@^0.15.0":
+  version "0.15.0"
+  resolved "https://registry.yarnpkg.com/@xterm/addon-search/-/addon-search-0.15.0.tgz#5c772d5f14c26546c4bfbeb0c3d4b3333057411f"
+  integrity sha512-ZBZKLQ+EuKE83CqCmSSz5y1tx+aNOCUaA7dm6emgOX+8J9H1FWXZyrKfzjwzV+V14TV3xToz1goIeRhXBS5qjg==
+
+"@xterm/addon-web-links@^0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@xterm/addon-web-links/-/addon-web-links-0.11.0.tgz#f283513b8c713757bad8e3bf04b6becc3b4e585f"
+  integrity sha512-nIHQ38pQI+a5kXnRaTgwqSHnX7KE6+4SVoceompgHL26unAxdfP6IPqUTSYPQgSwM56hsElfoNrrW5V7BUED/Q==
+
+"@xterm/xterm@^5.5.0":
+  version "5.5.0"
+  resolved "https://registry.yarnpkg.com/@xterm/xterm/-/xterm-5.5.0.tgz#275fb8f6e14afa6e8a0c05d4ebc94523ff775396"
+  integrity sha512-hqJHYaQb5OptNunnyAnkHyM8aCjZ1MEIDTQu1iIbbTD/xops91NB5yq1ZK/dC2JDbVWtF23zUtl9JE2NqwT87A==
+
 accepts@^1.3.5, accepts@~1.3.4:
   version "1.3.8"
   resolved "https://registry.yarnpkg.com/accepts/-/accepts-1.3.8.tgz#0bf0be125b67014adcb0b0921e62db7bffe16b2e"
@@ -1492,14 +1512,6 @@ axios@^1.7.2:
     follow-redirects "^1.15.6"
     form-data "^4.0.0"
     proxy-from-env "^1.1.0"
-
-babel-runtime@^6.26.0:
-  version "6.26.0"
-  resolved "https://registry.yarnpkg.com/babel-runtime/-/babel-runtime-6.26.0.tgz#965c7058668e82b55d7bfe04ff2337bc8b5647fe"
-  integrity sha512-ITKNuq2wKlW1fJg9sSW52eepoYgZBggvOAHC0u/CYu/qxQ9EVzThCgR69BnSXLHjy2f7SY5zaQ4yt7H9ZVxY2g==
-  dependencies:
-    core-js "^2.4.0"
-    regenerator-runtime "^0.11.0"
 
 balanced-match@^1.0.0:
   version "1.0.2"
@@ -1832,11 +1844,6 @@ cookies@~0.9.0:
   dependencies:
     depd "~2.0.0"
     keygrip "~1.1.0"
-
-core-js@^2.4.0:
-  version "2.6.12"
-  resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.6.12.tgz#d9333dfa7b065e347cc5682219d6f690859cc2ec"
-  integrity sha512-Kb2wC0fvsWfQrgk8HU5lW6U/Lcs8+9aaYcy4ZFc6DDlo4nZ7n70dEgE5rtR0oG6ufKDUnrwfWL1mXR5ljDatrQ==
 
 core-util-is@~1.0.0:
   version "1.0.3"
@@ -3828,11 +3835,6 @@ readdirp@~3.6.0:
   dependencies:
     picomatch "^2.2.1"
 
-regenerator-runtime@^0.11.0:
-  version "0.11.1"
-  resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.11.1.tgz#be05ad7f9bf7d22e056f9726cee5017fbf19e2e9"
-  integrity sha512-MguG95oij0fC3QV3URf4V2SDYGJhJnJGqvIIgdECeODCT98wSWDAJ94SSuVpYQUoTcGUIL6L4yNB7j1DFFHSBg==
-
 regenerator-runtime@^0.14.0:
   version "0.14.1"
   resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.14.1.tgz#356ade10263f685dda125100cd862c1db895327f"
@@ -3926,11 +3928,6 @@ run-parallel@^1.1.9:
   integrity sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==
   dependencies:
     queue-microtask "^1.2.2"
-
-rxjs-compat@^6.5.4:
-  version "6.6.7"
-  resolved "https://registry.yarnpkg.com/rxjs-compat/-/rxjs-compat-6.6.7.tgz#6eb4ef75c0a58ea672854a701ccc8d49f41e69cb"
-  integrity sha512-szN4fK+TqBPOFBcBcsR0g2cmTTUF/vaFEOZNuSdfU8/pGFnNmmn2u8SystYXG1QMrjOPBc6XTKHMVfENDf6hHw==
 
 rxjs@^7.8.1:
   version "7.8.1"
@@ -4671,34 +4668,6 @@ xmlhttprequest-ssl@~2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/xmlhttprequest-ssl/-/xmlhttprequest-ssl-2.0.0.tgz#91360c86b914e67f44dce769180027c0da618c67"
   integrity sha512-QKxVRxiRACQcVuQEYFsI1hhkrMlrXHPegbbd1yn9UHOmRxY+si12nQYzri3vbzt8VdTTRviqcKxcyllFas5z2A==
-
-xterm-addon-fit@^0.5.0:
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/xterm-addon-fit/-/xterm-addon-fit-0.5.0.tgz#2d51b983b786a97dcd6cde805e700c7f913bc596"
-  integrity sha512-DsS9fqhXHacEmsPxBJZvfj2la30Iz9xk+UKjhQgnYNkrUIN5CYLbw7WEfz117c7+S86S/tpHPfvNxJsF5/G8wQ==
-
-xterm-addon-search-bar@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/xterm-addon-search-bar/-/xterm-addon-search-bar-0.2.0.tgz#e03c020a5ed22f1e8d503946b26a14ade508bc91"
-  integrity sha512-xvXmBA/ShbnzGe5CCy0kqPNNGqjkpuaRgH3Z1iW0V71vCAPRrtJ/v/hMnysZBH7WGUYhlCQr1cJZagW2fBVvSg==
-  dependencies:
-    babel-runtime "^6.26.0"
-    rxjs-compat "^6.5.4"
-
-xterm-addon-search@^0.9.0:
-  version "0.9.0"
-  resolved "https://registry.yarnpkg.com/xterm-addon-search/-/xterm-addon-search-0.9.0.tgz#95278ebb818cfcf882209ae75be96e0bea5d52a5"
-  integrity sha512-aoolI8YuHvdGw+Qjg8g2M4kst0v86GtB7WeBm4F0jNXA005/6QbWWy9eCsvnIDLJOFI5JSSrZnD6CaOkvBQYPA==
-
-xterm-addon-web-links@^0.6.0:
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/xterm-addon-web-links/-/xterm-addon-web-links-0.6.0.tgz#0296cb6c99588847894670d998c9ea6a6aeb26ee"
-  integrity sha512-H6XzjWWZu8FBo+fnYpxdPk9w5M6drbsvwPEJZGRS38MihiQaVFpKlCMKdfRgDbKGE530tw1yH54rhpZfHgt2/A==
-
-xterm@^4.19.0:
-  version "4.19.0"
-  resolved "https://registry.yarnpkg.com/xterm/-/xterm-4.19.0.tgz#c0f9d09cd61de1d658f43ca75f992197add9ef6d"
-  integrity sha512-c3Cp4eOVsYY5Q839dR5IejghRPpxciGmLWWaP9g+ppfMeBChMeLa1DCA+pmX/jyDZ+zxFOmlJL/82qVdayVoGQ==
 
 y18n@^5.0.5:
   version "5.0.8"

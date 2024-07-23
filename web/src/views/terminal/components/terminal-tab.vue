@@ -4,12 +4,12 @@
 
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance } from 'vue'
-import { Terminal } from 'xterm'
-import 'xterm/css/xterm.css'
-import { FitAddon } from 'xterm-addon-fit'
-import { SearchAddon } from 'xterm-addon-search'
-import { SearchBarAddon } from 'xterm-addon-search-bar'
-import { WebLinksAddon } from 'xterm-addon-web-links'
+import { Terminal } from '@xterm/xterm'
+import '@xterm/xterm/css/xterm.css'
+import { FitAddon } from '@xterm/addon-fit'
+import { SearchAddon } from '@xterm/addon-search'
+// import { SearchBarAddon } from 'xterm-addon-search-bar'
+import { WebLinksAddon } from '@xterm/addon-web-links'
 import socketIo from 'socket.io-client'
 
 const { io } = socketIo
@@ -101,7 +101,7 @@ const connectIO = () => {
 
 const reConnect = () => {
   socket.value.close && socket.value.close()
-  $message.warn('终端连接断开')
+  $message.warning('终端连接断开')
   // $messageBox.alert(
   //   '<strong>终端连接断开</strong>',
   //   'Error',
@@ -123,10 +123,11 @@ const createLocalTerminal = () => {
     disableStdin: false,
     fontSize: 18,
     minimumContrastRatio: 7,
+    allowTransparency: true,
     theme: {
       foreground: '#ECECEC',
-      background: '#000000',
-      cursor: 'help',
+      background: '#000000', // 'transparent',
+      // cursor: 'help',
       selection: '#ff9900',
       lineHeight: 20
     }
@@ -171,11 +172,12 @@ const onWebLinks = () => {
   term.value.loadAddon(new WebLinksAddon())
 }
 
+// :TODO: 重写终端搜索功能
 const onFindText = () => {
   const searchAddon = new SearchAddon()
-  searchBar.value = new SearchBarAddon({ searchAddon })
+  // searchBar.value = new SearchBarAddon({ searchAddon })
   term.value.loadAddon(searchAddon)
-  term.value.loadAddon(searchBar.value)
+  // term.value.loadAddon(searchBar.value)
 }
 
 const onSelectionChange = () => {
@@ -247,6 +249,10 @@ defineExpose({
 .terminal_tab_container {
   min-height: 200px;
 
+  // background-image: url('@/assets/bg.jpg');
+  // background-size: cover;
+  // background-repeat: no-repeat;
+
   :deep(.xterm) {
     height: 100%;
   }
@@ -255,28 +261,6 @@ defineExpose({
   :deep(.xterm-screen) {
     padding: 0 0 0 10px;
     border-radius: var(--el-border-radius-base);
-
-    // 滚动条整体部分
-    &::-webkit-scrollbar {
-      height: 5px;
-      width: 5px;
-      background-color: #ffffff;
-    }
-
-    // 底层轨道
-    &::-webkit-scrollbar-track {
-      background-color: #000;
-      border-radius: 0;
-    }
-
-    // 滚动滑块
-    &::-webkit-scrollbar-thumb {
-      border-radius: 5px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
-      background-color: #067ef7;
-    }
   }
 }
 </style>
