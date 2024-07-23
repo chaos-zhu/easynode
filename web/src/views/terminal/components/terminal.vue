@@ -203,6 +203,11 @@ const handleInputCommand = async (command) => {
     border: none;
   }
 
+  :deep(.el-tabs__nav-wrap.is-scrollable.is-top) {
+    display: flex;
+    align-items: center;
+  }
+
   .info_box {
     height: 100%;
     overflow: auto;

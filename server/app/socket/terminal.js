@@ -68,7 +68,6 @@ module.exports = (httpServer) => {
         }
         consola.info('准备连接终端：', host)
         targetHostInfo[targetHostInfo.authType] = await AESDecryptSync(targetHostInfo[targetHostInfo.authType])
-        console.log('authInfo:', authInfo)
         consola.log('连接信息', { username, port, authType })
         sshClient
           .on('ready', () => {
