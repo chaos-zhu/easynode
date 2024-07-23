@@ -1,5 +1,5 @@
 const Datastore = require('@seald-io/nedb')
-const { sshRecordDBPath, hostListDBPath, keyDBPath, emailNotifyDBPath, notifyConfDBPath, groupConfDBPath } = require('../config')
+const { credentialsDBPath, hostListDBPath, keyDBPath, emailNotifyDBPath, notifyConfDBPath, groupConfDBPath } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
   constructor() {
@@ -26,7 +26,7 @@ module.exports.HostListDB = class HostListDB {
 module.exports.SshRecordDB = class SshRecordDB {
   constructor() {
     if (!SshRecordDB.instance) {
-      SshRecordDB.instance = new Datastore({ filename: sshRecordDBPath, autoload: true })
+      SshRecordDB.instance = new Datastore({ filename: credentialsDBPath, autoload: true })
     }
   }
   getInstance() {

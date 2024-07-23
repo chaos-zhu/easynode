@@ -63,15 +63,16 @@ module.exports = (httpServer) => {
           const sshRecord = sshRecordList.find(item => item._id === credentialId)
           authInfo.authType = sshRecord.authType
           authInfo[authInfo.authType] = await AESDecryptSync(sshRecord[authInfo.authType])
+        } else {
+          authInfo[authType] = await AESDecryptSync(targetHostInfo[authType])
         }
         consola.info('准备连接终端：', host)
         targetHostInfo[targetHostInfo.authType] = await AESDecryptSync(targetHostInfo[targetHostInfo.authType])
-        // :TODO: 初始化后连接失败...
-        // console.log('targetHostInfo:', targetHostInfo)
+        console.log('authInfo:', authInfo)
         consola.log('连接信息', { username, port, authType })
         sshClient
           .on('ready', () => {
-            consola.success('已连接到终端：', host)
+            consola.success('连接终端成功：', host)
             socket.emit('connect_success', `已连接到终端：${ host }`)
             createTerminal(socket, sshClient)
           })

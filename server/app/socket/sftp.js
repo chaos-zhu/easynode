@@ -226,6 +226,8 @@ module.exports = (httpServer) => {
         const sshRecord = sshRecordList.find(item => item._id === credentialId)
         authInfo.authType = sshRecord.authType
         authInfo[authInfo.authType] = await AESDecryptSync(sshRecord[authInfo.authType])
+      } else {
+        authInfo[authType] = await AESDecryptSync(targetHostInfo[authType])
       }
       consola.info('准备连接Sftp面板：', host)
       targetHostInfo[targetHostInfo.authType] = await AESDecryptSync(targetHostInfo[targetHostInfo.authType])
