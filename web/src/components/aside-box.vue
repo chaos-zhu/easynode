@@ -63,7 +63,7 @@ let menuList = reactive([
     index: '/group'
   },
   {
-    name: '一键指令',
+    name: '批量指令',
     icon: markRaw(Pointer),
     index: '/onekey'
   },

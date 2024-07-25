@@ -309,7 +309,7 @@ const connectIO = () => {
 }
 
 const handleCopy = async () => {
-  await navigator.clipboard.writeText(props.host)
+  await navigator.clipboard.writeText(host.value)
   $message.success({ message: 'success', center: true })
 }
 
