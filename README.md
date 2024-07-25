@@ -1,11 +1,15 @@
-# EasyNode
+# EasyNode v2.0
 
-> 一个简易的个人Linux服务器管理面板(基于Node.js).
+> 一个功能完善的Linux服务器SSH终端面板.
 
-> 前端仓库地址：https://github.com/chaos-zhu/easynode_web
+> [!WARNING]
+> 初次部署EasyNode，登录系统后务必记得修改默认账户密码 `admin/admin`！
 
-<!-- - [EasyNode](#easynode) -->
-  - [功能简介](#功能简介)
+> [!WARNING]
+> 强烈建议使用 **iptables** 或 **fail2ban** 等安全服务限制IP访问，谨慎暴露面板服务到公网。
+
+
+  <!-- - [功能简介](#功能简介)
   - [安装指南](#安装指南)
     - [服务端安装](#服务端安装)
       - [Docker镜像](#docker镜像)
@@ -135,11 +139,7 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 ## 升级指南
 
-- **v1.2 to v1.3**
-
-因储存方式变更，需重新安装服务
-
-- **v1.1 to v1.2**
+2.0版本无论前后端均作了大量的重构工作，1.0版本**不支持**无感升级到2.0版本
 
 ### 服务端
 
@@ -182,4 +182,4 @@ wget -qO- --no-check-certificate https://ghproxy.com/https://raw.githubuserconte
 
 ## License
 
-[MIT](LICENSE). Copyright (c).
+[MIT](LICENSE). Copyright (c). -->

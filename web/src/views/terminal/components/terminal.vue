@@ -2,10 +2,11 @@
   <div class="terminal_wrap">
     <div class="info_box">
       <div class="top">
+        <el-icon>
+          <FullScreen class="full_icon" @click="handleFullScreen" />
+        </el-icon>
         <el-dropdown trigger="click">
           <div class="action_wrap">
-            <!-- 全屏 -->
-            <el-icon><FullScreen /></el-icon>
             <span class="link_host">连接<el-icon class="el-icon--right"><arrow-down /></el-icon></span>
           </div>
           <template #dropdown>
@@ -17,35 +18,13 @@
           </template>
         </el-dropdown>
       </div>
-      <InfoSide
-        ref="infoSideRef"
-        v-model:show-input-command="showInputCommand"
-        :host-info="curHost"
-        :visible="visible"
-        @click-input-command="clickInputCommand"
-      />
+      <InfoSide ref="infoSideRef" v-model:show-input-command="showInputCommand" :host-info="curHost" :visible="visible"
+        @click-input-command="clickInputCommand" />
     </div>
     <div class="terminals_sftp_wrap">
-      <!-- <el-button class="full-screen-button" type="success" @click="handleFullScreen">
-        {{ isFullScreen ? '退出全屏' : '全屏' }}
-      </el-button> -->
-      <!-- <div class="visible" @click="handleVisibleSidebar">
-        <svg-icon name="icon-jiantou_zuoyouqiehuan" class="svg-icon" />
-      </div> -->
-      <el-tabs
-        v-model="activeTabIndex"
-        type="border-card"
-        tab-position="top"
-        @tab-remove="removeTab"
-        @tab-change="tabChange"
-      >
-        <el-tab-pane
-          v-for="(item, index) in terminalTabs"
-          :key="index"
-          :label="item.name"
-          :name="index"
-          :closable="true"
-        >
+      <el-tabs v-model="activeTabIndex" type="border-card" tab-position="top" @tab-remove="removeTab"
+        @tab-change="tabChange">
+        <el-tab-pane v-for="(item, index) in terminalTabs" :key="index" :label="item.name" :name="index" :closable="true">
           <div class="tab_content_wrap" :style="{ height: mainHeight + 'px' }">
             <TerminalTab ref="terminalTabRefs" :host="item.host" />
             <Sftp :host="item.host" @resize="resizeTerminal" />
@@ -148,7 +127,7 @@ const removeTab = (index) => {
 
 const handleFullScreen = () => {
   if (isFullScreen.value) document.exitFullscreen()
-  else document.getElementsByClassName('tab_content_wrap')[0].requestFullscreen()
+  else document.getElementsByClassName('terminals_sftp_wrap')[0].requestFullscreen()
   isFullScreen.value = !isFullScreen.value
 }
 
@@ -183,7 +162,7 @@ const handleInputCommand = async (command) => {
   const curTabTerminal = terminalTabRefs.value[activeTabIndex.value]
   await $nextTick()
   curTabTerminal?.focusTab()
-  curTabTerminal.handleInputCommand(`${ command }\n`)
+  curTabTerminal.handleInputCommand(`${command}\n`)
   showInputCommand.value = false
 }
 </script>
@@ -213,20 +192,24 @@ const handleInputCommand = async (command) => {
     overflow: auto;
     display: flex;
     flex-direction: column;
+
     .top {
+      height: 39px;
+      flex-shrink: 0;
       position: sticky;
       top: 0px;
       z-index: 1;
       background-color: rgb(255, 255, 255);
-      padding-right: 15px;
+      padding: 0 15px;
       display: flex;
-      :deep(.el-dropdown) {
-        margin-left: auto;
+      align-items: center;
+      justify-content: space-between;
+      .full_icon {
+        font-size: 15px;
+        color: var(--el-color-primary);
+        cursor: pointer;
       }
       .action_wrap {
-        height: 39px;
-        display: flex;
-        align-items: center;
         .link_host {
           font-size: var(--el-font-size-base);
           color: var(--el-color-primary);
@@ -235,6 +218,7 @@ const handleInputCommand = async (command) => {
       }
     }
   }
+
   .terminals_sftp_wrap {
     height: 100%;
     overflow: hidden;
@@ -278,35 +262,4 @@ const handleInputCommand = async (command) => {
     }
   }
 }
-</style>
-
-<style lang="scss">
-
-// .el-tabs__header {
-//   position: sticky;
-//   top: 0;
-//   z-index: 1;
-//   user-select: none;
-// }
-
-// .el-tabs__new-tab {
-//   position: absolute;
-//   left: 18px;
-//   font-size: 50px;
-//   z-index: 98;
-// }
-
-// .el-tabs--border-card {
-//   height: 100%;
-//   overflow: hidden;
-//   display: flex;
-//   flex-direction: column;
-// }
-
-// .el-icon.is-icon-close {
-//   font-size: 13px;
-//   position: absolute;
-//   right: 0px;
-//   top: 2px;
-// }
 </style>
