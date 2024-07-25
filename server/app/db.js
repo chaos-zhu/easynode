@@ -75,7 +75,7 @@ function initGroupDB() {
       } else {
         if (count === 0) {
           consola.log('初始化groupDB✔')
-          const defaultData = [{ 'id': 'default', 'name': '默认分组', 'index': 0 }]
+          const defaultData = [{ '_id': 'default', 'name': '默认分组', 'index': 0 }]
           await writeGroupList(defaultData)
         }
       }

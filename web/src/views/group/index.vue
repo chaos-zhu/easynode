@@ -1,64 +1,14 @@
 <template>
   <div class="group_container">
-    <el-form
-      ref="groupFormRef"
-      :model="groupForm"
-      :rules="rules"
-      :inline="true"
-      :hide-required-asterisk="true"
-      label-suffix="："
-      :show-message="false"
-    >
-      <el-form-item label="" prop="name" style="width: 200px;">
-        <el-input
-          v-model.trim="groupForm.name"
-          clearable
-          placeholder="分组名称"
-          autocomplete="off"
-          @keyup.enter="addGroup"
-        />
-      </el-form-item>
-      <el-form-item label="" prop="index" style="width: 200px;">
-        <el-input
-          v-model.number="groupForm.index"
-          clearable
-          placeholder="序号(数字, 用于分组排序)"
-          autocomplete="off"
-          @keyup.enter="addGroup"
-        />
-      </el-form-item>
-      <el-form-item label="">
-        <el-button type="primary" @click="addGroup">
-          添加
-        </el-button>
-      </el-form-item>
-    </el-form>
-    <!-- 提示 -->
-    <el-alert type="success" :closable="false">
-      <template #title>
-        <span style="letter-spacing: 2px;">
-          Tips: 已添加实例数量 <u>{{ hostGroupInfo.total }}</u>
-          <span v-show="hostGroupInfo.notGroupCount">, 有 <u>{{ hostGroupInfo.notGroupCount }}</u> 台实例尚未分组</span>
-        </span>
-      </template>
-    </el-alert><br>
-    <el-alert type="success" :closable="false">
-      <template #title>
-        <span style="letter-spacing: 2px;"> Tips: 删除分组会将分组内所有实例移至默认分组 </span>
-      </template>
-    </el-alert>
+    <div class="header">
+      <el-button type="primary" @click="addGroup">添加分组</el-button>
+    </div>
     <el-table v-loading="loading" :data="list">
       <el-table-column prop="index" label="序号" />
-      <el-table-column prop="id" label="ID" />
       <el-table-column prop="name" label="分组名称" />
       <el-table-column label="关联实例数量">
         <template #default="{ row }">
-          <el-popover
-            v-if="row.hosts.list.length !== 0"
-            placement="left"
-            :width="350"
-            trigger="hover"
-          >
+          <el-popover v-if="row.hosts.list.length !== 0" placement="left" :width="350" trigger="hover">
             <template #reference>
               <u class="host_count">{{ row.hosts.count }}</u>
             </template>
@@ -80,41 +30,21 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-dialog
-      v-model="visible"
-      width="400px"
-      title="修改分组"
-      :close-on-click-modal="false"
-    >
-      <el-form
-        ref="updateFormRef"
-        :model="updateForm"
-        :rules="rules"
-        :hide-required-asterisk="true"
-        label-suffix="："
-        label-width="100px"
-      >
+    <el-dialog v-model="groupFormVisible" width="600px" top="150px" :title="isModify ? '修改分组' : '添加分组'"
+      :close-on-click-modal="false" @close="clearFormInfo">
+      <el-form ref="updateFormRef" :model="groupForm" :rules="rules" :hide-required-asterisk="true" label-suffix="："
+        label-width="100px" :show-message="false">
         <el-form-item label="分组名称" prop="name">
-          <el-input
-            v-model.trim="updateForm.name"
-            clearable
-            placeholder="分组名称"
-            autocomplete="off"
-          />
+          <el-input v-model.trim="groupForm.name" clearable placeholder="" autocomplete="off" />
         </el-form-item>
         <el-form-item label="分组序号" prop="index">
-          <el-input
-            v-model.number="updateForm.index"
-            clearable
-            placeholder="分组序号"
-            autocomplete="off"
-          />
+          <el-input v-model.number="groupForm.index" clearable placeholder="用于分组排序" autocomplete="off" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="visible = false">关闭</el-button>
-          <el-button type="primary" @click="updateGroup">修改</el-button>
+        <span>
+          <el-button @click="groupFormVisible = false">关闭</el-button>
+          <el-button type="primary" @click="updateForm">{{ isModify ? '修改' : '新增' }}</el-button>
         </span>
       </template>
     </el-dialog>
@@ -122,40 +52,34 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, getCurrentInstance } from 'vue'
+import { ref, reactive, computed, nextTick, getCurrentInstance } from 'vue'
 
 const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
 
 const loading = ref(false)
-const visible = ref(false)
+const groupFormVisible = ref(false)
+let isModify = ref(false)
 const groupForm = reactive({
+  id: null,
   name: '',
   index: ''
-})
-const updateForm = reactive({
-  name: '',
-  index: ''
-})
-const rules = reactive({
-  name: { required: true, message: '需输入分组名称', trigger: 'change' },
-  index: { required: true, type: 'number', message: '需输入数字', trigger: 'change' }
 })
 
-const groupFormRef = ref(null)
+const rules = computed(() => {
+  return {
+    name: { required: true, message: '需输入分组名称', trigger: 'change' },
+    index: { required: true, type: 'number', message: '需输入数字', trigger: 'change' }
+  }
+})
+
 const updateFormRef = ref(null)
 
-const hostGroupInfo = computed(() => {
-  const total = $store.hostList.length
-  const notGroupCount = $store.hostList.reduce((prev, next) => {
-    if (!next.group) prev++
-    return prev
-  }, 0)
-  return { total, notGroupCount }
-})
+let groupList = computed(() => $store.groupList || [])
+const hostList = computed(() => $store.hostList)
 
 const list = computed(() => {
   return groupList.value.map(item => {
-    const hosts = $store.hostList.reduce((prev, next) => {
+    const hosts = hostList.value.reduce((prev, next) => {
       if (next.group === item.id) {
         prev.count++
         prev.list.push(next)
@@ -166,45 +90,39 @@ const list = computed(() => {
   })
 })
 
-let groupList = computed(() => $store.groupList || [])
-
-const addGroup = () => {
-  groupFormRef.value.validate()
-    .then(() => {
-      const { name, index } = groupForm
-      $api.addGroup({ name, index })
-        .then(() => {
-          $message.success('success')
-          groupForm.name = ''
-          groupForm.index = ''
-          $store.getGroupList()
-          groupFormRef.value.resetFields()
-        })
-    })
+let addGroup = () => {
+  groupForm.id = null
+  groupFormVisible.value = true
+  isModify.value = false
 }
 
-const handleChange = ({ id, name, index }) => {
-  updateForm.id = id
-  updateForm.name = name
-  updateForm.index = index
-  visible.value = true
+const handleChange = (row) => {
+  Object.assign(groupForm, { ...row })
+  groupFormVisible.value = true
+  isModify.value = true
 }
 
-const updateGroup = () => {
+const updateForm = () => {
   updateFormRef.value.validate()
-    .then(() => {
-      const { id, name, index } = updateForm
-      $api.updateGroup(id, { name, index })
-        .then(() => {
-          $message.success('success')
-          visible.value = false
-          $store.getGroupList()
-        })
+    .then(async () => {
+      const { id, index, name } = groupForm
+      if (isModify.value) {
+        await $api.updateGroup(id, { index, name })
+      } else {
+        await $api.addGroup({ index, name })
+      }
+      await $store.getGroupList()
+      groupFormVisible.value = false
+      $message.success('success')
     })
+}
+
+const clearFormInfo = () => {
+  nextTick(() => updateFormRef.value.resetFields())
 }
 
 const deleteGroup = ({ id, name }) => {
-  $messageBox.confirm(`确认删除分组：${ name }`, 'Warning', {
+  $messageBox.confirm(`确认删除分组：${name} (分组下实例将移动至默认分组)`, 'Warning', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
@@ -222,6 +140,13 @@ const deleteGroup = ({ id, name }) => {
 <style lang="scss" scoped>
 .group_container {
   padding: 20px;
+
+  .header {
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+  }
 }
 
 .host_count {

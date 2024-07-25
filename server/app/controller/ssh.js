@@ -52,6 +52,7 @@ const updateSSH = async ({ res, request }) => {
     record[authType] = await AESEncryptSync(clearSSHKey)
     console.log(`${ authType }__commonKey加密存储: `, record[authType])
   }
+  record._id = sshRecord[idx]._id
   sshRecord.splice(idx, 1, record)
   await writeSSHRecord(sshRecord)
   consola.info('修改凭证：', name)
