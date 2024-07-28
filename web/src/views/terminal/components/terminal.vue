@@ -18,13 +18,29 @@
           </template>
         </el-dropdown>
       </div>
-      <InfoSide ref="infoSideRef" v-model:show-input-command="showInputCommand" :host-info="curHost" :visible="visible"
-        @click-input-command="clickInputCommand" />
+      <InfoSide
+        ref="infoSideRef"
+        v-model:show-input-command="showInputCommand"
+        :host-info="curHost"
+        :visible="visible"
+        @click-input-command="clickInputCommand"
+      />
     </div>
     <div class="terminals_sftp_wrap">
-      <el-tabs v-model="activeTabIndex" type="border-card" tab-position="top" @tab-remove="removeTab"
-        @tab-change="tabChange">
-        <el-tab-pane v-for="(item, index) in terminalTabs" :key="index" :label="item.name" :name="index" :closable="true">
+      <el-tabs
+        v-model="activeTabIndex"
+        type="border-card"
+        tab-position="top"
+        @tab-remove="removeTab"
+        @tab-change="tabChange"
+      >
+        <el-tab-pane
+          v-for="(item, index) in terminalTabs"
+          :key="index"
+          :label="item.name"
+          :name="index"
+          :closable="true"
+        >
           <div class="tab_content_wrap" :style="{ height: mainHeight + 'px' }">
             <TerminalTab ref="terminalTabRefs" :host="item.host" />
             <Sftp :host="item.host" @resize="resizeTerminal" />
@@ -162,7 +178,7 @@ const handleInputCommand = async (command) => {
   const curTabTerminal = terminalTabRefs.value[activeTabIndex.value]
   await $nextTick()
   curTabTerminal?.focusTab()
-  curTabTerminal.handleInputCommand(`${command}\n`)
+  curTabTerminal.handleInputCommand(`${ command }\n`)
   showInputCommand.value = false
 }
 </script>

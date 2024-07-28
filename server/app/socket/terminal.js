@@ -1,6 +1,6 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const { readHostList, readSSHRecord, verifyAuthSync, RSADecryptSync, AESDecryptSync } = require('../utils')
+const { readHostList, readSSHRecord, verifyAuthSync, AESDecryptSync } = require('../utils')
 
 function createTerminal(socket, sshClient) {
   sshClient.shell({ term: 'xterm-color' }, (err, stream) => {
