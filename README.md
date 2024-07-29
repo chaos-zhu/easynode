@@ -12,15 +12,8 @@
   - [功能简介](#功能简介)
   - [安装指南](#安装指南)
     - [服务端安装](#服务端安装)
-      - [Docker镜像](#docker镜像)
-      - [一键脚本](#一键脚本[暂未编写])
     - [客户端安装](#客户端安装)
-      - [X86架构](#x86架构)
-      - [ARM架构](#arm架构)
-  - [升级指南](#升级指南)
-    - [服务端](#服务端)
-    - [客户端](#客户端)
-    - [版本日志](#版本日志)
+  - [版本日志](#版本日志)
   - [安全与说明](#安全与说明)
   - [开发](#开发)
   - [Q&A](#qa)
@@ -41,9 +34,7 @@
 
 ### 服务端安装
 
-- 依赖Node.js环境
-
-- 占用端口：8082(http端口)、22022(客户端端口)
+- 占用端口：8082  推荐使用docker镜像安装
 
 #### Docker镜像
 
@@ -52,7 +43,7 @@ docker run -d --net=host --name=easynode-server -v $PWD/easynode/db:/easynode/se
 ```
 访问：http://yourip:8082
 
-<!-- #### 一键脚本
+#### 一键脚本
 
 - **依赖Linux基础命令工具：curl wget git zip tar；如未安装请先安装：**
 
@@ -60,7 +51,7 @@ docker run -d --net=host --name=easynode-server -v $PWD/easynode/db:/easynode/se
 >
 > centos: `yum install curl wget git zip tar -y`
 
-- 运行环境：[Node.js](https://nodejs.org/en/download/) **v14+**
+- 运行环境：[Node.js](https://nodejs.org/en/download/) **v20+**
 
 ```shell
 wget -qO- --no-check-certificate https://raw.githubusercontent.com/chaos-zhu/easynode/v1.2/easynode-server-install.sh | bash
@@ -71,13 +62,15 @@ wget -qO- --no-check-certificate https://raw.githubusercontent.com/chaos-zhu/eas
 - 查看日志：`pm2 log easynode-server`
 - 启动服务：`pm2 start easynode-server`
 - 停止服务：`pm2 stop easynode-server`
-- 删除服务：`pm2 delete easynode-server` -->
+- 删除服务：`pm2 delete easynode-server`
 
 ---
 
 ### 客户端安装
 
-- 占用端口：22022
+- 客户端用于实时向服务端推送**系统、公网IP、CPU、内存、硬盘、网卡**等基础信息，不安装不影响使用面板，但是无法实时同步基础信息。
+
+- 占用端口：**22022**
 
 #### X86架构
 
@@ -105,11 +98,7 @@ wget -qO- --no-check-certificate https://mirror.ghproxy.com/https://raw.githubus
 
 ---
 
-## 升级指南
-
-2.0版本无论前后端均作了大量的重构工作，1.0版本**不支持**升级到2.0版本
-
-### 版本日志
+## 版本日志
 
 - [CHANGELOG](./CHANGELOG.md)
 

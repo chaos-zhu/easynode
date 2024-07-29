@@ -1,2 +1,15 @@
 node_modules
+!.gitkeep
+dist
+easynode-server.zip
+server/app/static/*
+server/app/socket/sftp-cache/*
+!server/app/socket/sftp-cache/.gitkeep
+server/app/logs/*
+server/app/db/*
+!server/app/db/README.md
+plan.md
+.env
+.env.local
+.git
 doc_images

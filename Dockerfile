@@ -5,6 +5,7 @@ RUN yarn
 
 WORKDIR /easynode/web
 RUN yarn build
+RUN find ../server/app/static -type f ! -name '.gitkeep' -exec rm -f {} +
 RUN mv dist/* ../server/app/static
 
 WORKDIR /easynode/server
