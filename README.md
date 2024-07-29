@@ -22,7 +22,7 @@
 
 ## 功能
 
-- [x] webssh终端
+- [x] webssh终端&SFTP
 - [x] 实例分组
 - [x] 凭据托管
 - [x] 邮件通知
@@ -30,10 +30,9 @@
 - [ ] 批量指令(开发中)
 - [ ] 脚本库(开发中)
 
-![服务器面板](./doc_images/v2.0-1.jpg)
-
-> 基于浏览器解决`SSH&SFTP跨端`烦恼——**Web SSH**&**Web SFTP**
-
+- 实例面板
+![实例面板](./doc_images/v2.0-1.jpg)
+- 终端&sftp
 ![终端&sftp](./doc_images/v2.0-2.jpg)
 
 ## 安装
