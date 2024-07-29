@@ -1,4 +1,4 @@
-# EasyNode v2.0
+# EasyNode
 
 > [!WARNING]
 > 初次部署EasyNode，登录系统后务必记得修改默认账户密码 `admin/admin`！
@@ -9,8 +9,8 @@
 > [!NOTE]
 > 客户端信息监控与webssh功能都将以`该服务器作为中转`。中国大陆连接建议使用香港、新加坡、日本、韩国等地区的低延迟服务器来安装服务端
 
-  - [功能简介](#功能简介)
-  - [安装指南](#安装指南)
+  - [功能](#功能)
+  - [安装](#安装指南)
     - [服务端安装](#服务端安装)
     - [客户端安装](#客户端安装)
   - [版本日志](#版本日志)
@@ -20,9 +20,15 @@
   - [感谢Star](#感谢star)
   - [License](#license)
 
-## 功能简介
+## 功能
 
-> 一个多功能webssh终端; 通过ws实时更新服务器基本信息: **系统、公网IP、CPU、内存、硬盘、网卡**等
+- [x] webssh终端
+- [x] 实例分组
+- [x] 凭据托管
+- [x] 邮件通知
+- [x] 实例状态推送
+- [ ] 批量指令(开发中)
+- [ ] 脚本库(开发中)
 
 ![服务器面板](./doc_images/v2.0-1.jpg)
 
@@ -30,13 +36,13 @@
 
 ![终端&sftp](./doc_images/v2.0-2.jpg)
 
-## 安装指南
+## 安装
 
 ### 服务端安装
 
 - 占用端口：8082  推荐使用docker镜像安装
 
-#### Docker镜像
+#### Docker
 
 ```shell
 docker run -d --net=host --name=easynode-server -v $PWD/easynode/db:/easynode/server/app/db chaoszhu/easynode
