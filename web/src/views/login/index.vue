@@ -25,6 +25,7 @@
               autocomplete="off"
               :trigger-on-focus="false"
               clearable
+              autofocus
             />
           </el-form-item>
           <el-form-item prop="pwd" label="密码">

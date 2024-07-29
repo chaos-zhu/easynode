@@ -7,7 +7,12 @@
       </el-button>
     </div>
     <div class="server_group_collapse">
-      <el-collapse v-model="activeGroup">
+      <div v-if="isNoHost">
+        <el-empty description="暂无实例">
+          <el-button type="primary" @click="hostFormVisible = true">添加第一台实例配置</el-button>
+        </el-empty>
+      </div>
+      <el-collapse v-else v-model="activeGroup">
         <el-collapse-item v-for="(servers, groupName) in groupHostList" :key="groupName" :name="groupName">
           <template #title>
             <div class="group_title">
@@ -37,7 +42,7 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount, getCurrentInstance, computed, watch } from 'vue'
+import { ref, getCurrentInstance, computed, watch } from 'vue'
 import HostCard from './components/host-card.vue'
 import HostForm from './components/host-form.vue'
 
@@ -95,6 +100,8 @@ watch(groupHostList, () => {
   deep: false
 })
 
+let isNoHost = computed(() => Object.keys(groupHostList.value).length === 0)
+
 </script>
 
 <style lang="scss" scoped>
@@ -105,6 +112,7 @@ watch(groupHostList, () => {
     align-items: center;
     justify-content: end;
   }
+
   .server_group_collapse {
     .group_title {
       margin: 0 15px;
@@ -112,6 +120,7 @@ watch(groupHostList, () => {
       font-weight: 600;
       line-height: 22px;
     }
+
     .host_card_container {
       padding-top: 25px;
     }
