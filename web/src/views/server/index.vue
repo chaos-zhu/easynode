@@ -5,11 +5,14 @@
       <el-button type="primary" @click="handleHiddenIP">
         {{ hiddenIp ? '显示IP' : '隐藏IP' }}
       </el-button>
+      <el-button type="primary" @click="importVisible = true">导入实例</el-button>
     </div>
     <div class="server_group_collapse">
       <div v-if="isNoHost">
         <el-empty description="暂无实例">
-          <el-button type="primary" @click="hostFormVisible = true">添加第一台实例配置</el-button>
+          <el-button type="primary" @click="hostFormVisible = true">添加实例配置</el-button>
+          <span class="or">或</span>
+          <el-button type="primary" @click="importVisible = true">批量导入实例</el-button>
         </el-empty>
       </div>
       <el-collapse v-else v-model="activeGroup">
@@ -38,6 +41,10 @@
       @update-list="handleUpdateList"
       @closed="updateHostData = null"
     />
+    <ImportHost
+      v-model:show="importVisible"
+      @update-list="handleUpdateList"
+    />
   </div>
 </template>
 
@@ -45,15 +52,18 @@
 import { ref, getCurrentInstance, computed, watch } from 'vue'
 import HostCard from './components/host-card.vue'
 import HostForm from './components/host-form.vue'
+import ImportHost from './components/import-host.vue'
 
 const { proxy: { $store, $message } } = getCurrentInstance()
 
-const updateHostData = ref(null)
-const hostFormVisible = ref(false)
-const hiddenIp = ref(Number(localStorage.getItem('hiddenIp') || 0))
-const activeGroup = ref([])
+let updateHostData = ref(null)
+let hostFormVisible = ref(false)
+let importVisible = ref(false)
 
-const handleUpdateList = async () => {
+let hiddenIp = ref(Number(localStorage.getItem('hiddenIp') || 0))
+let activeGroup = ref([])
+
+let handleUpdateList = async () => {
   try {
     await $store.getHostList()
   } catch (err) {
@@ -62,12 +72,12 @@ const handleUpdateList = async () => {
   }
 }
 
-const handleUpdateHost = (defaultData) => {
+let handleUpdateHost = (defaultData) => {
   hostFormVisible.value = true
   updateHostData.value = defaultData
 }
 
-const handleHiddenIP = () => {
+let handleHiddenIP = () => {
   hiddenIp.value = hiddenIp.value ? 0 : 1
   localStorage.setItem('hiddenIp', String(hiddenIp.value))
 }
@@ -123,6 +133,11 @@ let isNoHost = computed(() => Object.keys(groupHostList.value).length === 0)
 
     .host_card_container {
       padding-top: 25px;
+    }
+    .or {
+      color: var(--el-text-color-secondary);
+      font-size: var(--el-font-size-base);
+      margin: 0 25px;
     }
   }
 }

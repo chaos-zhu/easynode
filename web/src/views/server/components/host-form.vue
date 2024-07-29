@@ -1,28 +1,78 @@
 <template>
-  <el-dialog v-model="visible" width="600px" top="45px" modal-class="host_form_dialog" append-to-body :title="title"
-    :close-on-click-modal="false" @open="setDefaultData" @closed="handleClosed">
-    <el-form ref="formRef" :model="hostForm" :rules="rules" :hide-required-asterisk="true" label-suffix="："
-      label-width="100px" :show-message="false">
+  <el-dialog
+    v-model="visible"
+    width="600px"
+    top="45px"
+    modal-class="host_form_dialog"
+    append-to-body
+    :title="title"
+    :close-on-click-modal="false"
+    @open="setDefaultData"
+    @closed="handleClosed"
+  >
+    <el-form
+      ref="formRef"
+      :model="hostForm"
+      :rules="rules"
+      :hide-required-asterisk="true"
+      label-suffix="："
+      label-width="100px"
+      :show-message="false"
+    >
       <transition-group name="list" mode="out-in" tag="div">
         <el-form-item key="group" label="分组" prop="group">
           <el-select v-model="hostForm.group" placeholder="实例分组" style="width: 100%;">
-            <el-option v-for="item in groupList" :key="item.id" :label="item.name" :value="item.id" />
+            <el-option
+              v-for="item in groupList"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
           </el-select>
         </el-form-item>
         <el-form-item key="name" label="名称" prop="name">
-          <el-input v-model.trim="hostForm.name" clearable placeholder="" autocomplete="off" />
+          <el-input
+            v-model.trim="hostForm.name"
+            clearable
+            placeholder=""
+            autocomplete="off"
+          />
         </el-form-item>
         <div key="instance_info" class="instance_info">
-          <el-form-item key="host" class="form_item_host" label="主机" prop="host">
-            <el-input v-model.trim="hostForm.host" clearable placeholder="IP" autocomplete="off" />
+          <el-form-item
+            key="host"
+            class="form_item_host"
+            label="主机"
+            prop="host"
+          >
+            <el-input
+              v-model.trim="hostForm.host"
+              clearable
+              placeholder="IP"
+              autocomplete="off"
+            />
           </el-form-item>
-          <el-form-item key="port" class="form_item_port" label="端口" prop="port">
-            <el-input v-model.trim.number="hostForm.port" clearable placeholder="port" autocomplete="off" />
+          <el-form-item
+            key="port"
+            class="form_item_port"
+            label="端口"
+            prop="port"
+          >
+            <el-input
+              v-model.trim.number="hostForm.port"
+              clearable
+              placeholder="port"
+              autocomplete="off"
+            />
           </el-form-item>
         </div>
         <el-form-item key="username" label="用户名" prop="username">
-          <el-autocomplete v-model.trim="hostForm.username" :fetch-suggestions="userSearch" style="width: 100%;"
-            clearable>
+          <el-autocomplete
+            v-model.trim="hostForm.username"
+            :fetch-suggestions="userSearch"
+            style="width: 100%;"
+            clearable
+          >
             <template #default="{ item }">
               <div class="value">{{ item.value }}</div>
             </template>
@@ -33,23 +83,56 @@
           <el-radio v-model.trim="hostForm.authType" value="password">密码</el-radio>
           <el-radio v-model.trim="hostForm.authType" value="credential">凭据</el-radio>
         </el-form-item>
-        <el-form-item v-if="hostForm.authType === 'privateKey'" key="privateKey" prop="privateKey" label="密钥">
+        <el-form-item
+          v-if="hostForm.authType === 'privateKey'"
+          key="privateKey"
+          prop="privateKey"
+          label="密钥"
+        >
           <el-button type="primary" size="small" @click="handleClickUploadBtn">
             本地私钥...
           </el-button>
           <!-- <el-button type="primary" size="small" @click="handleClickUploadBtn">
             从凭据导入...
           </el-button> -->
-          <input ref="privateKeyRef" type="file" name="privateKey" style="display: none;"
-            @change="handleSelectPrivateKeyFile">
-          <el-input v-model.trim="hostForm.privateKey" type="textarea" :rows="5" clearable autocomplete="off"
-            style="margin-top: 5px;" placeholder="-----BEGIN RSA PRIVATE KEY-----" />
+          <input
+            ref="privateKeyRef"
+            type="file"
+            name="privateKey"
+            style="display: none;"
+            @change="handleSelectPrivateKeyFile"
+          >
+          <el-input
+            v-model.trim="hostForm.privateKey"
+            type="textarea"
+            :rows="5"
+            clearable
+            autocomplete="off"
+            style="margin-top: 5px;"
+            placeholder="-----BEGIN RSA PRIVATE KEY-----"
+          />
         </el-form-item>
-        <el-form-item v-if="hostForm.authType === 'password'" key="password" prop="password" label="密码">
-          <el-input v-model.trim="hostForm.password" type="password" placeholder="" autocomplete="off" clearable
-            show-password />
+        <el-form-item
+          v-if="hostForm.authType === 'password'"
+          key="password"
+          prop="password"
+          label="密码"
+        >
+          <el-input
+            v-model.trim="hostForm.password"
+            type="password"
+            placeholder=""
+            autocomplete="off"
+            clearable
+            show-password
+          />
         </el-form-item>
-        <el-form-item v-if="hostForm.authType === 'credential'" key="credential" prop="credential" label="凭据">
+        <el-form-item
+          v-if="hostForm.authType === 'credential'"
+          key="credential"
+          prop="credential"
+          label="凭据"
+        >
           <el-select v-model="hostForm.credential" class="credential_select" placeholder="">
             <template #empty>
               <div class="empty_credential">
@@ -59,7 +142,12 @@
                 </el-button>
               </div>
             </template>
-            <el-option v-for="item in sshList" :key="item.id" :label="item.name" :value="item.id">
+            <el-option
+              v-for="item in sshList"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            >
               <div class="auth_type_wrap">
                 <span>{{ item.name }}</span>
                 <span class="auth_type_text">
@@ -70,28 +158,61 @@
           </el-select>
         </el-form-item>
         <el-form-item key="command" prop="command" label="执行指令">
-          <el-input v-model="hostForm.command" type="textarea" :rows="5" clearable autocomplete="off"
-            placeholder="连接服务器后自动执行的指令(例如: sudo -i)" />
+          <el-input
+            v-model="hostForm.command"
+            type="textarea"
+            :rows="5"
+            clearable
+            autocomplete="off"
+            placeholder="连接服务器后自动执行的指令(例如: sudo -i)"
+          />
         </el-form-item>
+
         <el-form-item key="expired" label="到期时间" prop="expired">
-          <el-date-picker v-model="hostForm.expired" type="date" style="width: 100%;" value-format="x"
-            placeholder="实例到期时间" />
+          <el-date-picker
+            v-model="hostForm.expired"
+            type="date"
+            style="width: 100%;"
+            value-format="x"
+            placeholder="实例到期时间"
+          />
         </el-form-item>
-        <el-form-item v-if="hostForm.expired" key="expiredNotify" label="到期提醒" prop="expiredNotify">
+        <el-form-item
+          v-if="hostForm.expired"
+          key="expiredNotify"
+          label="到期提醒"
+          prop="expiredNotify"
+        >
           <el-tooltip content="将在实例到期前7、3、1天发送提醒(需在设置中绑定有效邮箱)" placement="right">
             <el-switch v-model="hostForm.expiredNotify" :active-value="true" :inactive-value="false" />
           </el-tooltip>
         </el-form-item>
         <el-form-item key="consoleUrl" label="控制台URL" prop="consoleUrl">
-          <el-input v-model.trim="hostForm.consoleUrl" clearable placeholder="用于直达云服务商控制台" autocomplete="off"
-            @keyup.enter="handleSave" />
+          <el-input
+            v-model.trim="hostForm.consoleUrl"
+            clearable
+            placeholder="用于直达云服务商控制台"
+            autocomplete="off"
+            @keyup.enter="handleSave"
+          />
         </el-form-item>
         <el-form-item key="index" label="序号" prop="index">
-          <el-input v-model.trim.number="hostForm.index" clearable placeholder="用于实例列表中排序(填写数字)" autocomplete="off" />
+          <el-input
+            v-model.trim.number="hostForm.index"
+            clearable
+            placeholder="用于实例列表中排序(填写数字)"
+            autocomplete="off"
+          />
         </el-form-item>
         <el-form-item key="remark" label="备注" prop="remark">
-          <el-input v-model.trim="hostForm.remark" type="textarea" :rows="3" clearable autocomplete="off"
-            placeholder="简单记录实例用途" />
+          <el-input
+            v-model.trim="hostForm.remark"
+            type="textarea"
+            :rows="3"
+            clearable
+            autocomplete="off"
+            placeholder="简单记录实例用途"
+          />
         </el-form-item>
       </transition-group>
     </el-form>
@@ -195,7 +316,7 @@ const handleSelectPrivateKeyFile = (event) => {
   let reader = new FileReader()
   reader.onload = (e) => {
     hostForm.privateKey = e.target.result
-    privateKeyRef.value.value = ''
+    privateKeyRef.value = ''
   }
   reader.readAsText(file)
 }

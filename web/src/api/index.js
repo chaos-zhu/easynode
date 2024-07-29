@@ -37,6 +37,9 @@ export default {
   removeHost(data) {
     return axios({ url: '/host-remove', method: 'post', data })
   },
+  importHost(data) {
+    return axios({ url: '/import-host', method: 'post', data })
+  },
   getPubPem() {
     return axios({ url: '/get-pub-pem', method: 'get' })
   },

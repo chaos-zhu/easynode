@@ -86,38 +86,38 @@ async function removeHost({
   if (hostIdx === -1) return res.fail({ msg: `${ host }不存在` })
   hostList.splice(hostIdx, 1)
   writeHostList(hostList)
-  // 查询是否存在ssh记录
-  // let sshRecord = await readSSHRecord()
-  // let sshIdx = sshRecord.findIndex(item => item.host === host)
-  // let flag = sshIdx !== -1
-  // if (flag) sshRecord.splice(sshIdx, 1)
-  // writeSSHRecord(sshRecord)
-
-  // res.success({ data: `${ host }已移除, ${ flag ? '并移除ssh记录' : '' }` })
   res.success({ data: `${ host }已移除` })
 }
 
-// 原手动排序接口-废弃
-// async function updateHostSort({ res, request }) {
-//   let { body: { list } } = request
-//   if (!list) return res.fail({ msg: '参数错误' })
-//   let hostList = await readHostList()
-//   if (hostList.length !== list.length) return res.fail({ msg: '失败: host数量不匹配' })
-//   let sortResult = []
-//   for (let i = 0; i < list.length; i++) {
-//     const curHost = list[i]
-//     let temp = hostList.find(({ host }) => curHost.host === host)
-//     if (!temp) return res.fail({ msg: `查找失败: ${ curHost.name }` })
-//     sortResult.push(temp)
-//   }
-//   writeHostList(sortResult)
-//   res.success({ msg: 'success' })
-// }
+async function importHost({
+  res, request
+}) {
+  let { body: { importHost } } = request
+  if (!Array.isArray(importHost)) return res.fail({ msg: '参数错误' })
+  let hostList = await readHostList()
+  // 过滤已存在的host
+  let hostListSet = new Set(hostList.map(item => item.host))
+  let newHostList = importHost.filter(item => !hostListSet.has(item.host))
+  if (newHostList.length === 0) return res.fail({ msg: '导入的实例已存在' })
+
+  let extraFiels = {
+    expired: null, expiredNotify: false, group: 'default', consoleUrl: '', remark: '',
+    authType: 'privateKey', password: '', privateKey: '', credential: '', command: ''
+  }
+  newHostList = newHostList.map((item, index) => {
+    item.port = Number(item.port) || 0
+    item.index = hostList.length + index + 1
+    return Object.assign(item, { ...extraFiels })
+  })
+  hostList.push(...newHostList)
+  writeHostList(hostList)
+  res.success({ data: { len: newHostList.length } })
+}
 
 module.exports = {
   getHostList,
   addHost,
   updateHost,
-  removeHost
-  // updateHostSort
+  removeHost,
+  importHost
 }
