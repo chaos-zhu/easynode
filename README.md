@@ -43,18 +43,21 @@ docker run -d --net=host --name=easynode-server -v $PWD/easynode/db:/easynode/se
 ```
 访问：http://yourip:8082
 
-#### 一键脚本
+#### 手动部署
 
-- **依赖Linux基础命令工具：curl wget git zip tar；如未安装请先安装：**
-
-> ubuntu/debian: `apt install curl wget git zip tar -y`
->
-> centos: `yum install curl wget git zip tar -y`
-
-- 运行环境：[Node.js](https://nodejs.org/en/download/) **v20+**
+依赖Nodejs版本 > 20+
 
 ```shell
-wget -qO- --no-check-certificate https://raw.githubusercontent.com/chaos-zhu/easynode/v1.2/easynode-server-install.sh | bash
+git clone https://github.com/chaos-zhu/easynode
+cd easynode
+yarn
+cd web
+yarn build
+mv dist/* ../server/app/static
+cd ../server
+yarn start
+# 后台运行需安装pm2
+pm2 start index.js --name easynode-server
 ```
 
 访问：http://yourip:8082
