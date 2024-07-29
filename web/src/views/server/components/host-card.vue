@@ -2,7 +2,8 @@
   <el-card shadow="always" class="host-card">
     <div class="host-state">
       <span v-if="isError" class="offline">未连接</span>
-      <span v-else class="online">已连接 {{ ping }}</span>
+      <span v-else class="online">已连接</span>
+      <!--  {{ ping }} -->
     </div>
     <div class="info">
       <div class="weizhi field">
@@ -269,9 +270,9 @@ const handleRemoveHost = async () => {
     left: 0px;
 
     span {
-      font-size: 8px;
+      font-size: 10px;
       // transform: rotate(-45deg);
-      transform: scale(0.9);
+      // transform: scale(0.95);
       display: inline-block;
       padding: 3px 5px;
     }

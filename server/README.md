@@ -2,15 +2,6 @@
 
 - 基于Koa
 
-## docker
-
-<!-- 修改版本号 -->
-- 构建镜像：docker build -t chaoszhu/easynode:v1.1 .
-- 推送镜像：docker push chaoszhu/easynode:v1.1
-
-> `docker run -d --net=host easynode-server`
-<!-- > `docker run -d -p 8888:8082 -p 22022:22022 easynode-server` -->
-
 ## 遇到的问题
 
 > MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 input listeners added to [Socket]. Use emitter.setMaxListeners() to increase limit

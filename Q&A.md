@@ -25,7 +25,7 @@ PubkeyAcceptedAlgorithms +ssh-rsa
 ```shell
 vi /etc/selinux/config
 SELINUX=enforcing
-// 修改为禁用
+# 修改为禁用
 SELINUX=disabled
 ```
 
@@ -35,4 +35,6 @@ SELINUX=disabled
 
 ## 客户端服务启动成功，无法连接？
 
-> 端口未开放：`iptables -I INPUT -s 0.0.0.0/0 -p tcp --dport 22022 -j ACCEPT` 或者 `rm -rf /etc/iptables && reboot`
+> 1. 检查防火墙配置
+
+> 2. iptables端口未开放：`iptables -I INPUT -s 0.0.0.0/0 -p tcp --dport 22022 -j ACCEPT` 或者 `rm -rf /etc/iptables && reboot`

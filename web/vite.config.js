@@ -31,7 +31,7 @@ export default defineConfig({
     // }
   },
   build: {
-    outDir: '../server/app/static',
+    // outDir: '../server/app/static',
     emptyOutDir: true
   },
   define: {

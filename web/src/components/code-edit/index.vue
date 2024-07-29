@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    width="80%"
+    width="60%"
     :top="'30px'"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
@@ -12,7 +12,7 @@
   >
     <template #header>
       <div class="title">
-        FileName - <span>{{ status }}</span>
+        {{ FileName }} - <span>{{ status }}</span>
       </div>
     </template>
     <codemirror
@@ -40,7 +40,7 @@
             />
           </el-select>
         </div>
-        <div>
+        <div class="footer_btns">
           <el-button type="primary" :loading="loading" @click="handleSave">保存</el-button>
           <el-button type="info" @click="handleClose">关闭</el-button>
         </div>
@@ -210,14 +210,14 @@ export default {
     .cm-scroller {
       // 滚动条整体部分
       &::-webkit-scrollbar {
-        height: 8px;
-        width: 8px;
+        height: 4px;
+        width: 4px;
         background-color: #282c34;
       }
         // 底层轨道
       &::-webkit-scrollbar-track {
         background-color: #282c34;
-        border-radius: 5px;
+        border-radius: 3px;
       }
     }
   }
@@ -229,10 +229,13 @@ export default {
     align-items: center;
     padding: 0 15px;
     justify-content: space-between;
-    .select_wrap {
-      width: 150px;
-      margin-right: 15px;
-    }
   }
+}
+.select_wrap {
+  width: 150px;
+  margin-right: 15px;
+}
+.footer_btns {
+  margin-top: 15px;
 }
 </style>

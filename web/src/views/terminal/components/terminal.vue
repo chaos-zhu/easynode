@@ -60,7 +60,7 @@ import InfoSide from './info-side.vue'
 import Sftp from './sftp.vue'
 import InputCommand from '@/components/input-command/index.vue'
 
-const { proxy: { $nextTick, $store } } = getCurrentInstance()
+const { proxy: { $nextTick, $store, $message } } = getCurrentInstance()
 
 const props = defineProps({
   terminalTabs: {
@@ -102,6 +102,7 @@ function handleResizeTerminalSftp() {
 }
 
 const handleCommandHost = (host) => {
+  if (!host.isConfig) return $message.warning('请先配置SSH连接信息')
   emit('add-host', host)
 }
 

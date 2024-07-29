@@ -11,7 +11,7 @@
   "scripts": {
     "local": "cross-env EXEC_ENV=local nodemon ./app/index.js",
     "prod": "cross-env EXEC_ENV=production nodemon ./app/index.js",
-    "start": "node ./app/index.js",
+    "start": "node ./index.js",
     "pkgwin": "pkg . -t  node20-win-x64",
     "pkglinux:x86": "pkg . -t node20-linux-x64",
     "pkglinux:arm": "pkg . -t node20-linux-arm64",
