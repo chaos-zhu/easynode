@@ -23,6 +23,7 @@
 ## 功能
 
 - [x] webssh终端&SFTP
+- [x] 批量导入(Xshell&FinalShell)
 - [x] 实例分组
 - [x] 凭据托管
 - [x] 邮件通知
