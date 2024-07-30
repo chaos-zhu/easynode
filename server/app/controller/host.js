@@ -6,8 +6,8 @@ async function getHostList({ res }) {
   data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
   for (const item of data) {
     let { username, port, authType, _id: id, credential } = item
+    console.log('解密凭证title: ', credential)
     if (credential) credential = await AESDecryptSync(credential)
-    // console.log(credential)
     const isConfig = Boolean(username && port && (item[authType]))
     Object.assign(item, { id, isConfig, password: '', privateKey: '', credential })
   }
@@ -98,7 +98,8 @@ async function importHost({
   // 过滤已存在的host
   let hostListSet = new Set(hostList.map(item => item.host))
   let newHostList = importHost.filter(item => !hostListSet.has(item.host))
-  if (newHostList.length === 0) return res.fail({ msg: '导入的实例已存在' })
+  let newHostListLen = newHostList.length
+  if (newHostListLen === 0) return res.fail({ msg: '导入的实例已存在' })
 
   let extraFiels = {
     expired: null, expiredNotify: false, group: 'default', consoleUrl: '', remark: '',
@@ -106,7 +107,7 @@ async function importHost({
   }
   newHostList = newHostList.map((item, index) => {
     item.port = Number(item.port) || 0
-    item.index = hostList.length + index + 1
+    item.index = newHostListLen - index
     return Object.assign(item, { ...extraFiels })
   })
   hostList.push(...newHostList)

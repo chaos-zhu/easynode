@@ -23,7 +23,7 @@ function createTerminal(socket, sshClient) {
 
     // 监听按键重置终端大小
     socket.on('resize', ({ rows, cols }) => {
-      consola.info('更改tty终端行&列: ', { rows, cols })
+      // consola.info('更改tty终端行&列: ', { rows, cols })
       stream.setWindow(rows, cols)
     })
   })

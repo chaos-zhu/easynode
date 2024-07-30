@@ -52,23 +52,23 @@
 </template>
 
 <script setup>
-import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick } from 'vue'
+import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick, defineEmits } from 'vue'
 import { useRoute } from 'vue-router'
 import Terminal from './components/terminal.vue'
 import HostForm from '../server/components/host-form.vue'
 
 const { proxy: { $store, $message } } = getCurrentInstance()
 
+const emit = defineEmits(['add-host',])
+
 let terminalTabs = reactive([])
-const hostFormVisible = ref(false)
-const updateHostData = ref(null)
+let hostFormVisible = ref(false)
+let updateHostData = ref(null)
 const terminalRef = ref(null)
 const route = useRoute()
 
 let showLinkTips = computed(() => !Boolean(terminalTabs.length))
-
 let hostList = computed(() => $store.hostList)
-
 let isAllConfssh = computed(() => {
   return hostList.value?.every(item => item.isConfig)
 })
@@ -87,9 +87,13 @@ function handleRemoveTab(index) {
   terminalTabs.splice(index, 1)
 }
 
-const handleUpdateList = async () => {
+const handleUpdateList = async ({ isConfig, host }) => {
   try {
     await $store.getHostList()
+    if (isConfig) {
+      let targetHost = hostList.value.find(item => item.host === host)
+      if (targetHost !== -1) linkTerminal(targetHost)
+    }
   } catch (err) {
     $message.error('获取实例列表失败')
     console.error('获取实例列表失败: ', err)
