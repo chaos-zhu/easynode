@@ -1,23 +1,36 @@
 <template>
   <div class="terminal_wrap">
+    <div class="terminal_top">
+      <el-dropdown trigger="click">
+        <span class="link_text">新建连接<el-icon><arrow-down /></el-icon></span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item v-for="(item, index) in hostList" :key="index" @click="handleCommandHost(item)">
+              {{ item.name }} {{ item.host }}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <el-dropdown trigger="click">
+        <span class="link_text">会话同步<el-icon><arrow-down /></el-icon></span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="handleSyncSession">
+              <el-icon v-show="isSyncAllSession"><Select class="action_icon" /></el-icon>
+              <span>同步键盘输入到所有会话</span>
+            </el-dropdown-item>
+            <!-- <el-dropdown-item @click="handleSyncSession">
+              同步键盘输入到部分会话
+            </el-dropdown-item> -->
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <!-- <div class="link_text fullscreen" @click="handleFullScreen">全屏</div> -->
+      <el-icon class="full_icon">
+        <FullScreen class="icon" @click="handleFullScreen" />
+      </el-icon>
+    </div>
     <div class="info_box">
-      <div class="top">
-        <el-icon>
-          <FullScreen class="full_icon" @click="handleFullScreen" />
-        </el-icon>
-        <el-dropdown trigger="click">
-          <div class="action_wrap">
-            <span class="link_host">连接<el-icon class="el-icon--right"><arrow-down /></el-icon></span>
-          </div>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item v-for="(item, index) in hostList" :key="index" @click="handleCommandHost(item)">
-                {{ item.name }} {{ item.host }}
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
       <InfoSide
         ref="infoSideRef"
         v-model:show-input-command="showInputCommand"
@@ -42,23 +55,35 @@
           :closable="true"
         >
           <div class="tab_content_wrap" :style="{ height: mainHeight + 'px' }">
-            <TerminalTab ref="terminalTabRefs" :host="item.host" />
+            <TerminalTab
+              ref="terminalTabRefs"
+              :index="index"
+              :host="item.host"
+              @input="terminalInput"
+            />
             <Sftp :host="item.host" @resize="resizeTerminal" />
           </div>
         </el-tab-pane>
       </el-tabs>
     </div>
     <InputCommand v-model:show="showInputCommand" @input-command="handleInputCommand" />
+    <HostForm
+      v-model:show="hostFormVisible"
+      :default-data="updateHostData"
+      @update-list="handleUpdateList"
+      @closed="updateHostData = null"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, defineEmits, computed, defineProps, getCurrentInstance, watch, onMounted, onBeforeUnmount } from 'vue'
-import { ArrowDown, FullScreen } from '@element-plus/icons-vue'
+import { ArrowDown, FullScreen, Select } from '@element-plus/icons-vue'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
 import Sftp from './sftp.vue'
 import InputCommand from '@/components/input-command/index.vue'
+import HostForm from '../../server/components/host-form.vue'
 
 const { proxy: { $nextTick, $store, $message } } = getCurrentInstance()
 
@@ -71,13 +96,15 @@ const props = defineProps({
 
 const emit = defineEmits(['closed', 'removeTab', 'add-host',])
 
-const activeTabIndex = ref(0)
-const isFullScreen = ref(false)
 const showInputCommand = ref(false)
-const visible = ref(true)
 const infoSideRef = ref(null)
 const terminalTabRefs = ref([])
+let activeTabIndex = ref(0)
+let visible = ref(true)
 let mainHeight = ref('')
+let isSyncAllSession = ref(false)
+let hostFormVisible = ref(false)
+let updateHostData = ref(null)
 
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
@@ -95,6 +122,19 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResizeTerminalSftp)
 })
 
+const handleUpdateList = async ({ isConfig, host }) => {
+  try {
+    await $store.getHostList()
+    if (isConfig) {
+      let targetHost = hostList.value.find(item => item.host === host)
+      if (targetHost !== -1) emit('add-host', targetHost)
+    }
+  } catch (err) {
+    $message.error('获取实例列表失败')
+    console.error('获取实例列表失败: ', err)
+  }
+}
+
 function handleResizeTerminalSftp() {
   $nextTick(() => {
     mainHeight.value = document.querySelector('.terminals_sftp_wrap').offsetHeight - 45 // 45 is tab-header height+15
@@ -102,8 +142,29 @@ function handleResizeTerminalSftp() {
 }
 
 const handleCommandHost = (host) => {
-  if (!host.isConfig) return $message.warning('请先配置SSH连接信息')
+  if (!host.isConfig) {
+    $message.warning('请先配置SSH连接信息')
+    hostFormVisible.value = true
+    updateHostData.value = { ...host }
+    return
+  }
   emit('add-host', host)
+}
+
+const handleSyncSession = () => {
+  isSyncAllSession.value = !isSyncAllSession.value
+  if (isSyncAllSession.value) $message.success('已开启键盘输入到所有会话')
+  else $message.info('已关闭键盘输入到所有会话')
+}
+
+const terminalInput = ({ idx, key }) => {
+  if (!isSyncAllSession.value) return
+  let filterHostList = terminalTabRefs.value.filter((host, index) => {
+    return index !== idx
+  })
+  filterHostList.forEach(item => {
+    item.handleInputCommand(key)
+  })
 }
 
 const tabChange = async (index) => {
@@ -143,9 +204,7 @@ const removeTab = (index) => {
 }
 
 const handleFullScreen = () => {
-  if (isFullScreen.value) document.exitFullscreen()
-  else document.getElementsByClassName('terminals_sftp_wrap')[0].requestFullscreen()
-  isFullScreen.value = !isFullScreen.value
+  document.getElementsByClassName('terminals_sftp_wrap')[0].requestFullscreen()
 }
 
 // const registryDbClick = () => {
@@ -187,6 +246,7 @@ const handleInputCommand = async (command) => {
 <style lang="scss" scoped>
 .terminal_wrap {
   display: flex;
+  flex-wrap: wrap;
   height: 100%;
 
   :deep(.el-tabs__content) {
@@ -204,40 +264,44 @@ const handleInputCommand = async (command) => {
     align-items: center;
   }
 
-  .info_box {
-    height: 100%;
-    overflow: auto;
+  $terminalTopHeight: 30px;
+  .terminal_top {
+    width: 100%;
+    height: $terminalTopHeight;
     display: flex;
-    flex-direction: column;
-
-    .top {
-      height: 39px;
-      flex-shrink: 0;
-      position: sticky;
-      top: 0px;
-      z-index: 1;
-      background-color: rgb(255, 255, 255);
-      padding: 0 15px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      .full_icon {
-        font-size: 15px;
+    align-items: center;
+    padding: 0 15px;
+    border-bottom: 1px solid var(--el-color-primary);
+    position: sticky;
+    top: 0;
+    background-color: #fff;
+    z-index: 3;
+    :deep(.el-dropdown) {
+      margin-top: -2px;
+    }
+    .link_text {
+      font-size: var(--el-font-size-base);
+      color: var(--el-color-primary);
+      cursor: pointer;
+      margin-right: 15px;
+    }
+    .full_icon {
+      cursor: pointer;
+      margin-left: auto;
+      &:hover .icon {
         color: var(--el-color-primary);
-        cursor: pointer;
-      }
-      .action_wrap {
-        .link_host {
-          font-size: var(--el-font-size-base);
-          color: var(--el-color-primary);
-          cursor: pointer;
-        }
       }
     }
   }
+  .info_box {
+    height: calc(100% - $terminalTopHeight);
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
 
   .terminals_sftp_wrap {
-    height: 100%;
+    height: calc(100% - $terminalTopHeight);
     overflow: hidden;
     flex: 1;
     display: flex;
@@ -278,5 +342,11 @@ const handleInputCommand = async (command) => {
       transform: scale(1.1);
     }
   }
+}
+</style>
+
+<style>
+.action_icon {
+  color: var(--el-color-primary);
 }
 </style>

@@ -1,6 +1,6 @@
 db目录，初始化后自动生成
 
-**host-list.db**
+**host.db**
 
 > 存储服务器基本信息
 
@@ -8,7 +8,7 @@ db目录，初始化后自动生成
 
 > 用于加密的密钥相关
 
-**ssh-record.db**
+**credentials.db**
 
 > ssh密钥记录(加密存储)
 

@@ -362,7 +362,8 @@ const handleSave = () => {
         $message({ type: 'success', center: true, message: msg })
       }
       visible.value = false
-      emit('update-list')
+      const { host, username, port, authType } = formData
+      emit('update-list', { isConfig: Boolean(username && port && (formData[authType])), host })
       Object.assign(hostForm, resetForm())
     })
 }

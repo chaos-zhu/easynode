@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance, defineEmits } from 'vue'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { FitAddon } from '@xterm/addon-fit'
@@ -19,8 +19,14 @@ const props = defineProps({
   host: {
     required: true,
     type: String
+  },
+  index: {
+    required: true,
+    type: Number
   }
 })
+
+const emit = defineEmits(['input',])
 
 const socket = ref(null)
 const term = ref(null)
@@ -77,7 +83,7 @@ const connectIO = () => {
     socket.value.on('connect_fail', (message) => {
       console.error(message)
       $notification({
-        title: '连接失败',
+        title: '终端连接失败',
         message,
         type: 'error'
       })
@@ -200,6 +206,8 @@ const onData = () => {
     let acsiiCode = key.codePointAt()
     if (acsiiCode === 22) return handlePaste()
     if (acsiiCode === 6) return searchBar.value.show()
+    emit('input', { idx: props.index, key })
+    // console.log('input:', key)
     socket.value.emit('input', key)
   })
 }
@@ -209,8 +217,10 @@ const handleClear = () => {
 }
 
 const handlePaste = async () => {
-  let str = await navigator.clipboard.readText()
-  socket.value.emit('input', str)
+  let key = await navigator.clipboard.readText()
+  emit('input', { idx: props.index, key })
+  // console.log('input:', key)
+  socket.value.emit('input', key)
   term.value.focus()
 }
 
