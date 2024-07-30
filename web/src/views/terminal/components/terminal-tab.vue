@@ -83,7 +83,7 @@ const connectIO = () => {
     socket.value.on('connect_fail', (message) => {
       console.error(message)
       $notification({
-        title: '连接失败',
+        title: '终端连接失败',
         message,
         type: 'error'
       })
