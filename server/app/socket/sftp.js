@@ -89,7 +89,7 @@ function listenInput(sftpClient, socket) {
             console.log(`从服务器下载进度：${ percent }%`)
             socket.emit('down_file_progress', percent)
             timer = null
-          }, 200)
+          }, 1500)
         }
       })
       consola.success('sftp下载成功: ', res)

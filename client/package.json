@@ -10,7 +10,7 @@
     "client": "nodemon ./app/main.js",
     "pkg": "pkg .",
     "pkglinux:x86": "pkg . -t node18-linux-x64",
-    "pkglinux:arm": "pkg . -t node18-linux-arm"
+    "pkglinux:arm": "pkg . -t node18"
   },
   "keywords": [],
   "author": "",
