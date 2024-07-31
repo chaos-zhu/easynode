@@ -81,16 +81,10 @@ pm2 start index.js --name easynode-server
 
 - 占用端口：**22022**
 
-#### X86架构
+> 安装
 
 ```shell
-wget -qO- --no-check-certificate https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install-x86.sh | bash
-```
-
-#### ARM架构
-
-```shell
-wget -qO- --no-check-certificate https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install-arm.sh | bash
+wget -qO- --no-check-certificate https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-instal.sh | bash
 ```
 
 > 卸载

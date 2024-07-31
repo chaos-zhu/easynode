@@ -26,7 +26,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['input',])
+const emit = defineEmits(['inputCommand',])
 
 const socket = ref(null)
 const term = ref(null)
@@ -206,8 +206,7 @@ const onData = () => {
     let acsiiCode = key.codePointAt()
     if (acsiiCode === 22) return handlePaste()
     if (acsiiCode === 6) return searchBar.value.show()
-    emit('input', { idx: props.index, key })
-    // console.log('input:', key)
+    emit('inputCommand', key)
     socket.value.emit('input', key)
   })
 }
@@ -218,8 +217,7 @@ const handleClear = () => {
 
 const handlePaste = async () => {
   let key = await navigator.clipboard.readText()
-  emit('input', { idx: props.index, key })
-  // console.log('input:', key)
+  emit('inputCommand', key)
   socket.value.emit('input', key)
   term.value.focus()
 }
@@ -231,7 +229,7 @@ const focusTab = () => {
   }, 200)
 }
 
-const handleInputCommand = (command) => {
+const inputCommand = (command) => {
   socket.value.emit('input', command)
 }
 
@@ -250,7 +248,7 @@ onBeforeUnmount(() => {
 defineExpose({
   focusTab,
   handleResize,
-  handleInputCommand,
+  inputCommand,
   handleClear
 })
 </script>

@@ -27,7 +27,7 @@ const addSSH = async ({ res, request }) => {
 
   sshRecord.push({ ...record, date: Date.now() })
   await writeSSHRecord(sshRecord)
-  consola.info('新增凭证：', name)
+  consola.info('添加凭证：', name)
   res.success({ data: '保存成功' })
 }
 

@@ -80,7 +80,7 @@
       <template #footer>
         <span>
           <el-button @click="sshFormVisible = false">关闭</el-button>
-          <el-button type="primary" @click="updateForm">{{ isModify ? '修改' : '新增' }}</el-button>
+          <el-button type="primary" @click="updateForm">{{ isModify ? '修改' : '添加' }}</el-button>
         </span>
       </template>
     </el-dialog>

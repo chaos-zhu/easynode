@@ -1,34 +1,99 @@
 <template>
   <div class="terminal_wrap">
     <div class="terminal_top">
-      <el-dropdown trigger="click">
-        <span class="link_text">新建连接<el-icon><arrow-down /></el-icon></span>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item v-for="(item, index) in hostList" :key="index" @click="handleCommandHost(item)">
-              {{ item.name }} {{ item.host }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-      <el-dropdown trigger="click">
-        <span class="link_text">会话同步<el-icon><arrow-down /></el-icon></span>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item @click="handleSyncSession">
-              <el-icon v-show="isSyncAllSession"><Select class="action_icon" /></el-icon>
-              <span>同步键盘输入到所有会话</span>
-            </el-dropdown-item>
-            <!-- <el-dropdown-item @click="handleSyncSession">
-              同步键盘输入到部分会话
-            </el-dropdown-item> -->
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-      <!-- <div class="link_text fullscreen" @click="handleFullScreen">全屏</div> -->
-      <el-icon class="full_icon">
-        <FullScreen class="icon" @click="handleFullScreen" />
-      </el-icon>
+      <div class="left_menu">
+        <el-dropdown trigger="click">
+          <span class="link_text">新建连接<el-icon><arrow-down /></el-icon></span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-for="(item, index) in hostList" :key="index" @click="handleCommandHost(item)">
+                {{ item.name }} {{ item.host }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <!-- <el-dropdown trigger="click">
+          <span class="link_text">会话同步<el-icon><arrow-down /></el-icon></span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="handleSyncSession">
+                <el-icon v-show="isSyncAllSession"><Select class="action_icon" /></el-icon>
+                <span>同步键盘输入到所有会话</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown> -->
+        <el-dropdown
+          trigger="click"
+          max-height="50vh"
+          :teleported="false"
+          class="scripts_menu"
+        >
+          <span class="link_text">快捷命令<el-icon><arrow-down /></el-icon></span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-for="item in scriptList" :key="item.id" @click="handleExecScript(item)">
+                <span>{{ item.name }}</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-dropdown trigger="click">
+          <span class="link_text">设置<el-icon><arrow-down /></el-icon></span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="handleFullScreen">
+                <span>开启全屏</span>
+              </el-dropdown-item>
+              <el-dropdown-item disabled @click="handleFullScreen">
+                <span>终端设置(开发中)</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <!-- <el-dropdown trigger="click">
+          <span class="link_text">设置
+            <el-icon class="hidden_icon"><arrow-down /></el-icon>
+          </span>
+        </el-dropdown> -->
+      </div>
+      <div class="right_overview">
+        <div class="switch_wrap">
+          <el-tooltip
+            effect="dark"
+            content="开启后发送键盘输入到所有会话"
+            placement="top"
+          >
+            <el-switch
+              v-model="isSyncAllSession"
+              class="swtich"
+              inline-prompt
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              active-text="同步"
+              inactive-text="同步"
+            />
+          </el-tooltip>
+        </div>
+        <div class="switch_wrap">
+          <el-tooltip
+            effect="dark"
+            content="SFTP文件传输"
+            placement="top"
+          >
+            <el-switch
+              v-model="showSftp"
+              class="swtich"
+              inline-prompt
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              active-text="SFTP"
+              inactive-text="SFTP"
+            />
+          </el-tooltip>
+        </div>
+        <!-- <el-icon class="full_icon">
+          <FullScreen class="icon" @click="handleFullScreen" />
+        </el-icon> -->
+      </div>
     </div>
     <div class="info_box">
       <InfoSide
@@ -56,12 +121,12 @@
         >
           <div class="tab_content_wrap" :style="{ height: mainHeight + 'px' }">
             <TerminalTab
-              ref="terminalTabRefs"
+              ref="terminalRefs"
               :index="index"
               :host="item.host"
-              @input="terminalInput"
+              @input-command="terminalInput"
             />
-            <Sftp :host="item.host" @resize="resizeTerminal" />
+            <Sftp v-if="showSftp" :host="item.host" @resize="resizeTerminal" />
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -98,9 +163,10 @@ const emit = defineEmits(['closed', 'removeTab', 'add-host',])
 
 const showInputCommand = ref(false)
 const infoSideRef = ref(null)
-const terminalTabRefs = ref([])
+const terminalRefs = ref([])
 let activeTabIndex = ref(0)
 let visible = ref(true)
+let showSftp = ref(false)
 let mainHeight = ref('')
 let isSyncAllSession = ref(false)
 let hostFormVisible = ref(false)
@@ -110,6 +176,7 @@ const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
 const curHost = computed(() => terminalTabs.value[activeTabIndex.value])
 let hostList = computed(() => $store.hostList)
+let scriptList = computed(() => $store.scriptList)
 
 // const closable = computed(() => terminalTabs.length > 1)
 
@@ -135,7 +202,7 @@ const handleUpdateList = async ({ isConfig, host }) => {
   }
 }
 
-function handleResizeTerminalSftp() {
+const handleResizeTerminalSftp = () => {
   $nextTick(() => {
     mainHeight.value = document.querySelector('.terminals_sftp_wrap').offsetHeight - 45 // 45 is tab-header height+15
   })
@@ -157,25 +224,33 @@ const handleSyncSession = () => {
   else $message.info('已关闭键盘输入到所有会话')
 }
 
-const terminalInput = ({ idx, key }) => {
-  if (!isSyncAllSession.value) return
-  let filterHostList = terminalTabRefs.value.filter((host, index) => {
-    return index !== idx
+const handleExecScript = (scriptObj) => {
+  // console.log(scriptObj.content)
+  if (!isSyncAllSession.value) return handleInputCommand(scriptObj.content)
+  terminalRefs.value.forEach(terminalRef => {
+    terminalRef.inputCommand(scriptObj.content)
   })
-  filterHostList.forEach(item => {
-    item.handleInputCommand(key)
+}
+
+const terminalInput = (command) => {
+  if (!isSyncAllSession.value) return
+  let filterTerminalRefs = terminalRefs.value.filter((host, index) => {
+    return index !== activeTabIndex.value
+  })
+  filterTerminalRefs.forEach(hostRef => {
+    hostRef.inputCommand(command)
   })
 }
 
 const tabChange = async (index) => {
   await $nextTick()
-  const curTabTerminal = terminalTabRefs.value[index]
-  curTabTerminal?.focusTab()
+  const curTerminalRef = terminalRefs.value[index]
+  curTerminalRef?.focusTab()
 }
 
 watch(terminalTabsLen, () => {
   let len = terminalTabsLen.value
-  console.log('add tab:', len)
+  // console.log('add tab:', len)
   if (len > 0) {
     activeTabIndex.value = len - 1
     // registryDbClick()
@@ -222,23 +297,23 @@ const handleFullScreen = () => {
 //   removeTab(key)
 // }
 
-const handleVisibleSidebar = () => {
-  visible.value = !visible.value
-  resizeTerminal()
-}
+// const handleVisibleSidebar = () => {
+//   visible.value = !visible.value
+//   resizeTerminal()
+// }
 
 const resizeTerminal = () => {
-  for (let terminalTabRef of terminalTabRefs.value) {
+  for (let terminalTabRef of terminalRefs.value) {
     const { handleResize } = terminalTabRef || {}
     handleResize && handleResize()
   }
 }
 
 const handleInputCommand = async (command) => {
-  const curTabTerminal = terminalTabRefs.value[activeTabIndex.value]
+  const curTerminalRef = terminalRefs.value[activeTabIndex.value]
   await $nextTick()
-  curTabTerminal?.focusTab()
-  curTabTerminal.handleInputCommand(`${ command }\n`)
+  curTerminalRef?.focusTab()
+  curTerminalRef.inputCommand(`${ command }\n`)
   showInputCommand.value = false
 }
 </script>
@@ -265,34 +340,68 @@ const handleInputCommand = async (command) => {
   }
 
   $terminalTopHeight: 30px;
+
   .terminal_top {
     width: 100%;
     height: $terminalTopHeight;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 0 15px;
-    border-bottom: 1px solid var(--el-color-primary);
     position: sticky;
     top: 0;
-    background-color: #fff;
+    border-bottom: 1px solid #fff;
+    // background-color: #fff;
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-regular);
     z-index: 3;
-    :deep(.el-dropdown) {
-      margin-top: -2px;
+    user-select: none;
+
+    // :deep(.el-dropdown) {
+    //   margin-top: -2px;
+    // }
+    .scripts_menu {
+      :deep(.el-dropdown-menu) {
+        min-width: 100px;
+        max-width: 300px;
+      }
     }
+
     .link_text {
       font-size: var(--el-font-size-base);
-      color: var(--el-color-primary);
+      color: var(--el-text-color-regular);
+      // color: var(--el-color-primary);
       cursor: pointer;
       margin-right: 15px;
+
+      .hidden_icon {
+        opacity: 0;
+      }
     }
-    .full_icon {
-      cursor: pointer;
-      margin-left: auto;
-      &:hover .icon {
-        color: var(--el-color-primary);
+
+    .left_menu {
+      display: flex;
+      align-items: center;
+    }
+
+    .right_overview {
+      display: flex;
+      align-items: center;
+      .switch_wrap {
+        display: flex;
+        align-items: center;
+        margin-right: 5px;
+      }
+      .full_icon {
+        cursor: pointer;
+
+        &:hover .icon {
+          color: var(--el-color-primary);
+        }
       }
     }
   }
+
   .info_box {
     height: calc(100% - $terminalTopHeight);
     overflow: auto;

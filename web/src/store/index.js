@@ -10,6 +10,7 @@ const useStore = defineStore({
     hostList: [],
     groupList: [],
     sshList: [],
+    scriptList: [],
     HostStatusSocket: null,
     user: localStorage.getItem('user') || null,
     token: sessionStorage.getItem('token') || localStorage.getItem('token') || null,
@@ -37,6 +38,7 @@ const useStore = defineStore({
       await this.getGroupList()
       await this.getHostList()
       await this.getSSHList()
+      await this.getScriptList()
     },
     async getHostList() {
       const { data: hostList } = await $api.getHostList()
@@ -53,6 +55,11 @@ const useStore = defineStore({
       const { data: sshList } = await $api.getSSHList()
       // console.log('sshList:', sshList)
       this.$patch({ sshList })
+    },
+    async getScriptList() {
+      const { data: scriptList } = await $api.getScriptList()
+      // console.log('scriptList:', scriptList)
+      this.$patch({ scriptList })
     },
     getHostPing() {
       setTimeout(() => {

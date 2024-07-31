@@ -62,15 +62,15 @@ let menuList = reactive([
     icon: markRaw(FolderOpened),
     index: '/group'
   },
+  {
+    name: '脚本库',
+    icon: markRaw(ArrowRight),
+    index: '/scripts'
+  },
   // {
   //   name: '批量指令',
   //   icon: markRaw(Pointer),
   //   index: '/onekey'
-  // },
-  // {
-  //   name: '脚本库',
-  //   icon: markRaw(ArrowRight),
-  //   index: '/scripts'
   // },
   {
     name: '系统设置',

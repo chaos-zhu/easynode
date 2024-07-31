@@ -57,7 +57,7 @@ async function updateHost({
     name: newName, host: newHost, index, expired, expiredNotify, group, consoleUrl, remark,
     port, username, authType, password, privateKey, credential, command
   }
-  if (!hostList.some(({ host }) => host === oldHost)) return res.fail({ msg: `原实例[${ oldHost }]不存在,请尝试新增实例` })
+  if (!hostList.some(({ host }) => host === oldHost)) return res.fail({ msg: `原实例[${ oldHost }]不存在,请尝试添加实例` })
 
   let idx = hostList.findIndex(({ host }) => host === oldHost)
   const oldRecord = hostList[idx]

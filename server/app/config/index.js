@@ -14,6 +14,7 @@ module.exports = {
   notifyConfDBPath: path.join(process.cwd(),'app/db/notify.db'),
   groupConfDBPath: path.join(process.cwd(),'app/db/group.db'),
   emailNotifyDBPath: path.join(process.cwd(),'app/db/email.db'),
+  scriptsDBPath: path.join(process.cwd(),'app/db/scripts.db'),
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/logs'),

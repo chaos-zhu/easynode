@@ -87,5 +87,17 @@ export default {
   },
   deleteGroup(id) {
     return axios({ url: `/group/${ id }`, method: 'delete' })
+  },
+  getScriptList() {
+    return axios({ url: '/script', method: 'get' })
+  },
+  addScript(data) {
+    return axios({ url: '/script', method: 'post', data })
+  },
+  updateScript(id, data) {
+    return axios({ url: `/script/${ id }`, method: 'put', data })
+  },
+  deleteScript(id) {
+    return axios({ url: `/script/${ id }`, method: 'delete' })
   }
 }

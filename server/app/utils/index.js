@@ -12,7 +12,9 @@ const {
   getNotifySwByType,
   writeNotifyList,
   readGroupList,
-  writeGroupList
+  writeGroupList,
+  readScriptList,
+  writeScriptList
 } = require('./storage')
 const { RSADecryptSync, AESEncryptSync, AESDecryptSync, SHA1Encrypt } = require('./encrypt')
 const { verifyAuthSync, isProd } = require('./verify-auth')
@@ -47,5 +49,7 @@ module.exports = {
   getNotifySwByType,
   writeNotifyList,
   readGroupList,
-  writeGroupList
+  writeGroupList,
+  readScriptList,
+  writeScriptList
 }

@@ -1,4 +1,4 @@
-const { KeyDB, HostListDB, SshRecordDB, NotifyDB, GroupDB, EmailNotifyDB } = require('./db-class')
+const { KeyDB, HostListDB, SshRecordDB, NotifyDB, GroupDB, EmailNotifyDB, ScriptsDB } = require('./db-class')
 
 const readKey = async () => {
   return new Promise((resolve, reject) => {
@@ -234,6 +234,42 @@ const writeGroupList = async (list = []) => {
   })
 }
 
+const readScriptList = async () => {
+  return new Promise((resolve, reject) => {
+    const scriptsDB = new ScriptsDB().getInstance()
+    scriptsDB.find({}, (err, docs) => {
+      if (err) {
+        consola.error('读取scripts list错误: ', err)
+        reject(err)
+      } else {
+        resolve(docs)
+      }
+    })
+  })
+}
+
+const writeScriptList = async (list = []) => {
+  return new Promise((resolve, reject) => {
+    const scriptsDB = new ScriptsDB().getInstance()
+    scriptsDB.remove({}, { multi: true }, (err) => {
+      if (err) {
+        consola.error('清空group list出错:', err)
+        reject(err)
+      } else {
+        scriptsDB.insert(list, (err, newDocs) => {
+          if (err) {
+            consola.error('写入新的group list出错:', err)
+            reject(err)
+          } else {
+            scriptsDB.compactDatafile()
+            resolve(newDocs)
+          }
+        })
+      }
+    })
+  })
+}
+
 module.exports = {
   readSSHRecord,
   writeSSHRecord,
@@ -248,5 +284,7 @@ module.exports = {
   writeGroupList,
   readSupportEmailList,
   readUserEmailList,
-  writeUserEmailList
+  writeUserEmailList,
+  readScriptList,
+  writeScriptList
 }

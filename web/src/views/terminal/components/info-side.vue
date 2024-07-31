@@ -190,7 +190,7 @@
     </el-button> -->
     <el-button
       :type="inputCommandStyle ? 'primary' : 'success'"
-      style="display: block;width: 80%;margin: 30px auto;"
+      style="display: block;width: 80%;margin: 15px auto;"
       @click="clickInputCommand"
     >
       命令输入框

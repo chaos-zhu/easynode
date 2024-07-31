@@ -288,7 +288,7 @@ const visible = computed({
   set: (newVal) => emit('update:show', newVal)
 })
 
-const title = computed(() => props.defaultData ? '修改实例' : '新增实例')
+const title = computed(() => props.defaultData ? '修改实例' : '添加实例')
 
 let groupList = computed(() => $store.groupList)
 let sshList = computed(() => $store.sshList)

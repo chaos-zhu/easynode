@@ -3,6 +3,7 @@ const { getHostList, addHost, updateHost, removeHost, importHost } = require('..
 const { login, getpublicKey, updatePwd, getLoginRecord } = require('../controller/user')
 const { getSupportEmailList, getUserEmailList, updateUserEmailList, removeUserEmail, pushEmail, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
+const { getScriptList, addScript, updateScriptList, removeScript } = require('../controller/scripts')
 
 const ssh = [
   {
@@ -141,4 +142,27 @@ const group = [
   }
 ]
 
-module.exports = [].concat(ssh, host, user, notify, group)
+const scripts = [
+  {
+    method: 'get',
+    path: '/script',
+    controller: getScriptList
+  },
+  {
+    method: 'post',
+    path: '/script',
+    controller: addScript
+  },
+  {
+    method: 'delete',
+    path: '/script/:id',
+    controller: removeScript
+  },
+  {
+    method: 'put',
+    path: '/script/:id',
+    controller: updateScriptList
+  }
+]
+
+module.exports = [].concat(ssh, host, user, notify, group, scripts)

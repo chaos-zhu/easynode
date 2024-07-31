@@ -37,7 +37,7 @@ async function getClientsInfo(socketId) {
           })
         })
         .on('connect_error', (error) => {
-          consola.error('client connect fail:', host, name, error.message)
+          // consola.error('client connect fail:', host, name, error.message)
           clientsData[host] = null
         })
         .on('disconnect', () => {

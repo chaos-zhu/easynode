@@ -16,7 +16,7 @@ const addGroupList = async ({ res, request }) => {
   let group = { name, index }
   groupList.push(group)
   await writeGroupList(groupList)
-  res.success({ data: '新增成功' })
+  res.success({ data: '添加成功' })
 }
 
 const updateGroupList = async ({ res, request }) => {
