@@ -1,5 +1,6 @@
 const { writeKey, writeNotifyList, writeGroupList } = require('./utils/storage')
 const { KeyDB, NotifyDB, GroupDB, EmailNotifyDB } = require('./utils/db-class')
+const { readScriptList, writeScriptList } = require('./utils')
 
 function initKeyDB() {
   return new Promise((resolve, reject) => {
@@ -145,9 +146,38 @@ function initEmailNotifyDB() {
     })
   })
 }
+
+function initScriptsDB() {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve) => {
+    let scriptList = await readScriptList()
+    let clientInstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-instal.sh | bash'
+    let clientUninstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash'
+    let clientVersion = process.env.CLIENT_VERSION
+    consola.info('客户端版本：', clientVersion)
+    let installId = `clientInstall${ clientVersion }`
+    let uninstallId = `clientUninstall${ clientVersion }`
+
+    let isClientInstall = scriptList?.find(script => script._id = installId)
+    let isClientUninstall = scriptList?.find(script => script._id = uninstallId)
+    let writeFlag = false
+    if (!isClientInstall) {
+      scriptList.push({ _id: installId, name: `easynode-client-${ clientVersion }安装脚本`, remark: '系统内置|重启生成', content: clientInstallScript, index: 99 })
+      writeFlag = true
+    }
+    if (!isClientUninstall) {
+      scriptList.push({ _id: uninstallId, name: `easynode-client-${ clientVersion }卸载脚本`, remark: '系统内置|重启生成', content: clientUninstallScript, index: 98 })
+      writeFlag = true
+    }
+    if (writeFlag) await writeScriptList(scriptList)
+    resolve()
+  })
+}
+
 module.exports = async () => {
   await initKeyDB()
   await initNotifyDB()
   await initGroupDB()
   await initEmailNotifyDB()
+  await initScriptsDB()
 }

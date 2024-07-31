@@ -4,10 +4,10 @@
       <el-button type="primary" @click="addScript">添加脚本</el-button>
     </div>
     <el-table v-loading="loading" :data="scriptList">
-      <el-table-column prop="index" label="序号" />
+      <el-table-column prop="index" label="序号" width="100px" />
       <el-table-column prop="name" label="名称" />
       <el-table-column prop="remark" label="备注" />
-      <el-table-column prop="content" label="脚本内容" />
+      <el-table-column prop="content" label="脚本内容" show-overflow-tooltip />
       <el-table-column label="操作">
         <template #default="{ row }">
           <el-button type="primary" @click="handleChange(row)">修改</el-button>
@@ -32,7 +32,7 @@
         label-width="100px"
         :show-message="false"
       >
-        <el-form-item label="脚本名称" prop="name">
+        <el-form-item label="名称" prop="name">
           <el-input
             v-model.trim="formData.name"
             clearable
@@ -40,7 +40,7 @@
             autocomplete="off"
           />
         </el-form-item>
-        <el-form-item label="脚本备注" prop="remark">
+        <el-form-item label="备注" prop="remark">
           <el-input
             v-model.trim="formData.remark"
             clearable
@@ -48,7 +48,7 @@
             autocomplete="off"
           />
         </el-form-item>
-        <el-form-item label="脚本序号" prop="index">
+        <el-form-item label="序号" prop="index">
           <el-input
             v-model.trim.number="formData.index"
             clearable
@@ -56,7 +56,7 @@
             autocomplete="off"
           />
         </el-form-item>
-        <el-form-item prop="content" label="脚本内容" show-overflow-tooltip>
+        <el-form-item prop="content" label="内容">
           <el-input
             v-model.trim="formData.content"
             type="textarea"

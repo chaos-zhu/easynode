@@ -6,7 +6,7 @@ async function getHostList({ res }) {
   data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
   for (const item of data) {
     let { username, port, authType, _id: id, credential } = item
-    console.log('解密凭证title: ', credential)
+    // console.log('解密凭证title: ', credential)
     if (credential) credential = await AESDecryptSync(credential)
     const isConfig = Boolean(username && port && (item[authType]))
     Object.assign(item, { id, isConfig, password: '', privateKey: '', credential })

@@ -253,7 +253,7 @@ const writeScriptList = async (list = []) => {
     const scriptsDB = new ScriptsDB().getInstance()
     scriptsDB.remove({}, { multi: true }, (err) => {
       if (err) {
-        consola.error('清空group list出错:', err)
+        consola.error('清空scripts list出错:', err)
         reject(err)
       } else {
         scriptsDB.insert(list, (err, newDocs) => {

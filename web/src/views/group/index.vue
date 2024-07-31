@@ -4,11 +4,16 @@
       <el-button type="primary" @click="addGroup">添加分组</el-button>
     </div>
     <el-table v-loading="loading" :data="list">
-      <el-table-column prop="index" label="序号" />
+      <el-table-column prop="index" label="序号" width="100px" />
       <el-table-column prop="name" label="分组名称" />
       <el-table-column label="关联实例数量">
         <template #default="{ row }">
-          <el-popover v-if="row.hosts.list.length !== 0" placement="left" :width="350" trigger="hover">
+          <el-popover
+            v-if="row.hosts.list.length !== 0"
+            placement="left"
+            :width="350"
+            trigger="hover"
+          >
             <template #reference>
               <u class="host_count">{{ row.hosts.count }}</u>
             </template>
@@ -30,15 +35,38 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-dialog v-model="groupFormVisible" width="600px" top="150px" :title="isModify ? '修改分组' : '添加分组'"
-      :close-on-click-modal="false" @close="clearFormInfo">
-      <el-form ref="updateFormRef" :model="groupForm" :rules="rules" :hide-required-asterisk="true" label-suffix="："
-        label-width="100px" :show-message="false">
+    <el-dialog
+      v-model="groupFormVisible"
+      width="600px"
+      top="150px"
+      :title="isModify ? '修改分组' : '添加分组'"
+      :close-on-click-modal="false"
+      @close="clearFormInfo"
+    >
+      <el-form
+        ref="updateFormRef"
+        :model="groupForm"
+        :rules="rules"
+        :hide-required-asterisk="true"
+        label-suffix="："
+        label-width="100px"
+        :show-message="false"
+      >
         <el-form-item label="分组名称" prop="name">
-          <el-input v-model.trim="groupForm.name" clearable placeholder="" autocomplete="off" />
+          <el-input
+            v-model.trim="groupForm.name"
+            clearable
+            placeholder=""
+            autocomplete="off"
+          />
         </el-form-item>
         <el-form-item label="分组序号" prop="index">
-          <el-input v-model.number="groupForm.index" clearable placeholder="用于分组排序" autocomplete="off" />
+          <el-input
+            v-model.number="groupForm.index"
+            clearable
+            placeholder="用于分组排序"
+            autocomplete="off"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -122,7 +150,7 @@ const clearFormInfo = () => {
 }
 
 const deleteGroup = ({ id, name }) => {
-  $messageBox.confirm(`确认删除分组：${name} (分组下实例将移动至默认分组)`, 'Warning', {
+  $messageBox.confirm(`确认删除分组：${ name } (分组下实例将移动至默认分组)`, 'Warning', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
