@@ -151,7 +151,7 @@ function initScriptsDB() {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve) => {
     let scriptList = await readScriptList()
-    let clientInstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-instal.sh | bash'
+    let clientInstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash'
     let clientUninstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash'
     let clientVersion = process.env.CLIENT_VERSION
     consola.info('客户端版本：', clientVersion)
