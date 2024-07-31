@@ -84,19 +84,19 @@ pm2 start index.js --name easynode-server
 #### X86架构
 
 ```shell
-wget -qO- --no-check-certificate https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/v2.0/client/easynode-client-install-x86.sh | bash
+wget -qO- --no-check-certificate https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install-x86.sh | bash
 ```
 
 #### ARM架构
 
 ```shell
-wget -qO- --no-check-certificate https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/v2.0/client/easynode-client-install-arm.sh | bash
+wget -qO- --no-check-certificate https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install-arm.sh | bash
 ```
 
 > 卸载
 
 ```shell
-wget -qO- --no-check-certificate https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/v2.0/client/easynode-client-uninstall.sh | bash
+wget -qO- --no-check-certificate https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash
 ```
 
 > 查看客户端状态：`systemctl status easynode-client`
