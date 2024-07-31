@@ -4,14 +4,13 @@
   "description": "easynode-client",
   "bin": "./bin/www",
   "pkg": {
-    "outputPath": "dist",
-    "targets": ["node18-linux-x64", "node18-linux-arm64"]
+    "outputPath": "dist"
   },
   "scripts": {
     "client": "nodemon ./app/main.js",
     "pkg": "pkg .",
     "pkglinux:x86": "pkg . -t node18-linux-x64",
-    "pkglinux:arm": "pkg . -t node18-linux-x64"
+    "pkglinux:arm": "pkg . -t node18-linux-arm"
   },
   "keywords": [],
   "author": "",
