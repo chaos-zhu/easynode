@@ -1,20 +1,12 @@
 {
   "name": "server",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "description": "easynode-server",
   "bin": "./bin/www",
-  "pkg": {
-    "outputPath": "dist",
-    "scripts": "./*",
-    "assets": "./*"
-  },
   "scripts": {
     "local": "cross-env EXEC_ENV=local nodemon ./app/index.js",
     "prod": "cross-env EXEC_ENV=production nodemon ./app/index.js",
     "start": "node ./index.js",
-    "pkgwin": "pkg . -t  node20-win-x64",
-    "pkglinux:x86": "pkg . -t node20-linux-x64",
-    "pkglinux:arm": "pkg . -t node20-linux-arm64",
     "lint": "eslint . --ext .js,.vue",
     "lint:fix": "eslint . --ext .js,.jsx,.cjs,.mjs --fix"
   },
@@ -57,7 +49,6 @@
   },
   "devDependencies": {
     "eslint": "^8.56.0",
-    "nodemon": "^3.1.4",
-    "pkg": "5.8"
+    "nodemon": "^3.1.4"
   }
 }
