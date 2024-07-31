@@ -29,7 +29,7 @@
           :teleported="false"
           class="scripts_menu"
         >
-          <span class="link_text">快捷命令<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text">脚本库<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item v-for="item in scriptList" :key="item.id" @click="handleExecScript(item)">
@@ -362,7 +362,7 @@ const handleInputCommand = async (command) => {
     // }
     .scripts_menu {
       :deep(.el-dropdown-menu) {
-        min-width: 100px;
+        min-width: 120px;
         max-width: 300px;
       }
     }
