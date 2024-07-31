@@ -42,8 +42,8 @@ echo "***********************创建文件PATH***********************"
 mkdir -p ${FILE_PATH}
 
 echo "***********************下载开始***********************"
-DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v1.1/easynode-client-arm"
-DOWNLOAD_SERVICE_URL="https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/v1.1/client/easynode-client.service"
+DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.0.0/easynode-client-arm64"
+DOWNLOAD_SERVICE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.0.0/easynode-client.service"
 
 # -O 指定路径和文件名(这里是二进制文件, 不需要扩展名)
 wget -O ${FILE_PATH}/${SERVER_NAME} --no-check-certificate --no-cache ${DOWNLOAD_FILE_URL}
