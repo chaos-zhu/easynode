@@ -1,5 +1,5 @@
 const Datastore = require('@seald-io/nedb')
-const { credentialsDBPath, hostListDBPath, keyDBPath, emailNotifyDBPath, notifyConfDBPath, groupConfDBPath, scriptsDBPath } = require('../config')
+const { credentialsDBPath, hostListDBPath, keyDBPath, emailNotifyDBPath, notifyConfDBPath, groupConfDBPath, scriptsDBPath, onekeyDBPath } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
   constructor() {
@@ -75,5 +75,16 @@ module.exports.ScriptsDB = class ScriptsDB {
   }
   getInstance() {
     return ScriptsDB.instance
+  }
+}
+
+module.exports.OnekeyDB = class OnekeyDB {
+  constructor() {
+    if (!OnekeyDB.instance) {
+      OnekeyDB.instance = new Datastore({ filename: onekeyDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return OnekeyDB.instance
   }
 }

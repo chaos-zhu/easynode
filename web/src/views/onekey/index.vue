@@ -1,19 +1,445 @@
 <template>
-  <div class="">
-    开发中...
+  <div class="onekey_container">
+    <div class="header">
+      <el-button type="primary" @click="addOnekey">
+        批量下发指令
+      </el-button>
+      <el-button v-show="recordList.length" type="danger" @click="handleRemoveAll">
+        删除全部记录
+      </el-button>
+    </div>
+    <!-- default-expand-all -->
+    <el-table
+      v-loading="loading"
+      :data="tableData"
+      row-key="id"
+      :expand-row-keys="expandRows"
+    >
+      <el-table-column type="expand">
+        <template #default="{ row }">
+          <div class="detail_content_box">
+            {{ row.result }}
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column prop="name" label="实例">
+        <template #default="{ row }">
+          <span style="letter-spacing: 2px;"> {{ row.name }} </span>
+          <span style="letter-spacing: 2px;"> {{ row.host }} </span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="command" label="指令">
+        <template #default="{ row }">
+          <span style="letter-spacing: 2px;background: rgba(227, 230, 235, 0.7);color: rgb(54, 52, 52);"> {{ row.command }} </span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="status" label="执行结果" show-overflow-tooltip>
+        <template #default="{ row }">
+          <el-tag :color="getStatusType(row.status)">
+            <span style="color: rgb(54, 52, 52);">{{ row.status }}</span>
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作">
+        <template #default="{ row }">
+          <el-button
+            v-if="!row.pendding"
+            v-show="row.id !== 'own'"
+            :loading="row.loading"
+            type="danger"
+            @click="handleRemove([row.id])"
+          >
+            删除
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <el-dialog
+      v-model="formVisible"
+      width="600px"
+      top="150px"
+      title="批量下发指令"
+      :close-on-click-modal="false"
+      @close="clearFormInfo"
+    >
+      <el-form
+        ref="updateFormRef"
+        :model="formData"
+        :rules="rules"
+        :hide-required-asterisk="true"
+        label-suffix="："
+        label-width="80px"
+        :show-message="false"
+      >
+        <el-form-item label="实例" prop="hosts">
+          <div class="select_host_wrap">
+            <el-select
+              v-model="formData.hosts"
+              :teleported="false"
+              multiple
+              placeholder=""
+              class="select"
+              clearable
+              tag-type="primary"
+            >
+              <template #header>
+                <el-checkbox
+                  v-model="checkAll"
+                  :indeterminate="indeterminate"
+                  @change="selectAllHost"
+                >
+                  全选 <span class="tips">(未配置ssh连接信息的实例不会显示在列表中)</span>
+                </el-checkbox>
+              </template>
+              <el-option
+                v-for="item in hasConfigHostList"
+                :key="item.id"
+                :label="item.name"
+                :value="item.host"
+              />
+            </el-select>
+            <!-- <el-button type="primary" class="btn" @click="selectAllHost">全选</el-button> -->
+          </div>
+        </el-form-item>
+        <el-form-item prop="command" label="指令">
+          <div class="command_wrap">
+            <el-dropdown
+              trigger="click"
+              max-height="50vh"
+              :teleported="false"
+              class="scripts_menu"
+            >
+              <span class="link_text">从脚本库导入...<el-icon><arrow-down /></el-icon></span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item v-for="item in scriptList" :key="item.id" @click="handleImportScript(item)">
+                    <span>{{ item.name }}</span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <el-input
+              v-model="formData.command"
+              class="input"
+              type="textarea"
+              :rows="5"
+              clearable
+              autocomplete="off"
+              placeholder="shell script"
+            />
+          </div>
+        </el-form-item>
+        <el-form-item prop="timeout" label="超时(s)">
+          <el-input
+            v-model.trim.number="formData.timeout"
+            type="number"
+            clearable
+            autocomplete="off"
+            placeholder="指令执行超时时间，单位秒，超时自动中断"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span>
+          <el-button @click="formVisible = false">取消</el-button>
+          <el-button type="primary" @click="execOnekey">执行</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
-<script>
-export default {
-  name: '',
-  data() {
-    return {
-    }
+<script setup>
+import { ref, reactive, onMounted, computed, watch, nextTick, getCurrentInstance } from 'vue'
+import { ArrowDown } from '@element-plus/icons-vue'
+import socketIo from 'socket.io-client'
+
+const { io } = socketIo
+
+const { proxy: { $api, $notification,$messageBox, $message, $router, $serviceURI, $store } } = getCurrentInstance()
+
+const loading = ref(false)
+const formVisible = ref(false)
+const socket = ref(null)
+let recordList = ref([])
+let penddingRecord = ref([])
+let checkAll = ref(false)
+let indeterminate = ref(false)
+const updateFormRef = ref(null)
+
+let formData = reactive({
+  hosts: [],
+  command: 'ping -c 10 google.com',
+  timeout: 60
+})
+
+const token = computed(() => $store.token)
+const hostList = computed(() => $store.hostList)
+let scriptList = computed(() => $store.scriptList)
+const hasConfigHostList = computed(() => hostList.value.filter(item => item.isConfig))
+const tableData = computed(() => {
+  return penddingRecord.value.concat(recordList.value).map(item => {
+    item.loading = false
+    return item
+  })
+})
+const expandRows = computed(() => {
+  let rows = tableData.value.filter(item => item.pendding).map(item => item.id)
+  return rows
+})
+
+const rules = computed(() => {
+  return {
+    hosts: { required: true, trigger: 'change' },
+    command: { required: true, trigger: 'change' },
+    timeout: { required: true, type: 'number', trigger: 'change' }
+  }
+})
+
+watch(() => formData.hosts, (val) => {
+  if (val.length === 0) {
+    checkAll.value = false
+    indeterminate.value = false
+  } else if (val.length === hasConfigHostList.value.length) {
+    checkAll.value = true
+    indeterminate.value = false
+  } else {
+    indeterminate.value = true
+  }
+})
+
+const createExecShell = (hosts = [], command = 'ls', timeout = 60) => {
+  loading.value = true
+  socket.value = io($serviceURI, {
+    path: '/onekey',
+    forceNew: false,
+    reconnectionAttempts: 1
+  })
+  socket.value.on('connect', () => {
+    console.log('onekey socket已连接：', socket.value.id)
+
+    socket.value.on('ready', () => {
+      penddingRecord.value = [] // 每轮执行前清空
+    })
+
+    socket.value.emit('create', { hosts, token: token.value, command, timeout })
+
+    socket.value.on('output', (result) => {
+      loading.value = false
+      if (Array.isArray(result) && result.length > 0) {
+        // console.log('output', result)
+        result = result.map(item => ({ ...item, pendding: true }))
+        penddingRecord.value = result
+        nextTick(() => {
+          document.querySelectorAll('.detail_content_box').forEach(container => {
+            container.scrollTop = container.scrollHeight
+          })
+        })
+      }
+    })
+
+    socket.value.on('timeout', ({ reason, result }) => {
+      $notification({
+        title: '批量指令执行超时',
+        message: reason,
+        type: 'error'
+      })
+      if (Array.isArray(result) && result.length > 0) {
+        // console.log('output', result)
+        result = result.map(item => ({ ...item, pendding: true }))
+        penddingRecord.value = result
+      }
+    })
+    socket.value.on('create_fail', (reason) => {
+      $notification({
+        title: '批量指令执行失败',
+        message: reason,
+        type: 'error'
+      })
+    })
+
+    socket.value.on('token_verify_fail', () => {
+      $message.error('token验证失败，请重新登录')
+      $router.push('/login')
+    })
+
+    socket.value.on('exec_complete', () => {
+      $notification({
+        title: '批量指令执行完成',
+        message: '执行完成',
+        type: 'success'
+      })
+    })
+  })
+
+  socket.value.on('disconnect', () => {
+    loading.value = false
+    console.warn('onekey websocket 连接断开')
+  })
+
+  socket.value.on('connect_error', (err) => {
+    loading.value = false
+    console.error('onekey websocket 连接错误：', err)
+    $notification({
+      title: 'onekey websocket 连接错误：',
+      message: '请检查socket服务是否正常',
+      type: 'error'
+    })
+  })
+}
+
+onMounted(async () => {
+  getOnekeyRecord()
+})
+
+let selectAllHost = (val) => {
+  indeterminate.value = false
+  if (val) {
+    formData.hosts = hasConfigHostList.value.map(item => item.host)
+  } else {
+    formData.hosts = []
   }
 }
+
+let handleImportScript = (scriptObj) => {
+  formData.command = scriptObj.content
+}
+
+let getStatusType = (status) => {
+  switch (status) {
+    case '连接中':
+      return '#FFDEAD'
+    case '连接失败':
+      return '#FFCCCC'
+    case '执行中':
+      return '#ADD8E6'
+    case '执行成功':
+      return '#90EE90'
+    case '执行失败':
+      return '#FFCCCC'
+    case '执行超时':
+      return '#FFFFE0'
+    case '执行中断':
+      return '#E6E6FA'
+    default:
+      return 'info'
+  }
+}
+
+let getOnekeyRecord = async () => {
+  loading.value = true
+  let { data } = await $api.getOnekeyRecord()
+  recordList.value = data
+  loading.value = false
+}
+
+let addOnekey = () => {
+  formVisible.value = true
+}
+
+function execOnekey() {
+  updateFormRef.value.validate()
+    .then(async () => {
+      let { hosts, command, timeout } = formData
+      timeout = Number(timeout)
+      if (timeout < 1) {
+        return $message.error('超时时间不能小于1秒')
+      }
+      if (hosts.length === 0) {
+        return $message.error('请选择主机')
+      }
+      await getOnekeyRecord() // 获取新纪录前会清空 penddingRecord，所以需要获取一次最新的list
+      createExecShell(hosts, command, timeout)
+      formVisible.value = false
+    })
+}
+
+const clearFormInfo = () => {
+  nextTick(() => updateFormRef.value.resetFields())
+}
+
+const handleRemove = async (ids = []) => {
+  tableData.value.filter(item => ids.includes(item.id)).forEach(item => item.loading = true)
+  await $api.deleteOnekeyRecord(ids)
+  await getOnekeyRecord()
+  $message.success('success')
+}
+
+const handleRemoveAll = async () => {
+  $messageBox.confirm(`确认删除所有执行记录：${ name }`, 'Warning', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(async () => {
+      await $api.deleteOnekeyRecord('ALL')
+      penddingRecord.value = []
+      await getOnekeyRecord()
+      $message.success('success')
+    })
+}
+
 </script>
 
 <style lang="scss" scoped>
-
+.onekey_container {
+  padding: 20px;
+  .header {
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #fff;
+  }
+  .detail_content_box {
+    max-height: 200px;
+    overflow: auto;
+    white-space: pre-line;
+    line-height: 1.1;
+    background: rgba(227, 230, 235, .7);
+    padding: 25px;
+    border-radius: 3px;
+  }
+  .select_host_wrap {
+    width: 100%;
+    display: flex;
+    .select {
+      flex: 1;
+      margin-right: 15px;
+      .tips {
+        color: #999;
+        font-size: 12px;
+      }
+    }
+    .btn {
+      width: 52px;
+    }
+  }
+  .command_wrap {
+    width: 100%;
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    .scripts_menu {
+      :deep(.el-dropdown-menu) {
+        min-width: 120px;
+        max-width: 300px;
+      }
+    }
+    .link_text {
+      font-size: var(--el-font-size-base);
+      // color: var(--el-text-color-regular);
+      color: var(--el-color-primary);
+      cursor: pointer;
+      margin-right: 15px;
+      user-select: none;
+    }
+    .input {
+      margin-top: 10px;
+    }
+  }
+}
 </style>

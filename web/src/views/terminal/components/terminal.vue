@@ -143,7 +143,7 @@
 
 <script setup>
 import { ref, defineEmits, computed, defineProps, getCurrentInstance, watch, onMounted, onBeforeUnmount } from 'vue'
-import { ArrowDown, FullScreen, Select } from '@element-plus/icons-vue'
+import { ArrowDown } from '@element-plus/icons-vue'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
 import Sftp from './sftp.vue'
@@ -216,12 +216,6 @@ const handleCommandHost = (host) => {
     return
   }
   emit('add-host', host)
-}
-
-const handleSyncSession = () => {
-  isSyncAllSession.value = !isSyncAllSession.value
-  if (isSyncAllSession.value) $message.success('已开启键盘输入到所有会话')
-  else $message.info('已关闭键盘输入到所有会话')
 }
 
 const handleExecScript = (scriptObj) => {

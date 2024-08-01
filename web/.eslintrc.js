@@ -34,6 +34,7 @@ module.exports = {
     'vue/singleline-html-element-content-newline': 0,
 
     // js
+    'no-async-promise-executor': 0,
     'import/no-extraneous-dependencies': 0,
     'no-console': 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',

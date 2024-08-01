@@ -4,7 +4,7 @@
   "description": "easynode-server",
   "bin": "./bin/www",
   "scripts": {
-    "local": "cross-env EXEC_ENV=local nodemon ./app/index.js",
+    "local": "cross-env EXEC_ENV=local nodemon ./app/index.js --max-old-space-size=4096",
     "prod": "cross-env EXEC_ENV=production nodemon ./app/index.js",
     "start": "node ./index.js",
     "lint": "eslint . --ext .js,.vue",

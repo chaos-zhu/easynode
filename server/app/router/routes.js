@@ -4,6 +4,7 @@ const { login, getpublicKey, updatePwd, getLoginRecord } = require('../controlle
 const { getSupportEmailList, getUserEmailList, updateUserEmailList, removeUserEmail, pushEmail, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
 const { getScriptList, addScript, updateScriptList, removeScript } = require('../controller/scripts')
+const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
 
 const ssh = [
   {
@@ -165,4 +166,16 @@ const scripts = [
   }
 ]
 
-module.exports = [].concat(ssh, host, user, notify, group, scripts)
+const onekey = [
+  {
+    method: 'get',
+    path: '/onekey',
+    controller: getOnekeyRecord
+  },
+  {
+    method: 'post',
+    path: '/onekey',
+    controller: removeOnekeyRecord
+  }
+]
+module.exports = [].concat(ssh, host, user, notify, group, scripts, onekey)

@@ -14,11 +14,14 @@ const {
   readGroupList,
   writeGroupList,
   readScriptList,
-  writeScriptList
+  writeScriptList,
+  readOneKeyRecord,
+  writeOneKeyRecord,
+  deleteOneKeyRecord
 } = require('./storage')
 const { RSADecryptSync, AESEncryptSync, AESDecryptSync, SHA1Encrypt } = require('./encrypt')
 const { verifyAuthSync, isProd } = require('./verify-auth')
-const { getNetIPInfo, throwError, isIP, randomStr, getUTCDate, formatTimestamp } = require('./tools')
+const { getNetIPInfo, throwError, isIP, randomStr, getUTCDate, formatTimestamp, throttle } = require('./tools')
 const { emailTransporter, sendEmailToConfList } = require('./email')
 
 module.exports = {
@@ -28,6 +31,7 @@ module.exports = {
   randomStr,
   getUTCDate,
   formatTimestamp,
+  throttle,
   verifyAuthSync,
   isProd,
   RSADecryptSync,
@@ -51,5 +55,8 @@ module.exports = {
   readGroupList,
   writeGroupList,
   readScriptList,
-  writeScriptList
+  writeScriptList,
+  readOneKeyRecord,
+  writeOneKeyRecord,
+  deleteOneKeyRecord
 }

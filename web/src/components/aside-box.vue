@@ -67,11 +67,11 @@ let menuList = reactive([
     icon: markRaw(ArrowRight),
     index: '/scripts'
   },
-  // {
-  //   name: '批量指令',
-  //   icon: markRaw(Pointer),
-  //   index: '/onekey'
-  // },
+  {
+    name: '批量指令',
+    icon: markRaw(Pointer),
+    index: '/onekey'
+  },
   {
     name: '系统设置',
     icon: markRaw(Setting),

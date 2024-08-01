@@ -204,6 +204,43 @@ function resolvePath(dir, path) {
   return path.resolve(dir, path)
 }
 
+function throttle(func, limit) {
+  let lastFunc
+  let lastRan
+  let pendingArgs = null
+
+  const runner = () => {
+    func.apply(this, pendingArgs)
+    lastRan = Date.now()
+    pendingArgs = null
+  }
+
+  const throttled = function() {
+    const context = this
+    const args = arguments
+    pendingArgs = args
+    if (!lastRan || (Date.now() - lastRan >= limit)) {
+      if (lastFunc) {
+        clearTimeout(lastFunc)
+      }
+      runner.apply(context, args)
+    } else {
+      clearTimeout(lastFunc)
+      lastFunc = setTimeout(() => {
+        runner.apply(context, args)
+      }, limit - (Date.now() - lastRan))
+    }
+  }
+
+  throttled.flush = () => {
+    if (pendingArgs) {
+      runner.apply(this, pendingArgs)
+    }
+  }
+
+  return throttled
+}
+
 module.exports = {
   getNetIPInfo,
   throwError,
@@ -211,5 +248,6 @@ module.exports = {
   randomStr,
   getUTCDate,
   formatTimestamp,
-  resolvePath
+  resolvePath,
+  throttle
 }

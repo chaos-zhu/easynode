@@ -99,5 +99,11 @@ export default {
   },
   deleteScript(id) {
     return axios({ url: `/script/${ id }`, method: 'delete' })
+  },
+  getOnekeyRecord() {
+    return axios({ url: '/onekey', method: 'get' })
+  },
+  deleteOnekeyRecord(ids) {
+    return axios({ url: '/onekey', method: 'post', data: { ids } })
   }
 }
