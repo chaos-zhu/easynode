@@ -91,6 +91,9 @@ export default {
   getScriptList() {
     return axios({ url: '/script', method: 'get' })
   },
+  getLocalScriptList() {
+    return axios({ url: '/local-script', method: 'get' })
+  },
   addScript(data) {
     return axios({ url: '/script', method: 'post', data })
   },

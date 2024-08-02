@@ -151,26 +151,24 @@ function initScriptsDB() {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve) => {
     let scriptList = await readScriptList()
-    let clientInstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh && sh easynode-client-install.sh'
-    let clientUninstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh && sh easynode-client-uninstall.sh'
-    let clientVersion = process.env.CLIENT_VERSION
-    consola.info('客户端版本：', clientVersion)
-    let installId = `clientInstall${ clientVersion }`
-    let uninstallId = `clientUninstall${ clientVersion }`
+    let clientInstallScript = 'curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash'
+    let clientUninstallScript = 'curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash'
+    let installId = 'clientInstall'
+    let uninstallId = 'clientUninstall'
 
     let isClientInstall = scriptList?.find(script => script._id = installId)
     let isClientUninstall = scriptList?.find(script => script._id = uninstallId)
     let writeFlag = false
     if (!isClientInstall) {
       console.info('初始化客户端安装脚本')
-      scriptList.push({ _id: installId, name: `easynode-客户端-${ clientVersion }安装脚本`, remark: '系统内置|重启生成', content: clientInstallScript, index: 1 })
+      scriptList.push({ _id: installId, name: 'easynode-客户端-安装脚本', description: '系统内置|重启生成', command: clientInstallScript, index: 1 })
       writeFlag = true
     } else {
       console.info('客户端安装脚本已存在')
     }
     if (!isClientUninstall) {
       console.info('初始化客户端卸载脚本')
-      scriptList.push({ _id: uninstallId, name: `easynode-客户端-${ clientVersion }卸载脚本`, remark: '系统内置|重启生成', content: clientUninstallScript, index: 0 })
+      scriptList.push({ _id: uninstallId, name: 'easynode-客户端-卸载脚本', description: '系统内置|重启生成', command: clientUninstallScript, index: 0 })
       writeFlag = true
     } else {
       console.info('客户端卸载脚本已存在')
@@ -185,5 +183,5 @@ module.exports = async () => {
   await initNotifyDB()
   await initGroupDB()
   await initEmailNotifyDB()
-  await initScriptsDB()
+  // await initScriptsDB()
 }

@@ -6,12 +6,15 @@
     <el-table v-loading="loading" :data="scriptList">
       <el-table-column prop="index" label="序号" width="100px" />
       <el-table-column prop="name" label="名称" />
-      <el-table-column prop="remark" label="备注" />
-      <el-table-column prop="content" label="脚本内容" show-overflow-tooltip />
+      <el-table-column prop="description" label="描述" />
+      <el-table-column prop="command" label="指令内容" show-overflow-tooltip />
       <el-table-column label="操作">
         <template #default="{ row }">
-          <el-button type="primary" @click="handleChange(row)">修改</el-button>
-          <el-button v-show="row.id !== 'own'" type="danger" @click="handleRemove(row)">删除</el-button>
+          <template v-if="row.index !== '--'">
+            <el-button type="primary" @click="handleChange(row)">修改</el-button>
+            <el-button v-show="row.id !== 'own'" type="danger" @click="handleRemove(row)">删除</el-button>
+          </template>
+          <span v-else>--</span>
         </template>
       </el-table-column>
     </el-table>
@@ -40,9 +43,9 @@
             autocomplete="off"
           />
         </el-form-item>
-        <el-form-item label="备注" prop="remark">
+        <el-form-item label="描述" prop="description">
           <el-input
-            v-model="formData.remark"
+            v-model="formData.description"
             clearable
             placeholder=""
             autocomplete="off"
@@ -56,9 +59,9 @@
             autocomplete="off"
           />
         </el-form-item>
-        <el-form-item prop="content" label="内容">
+        <el-form-item prop="command" label="内容">
           <el-input
-            v-model="formData.content"
+            v-model="formData.command"
             type="textarea"
             :rows="5"
             clearable
@@ -89,17 +92,17 @@ let isModify = ref(false)
 
 let formData = reactive({
   name: '',
-  remark: '',
+  description: '',
   index: 0,
-  content: ''
+  command: ''
 })
 
 const rules = computed(() => {
   return {
     name: { required: true, trigger: 'change' },
-    remark: { required: false, trigger: 'change' },
+    description: { required: false, trigger: 'change' },
     index: { required: false, type: 'number', trigger: 'change' },
-    content: { required: true, trigger: 'change' }
+    command: { required: true, trigger: 'change' }
   }
 })
 

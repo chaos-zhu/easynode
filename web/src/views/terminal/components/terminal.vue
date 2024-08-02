@@ -219,10 +219,10 @@ const handleCommandHost = (host) => {
 }
 
 const handleExecScript = (scriptObj) => {
-  // console.log(scriptObj.content)
-  if (!isSyncAllSession.value) return handleInputCommand(scriptObj.content)
+  const { command } = scriptObj
+  if (!isSyncAllSession.value) return handleInputCommand(command)
   terminalRefs.value.forEach(terminalRef => {
-    terminalRef.inputCommand(scriptObj.content)
+    terminalRef.inputCommand(command)
   })
 }
 
@@ -307,7 +307,7 @@ const handleInputCommand = async (command) => {
   const curTerminalRef = terminalRefs.value[activeTabIndex.value]
   await $nextTick()
   curTerminalRef?.focusTab()
-  curTerminalRef.inputCommand(`${ command }\n`)
+  curTerminalRef.inputCommand(`${ command }`) // \n
   showInputCommand.value = false
 }
 </script>

@@ -1,0 +1,17 @@
+[
+  {
+    "name": "easynode客户端安装",
+    "command": "curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash",
+    "description": "easynode-客户端-安装脚本"
+  },
+  {
+    "name": "easynode客户端卸载",
+    "command": "curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash",
+    "description": "easynode-客户端-卸载脚本"
+  },
+  {
+    "name": "查询本机公网IP",
+    "command": "curl ifconfig.me",
+    "description": "查询本机公网IP"
+  }
+]

@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client'
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import $api from '@/api'
-import ping from '@/utils/ping'
+// import ping from '@/utils/ping'
 
 const useStore = defineStore({
   id: 'global',
@@ -11,6 +11,7 @@ const useStore = defineStore({
     groupList: [],
     sshList: [],
     scriptList: [],
+    localScriptList: [],
     HostStatusSocket: null,
     user: localStorage.getItem('user') || null,
     token: sessionStorage.getItem('token') || localStorage.getItem('token') || null,
@@ -39,6 +40,7 @@ const useStore = defineStore({
       await this.getHostList()
       await this.getSSHList()
       await this.getScriptList()
+      // await this.getLocalScriptList()
     },
     async getHostList() {
       const { data: hostList } = await $api.getHostList()
@@ -60,6 +62,11 @@ const useStore = defineStore({
       const { data: scriptList } = await $api.getScriptList()
       // console.log('scriptList:', scriptList)
       this.$patch({ scriptList })
+    },
+    async getLocalScriptList() {
+      const { data: localScriptList } = await $api.getLocalScriptList()
+      // console.log('localScriptList:', localScriptList)
+      this.$patch({ localScriptList })
     },
     // getHostPing() {
     //   setInterval(() => {

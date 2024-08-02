@@ -326,7 +326,7 @@ let selectAllHost = (val) => {
 
 let handleImportScript = (scriptObj) => {
   isClient.value = scriptObj.id.startsWith('client')
-  formData.command = scriptObj.content
+  formData.command = scriptObj.command
 }
 
 let getStatusType = (status) => {

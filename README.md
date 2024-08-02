@@ -82,13 +82,13 @@ pm2 start index.js --name easynode-server
 > 安装
 
 ```shell
-wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash
+curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash
 ```
 
 > 卸载
 
 ```shell
-wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash
+curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash
 ```
 
 > 查看客户端状态：`systemctl status easynode-client`

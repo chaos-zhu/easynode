@@ -3,7 +3,7 @@ const { getHostList, addHost, updateHost, removeHost, importHost } = require('..
 const { login, getpublicKey, updatePwd, getLoginRecord } = require('../controller/user')
 const { getSupportEmailList, getUserEmailList, updateUserEmailList, removeUserEmail, pushEmail, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
-const { getScriptList, addScript, updateScriptList, removeScript } = require('../controller/scripts')
+const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript } = require('../controller/scripts')
 const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
 
 const ssh = [
@@ -148,6 +148,11 @@ const scripts = [
     method: 'get',
     path: '/script',
     controller: getScriptList
+  },
+  {
+    method: 'get',
+    path: '/local-script',
+    controller: getLocalScriptList
   },
   {
     method: 'post',
