@@ -13,5 +13,15 @@
     "name": "查询本机公网IP",
     "command": "curl ifconfig.me",
     "description": "查询本机公网IP"
+  },
+  {
+    "name": "bench.sh 性能测试",
+    "command": "curl bench.sh -L | bash",
+    "description": "bench.sh 性能测试"
+  },
+  {
+    "name": "设置时区为中国常用",
+    "command": "timedatectl set-timezone 'Asia/Shanghai'",
+    "description": "设置时区为中国常用"
   }
 ]
