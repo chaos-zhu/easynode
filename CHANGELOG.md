@@ -1,3 +1,12 @@
+## [2.1.0](https://github.com/chaos-zhu/easynode/releases) (2024-08-02)
+
+### Features
+
+* 支持脚本库功能 ✔
+* 支持批量指令下发功能 ✔
+* 重写Dockerfile,大幅减少镜像体积 ✔
+* 调整优化面板UI ✔
+
 ## [2.0.0](https://github.com/chaos-zhu/easynode/releases) (2024-07-29)
 
 ### Features

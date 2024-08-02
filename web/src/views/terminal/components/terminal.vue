@@ -61,7 +61,7 @@
         <div class="switch_wrap">
           <el-tooltip
             effect="dark"
-            content="开启后发送键盘输入到所有会话"
+            content="开启后同步键盘输入到所有会话"
             placement="top"
           >
             <el-switch
