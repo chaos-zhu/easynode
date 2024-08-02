@@ -34,7 +34,7 @@
       >
         <el-form-item label="名称" prop="name">
           <el-input
-            v-model.trim="formData.name"
+            v-model="formData.name"
             clearable
             placeholder=""
             autocomplete="off"
@@ -42,7 +42,7 @@
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input
-            v-model.trim="formData.remark"
+            v-model="formData.remark"
             clearable
             placeholder=""
             autocomplete="off"
@@ -58,7 +58,7 @@
         </el-form-item>
         <el-form-item prop="content" label="内容">
           <el-input
-            v-model.trim="formData.content"
+            v-model="formData.content"
             type="textarea"
             :rows="5"
             clearable

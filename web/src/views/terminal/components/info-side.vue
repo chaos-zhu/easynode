@@ -25,15 +25,14 @@
         <!-- <div size="small">{{ ipInfo.country || '--' }} {{ ipInfo.regionName }} {{ ipInfo.city }}</div> -->
         <div size="small">{{ ipInfo.country || '--' }} {{ ipInfo.regionName }}</div>
       </el-descriptions-item>
-      <el-descriptions-item>
+      <!-- <el-descriptions-item>
         <template #label>
           <div class="item-title">
             延迟
           </div>
         </template>
         <span style="margin-right: 10px;" class="host-ping">{{ ping }}</span>
-        <!-- <span>(http)</span> -->
-      </el-descriptions-item>
+      </el-descriptions-item> -->
     </el-descriptions>
 
     <!-- <el-divider content-position="center">实时监控</el-divider> -->

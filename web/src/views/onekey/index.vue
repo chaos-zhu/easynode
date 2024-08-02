@@ -1,10 +1,20 @@
 <template>
   <div class="onekey_container">
     <div class="header">
-      <el-button type="primary" @click="addOnekey">
-        批量下发指令
+      <el-button
+        type="primary"
+        :disabled="isExecuting"
+        :loading="isExecuting"
+        @click="addOnekey"
+      >
+        {{ isExecuting ? `执行中，剩余${timeRemaining}秒` : '批量下发指令' }}
       </el-button>
-      <el-button v-show="recordList.length" type="danger" @click="handleRemoveAll">
+      <el-button
+        v-show="recordList.length"
+        :disabled="isExecuting"
+        type="danger"
+        @click="handleRemoveAll"
+      >
         删除全部记录
       </el-button>
     </div>
@@ -28,7 +38,7 @@
           <span style="letter-spacing: 2px;"> {{ row.host }} </span>
         </template>
       </el-table-column>
-      <el-table-column prop="command" label="指令">
+      <el-table-column prop="command" label="指令" show-overflow-tooltip>
         <template #default="{ row }">
           <span style="letter-spacing: 2px;background: rgba(227, 230, 235, 0.7);color: rgb(54, 52, 52);"> {{ row.command }} </span>
         </template>
@@ -125,7 +135,7 @@
               :rows="5"
               clearable
               autocomplete="off"
-              placeholder="shell script"
+              placeholder="shell script, ex: ping -c 10 google.com"
             />
           </div>
         </el-form-item>
@@ -166,17 +176,21 @@ let penddingRecord = ref([])
 let checkAll = ref(false)
 let indeterminate = ref(false)
 const updateFormRef = ref(null)
+let timeRemaining = ref(0)
+const isClient = ref(false)
 
 let formData = reactive({
   hosts: [],
-  command: 'ping -c 10 google.com',
-  timeout: 60
+  command: '',
+  timeout: 120
 })
 
 const token = computed(() => $store.token)
 const hostList = computed(() => $store.hostList)
 let scriptList = computed(() => $store.scriptList)
+let isExecuting = computed(() => timeRemaining.value > 0)
 const hasConfigHostList = computed(() => hostList.value.filter(item => item.isConfig))
+
 const tableData = computed(() => {
   return penddingRecord.value.concat(recordList.value).map(item => {
     item.loading = false
@@ -210,12 +224,17 @@ watch(() => formData.hosts, (val) => {
 
 const createExecShell = (hosts = [], command = 'ls', timeout = 60) => {
   loading.value = true
+  timeRemaining.value = Number(formData.timeout)
+  let timer = null
   socket.value = io($serviceURI, {
     path: '/onekey',
     forceNew: false,
     reconnectionAttempts: 1
   })
   socket.value.on('connect', () => {
+    timer = setInterval(() => {
+      timeRemaining.value -= 1
+    }, 1000)
     console.log('onekey socket已连接：', socket.value.id)
 
     socket.value.on('ready', () => {
@@ -274,6 +293,10 @@ const createExecShell = (hosts = [], command = 'ls', timeout = 60) => {
 
   socket.value.on('disconnect', () => {
     loading.value = false
+    timeRemaining.value = 0
+    if (isClient.value) $store.getHostList() // 如果是客户端安装/卸载脚本，更新下host
+    isClient.value = false
+    clearInterval(timer)
     console.warn('onekey websocket 连接断开')
   })
 
@@ -302,6 +325,7 @@ let selectAllHost = (val) => {
 }
 
 let handleImportScript = (scriptObj) => {
+  isClient.value = scriptObj.id.startsWith('client')
   formData.command = scriptObj.content
 }
 

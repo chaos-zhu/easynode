@@ -36,15 +36,15 @@
       >
         <el-form-item label="凭证名称" prop="name">
           <el-input
-            v-model.trim="sshForm.name"
+            v-model="sshForm.name"
             clearable
             placeholder=""
             autocomplete="off"
           />
         </el-form-item>
         <el-form-item label="认证方式" prop="type">
-          <el-radio v-model.trim="sshForm.authType" value="privateKey">密钥</el-radio>
-          <el-radio v-model.trim="sshForm.authType" value="password">密码</el-radio>
+          <el-radio v-model="sshForm.authType" value="privateKey">密钥</el-radio>
+          <el-radio v-model="sshForm.authType" value="password">密码</el-radio>
         </el-form-item>
         <el-form-item v-if="sshForm.authType === 'privateKey'" prop="privateKey" label="密钥">
           <el-button type="primary" size="small" @click="handleClickUploadBtn">
@@ -58,7 +58,7 @@
             @change="handleSelectPrivateKeyFile"
           >
           <el-input
-            v-model.trim="sshForm.privateKey"
+            v-model="sshForm.privateKey"
             type="textarea"
             :rows="5"
             clearable

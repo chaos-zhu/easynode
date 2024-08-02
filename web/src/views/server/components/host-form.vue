@@ -32,7 +32,7 @@
         </el-form-item>
         <el-form-item key="name" label="名称" prop="name">
           <el-input
-            v-model.trim="hostForm.name"
+            v-model="hostForm.name"
             clearable
             placeholder=""
             autocomplete="off"
@@ -79,9 +79,9 @@
           </el-autocomplete>
         </el-form-item>
         <el-form-item key="authType" label="认证方式" prop="authType">
-          <el-radio v-model.trim="hostForm.authType" value="privateKey">密钥</el-radio>
-          <el-radio v-model.trim="hostForm.authType" value="password">密码</el-radio>
-          <el-radio v-model.trim="hostForm.authType" value="credential">凭据</el-radio>
+          <el-radio v-model="hostForm.authType" value="privateKey">密钥</el-radio>
+          <el-radio v-model="hostForm.authType" value="password">密码</el-radio>
+          <el-radio v-model="hostForm.authType" value="credential">凭据</el-radio>
         </el-form-item>
         <el-form-item
           v-if="hostForm.authType === 'privateKey'"
@@ -103,7 +103,7 @@
             @change="handleSelectPrivateKeyFile"
           >
           <el-input
-            v-model.trim="hostForm.privateKey"
+            v-model="hostForm.privateKey"
             type="textarea"
             :rows="5"
             clearable
@@ -206,7 +206,7 @@
         </el-form-item>
         <el-form-item key="remark" label="备注" prop="remark">
           <el-input
-            v-model.trim="hostForm.remark"
+            v-model="hostForm.remark"
             type="textarea"
             :rows="3"
             clearable

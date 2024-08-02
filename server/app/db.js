@@ -151,8 +151,8 @@ function initScriptsDB() {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve) => {
     let scriptList = await readScriptList()
-    let clientInstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash'
-    let clientUninstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash'
+    let clientInstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh && sh easynode-client-install.sh'
+    let clientUninstallScript = 'wget https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh && sh easynode-client-uninstall.sh'
     let clientVersion = process.env.CLIENT_VERSION
     consola.info('客户端版本：', clientVersion)
     let installId = `clientInstall${ clientVersion }`
@@ -162,12 +162,18 @@ function initScriptsDB() {
     let isClientUninstall = scriptList?.find(script => script._id = uninstallId)
     let writeFlag = false
     if (!isClientInstall) {
-      scriptList.push({ _id: installId, name: `easynode-client-${ clientVersion }安装脚本`, remark: '系统内置|重启生成', content: clientInstallScript, index: 99 })
+      console.info('初始化客户端安装脚本')
+      scriptList.push({ _id: installId, name: `easynode-客户端-${ clientVersion }安装脚本`, remark: '系统内置|重启生成', content: clientInstallScript, index: 1 })
       writeFlag = true
+    } else {
+      console.info('客户端安装脚本已存在')
     }
     if (!isClientUninstall) {
-      scriptList.push({ _id: uninstallId, name: `easynode-client-${ clientVersion }卸载脚本`, remark: '系统内置|重启生成', content: clientUninstallScript, index: 98 })
+      console.info('初始化客户端卸载脚本')
+      scriptList.push({ _id: uninstallId, name: `easynode-客户端-${ clientVersion }卸载脚本`, remark: '系统内置|重启生成', content: clientUninstallScript, index: 0 })
       writeFlag = true
+    } else {
+      console.info('客户端卸载脚本已存在')
     }
     if (writeFlag) await writeScriptList(scriptList)
     resolve()

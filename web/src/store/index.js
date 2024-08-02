@@ -61,35 +61,31 @@ const useStore = defineStore({
       // console.log('scriptList:', scriptList)
       this.$patch({ scriptList })
     },
-    getHostPing() {
-      setTimeout(() => {
-        this.hostList.forEach((item) => {
-          const { host } = item
-          ping(`http://${ host }:${ this.$clientPort }`)
-            .then((res) => {
-              item.ping = res
-            })
-        })
-        // console.clear()
-        // console.warn('Please tick \'Preserve Log\'')
-      }, 1500)
-    },
+    // getHostPing() {
+    //   setInterval(() => {
+    //     this.hostList.forEach((item) => {
+    //       const { host } = item
+    //       ping(`http://${ host }:${ this.$clientPort }`)
+    //         .then((res) => {
+    //           item.ping = res
+    //         })
+    //     })
+    //   }, 2000)
+    // },
     async wsHostStatus() {
       if (this.HostStatusSocket) this.HostStatusSocket.close()
       let socketInstance = io(this.serviceURI, {
         path: '/clients',
         forceNew: true,
         reconnectionDelay: 5000,
-        reconnectionAttempts: 2
+        reconnectionAttempts: 3
       })
       this.HostStatusSocket = socketInstance
       socketInstance.on('connect', () => {
-        let flag = 5
         console.log('clients websocket 已连接: ', socketInstance.id)
         let token = this.token
         socketInstance.emit('init_clients_data', { token })
         socketInstance.on('clients_data', (data) => {
-          if ((flag++ % 5) === 0) this.getHostPing()
           this.hostList.forEach(item => {
             const { host } = item
             if (data[host] === null) return { ...item }

@@ -204,40 +204,25 @@ function resolvePath(dir, path) {
   return path.resolve(dir, path)
 }
 
-function throttle(func, limit) {
-  let lastFunc
-  let lastRan
-  let pendingArgs = null
-
-  const runner = () => {
-    func.apply(this, pendingArgs)
-    lastRan = Date.now()
-    pendingArgs = null
-  }
-
-  const throttled = function() {
-    const context = this
-    const args = arguments
-    pendingArgs = args
-    if (!lastRan || (Date.now() - lastRan >= limit)) {
-      if (lastFunc) {
-        clearTimeout(lastFunc)
-      }
-      runner.apply(context, args)
-    } else {
-      clearTimeout(lastFunc)
-      lastFunc = setTimeout(() => {
-        runner.apply(context, args)
-      }, limit - (Date.now() - lastRan))
+let shellThrottle = (fn, delay = 1000) => {
+  let timer = null
+  let args = null
+  function throttled() {
+    args = arguments
+    if (!timer) {
+      timer = setTimeout(() => {
+        fn(...args)
+        timer = null
+      }, delay)
     }
   }
-
-  throttled.flush = () => {
-    if (pendingArgs) {
-      runner.apply(this, pendingArgs)
-    }
+  function delayMs() {
+    return new Promise(resolve => setTimeout(resolve, delay))
   }
-
+  throttled.last = async () => {
+    await delayMs()
+    fn(...args)
+  }
   return throttled
 }
 
@@ -249,5 +234,5 @@ module.exports = {
   getUTCDate,
   formatTimestamp,
   resolvePath,
-  throttle
+  shellThrottle
 }

@@ -54,7 +54,7 @@
       >
         <el-form-item label="分组名称" prop="name">
           <el-input
-            v-model.trim="groupForm.name"
+            v-model="groupForm.name"
             clearable
             placeholder=""
             autocomplete="off"

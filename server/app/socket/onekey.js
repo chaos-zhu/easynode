@@ -1,6 +1,6 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const { readHostList, readSSHRecord, verifyAuthSync, AESDecryptSync, writeOneKeyRecord, throttle } = require('../utils')
+const { readHostList, readSSHRecord, verifyAuthSync, AESDecryptSync, writeOneKeyRecord, shellThrottle } = require('../utils')
 
 const execStatusEnum = {
   connecting: '连接中',
@@ -27,10 +27,17 @@ function disconnectAllExecClient() {
 }
 
 function execShell(socket, sshClient, curRes, resolve) {
-  const throttledDataHandler = throttle((data) => {
-    curRes.status = execStatusEnum.executing
-    curRes.result += data?.toString() || ''
+  const throttledDataHandler = shellThrottle(() => {
     socket.emit('output', execResult)
+    // const memoryUsage = process.memoryUsage()
+    // const formattedMemoryUsage = {
+    //   rss: (memoryUsage.rss / 1024 / 1024).toFixed(2) + ' MB', // Resident Set Size: total memory allocated for the process execution
+    //   heapTotal: (memoryUsage.heapTotal / 1024 / 1024).toFixed(2) + ' MB', // Total size of the allocated heap
+    //   heapUsed: (memoryUsage.heapUsed / 1024 / 1024).toFixed(2) + ' MB', // Actual memory used during the execution
+    //   external: (memoryUsage.external / 1024 / 1024).toFixed(2) + ' MB', // Memory used by "external" components like V8 external memory
+    //   arrayBuffers: (memoryUsage.arrayBuffers / 1024 / 1024).toFixed(2) + ' MB' // Memory allocated for ArrayBuffer and SharedArrayBuffer, including all Node.js Buffers
+    // }
+    // console.log(formattedMemoryUsage)
   }, 500) // 防止内存爆破
   sshClient.exec(curRes.command, function(err, stream) {
     if (err) {
@@ -41,8 +48,9 @@ function execShell(socket, sshClient, curRes, resolve) {
       return
     }
     stream
-      .on('close', () => {
-        throttledDataHandler.flush()
+      .on('close', async () => {
+        // ssh连接关闭后，再执行一次输出，防止最后一次节流函数发生在延迟时间内导致终端的输出数据丢失
+        await throttledDataHandler.last() // 等待最后一次节流函数执行完成，再执行一次数据输出
         // console.log('onekey终端执行完成, 关闭连接: ', curRes.host)
         if (curRes.status === execStatusEnum.executing) {
           curRes.status = execStatusEnum.execSuccess
@@ -53,16 +61,16 @@ function execShell(socket, sshClient, curRes, resolve) {
       })
       .on('data', (data) => {
         // console.log(curRes.host, '执行中: \n' + data)
-        // curRes.status = execStatusEnum.executing
-        // curRes.result += data.toString()
+        curRes.status = execStatusEnum.executing
+        curRes.result += data.toString()
         // socket.emit('output', execResult)
         throttledDataHandler(data)
       })
       .stderr
       .on('data', (data) => {
         // console.log(curRes.host, '命令执行过程中产生错误: ' + data)
-        // curRes.status = execStatusEnum.executing
-        // curRes.result += data.toString()
+        curRes.status = execStatusEnum.executing
+        curRes.result += data.toString()
         // socket.emit('output', execResult)
         throttledDataHandler(data)
       })
@@ -147,6 +155,7 @@ module.exports = (httpServer) => {
                 consola.error('onekey终端连接失败:', err.level)
                 curRes.status = execStatusEnum.connectFail
                 curRes.result += err.message
+                socket.emit('output', execResult)
                 resolve(curRes)
               })
               .connect({
@@ -157,6 +166,7 @@ module.exports = (httpServer) => {
             consola.error('创建终端错误:', err.message)
             curRes.status = execStatusEnum.connectFail
             curRes.result += err.message
+            socket.emit('output', execResult)
             resolve(curRes)
           }
         })
