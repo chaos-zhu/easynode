@@ -43,7 +43,7 @@
 #### Docker
 
 ```shell
-docker run -d --net=host --name=easynode-server -v $PWD/easynode/db:/easynode/server/app/db chaoszhu/easynode
+docker run -d --net=host --name=easynode-server -v $PWD/easynode/db:/easynode/app/db chaoszhu/easynode
 ```
 访问：http://yourip:8082
 
