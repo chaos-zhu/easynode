@@ -122,6 +122,12 @@ curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/
 
 - 你的Star是我更新的动力，感谢~
 
+## 捐赠研发
+
+如果您认为此项目帮到了您, 您可以请我喝杯阔乐~
+
+![wx](./doc_images/wx.jpg)
+
 ## License
 
 [MIT](LICENSE). Copyright (c).
