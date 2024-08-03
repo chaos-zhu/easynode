@@ -12,14 +12,14 @@
   >
     <div v-if="isBatchModify" class="batch_info">
       <el-alert title="正在进行批量修改操作,留空默认保留原值" type="warning" :closable="false" />
-      <!-- <el-tag
+      <el-tag
         v-for="item in batchHosts"
         :key="item.id"
         class="host_name_tag"
         type="warning"
       >
         {{ item.name }}
-      </el-tag> -->
+      </el-tag>
     </div>
     <el-form
       ref="formRef"
@@ -83,7 +83,7 @@
             <el-input
               v-model.trim.number="hostForm.port"
               clearable
-              placeholder="port"
+              placeholder=""
               autocomplete="off"
             />
           </el-form-item>
@@ -312,7 +312,7 @@ const rules = computed(() => {
     group: { required: !isBatchModify.value, message: '选择一个分组' },
     name: { required: !isBatchModify.value, message: '输入实例别名', trigger: 'change' },
     host: { required: !isBatchModify.value, message: '输入IP/域名', trigger: 'change' },
-    port: { required: true, type: 'number', message: '输入ssh端口', trigger: 'change' },
+    port: { required: !isBatchModify.value, type: 'number', message: '输入ssh端口', trigger: 'change' },
     index: { required: !isBatchModify.value, type: 'number', message: '输入数字', trigger: 'change' },
     // password: [{ required: hostForm.authType === 'password', trigger: 'change' },],
     // privateKey: [{ required: hostForm.authType === 'privateKey', trigger: 'change' },],
@@ -345,7 +345,7 @@ const setDefaultData = () => {
 
 const setBatchDefaultData = () => {
   if (!isBatchModify.value) return
-  Object.assign(hostForm.value, { ...formField }, { group: '' })
+  Object.assign(hostForm.value, { ...formField }, { group: '', port: '', username: '', authType: '' })
 }
 const handleOpen = async () => {
   setDefaultData()
@@ -404,6 +404,7 @@ const handleSave = () => {
       if (isBatchModify.value) {
         // eslint-disable-next-line
         let updateFileData = Object.fromEntries(Object.entries(formData).filter(([key, value]) => Boolean(value))) // 剔除掉未更改的值
+        if (Object.keys(updateFileData).length === 0) return $message.warning('没有任何修改')
         // console.log(updateFileData)
         let newHosts = batchHosts.value
           .map(item => ({ ...item, ...updateFileData }))

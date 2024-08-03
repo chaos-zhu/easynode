@@ -3,10 +3,10 @@
     <el-table
       ref="tableRef"
       :data="hosts"
-      @select="handleSelectionChange"
-      @select-all="handleSelectionChange"
+      row-key="host"
+      @selection-change="handleSelectionChange"
     >
-      <el-table-column type="selection" />
+      <el-table-column type="selection" reserve-selection />
       <el-table-column prop="index" label="序号" width="100px" />
       <el-table-column label="名称">
         <template #default="scope">{{ scope.row.name }}</template>
@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance, nextTick, watch } from 'vue'
+import { ref, computed, getCurrentInstance, nextTick, watch, defineExpose } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const { proxy: { $api, $router, $tools } } = getCurrentInstance()
@@ -107,22 +107,30 @@ const handleSSH = async ({ host }) => {
   $router.push({ path: '/terminal', query: { host } })
 }
 
-let selectHosts = ref([])
+// let selectHosts = ref([])
 // 由于table数据内部字段更新后table组件会自动取消勾选,所以这里需要手动set勾选
-watch(() => props.hosts, () => {
-  // console.log('hosts change')
-  nextTick(() => {
-    selectHosts.value.forEach(row => {
-      tableRef.value.toggleRowSelection && tableRef.value.toggleRowSelection(row, true)
-    })
-  })
-}, { immediate: true, deep: true })
+// watch(() => props.hosts, () => {
+//   // console.log('hosts change')
+//   nextTick(() => {
+//     selectHosts.value.forEach(row => {
+//       tableRef.value.toggleRowSelection && tableRef.value.toggleRowSelection(row, true)
+//     })
+//   })
+// }, { immediate: true, deep: true })
 
 const handleSelectionChange = (val) => {
   // console.log('select: ', val)
-  selectHosts.value = val
+  // selectHosts.value = val
   emit('select-change', val)
 }
+
+const clearSelection = () => {
+  tableRef.value.clearSelection()
+}
+
+defineExpose({
+  clearSelection
+})
 
 const handleRemoveHost = async ({ host }) => {
   ElMessageBox.confirm('确认删除实例', 'Warning', {

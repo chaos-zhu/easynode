@@ -44,6 +44,7 @@
               @update-list="handleUpdateList"
             /> -->
             <HostTable
+              ref="hostTableRefs"
               :hosts="hosts"
               :hidden-ip="hiddenIp"
               @update-host="handleUpdateHost"
@@ -60,7 +61,7 @@
       :is-batch-modify="isBatchModify"
       :batch-hosts="selectHosts"
       @update-list="handleUpdateList"
-      @closed="updateHostData = null;isBatchModify = false"
+      @closed="hostFormClosed"
     />
     <ImportHost
       v-model:show="importVisible"
@@ -84,6 +85,7 @@ let hostFormVisible = ref(false)
 let importVisible = ref(false)
 let selectHosts = ref([])
 let isBatchModify = ref(false)
+const hostTableRefs = ref([])
 
 let hiddenIp = ref(Number(localStorage.getItem('hiddenIp') || 0))
 let activeGroup = ref([])
@@ -164,6 +166,13 @@ watch(groupHostList, () => {
 })
 
 let isNoHost = computed(() => Object.keys(groupHostList.value).length === 0)
+
+let hostFormClosed = () => {
+  updateHostData.value = null
+  isBatchModify.value = false
+  selectHosts.value = []
+  hostTableRefs.value.forEach(item => item.clearSelection())
+}
 
 </script>
 

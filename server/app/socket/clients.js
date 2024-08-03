@@ -101,7 +101,7 @@ module.exports = (httpServer) => {
         if (timer) clearInterval(timer)
         clientSockets.forEach(socket => socket.close && socket.close())
         clientSockets = null
-        clientsData = null
+        clientsData = {}
         consola.info('clients-socket 连接断开: ', socket.id)
       })
     })
