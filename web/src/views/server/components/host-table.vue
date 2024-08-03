@@ -107,21 +107,15 @@ const handleSSH = async ({ host }) => {
   $router.push({ path: '/terminal', query: { host } })
 }
 
-// let selectHosts = ref([])
-// 由于table数据内部字段更新后table组件会自动取消勾选,所以这里需要手动set勾选
-// watch(() => props.hosts, () => {
-//   // console.log('hosts change')
-//   nextTick(() => {
-//     selectHosts.value.forEach(row => {
-//       tableRef.value.toggleRowSelection && tableRef.value.toggleRowSelection(row, true)
-//     })
-//   })
-// }, { immediate: true, deep: true })
-
+let selectHosts = ref([])
 const handleSelectionChange = (val) => {
   // console.log('select: ', val)
-  // selectHosts.value = val
+  selectHosts.value = val
   emit('select-change', val)
+}
+
+const getSelectHosts = () => {
+  return selectHosts.value
 }
 
 const clearSelection = () => {
@@ -129,6 +123,7 @@ const clearSelection = () => {
 }
 
 defineExpose({
+  getSelectHosts,
   clearSelection
 })
 

@@ -50,7 +50,6 @@
               :hidden-ip="hiddenIp"
               @update-host="handleUpdateHost"
               @update-list="handleUpdateList"
-              @select-change="handleSelectChange"
             />
           </div>
         </el-collapse-item>
@@ -100,22 +99,33 @@ let handleUpdateList = async () => {
   }
 }
 
-let handleSelectChange = (val) => {
-  selectHosts.value = val
+// 收集选中的实例
+let collectSelectHost = () => {
+  let allSelectHosts = []
+  hostTableRefs.value.map(item => {
+    if (item) allSelectHosts = allSelectHosts.concat(item.getSelectHosts())
+  })
+  selectHosts.value = allSelectHosts
 }
 
 let handleBatchSSH = () => {
-  let ips = selectHosts.value.map(item => item.host)
+  collectSelectHost()
+  if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
+  let ips = selectHosts.value.filter(item => item.isConfig).map(item => item.host)
+  if (!ips.length) return $message.warning('所选实例未配置ssh连接信息')
+  if (ips.length < selectHosts.value.length) $message.warning('部分实例未配置ssh连接信息,已忽略')
   $router.push({ path: '/terminal', query: { host: ips.join(',') } })
 }
 
 let handleBatchModify = async () => {
+  collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
   isBatchModify.value = true
   hostFormVisible.value = true
 }
 
 let handleBatchRemove = async () => {
+  collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
   let ips = selectHosts.value.map(item => item.host)
   let names = selectHosts.value.map(item => item.name)
