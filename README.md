@@ -6,13 +6,13 @@
 > [!WARNING]
 > 强烈建议使用 **iptables** 或 **fail2ban** 等安全服务限制IP访问，谨慎暴露面板服务到公网。
 
-> [!NOTE]
-> 客户端信息监控与webssh功能都将以`该服务器作为中转`。中国大陆连接建议使用香港、新加坡、日本、韩国等地区的低延迟服务器来安装服务端
+<!-- > [!NOTE]
+> webssh与监控服务都将以`该服务器作为中转`。中国大陆连接建议使用香港、新加坡、日本、韩国等地区的低延迟服务器来安装服务端 -->
 
   <!-- - [功能](#功能)
   - [安装](#安装指南)
     - [服务端安装](#服务端安装)
-    - [客户端安装](#客户端安装)
+    - [监控服务安装](#监控服务安装)
   - [版本日志](#版本日志)
   - [安全与说明](#安全与说明)
   - [开发](#开发)
@@ -73,9 +73,9 @@ pm2 start index.js --name easynode-server
 
 ---
 
-### 客户端安装
+### 监控服务安装
 
-- 客户端用于实时向服务端推送**系统、公网IP、CPU、内存、硬盘、网卡**等基础信息，不安装不影响使用面板，但是无法实时同步基础信息。
+- 监控服务用于实时向服务端推送**系统、公网IP、CPU、内存、硬盘、网卡**等基础信息，不安装不影响使用面板，但是无法实时同步cpu占用、实时网速、硬盘容量等有用信息。
 
 - 占用端口：**22022**
 
@@ -91,9 +91,9 @@ curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/
 curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash
 ```
 
-> 查看客户端状态：`systemctl status easynode-client`
+> 查看监控服务状态：`systemctl status easynode-client`
 >
-> 查看客户端日志: `journalctl --follow -u easynode-client`
+> 查看监控服务日志: `journalctl --follow -u easynode-client`
 >
 > 查看详细日志：journalctl -xe
 

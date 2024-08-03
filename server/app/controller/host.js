@@ -6,7 +6,7 @@ async function getHostList({ res }) {
   data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
   for (const item of data) {
     let { username, port, authType, _id: id, credential } = item
-    // console.log('解密凭证title: ', credential)
+    console.log('解密凭证title: ', credential)
     if (credential) credential = await AESDecryptSync(credential)
     const isConfig = Boolean(username && port && (item[authType]))
     Object.assign(item, { id, isConfig, password: '', privateKey: '', credential })
@@ -34,7 +34,7 @@ async function addHost({
   const clearTempKey = await RSADecryptSync(tempKey)
   console.log('clearTempKey:', clearTempKey)
   const clearSSHKey = await AESDecryptSync(record[authType], clearTempKey)
-  // console.log(`${ authType }原密文: `, clearSSHKey)
+  console.log(`${ authType }原密文: `, clearSSHKey)
   record[authType] = await AESEncryptSync(clearSSHKey)
   console.log(`${ authType }__commonKey加密存储: `, record[authType])
   hostList.push(record)
@@ -42,15 +42,44 @@ async function addHost({
   res.success()
 }
 
-async function updateHost({
-  res, request
-}) {
+async function updateHost({ res, request }) {
   let {
     body: {
+      hosts,
       host: newHost, name: newName, index, oldHost, expired, expiredNotify, group, consoleUrl, remark,
       port, username, authType, password, privateKey, credential, command, tempKey
     }
   } = request
+  let isBatch = Array.isArray(hosts)
+  console.log('isBatch:', isBatch)
+  if (isBatch) {
+    if (!hosts.length) return res.fail({ msg: 'hosts为空' })
+    let hostList = await readHostList()
+    console.log('批量修改: ', isBatch)
+    let newHostList = []
+    for (let oldRecord of hostList) {
+      let record = hosts.find(item => item.host === oldRecord.host)
+      if (!record) {
+        newHostList.push(oldRecord)
+        continue
+      }
+      let { authType } = record
+      // 如果存在原认证方式则保存下来
+      if (!record[authType] && oldRecord[authType]) {
+        record[authType] = oldRecord[authType]
+      } else {
+        const clearTempKey = await RSADecryptSync(record.tempKey)
+        // console.log('批量解密tempKey:', clearTempKey)
+        const clearSSHKey = await AESDecryptSync(record[authType], clearTempKey)
+        // console.log(`${ authType }原密文: `, clearSSHKey)
+        record[authType] = await AESEncryptSync(clearSSHKey)
+        // console.log(`${ authType }__commonKey加密存储: `, record[authType])
+      }
+      newHostList.push(Object.assign(oldRecord, record))
+    }
+    await writeHostList(newHostList)
+    return res.success({ msg: '批量修改成功' })
+  }
   if (!newHost || !newName || !oldHost) return res.fail({ msg: '参数错误' })
   let hostList = await readHostList()
   let record = {
@@ -66,11 +95,11 @@ async function updateHost({
     record[authType] = oldRecord[authType]
   } else {
     const clearTempKey = await RSADecryptSync(tempKey)
-    console.log('clearTempKey:', clearTempKey)
+    // console.log('clearTempKey:', clearTempKey)
     const clearSSHKey = await AESDecryptSync(record[authType], clearTempKey)
     // console.log(`${ authType }原密文: `, clearSSHKey)
     record[authType] = await AESEncryptSync(clearSSHKey)
-    console.log(`${ authType }__commonKey加密存储: `, record[authType])
+    // console.log(`${ authType }__commonKey加密存储: `, record[authType])
   }
   hostList.splice(idx, 1, record)
   writeHostList(hostList)
@@ -82,9 +111,14 @@ async function removeHost({
 }) {
   let { body: { host } } = request
   let hostList = await readHostList()
-  let hostIdx = hostList.findIndex(item => item.host === host)
-  if (hostIdx === -1) return res.fail({ msg: `${ host }不存在` })
-  hostList.splice(hostIdx, 1)
+  if (Array.isArray(host)) {
+    hostList = hostList.filter(item => !host.includes(item.host))
+    // if (hostList.length === 0) return res.fail({ msg: '没有可删除的实例' })
+  } else {
+    let hostIdx = hostList.findIndex(item => item.host === host)
+    if (hostIdx === -1) return res.fail({ msg: `${ host }不存在` })
+    hostList.splice(hostIdx, 1)
+  }
   writeHostList(hostList)
   res.success({ data: `${ host }已移除` })
 }

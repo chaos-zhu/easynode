@@ -1,10 +1,22 @@
 <template>
   <div class="server_group_container">
     <div class="server_group_header">
+      <el-dropdown>
+        <el-button type="primary" class="group_action_btn">
+          批量操作<el-icon class="el-icon--right"><arrow-down /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="handleBatchModify">批量修改</el-dropdown-item>
+            <el-dropdown-item @click="handleBatchRemove">批量删除</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <!-- <el-button v-show="selectHosts.length" type="primary" @click="hostFormVisible = true">批量操作</el-button> -->
       <el-button type="primary" @click="hostFormVisible = true">添加实例</el-button>
-      <el-button type="primary" @click="handleHiddenIP">
+      <!-- <el-button type="primary" @click="handleHiddenIP">
         {{ hiddenIp ? '显示IP' : '隐藏IP' }}
-      </el-button>
+      </el-button> -->
       <el-button type="primary" @click="importVisible = true">导入实例</el-button>
     </div>
     <div class="server_group_collapse">
@@ -16,20 +28,27 @@
         </el-empty>
       </div>
       <el-collapse v-else v-model="activeGroup">
-        <el-collapse-item v-for="(servers, groupName) in groupHostList" :key="groupName" :name="groupName">
+        <el-collapse-item v-for="(hosts, groupName) in groupHostList" :key="groupName" :name="groupName">
           <template #title>
             <div class="group_title">
               {{ groupName }}
             </div>
           </template>
           <div class="host_card_container">
-            <HostCard
-              v-for="(item, index) in servers"
+            <!-- <HostCard
+              v-for="(item, index) in hosts"
               :key="index"
               :host-info="item"
               :hidden-ip="hiddenIp"
               @update-host="handleUpdateHost"
               @update-list="handleUpdateList"
+            /> -->
+            <HostTable
+              :hosts="hosts"
+              :hidden-ip="hiddenIp"
+              @update-host="handleUpdateHost"
+              @update-list="handleUpdateList"
+              @select-change="handleSelectChange"
             />
           </div>
         </el-collapse-item>
@@ -38,8 +57,10 @@
     <HostForm
       v-model:show="hostFormVisible"
       :default-data="updateHostData"
+      :is-batch-modify="isBatchModify"
+      :batch-hosts="selectHosts"
       @update-list="handleUpdateList"
-      @closed="updateHostData = null"
+      @closed="updateHostData = null;isBatchModify = false"
     />
     <ImportHost
       v-model:show="importVisible"
@@ -49,16 +70,20 @@
 </template>
 
 <script setup>
-import { ref, getCurrentInstance, computed, watch } from 'vue'
-import HostCard from './components/host-card.vue'
+import { h, ref, getCurrentInstance, computed, watch } from 'vue'
+// import HostCard from './components/host-card.vue'
+import HostTable from './components/host-table.vue'
 import HostForm from './components/host-form.vue'
 import ImportHost from './components/import-host.vue'
+import { ArrowDown } from '@element-plus/icons-vue'
 
-const { proxy: { $store, $message } } = getCurrentInstance()
+const { proxy: { $api, $store, $message, $messageBox } } = getCurrentInstance()
 
 let updateHostData = ref(null)
 let hostFormVisible = ref(false)
 let importVisible = ref(false)
+let selectHosts = ref([])
+let isBatchModify = ref(false)
 
 let hiddenIp = ref(Number(localStorage.getItem('hiddenIp') || 0))
 let activeGroup = ref([])
@@ -72,6 +97,33 @@ let handleUpdateList = async () => {
   }
 }
 
+let handleSelectChange = (val) => {
+  selectHosts.value = val
+}
+
+let handleBatchModify = async () => {
+  if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
+  isBatchModify.value = true
+  hostFormVisible.value = true
+}
+
+let handleBatchRemove = async () => {
+  if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
+  let ips = selectHosts.value.map(item => item.host)
+  let names = selectHosts.value.map(item => item.name)
+
+  $messageBox.confirm(() => h('p', { style: 'line-height: 18px;' }, `确认删除\n${ names.join(', ') }吗?`), 'Warning', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    let { data } = await $api.removeHost({ host: ips })
+    $message({ message: data, type: 'success', center: true })
+    selectHosts.value = []
+    await handleUpdateList()
+  })
+}
+
 let handleUpdateHost = (defaultData) => {
   hostFormVisible.value = true
   updateHostData.value = defaultData
@@ -82,14 +134,15 @@ let handleHiddenIP = () => {
   localStorage.setItem('hiddenIp', String(hiddenIp.value))
 }
 
+let hostList = computed(() => $store.hostList)
+
 let groupHostList = computed(() => {
   let res = {}
-  let hostList = $store.hostList
   let groupList = $store.groupList
   groupList.forEach(group => {
     res[group.name] = []
   })
-  hostList.forEach(item => {
+  hostList.value.forEach(item => {
     const group = groupList.find(group => group.id === item.group)
     if (group) {
       res[group.name].push(item)
@@ -121,18 +174,24 @@ let isNoHost = computed(() => Object.keys(groupHostList.value).length === 0)
     display: flex;
     align-items: center;
     justify-content: end;
+    .group_action_btn {
+      margin-right: 12px;
+    }
   }
 
   .server_group_collapse {
+    :deep(.el-collapse-item__header) {
+      padding: 0 35px;
+    }
     .group_title {
-      margin: 0 15px;
+      // margin: 0 15px;
       font-size: 14px;
       font-weight: 600;
       line-height: 22px;
     }
 
     .host_card_container {
-      padding-top: 25px;
+      padding-top: 15px;
     }
     .or {
       color: var(--el-text-color-secondary);

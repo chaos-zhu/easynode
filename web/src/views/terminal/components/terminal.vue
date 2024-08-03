@@ -204,7 +204,7 @@ const handleUpdateList = async ({ isConfig, host }) => {
 
 const handleResizeTerminalSftp = () => {
   $nextTick(() => {
-    mainHeight.value = document.querySelector('.terminals_sftp_wrap').offsetHeight - 45 // 45 is tab-header height+15
+    mainHeight.value = document.querySelector('.terminals_sftp_wrap')?.offsetHeight - 45 // 45 is tab-header height+15
   })
 }
 

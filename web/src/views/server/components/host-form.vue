@@ -4,12 +4,23 @@
     width="600px"
     top="45px"
     modal-class="host_form_dialog"
-    append-to-body
+    :append-to-body="false"
     :title="title"
     :close-on-click-modal="false"
-    @open="setDefaultData"
+    @open="handleOpen"
     @closed="handleClosed"
   >
+    <div v-if="isBatchModify" class="batch_info">
+      <el-alert title="正在进行批量修改操作,留空默认保留原值" type="warning" :closable="false" />
+      <!-- <el-tag
+        v-for="item in batchHosts"
+        :key="item.id"
+        class="host_name_tag"
+        type="warning"
+      >
+        {{ item.name }}
+      </el-tag> -->
+    </div>
     <el-form
       ref="formRef"
       :model="hostForm"
@@ -21,7 +32,12 @@
     >
       <transition-group name="list" mode="out-in" tag="div">
         <el-form-item key="group" label="分组" prop="group">
-          <el-select v-model="hostForm.group" placeholder="实例分组" style="width: 100%;">
+          <el-select
+            v-model="hostForm.group"
+            placeholder=""
+            clearable
+            style="width: 100%;"
+          >
             <el-option
               v-for="item in groupList"
               :key="item.id"
@@ -30,7 +46,12 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item key="name" label="名称" prop="name">
+        <el-form-item
+          v-if="!isBatchModify"
+          key="name"
+          label="名称"
+          prop="name"
+        >
           <el-input
             v-model="hostForm.name"
             clearable
@@ -40,6 +61,7 @@
         </el-form-item>
         <div key="instance_info" class="instance_info">
           <el-form-item
+            v-if="!isBatchModify"
             key="host"
             class="form_item_host"
             label="主机"
@@ -196,7 +218,12 @@
             @keyup.enter="handleSave"
           />
         </el-form-item>
-        <el-form-item key="index" label="序号" prop="index">
+        <el-form-item
+          v-if="!isBatchModify"
+          key="index"
+          label="序号"
+          prop="index"
+        >
           <el-input
             v-model.trim.number="hostForm.index"
             clearable
@@ -240,11 +267,21 @@ const props = defineProps({
     required: false,
     type: Object,
     default: null
+  },
+  isBatchModify: {
+    required: false,
+    type: Boolean,
+    default: false
+  },
+  batchHosts: {
+    required: false,
+    type: Array,
+    default: null
   }
 })
 const emit = defineEmits(['update:show', 'update-list', 'closed',])
 
-const resetForm = () => ({
+const formField = {
   group: 'default',
   name: '',
   host: '',
@@ -260,18 +297,23 @@ const resetForm = () => ({
   consoleUrl: '',
   remark: '',
   command: ''
-})
+}
 
-const hostForm = reactive(resetForm())
-const privateKeyRef = ref(null)
-const oldHost = ref('')
+let hostForm = ref({ ...formField })
+let privateKeyRef = ref(null)
+let oldHost = ref('')
+let formRef = ref(null)
+
+let isBatchModify = computed(() => props.isBatchModify)
+let batchHosts = computed(() => props.batchHosts)
+let defaultData = computed(() => props.defaultData)
 const rules = computed(() => {
   return {
-    group: { required: true, message: '选择一个分组' },
-    name: { required: true, message: '输入实例别名', trigger: 'change' },
-    host: { required: true, message: '输入IP/域名', trigger: 'change' },
+    group: { required: !isBatchModify.value, message: '选择一个分组' },
+    name: { required: !isBatchModify.value, message: '输入实例别名', trigger: 'change' },
+    host: { required: !isBatchModify.value, message: '输入IP/域名', trigger: 'change' },
     port: { required: true, type: 'number', message: '输入ssh端口', trigger: 'change' },
-    index: { required: true, type: 'number', message: '输入数字', trigger: 'change' },
+    index: { required: !isBatchModify.value, type: 'number', message: '输入数字', trigger: 'change' },
     // password: [{ required: hostForm.authType === 'password', trigger: 'change' },],
     // privateKey: [{ required: hostForm.authType === 'privateKey', trigger: 'change' },],
     expired: { required: false },
@@ -281,30 +323,41 @@ const rules = computed(() => {
   }
 })
 
-const formRef = ref(null)
-
 const visible = computed({
   get: () => props.show,
   set: (newVal) => emit('update:show', newVal)
 })
 
-const title = computed(() => props.defaultData ? '修改实例' : '添加实例')
+const title = computed(() => {
+  return isBatchModify.value ? '批量修改实例' : (defaultData.value ? '修改实例' : '添加实例')
+})
 
 let groupList = computed(() => $store.groupList)
 let sshList = computed(() => $store.sshList)
 
-const handleClosed = () => {
-  // console.log('handleClosed')
-  Object.assign(hostForm, resetForm())
-  emit('closed')
-  nextTick(() => formRef.value.resetFields())
+const setDefaultData = () => {
+  if (!defaultData.value) return
+  let { host } = defaultData.value
+  oldHost.value = host
+  Object.assign(hostForm.value, { ...defaultData.value })
 }
 
-const setDefaultData = () => {
-  if (!props.defaultData) return
-  let { host } = props.defaultData
-  oldHost.value = host
-  Object.assign(hostForm, { ...props.defaultData })
+const setBatchDefaultData = () => {
+  if (!isBatchModify.value) return
+  Object.assign(hostForm.value, { ...formField }, { group: '' })
+}
+const handleOpen = async () => {
+  setDefaultData()
+  setBatchDefaultData()
+  await nextTick()
+  formRef.value.clearValidate()
+}
+
+const handleClosed = async () => {
+  emit('closed')
+  Object.assign(hostForm.value, { ...formField })
+  await nextTick()
+  formRef.value.resetFields()
 }
 
 const handleClickUploadBtn = () => {
@@ -315,7 +368,7 @@ const handleSelectPrivateKeyFile = (event) => {
   let file = event.target.files[0]
   let reader = new FileReader()
   reader.onload = (e) => {
-    hostForm.privateKey = e.target.result
+    hostForm.value.privateKey = e.target.result
     privateKeyRef.value = ''
   }
   reader.readAsText(file)
@@ -346,30 +399,53 @@ const toCredentials = () => {
 const handleSave = () => {
   formRef.value.validate()
     .then(async () => {
-      let tempKey = randomStr(16)
-      let formData = { ...hostForm }
-      console.log('formData:', formData)
-      // 加密传输
-      if (formData.password) formData.password = AESEncrypt(formData.password, tempKey)
-      if (formData.privateKey) formData.privateKey = AESEncrypt(formData.privateKey, tempKey)
-      if (formData.credential) formData.credential = AESEncrypt(formData.credential, tempKey)
-      formData.tempKey = RSAEncrypt(tempKey)
-      if (props.defaultData) {
-        let { msg } = await $api.updateHost(Object.assign({}, formData, { oldHost: oldHost.value }))
+      let formData = { ...hostForm.value }
+      if (isBatchModify.value) {
+        // eslint-disable-next-line
+        let updateFileData = Object.fromEntries(Object.entries(formData).filter(([key, value]) => Boolean(value))) // 剔除掉未更改的值
+        // console.log(updateFileData)
+        let newHosts = batchHosts.value
+          .map(item => ({ ...item, ...updateFileData }))
+          .map(item => {
+            const { authType } = item
+            let tempKey = randomStr(16)
+            if (item[authType]) item[authType] = AESEncrypt(item[authType], tempKey)
+            item.tempKey = RSAEncrypt(tempKey)
+            return item
+          })
+        let { msg } = await $api.updateHost({ hosts: newHosts })
         $message({ type: 'success', center: true, message: msg })
       } else {
-        let { msg } = await $api.addHost(formData)
-        $message({ type: 'success', center: true, message: msg })
+        let tempKey = randomStr(16)
+        let { authType } = formData
+        if (formData[authType]) formData[authType] = AESEncrypt(formData[authType], tempKey)
+        formData.tempKey = RSAEncrypt(tempKey)
+        if (defaultData.value) {
+          let { msg } = await $api.updateHost(Object.assign({}, formData, { oldHost: oldHost.value }))
+          $message({ type: 'success', center: true, message: msg })
+        } else {
+          let { msg } = await $api.addHost(formData)
+          $message({ type: 'success', center: true, message: msg })
+        }
       }
       visible.value = false
-      const { host, username, port, authType } = formData
-      emit('update-list', { isConfig: Boolean(username && port && (formData[authType])), host })
-      Object.assign(hostForm, resetForm())
+      emit('update-list')
     })
 }
 </script>
 
 <style lang="scss" scoped>
+.batch_info {
+  :deep(.el-alert) {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    margin-bottom: 5px;
+  }
+  :deep(.el-tag) {
+    margin-right: 10px;
+    margin-bottom: 6px;
+  }
+}
 .instance_info {
   display: flex;
   justify-content: space-between;

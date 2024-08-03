@@ -35,6 +35,7 @@ module.exports = {
 
     // js
     'no-async-promise-executor': 0,
+    'comma-dangle': 0,
     'import/no-extraneous-dependencies': 0,
     'no-console': 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
