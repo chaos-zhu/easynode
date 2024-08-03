@@ -80,7 +80,7 @@ const useStore = defineStore({
         path: '/clients',
         forceNew: true,
         reconnectionDelay: 5000,
-        reconnectionAttempts: 3
+        reconnectionAttempts: 1000
       })
       this.HostStatusSocket = socketInstance
       socketInstance.on('connect', () => {
@@ -91,8 +91,7 @@ const useStore = defineStore({
           // console.log(data)
           this.hostList.forEach(item => {
             const { host } = item
-            if (data[host] === null) return
-            return Object.assign(item, { monitorData: data[host] })
+            return Object.assign(item, { monitorData: Object.freeze(data[host]) })
           })
         })
         socketInstance.on('token_verify_fail', (message) => {

@@ -1,6 +1,11 @@
 <template>
   <el-card shadow="always" class="host_card">
-    <el-table ref="multipleTableRef" :data="tableData" @selection-change="handleSelectionChange">
+    <el-table
+      ref="tableRef"
+      :data="hosts"
+      @select="handleSelectionChange"
+      @select-all="handleSelectionChange"
+    >
       <el-table-column type="selection" />
       <el-table-column prop="index" label="序号" width="100px" />
       <el-table-column label="名称">
@@ -27,7 +32,6 @@
             content="请先配置ssh连接信息"
             placement="left"
           >
-            <!-- <el-button type="warning">连接终端</el-button> -->
             <el-button type="success" :disabled="!row.isConfig" @click="handleSSH(row)">连接终端</el-button>
           </el-tooltip>
           <el-button type="primary" @click="handleUpdate(row)">修改</el-button>
@@ -39,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance, reactive, watch } from 'vue'
+import { ref, computed, getCurrentInstance, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const { proxy: { $api, $router, $tools } } = getCurrentInstance()
@@ -57,21 +61,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update-list', 'update-host', 'select-change',])
 
-let tableData = ref([])
-
-const updateTableData = () => {
-  console.log('refresh server table data')
-  tableData.value = props.hosts?.map(item => {
-    let { monitorData, ...rest } = item
-    return { ...rest, connect: monitorData?.connect || false }
-  }) || []
-}
-
-const connectValues = computed(() => {
-  return props.hosts.map(item => item.monitorData?.connect).join(',')
-})
-// 监听到连接状态变化，刷新列表
-watch(connectValues, updateTableData)
+let tableRef = ref(null)
 
 const hostInfo = computed(() => props.hostInfo || {})
 // const host = computed(() => hostInfo.value?.host)
@@ -117,9 +107,20 @@ const handleSSH = async ({ host }) => {
   $router.push({ path: '/terminal', query: { host } })
 }
 
+let selectHosts = ref([])
+// 由于table数据内部字段更新后table组件会自动取消勾选,所以这里需要手动set勾选
+watch(() => props.hosts, () => {
+  // console.log('hosts change')
+  nextTick(() => {
+    selectHosts.value.forEach(row => {
+      tableRef.value.toggleRowSelection && tableRef.value.toggleRowSelection(row, true)
+    })
+  })
+}, { immediate: true, deep: true })
+
 const handleSelectionChange = (val) => {
-  // console.log(val)
-  // selectHosts.value = val
+  // console.log('select: ', val)
+  selectHosts.value = val
   emit('select-change', val)
 }
 

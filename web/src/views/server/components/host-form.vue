@@ -337,9 +337,10 @@ let sshList = computed(() => $store.sshList)
 
 const setDefaultData = () => {
   if (!defaultData.value) return
-  let { host } = defaultData.value
+  // eslint-disable-next-line no-unused-vars
+  let { host, monitorData, ...rest } = defaultData.value
   oldHost.value = host
-  Object.assign(hostForm.value, { ...defaultData.value })
+  Object.assign(hostForm.value, { host, ...rest })
 }
 
 const setBatchDefaultData = () => {
