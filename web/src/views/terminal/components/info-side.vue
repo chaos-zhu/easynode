@@ -226,7 +226,7 @@ const pingTimer = ref(null)
 const sftpStatus = ref(false)
 
 const token = computed(() => $store.token)
-const hostData = computed(() => props.hostInfo)
+const hostData = computed(() => props.hostInfo.monitorData || {})
 const host = computed(() => hostData.value.host)
 const ipInfo = computed(() => hostData.value?.ipInfo || {})
 // const isError = computed(() => !Boolean(hostData.value?.osInfo))
@@ -267,44 +267,6 @@ const inputCommandStyle = computed({
 const clickInputCommand = () => {
   inputCommandStyle.value = true
   emit('click-input-command')
-}
-
-const connectIO = () => {
-  socket.value = socketIo($serviceURI, {
-    path: '/host-status',
-    forceNew: true,
-    timeout: 5000,
-    reconnectionDelay: 3000,
-    reconnectionAttempts: 3
-  })
-
-  socket.value.on('connect', () => {
-    console.log('/host-status socket已连接：', socket.value.id)
-    socket.value.emit('init_host_data', { token: token.value, host: props.host })
-    // getHostPing()
-    socket.value.on('host_data', (data) => {
-      if (!data) return hostData.value = null
-      hostData.value = data
-    })
-  })
-
-  socket.value.on('connect_error', (err) => {
-    console.error('host status websocket 连接错误：', err)
-    $notification({
-      title: '连接客户端失败(重连中...)',
-      message: '请检查客户端服务是否正常',
-      type: 'error'
-    })
-  })
-
-  socket.value.on('disconnect', () => {
-    hostData.value = null
-    $notification({
-      title: '客户端连接主动断开(重连中...)',
-      message: '请检查客户端服务是否正常',
-      type: 'error'
-    })
-  })
 }
 
 const handleCopy = async () => {

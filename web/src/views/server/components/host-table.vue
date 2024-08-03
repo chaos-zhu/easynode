@@ -14,7 +14,7 @@
       </el-table-column> -->
       <el-table-column property="isConfig" label="监控服务">
         <template #default="scope">
-          <el-tag v-if="scope.row.osInfo" type="success">已安装</el-tag>
+          <el-tag v-if="scope.row.connect || scope.row.monitorData?.connect" type="success">已安装</el-tag>
           <el-tag v-else type="warning">未安装</el-tag>
         </template>
       </el-table-column>
@@ -59,14 +59,19 @@ const emit = defineEmits(['update-list', 'update-host', 'select-change',])
 
 let tableData = ref([])
 
-watch(() => props.hosts, (newVal) => {
-  console.log('newVal:', newVal)
-  tableData.value = newVal?.map(item => {
-    // eslint-disable-next-line no-unused-vars
-    let { cpuInfo, memInfo, osInfo, driveInfo, ipInfo, netstatInfo, ...rest } = item
-    return rest
+const updateTableData = () => {
+  console.log('refresh server table data')
+  tableData.value = props.hosts?.map(item => {
+    let { monitorData, ...rest } = item
+    return { ...rest, connect: monitorData?.connect || false }
   }) || []
-}, { immediate: true, deep: false })
+}
+
+const connectValues = computed(() => {
+  return props.hosts.map(item => item.monitorData?.connect).join(',')
+})
+// 监听到连接状态变化，刷新列表
+watch(connectValues, updateTableData)
 
 const hostInfo = computed(() => props.hostInfo || {})
 // const host = computed(() => hostInfo.value?.host)

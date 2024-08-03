@@ -40,32 +40,27 @@ const useStore = defineStore({
       await this.getHostList()
       await this.getSSHList()
       await this.getScriptList()
-      // await this.getLocalScriptList()
+      this.wsHostStatus()
     },
     async getHostList() {
       const { data: hostList } = await $api.getHostList()
-      // console.log('hostList:', hostList)
       this.$patch({ hostList })
-      this.wsHostStatus()
+      this.HostStatusSocket?.emit('refresh_clients_data')
     },
     async getGroupList() {
       const { data: groupList } = await $api.getGroupList()
-      // console.log('groupList:', groupList)
       this.$patch({ groupList })
     },
     async getSSHList() {
       const { data: sshList } = await $api.getSSHList()
-      // console.log('sshList:', sshList)
       this.$patch({ sshList })
     },
     async getScriptList() {
       const { data: scriptList } = await $api.getScriptList()
-      // console.log('scriptList:', scriptList)
       this.$patch({ scriptList })
     },
     async getLocalScriptList() {
       const { data: localScriptList } = await $api.getLocalScriptList()
-      // console.log('localScriptList:', localScriptList)
       this.$patch({ localScriptList })
     },
     // getHostPing() {
@@ -93,10 +88,11 @@ const useStore = defineStore({
         let token = this.token
         socketInstance.emit('init_clients_data', { token })
         socketInstance.on('clients_data', (data) => {
+          // console.log(data)
           this.hostList.forEach(item => {
             const { host } = item
-            if (data[host] === null) return { ...item }
-            return Object.assign(item, data[host])
+            if (data[host] === null) return
+            return Object.assign(item, { monitorData: data[host] })
           })
         })
         socketInstance.on('token_verify_fail', (message) => {

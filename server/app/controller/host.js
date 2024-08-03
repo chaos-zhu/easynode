@@ -6,7 +6,7 @@ async function getHostList({ res }) {
   data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
   for (const item of data) {
     let { username, port, authType, _id: id, credential } = item
-    console.log('解密凭证title: ', credential)
+    // console.log('解密凭证title: ', credential)
     if (credential) credential = await AESDecryptSync(credential)
     const isConfig = Boolean(username && port && (item[authType]))
     Object.assign(item, { id, isConfig, password: '', privateKey: '', credential })
@@ -51,11 +51,10 @@ async function updateHost({ res, request }) {
     }
   } = request
   let isBatch = Array.isArray(hosts)
-  console.log('isBatch:', isBatch)
   if (isBatch) {
     if (!hosts.length) return res.fail({ msg: 'hosts为空' })
     let hostList = await readHostList()
-    console.log('批量修改: ', isBatch)
+    // console.log('批量修改实例')
     let newHostList = []
     for (let oldRecord of hostList) {
       let record = hosts.find(item => item.host === oldRecord.host)

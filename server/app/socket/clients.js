@@ -1,12 +1,13 @@
 const { Server: ServerIO } = require('socket.io')
-const { io: ClientIO } = require('socket.io-client')
+const { io: ClientIO, connect } = require('socket.io-client')
 const { readHostList } = require('../utils')
 const { clientPort } = require('../config')
 const { verifyAuthSync } = require('../utils')
 
-let clientSockets = {}, clientsData = {}
-
-async function getClientsInfo(socketId) {
+let clientsData = {}
+async function getClientsInfo(clientSockets, clear = false) {
+  clientSockets = []
+  if (clear) clientsData = {}
   let hostList = await readHostList()
   hostList
     ?.map(({ host, name }) => {
@@ -14,11 +15,11 @@ async function getClientsInfo(socketId) {
         path: '/client/os-info',
         forceNew: true,
         timeout: 5000,
-        reconnectionDelay: 3000,
-        reconnectionAttempts: 3
+        reconnectionDelay: 5000,
+        reconnectionAttempts: 1000
       })
       // 将与客户端连接的socket实例保存起来，web端断开时关闭这些连接
-      clientSockets[socketId].push(clientSocket)
+      clientSockets.push(clientSocket)
       return {
         host,
         name,
@@ -26,23 +27,37 @@ async function getClientsInfo(socketId) {
       }
     })
     .map(({ host, name, clientSocket }) => {
+      clientsData[host] = { connect: false }
       clientSocket
         .on('connect', () => {
           consola.success('client connect success:', host, name)
           clientSocket.on('client_data', (osData) => {
-            clientsData[host] = osData
+            try {
+              // clientsData[host] = { connect: true, osData: JSON.parse(osData) }
+              clientsData[host] = { connect: true, ...osData }
+            } catch (error) {
+              console.warn('client_data, parse osData error: ', error.message)
+            }
           })
           clientSocket.on('client_error', (error) => {
-            clientsData[host] = error
+            clientsData[host] = { connect: true, error: `client_error: ${ error }` }
           })
         })
-        .on('connect_error', (error) => {
+        .on('connect_error', (error) => { // 连接失败
           // consola.error('client connect fail:', host, name, error.message)
-          clientsData[host] = null
+          try {
+            clientsData[host] = { connect: false, error: `client_connect_error: ${ error }` }
+          } catch (error) {
+            console.warn('connect_error: ', error.message)
+          }
         })
-        .on('disconnect', () => {
-          consola.info('client connect disconnect:', host, name)
-          clientsData[host] = null
+        .on('disconnect', (error) => { // 一方主动断开连接
+          // consola.info('client connect disconnect:', host, name)
+          try {
+            clientsData[host] = { connect: false, error: `client_disconnect: ${ error }` }
+          } catch (error) {
+            console.warn('disconnect: ', error.message)
+          }
         })
     })
 }
@@ -59,7 +74,6 @@ module.exports = (httpServer) => {
     // 前者兼容nginx反代, 后者兼容nodejs自身服务
     let clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
     socket.on('init_clients_data', async ({ token }) => {
-      // 校验登录态
       const { code, msg } = await verifyAuthSync(token, clientIp)
       if (code !== 1) {
         socket.emit('token_verify_fail', msg || '鉴权失败')
@@ -67,30 +81,28 @@ module.exports = (httpServer) => {
         return
       }
 
-      // 收集web端连接的id
-      clientSockets[socket.id] = []
-      consola.info('client连接socketId: ', socket.id, 'clients-socket已连接数: ', Object.keys(clientSockets).length)
+      let clientSockets = []
+      clientSockets.push(socket)
 
-      // 获取客户端数据
-      getClientsInfo(socket.id)
-
-      // 立即推送一次
+      getClientsInfo(clientSockets, true)
       socket.emit('clients_data', clientsData)
 
-      // 向web端推送数据
+      socket.on('refresh_clients_data', async () => {
+        consola.info('refresh clients-socket: ', clientSockets.length)
+        getClientsInfo(clientSockets, false)
+      })
+
       let timer = null
       timer = setInterval(() => {
         socket.emit('clients_data', clientsData)
-      }, 1000)
+      }, 1500)
 
-      // 关闭连接
       socket.on('disconnect', () => {
-        // 防止内存泄漏
         if (timer) clearInterval(timer)
-        // 当web端与服务端断开连接时, 服务端与每个客户端的socket也应该断开连接
-        clientSockets[socket.id].forEach(socket => socket.close && socket.close())
-        delete clientSockets[socket.id]
-        consola.info('断开socketId: ', socket.id, 'clients-socket剩余连接数: ', Object.keys(clientSockets).length)
+        clientSockets.forEach(socket => socket.close && socket.close())
+        clientSockets = null
+        clientsData = null
+        consola.info('clients-socket 连接断开: ', socket.id)
       })
     })
   })
