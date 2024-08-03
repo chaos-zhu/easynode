@@ -7,6 +7,7 @@
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
+            <el-dropdown-item @click="handleBatchSSH">连接终端</el-dropdown-item>
             <el-dropdown-item @click="handleBatchModify">批量修改</el-dropdown-item>
             <el-dropdown-item @click="handleBatchRemove">批量删除</el-dropdown-item>
           </el-dropdown-menu>
@@ -78,7 +79,7 @@ import HostForm from './components/host-form.vue'
 import ImportHost from './components/import-host.vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 
-const { proxy: { $api, $store, $message, $messageBox } } = getCurrentInstance()
+const { proxy: { $api, $store, $router, $message, $messageBox } } = getCurrentInstance()
 
 let updateHostData = ref(null)
 let hostFormVisible = ref(false)
@@ -101,6 +102,11 @@ let handleUpdateList = async () => {
 
 let handleSelectChange = (val) => {
   selectHosts.value = val
+}
+
+let handleBatchSSH = () => {
+  let ips = selectHosts.value.map(item => item.host)
+  $router.push({ path: '/terminal', query: { host: ips.join(',') } })
 }
 
 let handleBatchModify = async () => {

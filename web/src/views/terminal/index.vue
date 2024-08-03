@@ -59,7 +59,7 @@ import HostForm from '../server/components/host-form.vue'
 
 const { proxy: { $store, $message } } = getCurrentInstance()
 
-const emit = defineEmits(['add-host',])
+// const emit = defineEmits(['add-host',])
 
 let terminalTabs = reactive([])
 let hostFormVisible = ref(false)
@@ -104,9 +104,9 @@ onActivated(async () => {
   await nextTick()
   const { host } = route.query
   if (!host) return
-  let targetHost = hostList.value.find(item => item.host === host)
-  if (!targetHost) return
-  terminalTabs.push(targetHost)
+  let targetHosts = hostList.value.filter(item => host.includes(item.host))
+  if (!targetHosts || !targetHosts.length) return
+  terminalTabs.push(...targetHosts)
 })
 
 </script>
