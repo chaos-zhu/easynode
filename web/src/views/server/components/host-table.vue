@@ -6,6 +6,42 @@
       row-key="host"
       @selection-change="handleSelectionChange"
     >
+      <el-table-column type="expand">
+        <template #default="{ row }">
+          <!-- { monitorData: { connect, cpuInfo, memInfo, driveInfo, ipInfo, netstatInfo } } -->
+          <el-descriptions
+            v-if="row.monitorData?.connect"
+            title="实例信息"
+            :column="5"
+            direction="vertical"
+          >
+            <el-descriptions-item label="CPU" width="35%">
+              {{ `${row.monitorData?.cpuInfo?.cpuModel}-${row.monitorData?.cpuInfo?.cpuCount}-(${row.monitorData?.cpuInfo?.cpuUsage}%)` }}
+            </el-descriptions-item>
+            <el-descriptions-item label="内存" width="15%">
+              {{ `${$tools.toFixed(row.monitorData?.memInfo?.usedMemMb / 1024)}GB / ${$tools.toFixed(row.monitorData?.memInfo?.totalMemMb / 1024)}GB-(${row.monitorData?.memInfo?.usedMemPercentage}%)` }}
+            </el-descriptions-item>
+            <el-descriptions-item label="硬盘" width="15%">
+              {{ `${$tools.toFixed(row.monitorData?.driveInfo?.usedGb)}GB / ${$tools.toFixed(row.monitorData?.driveInfo?.totalGb)}GB-(${row.monitorData?.driveInfo?.usedPercentage}%)` }}
+            </el-descriptions-item>
+            <el-descriptions-item label="网络" width="15%">
+              <el-icon><Upload /></el-icon>
+              {{ `${$tools.formatNetSpeed(row.monitorData?.netstatInfo.total?.outputMb)}` }}
+              <el-icon><Download /></el-icon>
+              {{ `${$tools.formatNetSpeed(row.monitorData?.netstatInfo.total?.inputMb)}` }}
+            </el-descriptions-item>
+            <el-descriptions-item label="位置" width="20%">
+              {{ row.monitorData?.ipInfo.country || '--' }} {{ row.monitorData?.ipInfo.regionName }}
+            </el-descriptions-item>
+            <el-descriptions-item label="其他" width="20%">
+              <span @click="handleToConsole(row)">服务商控制台</span>
+            </el-descriptions-item>
+          </el-descriptions>
+          <div v-else class="no_client_data">
+            监控客户端未安装，无法获取实时数据。<span class="go_install" @click="handleOnekey(row)">去安装</span>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column type="selection" reserve-selection />
       <el-table-column prop="index" label="序号" width="100px" />
       <el-table-column label="名称">
@@ -19,7 +55,7 @@
       </el-table-column> -->
       <el-table-column property="isConfig" label="监控服务">
         <template #default="scope">
-          <el-tag v-if="scope.row.connect || scope.row.monitorData?.connect" type="success">已安装</el-tag>
+          <el-tag v-if="scope.row.monitorData?.connect" type="success">已安装</el-tag>
           <el-tag v-else type="warning">未安装</el-tag>
         </template>
       </el-table-column>
@@ -43,19 +79,15 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance, nextTick, watch, defineExpose } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, computed, getCurrentInstance, nextTick, defineExpose } from 'vue'
+import { Download, Upload } from '@element-plus/icons-vue'
 
-const { proxy: { $api, $router, $tools } } = getCurrentInstance()
+const { proxy: { $message, $messageBox, $api, $router, $tools } } = getCurrentInstance()
 
 const props = defineProps({
   hosts: {
     required: true,
     type: Array
-  },
-  hiddenIp: {
-    required: true,
-    type: [Number, Boolean,]
   }
 })
 
@@ -63,48 +95,36 @@ const emit = defineEmits(['update-list', 'update-host', 'select-change',])
 
 let tableRef = ref(null)
 
-const hostInfo = computed(() => props.hostInfo || {})
-// const host = computed(() => hostInfo.value?.host)
-const name = computed(() => hostInfo.value?.name)
-const ping = computed(() => hostInfo.value?.ping || '')
-const expiredTime = computed(() => $tools.formatTimestamp(hostInfo.value?.expired, 'date'))
-const consoleUrl = computed(() => hostInfo.value?.consoleUrl)
-const ipInfo = computed(() => hostInfo.value?.ipInfo || {})
-const isError = computed(() => !Boolean(hostInfo.value?.osInfo))
-const cpuInfo = computed(() => hostInfo.value?.cpuInfo || {})
-const memInfo = computed(() => hostInfo.value?.memInfo || {})
-const osInfo = computed(() => hostInfo.value?.osInfo || {})
-const driveInfo = computed(() => hostInfo.value?.driveInfo || {})
-const netstatInfo = computed(() => {
-  let { total: netTotal, ...netCards } = hostInfo.value?.netstatInfo || {}
-  return { netTotal, netCards: netCards || {} }
+let hosts = computed(() => {
+  return props.hosts
 })
-const openedCount = computed(() => hostInfo.value?.openedCount || 0)
-
-const setColor = (num) => {
-  num = Number(num)
-  return num ? (num < 80 ? '#595959' : (num >= 80 && num < 90 ? '#FF6600' : '#FF0000')) : '#595959'
-}
 
 const handleUpdate = (hostInfo) => {
   emit('update-host', hostInfo)
 }
 
-const handleToConsole = () => {
-  window.open(consoleUrl.value)
+const handleToConsole = ({ consoleUrl }) => {
+  if (!consoleUrl) return $message({ message: '未配置服务商控制台地址', type: 'warning', center: true })
+  window.open(consoleUrl)
 }
 
-const handleSSH = async ({ host }) => {
-  // if (!hostInfo?.isConfig) {
-  //   ElMessage({
-  //     message: '请先配置SSH连接信息',
-  //     type: 'warning',
-  //     center: true
-  //   })
-  //   handleUpdate()
-  //   return
-  // }
+const handleSSH = async (row) => {
+  let { host } = row
   $router.push({ path: '/terminal', query: { host } })
+}
+
+const handleOnekey = async (row) => {
+  let { host, isConfig } = row
+  if (!isConfig) {
+    $message({
+      message: '请先配置SSH连接信息',
+      type: 'warning',
+      center: true
+    })
+    handleUpdate(row)
+    return
+  }
+  $router.push({ path: '/onekey', query: { host, execClientInstallScript: 'true' } })
 }
 
 let selectHosts = ref([])
@@ -119,7 +139,7 @@ const getSelectHosts = () => {
 }
 
 const clearSelection = () => {
-  tableRef.value.clearSelection()
+  nextTick(() => tableRef.value.clearSelection())
 }
 
 defineExpose({
@@ -128,18 +148,19 @@ defineExpose({
 })
 
 const handleRemoveHost = async ({ host }) => {
-  ElMessageBox.confirm('确认删除实例', 'Warning', {
+  $messageBox.confirm('确认删除实例', 'Warning', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
     let { data } = await $api.removeHost({ host })
-    ElMessage({
+    $message({
       message: data,
       type: 'success',
       center: true
     })
     emit('update-list')
+    clearSelection()
   })
 }
 </script>
@@ -154,129 +175,20 @@ const handleRemoveHost = async ({ host }) => {
   //   box-shadow: 0px 0px 15px rgba(6, 30, 37, 0.5);
   // }
 
-  .host-state {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-
-    span {
-      font-size: 10px;
-      // transform: rotate(-45deg);
-      // transform: scale(0.95);
-      display: inline-block;
-      padding: 3px 5px;
-    }
-
-    .online {
-      color: #009933;
-      background-color: #e8fff3;
-    }
-
-    .offline {
-      color: #FF0033;
-      background-color: #fff5f8;
-    }
+  :deep(.el-descriptions__title) {
+    display: none;
   }
 
-  .info {
-    display: flex;
-    align-items: center;
-    height: 50px;
-
-    &>div {
-      flex: 1
+  .no_client_data {
+    font-size: 14px;
+    font-weight: normal;
+    line-height: 23px;
+    text-align: center;
+    color: var(--el-color-warning);;
+    .go_install {
+      color: var(--el-color-primary);
+      cursor: pointer;
     }
-
-    .field {
-      height: 100%;
-      display: flex;
-      align-items: center;
-
-      .svg-icon {
-        width: 25px;
-        height: 25px;
-        color: #1989fa;
-        cursor: pointer;
-      }
-
-      .fields {
-        display: flex;
-        flex-direction: column;
-
-        // justify-content: center;
-        span {
-          padding: 3px 0;
-          margin-left: 5px;
-          font-weight: 600;
-          font-size: 13px;
-          color: #595959;
-        }
-
-        .name {
-          display: inline-block;
-          height: 19px;
-          cursor: pointer;
-
-          &:hover {
-            text-decoration-line: underline;
-            text-decoration-color: #1989fa;
-
-            .svg-icon {
-              display: inline-block;
-            }
-          }
-
-          .svg-icon {
-            display: none;
-            width: 13px;
-            height: 13px;
-          }
-        }
-      }
-    }
-
-    .actions {
-      .actions-icon {
-        margin: 0 10px;
-        width: 16px;
-        height: 16px;
-        color: #1989fa;
-        cursor: pointer;
-      }
-    }
-
-    .web-ssh {
-
-      // ::v-deep has been deprecated. Use :deep(<inner-selector>) instead.
-      :deep(.el-dropdown__caret-button) {
-        margin-left: -5px;
-      }
-    }
-  }
-}
-</style>
-
-<style lang="scss">
-.field-detail {
-  display: flex;
-  flex-direction: column;
-
-  h2 {
-    font-weight: 600;
-    font-size: 16px;
-    margin: 0px 0 8px 0;
-  }
-
-  h3 {
-    span {
-      font-weight: 600;
-      color: #797979;
-    }
-  }
-
-  span {
-    display: inline-block;
-    margin: 4px 0;
   }
 }
 </style>

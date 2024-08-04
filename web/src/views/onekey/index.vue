@@ -160,13 +160,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch, nextTick, getCurrentInstance } from 'vue'
+import { ref, reactive, onMounted, computed, watch, nextTick, getCurrentInstance, onActivated } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import socketIo from 'socket.io-client'
+import { useRoute } from 'vue-router'
 
 const { io } = socketIo
 
 const { proxy: { $api, $notification,$messageBox, $message, $router, $serviceURI, $store } } = getCurrentInstance()
+const route = useRoute()
 
 const loading = ref(false)
 const formVisible = ref(false)
@@ -403,6 +405,24 @@ const handleRemoveAll = async () => {
     })
 }
 
+onActivated(async () => {
+  await nextTick()
+  const { host, execClientInstallScript } = route.query
+  if (!host) return
+  if (execClientInstallScript === 'true') {
+    let clientInstallScript = 'curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash\n'
+    createExecShell(host.split(','), clientInstallScript, 300)
+    // $messageBox.confirm(`准备安装客户端服务监控应用：${ host }`, 'Warning', {
+    //   confirmButtonText: '确定',
+    //   cancelButtonText: '取消',
+    //   type: 'warning'
+    // })
+    //   .then(async () => {
+    //     let clientInstallScript = 'curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash\n'
+    //     createExecShell([host,], clientInstallScript, 300)
+    //   })
+  }
+})
 </script>
 
 <style lang="scss" scoped>

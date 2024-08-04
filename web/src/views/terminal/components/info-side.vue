@@ -220,14 +220,14 @@ const props = defineProps({
 const emit = defineEmits(['update:inputCommandStyle', 'connect-sftp', 'click-input-command',])
 
 const socket = ref(null)
-const name = ref('')
+// const name = ref('')
 const ping = ref(0)
 const pingTimer = ref(null)
-const sftpStatus = ref(false)
+// const sftpStatus = ref(false)
 
-const token = computed(() => $store.token)
+// const token = computed(() => $store.token)
 const hostData = computed(() => props.hostInfo.monitorData || {})
-const host = computed(() => hostData.value.host)
+const host = computed(() => props.hostInfo.host)
 const ipInfo = computed(() => hostData.value?.ipInfo || {})
 // const isError = computed(() => !Boolean(hostData.value?.osInfo))
 const cpuInfo = computed(() => hostData.value?.cpuInfo || {})

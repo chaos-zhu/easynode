@@ -10,6 +10,7 @@
             <el-dropdown-item @click="handleBatchSSH">连接终端</el-dropdown-item>
             <el-dropdown-item @click="handleBatchModify">批量修改</el-dropdown-item>
             <el-dropdown-item @click="handleBatchRemove">批量删除</el-dropdown-item>
+            <el-dropdown-item @click="handleBatchOnekey">安装客户端</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -47,7 +48,6 @@
             <HostTable
               ref="hostTableRefs"
               :hosts="hosts"
-              :hidden-ip="hiddenIp"
               @update-host="handleUpdateHost"
               @update-list="handleUpdateList"
             />
@@ -139,12 +139,20 @@ let handleBatchRemove = async () => {
     $message({ message: data, type: 'success', center: true })
     selectHosts.value = []
     await handleUpdateList()
+    hostTableRefs.value.forEach(item => item.clearSelection())
   })
 }
 
 let handleUpdateHost = (defaultData) => {
   hostFormVisible.value = true
   updateHostData.value = defaultData
+}
+
+let handleBatchOnekey = async () => {
+  collectSelectHost()
+  if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
+  let ips = selectHosts.value.map(item => item.host).join(',')
+  $router.push({ path: '/onekey', query: { host: ips, execClientInstallScript: 'true' } })
 }
 
 let handleHiddenIP = () => {
