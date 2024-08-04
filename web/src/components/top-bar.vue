@@ -3,32 +3,76 @@
     <div class="bar_wrap">
       <h2>{{ title }}</h2>
       <!-- <el-icon><UserFilled /></el-icon> -->
-
-      <el-popover placement="bottom" trigger="hover">
-        <template #reference>
-          <div class="right_wrap">
-            <el-icon><User /></el-icon>
-            <span>{{ user }}</span>
-          </div>
+      <el-button
+        type="info"
+        class="about_btn top_text"
+        link
+        @click="visible = true"
+      >
+        关于 <span class="link">{{ isNew ? `(新版本可用)` : '' }}</span>
+      </el-button>
+      <el-dropdown trigger="click">
+        <span class="username top_text"><el-icon><User /></el-icon> {{ user }}</span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="handleLogout">
+              退出登录
+            </el-dropdown-item>
+          </el-dropdown-menu>
         </template>
-        <el-button
-          type="primary"
-          class="logout_btn"
-          link
-          @click="handleLogout"
-        >
-          安全退出
-        </el-button>
-      </el-popover>
+      </el-dropdown>
     </div>
+
+    <el-dialog
+      v-model="visible"
+      title="关于"
+      width="30%"
+      :append-to-body="false"
+    >
+      <div class="about_content">
+        <h1>EasyNode</h1>
+        <p>Version: {{ currentVersion }}</p>
+        <p v-if="isNew" style="text-decoration: underline;">
+          有新版本可用: {{ latestVersion }} - <a class="link" href="https://github.com/chaos-zhu/easynode/releases" target="_blank">https://github.com/chaos-zhu/easynode/releases</a>
+        </p>
+        <p>Author: <a class="link" href="https://github.com/chaos-zhu" target="_blank">ChaosZhu</a></p>
+        <p>Source: <a class="link" href="https://github.com/chaos-zhu/easynode" target="_blank">https://github.com/chaos-zhu/easynode</a></p>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { getCurrentInstance, computed } from 'vue'
+import { ref, getCurrentInstance, computed } from 'vue'
 import { User } from '@element-plus/icons-vue'
+import packageJson from '../../package.json'
 
-const { proxy: { $router, $store, $message } } = getCurrentInstance()
+const { proxy: { $router, $store, $message, $http } } = getCurrentInstance()
+
+let visible = ref(false)
+let currentVersion = ref(`v${ packageJson.version }`)
+let latestVersion = ref(null)
+
+let isNew = computed(() => {
+  return latestVersion.value && latestVersion.value !== currentVersion.value
+})
+
+async function checkLatestVersion() {
+  try {
+    const response = await fetch('https://production.get-easynode-latest-version.chaoszhu.workers.dev/version')
+    // const response = await fetch('https://api.github.com/repos/chaos-zhu/easynode/releases/latest')
+    if (!response.ok) {
+      throw new Error('版本信息请求失败: ' + response.statusText)
+    }
+    const data = await response.json()
+    latestVersion.value = data.tag_name
+  } catch (error) {
+    console.error('版本信息请求失败:', error.message)
+  }
+
+}
+
+checkLatestVersion()
 
 let user = computed(() => {
   return $store.user
@@ -61,19 +105,25 @@ const handleLogout = () => {
     padding: 0 20px;
     h2 {
       font-size: 18px;
+      margin-right: auto;
     }
-    .right_wrap {
-      display: flex;
-      align-items: center;
-      // color: red;
+    .username {
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    .top_text {
       color: var(--el-menu-text-color);
-      span {
-        margin-left: 3px;
-      }
-      .logout_btn {
-        margin: 0 10px 0 15px;
-      }
-      // color: var(--el-button-text-color);
+      font-size: 14px;
+    }
+  }
+  .about_content {
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 15px 0;
+    }
+    p {
+      line-height: 35px;
     }
   }
 }

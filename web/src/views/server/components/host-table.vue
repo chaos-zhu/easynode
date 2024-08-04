@@ -189,9 +189,5 @@ const handleRemoveHost = async ({ host }) => {
     text-align: center;
     color: var(--el-color-warning);;
   }
-  .link {
-    color: var(--el-color-primary);
-    cursor: pointer;
-  }
 }
 </style>

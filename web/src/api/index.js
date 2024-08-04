@@ -108,5 +108,8 @@ export default {
   },
   deleteOnekeyRecord(ids) {
     return axios({ url: '/onekey', method: 'post', data: { ids } })
+  },
+  getEasynodeVersion() {
+    return axios({ url: '/version', method: 'get' })
   }
 }

@@ -53,7 +53,7 @@
     <!-- 提示 -->
     <el-alert type="success" :closable="false">
       <template #title>
-        <span style="letter-spacing: 2px;"> Tips: 系统所有通知邮件将会下发到所有已经配置成功的邮箱中 </span>
+        <span style="letter-spacing: 2px;"> 系统所有通知邮件将会下发到所有已经配置成功的邮箱中 </span>
       </template>
     </el-alert>
     <!-- 表格 -->

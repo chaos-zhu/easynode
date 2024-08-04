@@ -1,7 +1,7 @@
 <template>
   <el-alert type="success" :closable="false">
     <template #title>
-      <span style="letter-spacing: 2px;"> Tips: 请添加邮箱并确保测试邮件通过 </span>
+      <span style="letter-spacing: 2px;"> 请添加邮箱并确保测试邮件通过 </span>
     </template>
   </el-alert>
   <el-table v-loading="notifyListLoading" :data="notifyList">

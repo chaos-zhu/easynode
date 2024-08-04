@@ -1,6 +1,5 @@
 {
   "name": "server",
-  "version": "2.0.0",
   "description": "easynode-server",
   "bin": "./bin/www",
   "scripts": {

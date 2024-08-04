@@ -51,12 +51,13 @@ function initNotifyDB() {
             'type': 'updatePwd',
             'desc': '修改密码提醒',
             'sw': true
-          },
-          {
-            'type': 'host_offline',
-            'desc': '客户端离线提醒(每小时最多发送一次提醒)',
-            'sw': true
-          }]
+          }
+          // {
+          //   'type': 'host_offline',
+          //   'desc': '客户端离线提醒(每小时最多发送一次提醒)',
+          //   'sw': true
+          // }
+          ]
           await writeNotifyList(defaultData)
         }
 

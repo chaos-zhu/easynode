@@ -1,6 +1,6 @@
 const { getSSHList, addSSH, updateSSH, removeSSH, getCommand } = require('../controller/ssh')
 const { getHostList, addHost, updateHost, removeHost, importHost } = require('../controller/host')
-const { login, getpublicKey, updatePwd, getLoginRecord } = require('../controller/user')
+const { login, getpublicKey, updatePwd, getLoginRecord, getEasynodeVersion } = require('../controller/user')
 const { getSupportEmailList, getUserEmailList, updateUserEmailList, removeUserEmail, pushEmail, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
 const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript } = require('../controller/scripts')
@@ -80,6 +80,11 @@ const user = [
     method: 'get',
     path: '/get-login-record',
     controller: getLoginRecord
+  },
+  {
+    method: 'get',
+    path: '/version',
+    controller: getEasynodeVersion
   }
 ]
 const notify = [

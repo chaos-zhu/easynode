@@ -1,6 +1,5 @@
 {
   "name": "easynode",
-  "version": "2.0.0",
   "description": "web ssh",
   "private": true,
   "workspaces": [

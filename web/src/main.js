@@ -5,6 +5,7 @@ import router from './router'
 import tools from './plugins/tools'
 import elementPlugins from './plugins/element'
 import globalComponents from './plugins/components'
+import axios from '@/utils/axios'
 import api from './api'
 import App from './app.vue'
 import './assets/scss/reset.scss'
@@ -20,6 +21,7 @@ app.use(router)
 
 app.config.globalProperties.$api = api
 app.config.globalProperties.$tools = tools
+app.config.globalProperties.$http = axios
 app.config.globalProperties.$store = useStore()
 
 const serviceURI = import.meta.env.DEV ? process.env.serviceURI : location.origin

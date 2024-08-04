@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken')
+const axios = require('axios')
 const { getNetIPInfo, readKey, writeKey, RSADecryptSync, AESEncryptSync, SHA1Encrypt, sendEmailToConfList, getNotifySwByType } = require('../utils')
 
 const getpublicKey = async ({ res }) => {
@@ -112,9 +113,22 @@ const getLoginRecord = async ({ res }) => {
   res.success({ data: global.loginRecord, msg: 'success' })
 }
 
+const getEasynodeVersion = async ({ res }) => {
+  try {
+    // const { data } = await axios.get('https://api.github.com/repos/chaos-zhu/easynode/releases/latest')
+    const { data } = await axios.get('https://get-easynode-latest-version.chaoszhu.workers.dev/version')
+    console.log(data)
+    res.success({ data, msg: 'success' })
+  } catch (error) {
+    consola.error('Failed to fetch Easynode latest version:', error)
+    res.fail({ msg: 'Failed to fetch Easynode latest version' })
+  }
+}
+
 module.exports = {
   login,
   getpublicKey,
   updatePwd,
-  getLoginRecord
+  getLoginRecord,
+  getEasynodeVersion
 }
