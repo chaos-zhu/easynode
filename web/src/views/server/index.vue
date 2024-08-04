@@ -1,6 +1,12 @@
 <template>
   <div class="server_group_container">
     <div class="server_group_header">
+      <!-- <el-button v-show="selectHosts.length" type="primary" @click="hostFormVisible = true">批量操作</el-button> -->
+      <el-button type="primary" @click="hostFormVisible = true">添加实例</el-button>
+      <!-- <el-button type="primary" @click="handleHiddenIP">
+        {{ hiddenIp ? '显示IP' : '隐藏IP' }}
+      </el-button> -->
+      <el-button type="primary" @click="importVisible = true">导入实例</el-button>
       <el-dropdown>
         <el-button type="primary" class="group_action_btn">
           批量操作<el-icon class="el-icon--right"><arrow-down /></el-icon>
@@ -14,12 +20,6 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <!-- <el-button v-show="selectHosts.length" type="primary" @click="hostFormVisible = true">批量操作</el-button> -->
-      <el-button type="primary" @click="hostFormVisible = true">添加实例</el-button>
-      <!-- <el-button type="primary" @click="handleHiddenIP">
-        {{ hiddenIp ? '显示IP' : '隐藏IP' }}
-      </el-button> -->
-      <el-button type="primary" @click="importVisible = true">导入实例</el-button>
     </div>
     <div class="server_group_collapse">
       <div v-if="isNoHost">
@@ -208,7 +208,7 @@ let hostFormClosed = () => {
     align-items: center;
     justify-content: end;
     .group_action_btn {
-      margin-right: 12px;
+      margin: 0 12px;
     }
   }
 

@@ -33,12 +33,12 @@
             <el-descriptions-item label="位置" width="20%">
               {{ row.monitorData?.ipInfo.country || '--' }} {{ row.monitorData?.ipInfo.regionName }}
             </el-descriptions-item>
-            <el-descriptions-item label="其他" width="20%">
-              <span @click="handleToConsole(row)">服务商控制台</span>
+            <el-descriptions-item v-show="row.consoleUrl" label="其他" width="20%">
+              <span class="link" @click="handleToConsole(row)">服务商控制台</span>
             </el-descriptions-item>
           </el-descriptions>
           <div v-else class="no_client_data">
-            监控客户端未安装，无法获取实时数据。<span class="go_install" @click="handleOnekey(row)">去安装</span>
+            监控客户端未安装，无法获取实时数据。<span class="link" @click="handleOnekey(row)">去安装</span>
           </div>
         </template>
       </el-table-column>
@@ -178,6 +178,9 @@ const handleRemoveHost = async ({ host }) => {
   :deep(.el-descriptions__title) {
     display: none;
   }
+  :deep(.el-descriptions) {
+    padding: 0 25px;
+  }
 
   .no_client_data {
     font-size: 14px;
@@ -185,10 +188,10 @@ const handleRemoveHost = async ({ host }) => {
     line-height: 23px;
     text-align: center;
     color: var(--el-color-warning);;
-    .go_install {
-      color: var(--el-color-primary);
-      cursor: pointer;
-    }
+  }
+  .link {
+    color: var(--el-color-primary);
+    cursor: pointer;
   }
 }
 </style>
