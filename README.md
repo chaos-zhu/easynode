@@ -3,21 +3,20 @@
 > [!WARNING]
 > 初次部署EasyNode，登录系统后务必记得修改默认账户密码 `admin/admin`！
 
-> 强烈建议使用 **iptables** 或 **fail2ban** 等安全服务限制IP访问，谨慎暴露面板服务到公网。
+> 强烈建议使用 **iptables** 限制IP访问，谨慎暴露面板服务到公网。
 
 <!-- > [!NOTE]
 > webssh与监控服务都将以`该服务器作为中转`。中国大陆连接建议使用香港、新加坡、日本、韩国等地区的低延迟服务器来安装服务端 -->
 
-  <!-- - [功能](#功能)
+  - [功能](#功能)
   - [安装](#安装指南)
     - [服务端安装](#服务端安装)
     - [监控服务安装](#监控服务安装)
   - [版本日志](#版本日志)
-  - [安全与说明](#安全与说明)
   - [开发](#开发)
-  - [Q&A](#qa)
-  - [感谢Star](#感谢star)
-  - [License](#license) -->
+  - [Q&A](#Q&A)
+  - [捐赠](#捐赠)
+  - [License](#license)
 
 ## 功能
 
@@ -29,7 +28,7 @@
 - [x] 服务器状态推送
 - [x] 脚本库
 - [x] 批量指令
-- [ ] 终端自定义
+- [ ] 自定义终端主题
 
 ![实例面板](./doc_images/merge.gif)
 
@@ -39,10 +38,11 @@
 
 - 占用端口：8082  推荐使用docker镜像安装
 
-#### Docker
+#### Docker部署
 
 ```shell
 docker run -d --net=host --name=easynode-server -v $PWD/easynode/db:/easynode/app/db chaoszhu/easynode
+# 容器支持使用-p 8082:8082映射端口, 但是无法记录登录IP
 ```
 访问：http://yourip:8082
 
@@ -102,10 +102,6 @@ curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/
 
 - [CHANGELOG](./CHANGELOG.md)
 
-## 安全与说明
-
-> 本人非专业后端，此服务全凭兴趣开发. 由于知识受限，并不能保证没有漏洞的存在，所以请务必使用`iptables`限制ip访问该服务，且不要轻易暴露此服务在公网。
-
 ## 开发
 
 1. 拉取代码，环境 `nodejs``>=20`
@@ -117,11 +113,7 @@ curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/
 
 - [Q&A](./Q%26A.md)
 
-## 感谢Star
-
-- 你的Star是我更新的动力，感谢~
-
-## 捐赠研发
+## 捐赠
 
 如果您认为此项目帮到了您, 您可以请我喝杯阔乐~
 
