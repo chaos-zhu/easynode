@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance, defineEmits } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance } from 'vue'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { FitAddon } from '@xterm/addon-fit'

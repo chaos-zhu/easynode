@@ -52,7 +52,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick, defineEmits } from 'vue'
+import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import Terminal from './components/terminal.vue'
 import HostForm from '../server/components/host-form.vue'

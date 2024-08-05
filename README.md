@@ -3,7 +3,6 @@
 > [!WARNING]
 > 初次部署EasyNode，登录系统后务必记得修改默认账户密码 `admin/admin`！
 
-> [!WARNING]
 > 强烈建议使用 **iptables** 或 **fail2ban** 等安全服务限制IP访问，谨慎暴露面板服务到公网。
 
 <!-- > [!NOTE]

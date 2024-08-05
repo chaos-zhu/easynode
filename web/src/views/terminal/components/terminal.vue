@@ -142,7 +142,7 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, computed, defineProps, getCurrentInstance, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, getCurrentInstance, watch, onMounted, onBeforeUnmount } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
