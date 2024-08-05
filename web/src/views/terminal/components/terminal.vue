@@ -114,15 +114,15 @@
       >
         <el-tab-pane
           v-for="(item, index) in terminalTabs"
-          :key="index"
+          :key="item.key"
           :label="item.name"
           :name="index"
           :closable="true"
+          class="el_tab_pane"
         >
           <div class="tab_content_wrap" :style="{ height: mainHeight + 'px' }">
             <TerminalTab
               ref="terminalRefs"
-              :index="index"
               :host="item.host"
               @input-command="terminalInput"
             />
@@ -142,13 +142,14 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, getCurrentInstance, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
 import Sftp from './sftp.vue'
 import InputCommand from '@/components/input-command/index.vue'
 import HostForm from '../../server/components/host-form.vue'
+// import { randomStr } from '@utils/index.js'
 
 const { proxy: { $nextTick, $store, $message } } = getCurrentInstance()
 
@@ -174,11 +175,9 @@ let updateHostData = ref(null)
 
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
-const curHost = computed(() => terminalTabs.value[activeTabIndex.value])
 let hostList = computed(() => $store.hostList)
+const curHost = computed(() => hostList.value.find(item => item.host === terminalTabs.value[activeTabIndex.value]?.host))
 let scriptList = computed(() => $store.scriptList)
-
-// const closable = computed(() => terminalTabs.length > 1)
 
 onMounted(() => {
   handleResizeTerminalSftp()
@@ -266,10 +265,12 @@ const clickInputCommand = () => {
 }
 
 const removeTab = (index) => {
-  // terminalTabs.value.splice(index, 1)
   emit('removeTab', index)
-  if (index !== activeTabIndex.value) return
-  activeTabIndex.value = 0
+  if (index === activeTabIndex.value) {
+    nextTick(() => {
+      activeTabIndex.value = 0
+    })
+  }
 }
 
 const handleFullScreen = () => {
@@ -410,7 +411,6 @@ const handleInputCommand = async (command) => {
     display: flex;
     flex-direction: column;
     position: relative;
-
     .tab_content_wrap {
       display: flex;
       flex-direction: column;

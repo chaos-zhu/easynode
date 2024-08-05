@@ -19,10 +19,6 @@ const props = defineProps({
   host: {
     required: true,
     type: String
-  },
-  index: {
-    required: true,
-    type: Number
   }
 })
 
