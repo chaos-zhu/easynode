@@ -1,3 +1,12 @@
+## [2.1.1](https://github.com/chaos-zhu/easynode/releases) (2024-08-05)
+
+### Features
+
+* 支持批量操作：批量修改实例通用信息(ssh配置等)、批量删除、批量安装客户端监控应用 ✔
+* 自动化构建镜像 ✔
+* 调整&优化面板UI ✔
+* 内置常用脚本(逐渐添加中...) ✔
+
 ## [2.1.0](https://github.com/chaos-zhu/easynode/releases) (2024-08-02)
 
 ### Features
