@@ -3,7 +3,12 @@ name: Docker Build and Push
 on:
   release:
     types: [published]
-  workflow_dispatch:  # 启用手动触发
+  workflow_dispatch: # 手动构建
+    inputs:
+      tag_name:
+        description: 'Tag Name (leave empty for default latest)'
+        required: false
+        default: 'latest'
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -27,7 +32,7 @@ jobs:
         file: ./Dockerfile
         push: true
         tags: |
-          chaoszhu/easynode:${{ github.event.release.tag_name }}
+          chaoszhu/easynode:${{ github.event.release.tag_name || inputs.tag_name }}
           chaoszhu/easynode:latest
 
     - name: Clean up post-build
