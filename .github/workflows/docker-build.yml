@@ -31,6 +31,7 @@ jobs:
         context: .
         file: ./Dockerfile
         push: true
+        platforms: linux/amd64,linux/arm64,linux/arm/v7
         tags: |
           chaoszhu/easynode:${{ github.event.release.tag_name || inputs.tag_name }}
           chaoszhu/easynode:latest
