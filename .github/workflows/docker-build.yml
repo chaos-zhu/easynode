@@ -16,6 +16,11 @@ jobs:
     - name: Check out the repository
       uses: actions/checkout@v3
 
+    - name: Set up system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+
     - name: Log in to Docker Hub
       uses: docker/login-action@v2
       with:
@@ -31,7 +36,7 @@ jobs:
         context: .
         file: ./Dockerfile
         push: true
-        platforms: linux/amd64,linux/arm64,linux/arm/v7
+        platforms: linux/amd64,linux/arm64
         tags: |
           chaoszhu/easynode:${{ github.event.release.tag_name || inputs.tag_name }}
           chaoszhu/easynode:latest
