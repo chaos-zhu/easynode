@@ -18,6 +18,6 @@ RUN yarn
 FROM node:20.16-alpine3.20
 WORKDIR /easynode
 COPY --from=builder_server /easynode/server .
-ENV HOST 0.0.0.0
+ENV HOST=0.0.0.0
 EXPOSE 8082
 CMD ["npm", "start"]
