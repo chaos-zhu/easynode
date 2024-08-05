@@ -3,10 +3,10 @@ name: Docker Build and Push
 on:
   release:
     types: [published]
-
+  workflow_dispatch:  # 启用手动触发
 jobs:
   build-and-push:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - name: Check out the repository
       uses: actions/checkout@v3
