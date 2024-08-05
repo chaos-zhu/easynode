@@ -47,7 +47,7 @@ import { ref, getCurrentInstance, computed } from 'vue'
 import { User } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 
-const { proxy: { $router, $store, $message, $http } } = getCurrentInstance()
+const { proxy: { $router, $store, $message } } = getCurrentInstance()
 
 let visible = ref(false)
 let currentVersion = ref(`v${ packageJson.version }`)
