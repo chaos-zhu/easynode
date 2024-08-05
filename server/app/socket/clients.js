@@ -1,16 +1,21 @@
 const { Server: ServerIO } = require('socket.io')
-const { io: ClientIO, connect } = require('socket.io-client')
+const { io: ClientIO } = require('socket.io-client')
 const { readHostList } = require('../utils')
 const { clientPort } = require('../config')
 const { verifyAuthSync } = require('../utils')
 
+let clientSockets = []
 let clientsData = {}
-async function getClientsInfo(clientSockets, clear = false) {
-  clientSockets = []
-  if (clear) clientsData = {}
+
+async function getClientsInfo(clientSockets) {
   let hostList = await readHostList()
+  clientSockets.forEach((clientItem) => {
+    // 被删除的客户端断开连接
+    if (!hostList.some(item => item.host === clientItem.host)) clientItem.close && clientItem.close()
+  })
   hostList
-    ?.map(({ host, name }) => {
+    .map(({ host, name }) => {
+      if (clientSockets.some(item => item.host === host)) return { name, isIo: true } // 已经建立io连接(无论是否连接成功)的host不再重复建立连接
       let clientSocket = ClientIO(`http://${ host }:${ clientPort }`, {
         path: '/client/os-info',
         forceNew: true,
@@ -19,25 +24,22 @@ async function getClientsInfo(clientSockets, clear = false) {
         reconnectionAttempts: 1000
       })
       // 将与客户端连接的socket实例保存起来，web端断开时关闭这些连接
-      clientSockets.push(clientSocket)
+      clientSockets.push({ host, name, clientSocket })
       return {
         host,
         name,
         clientSocket
       }
     })
-    .map(({ host, name, clientSocket }) => {
+    .forEach((item) => {
+      if (item.isIo) return // console.log('已经建立io连接的host不再重复建立连接', item.name)
+      const { host, name, clientSocket } = item
       clientsData[host] = { connect: false }
       clientSocket
         .on('connect', () => {
           consola.success('client connect success:', host, name)
           clientSocket.on('client_data', (osData) => {
-            try {
-              // clientsData[host] = { connect: true, osData: JSON.parse(osData) }
-              clientsData[host] = { connect: true, ...osData }
-            } catch (error) {
-              console.warn('client_data, parse osData error: ', error.message)
-            }
+            clientsData[host] = { connect: true, ...osData }
           })
           clientSocket.on('client_error', (error) => {
             clientsData[host] = { connect: true, error: `client_error: ${ error }` }
@@ -45,19 +47,11 @@ async function getClientsInfo(clientSockets, clear = false) {
         })
         .on('connect_error', (error) => { // 连接失败
           // consola.error('client connect fail:', host, name, error.message)
-          try {
-            clientsData[host] = { connect: false, error: `client_connect_error: ${ error }` }
-          } catch (error) {
-            console.warn('connect_error: ', error.message)
-          }
+          clientsData[host] = { connect: false, error: `client_connect_error: ${ error }` }
         })
         .on('disconnect', (error) => { // 一方主动断开连接
           // consola.info('client connect disconnect:', host, name)
-          try {
-            clientsData[host] = { connect: false, error: `client_disconnect: ${ error }` }
-          } catch (error) {
-            console.warn('disconnect: ', error.message)
-          }
+          clientsData[host] = { connect: false, error: `client_disconnect: ${ error }` }
         })
     })
 }
@@ -81,26 +75,22 @@ module.exports = (httpServer) => {
         return
       }
 
-      let clientSockets = []
-      clientSockets.push(socket)
-
-      getClientsInfo(clientSockets, true)
-      socket.emit('clients_data', clientsData)
+      getClientsInfo(clientSockets)
 
       socket.on('refresh_clients_data', async () => {
-        consola.info('refresh clients-socket: ', clientSockets.length)
-        getClientsInfo(clientSockets, false)
+        consola.info('refresh clients-socket')
+        getClientsInfo(clientSockets)
       })
 
       let timer = null
       timer = setInterval(() => {
         socket.emit('clients_data', clientsData)
-      }, 1500)
+      }, 1000)
 
       socket.on('disconnect', () => {
         if (timer) clearInterval(timer)
-        clientSockets.forEach(socket => socket.close && socket.close())
-        clientSockets = null
+        clientSockets.forEach(item => item.clientSocket.close && item.clientSocket.close())
+        clientSockets = []
         clientsData = {}
         consola.info('clients-socket 连接断开: ', socket.id)
       })

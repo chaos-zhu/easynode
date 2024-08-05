@@ -53,7 +53,7 @@
       <!-- <el-table-column property="port" label="认证类型">
         <template #default="scope">{{ scope.row.authType === 'password' ? '密码' : '密钥' }}</template>
       </el-table-column> -->
-      <el-table-column property="isConfig" label="监控服务">
+      <el-table-column label="监控服务">
         <template #default="scope">
           <el-tag v-if="scope.row.monitorData?.connect" type="success">已安装</el-tag>
           <el-tag v-else type="warning">未安装</el-tag>

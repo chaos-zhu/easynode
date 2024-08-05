@@ -43,8 +43,12 @@ const useStore = defineStore({
       this.wsHostStatus()
     },
     async getHostList() {
-      const { data: hostList } = await $api.getHostList()
-      this.$patch({ hostList })
+      let { data: newHostList } = await $api.getHostList()
+      newHostList = newHostList.map(newHostObj => {
+        const oldHostObj = this.hostList.find(({ id }) => id === newHostObj.id)
+        return oldHostObj ? Object.assign({}, { ...oldHostObj }, { ...newHostObj }) : newHostObj
+      })
+      this.$patch({ hostList: newHostList })
       this.HostStatusSocket?.emit('refresh_clients_data')
     },
     async getGroupList() {
@@ -75,7 +79,7 @@ const useStore = defineStore({
     //   }, 2000)
     // },
     async wsHostStatus() {
-      if (this.HostStatusSocket) this.HostStatusSocket.close()
+      // if (this.HostStatusSocket) this.HostStatusSocket.close()
       let socketInstance = io(this.serviceURI, {
         path: '/clients',
         forceNew: true,
