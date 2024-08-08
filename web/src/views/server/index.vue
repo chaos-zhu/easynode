@@ -7,7 +7,7 @@
         {{ hiddenIp ? '显示IP' : '隐藏IP' }}
       </el-button> -->
       <el-button type="primary" @click="importVisible = true">导入实例</el-button>
-      <el-dropdown>
+      <el-dropdown trigger="click">
         <el-button type="primary" class="group_action_btn">
           批量操作<el-icon class="el-icon--right"><arrow-down /></el-icon>
         </el-button>

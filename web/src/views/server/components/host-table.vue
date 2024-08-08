@@ -79,7 +79,7 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance, nextTick, defineExpose } from 'vue'
+import { ref, computed, getCurrentInstance, nextTick } from 'vue'
 import { Download, Upload } from '@element-plus/icons-vue'
 
 const { proxy: { $message, $messageBox, $api, $router, $tools } } = getCurrentInstance()
