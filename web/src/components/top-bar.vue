@@ -31,12 +31,13 @@
     >
       <div class="about_content">
         <h1>EasyNode</h1>
-        <p>Version: {{ currentVersion }}</p>
-        <p v-if="isNew" style="text-decoration: underline;">
-          有新版本可用: {{ latestVersion }} - <a class="link" href="https://github.com/chaos-zhu/easynode/releases" target="_blank">https://github.com/chaos-zhu/easynode/releases</a>
+        <p>当前版本: {{ currentVersion }}</p>
+        <p v-if="checkVersionErr" class="conspicuous">Error：版本更新检测失败(版本检测API需要外网环境)</p>
+        <p v-if="isNew" class="conspicuous">
+          有新版本可用: {{ latestVersion }} -> <a class="link" href="https://github.com/chaos-zhu/easynode/releases" target="_blank">https://github.com/chaos-zhu/easynode/releases</a>
         </p>
-        <p>Author: <a class="link" href="https://github.com/chaos-zhu" target="_blank">ChaosZhu</a></p>
-        <p>Source: <a class="link" href="https://github.com/chaos-zhu/easynode" target="_blank">https://github.com/chaos-zhu/easynode</a></p>
+        <p>作者: <a class="link" href="https://github.com/chaos-zhu" target="_blank">ChaosZhu</a></p>
+        <p>开源仓库: <a class="link" href="https://github.com/chaos-zhu/easynode" target="_blank">https://github.com/chaos-zhu/easynode</a></p>
       </div>
     </el-dialog>
   </div>
@@ -50,6 +51,7 @@ import packageJson from '../../package.json'
 const { proxy: { $router, $store, $message } } = getCurrentInstance()
 
 let visible = ref(false)
+let checkVersionErr = ref(false)
 let currentVersion = ref(`v${ packageJson.version }`)
 let latestVersion = ref(null)
 
@@ -58,18 +60,23 @@ let isNew = computed(() => {
 })
 
 async function checkLatestVersion() {
+  const timeout = 3000
   try {
-    const response = await fetch('https://production.get-easynode-latest-version.chaoszhu.workers.dev/version')
-    // const response = await fetch('https://api.github.com/repos/chaos-zhu/easynode/releases/latest')
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('请求超时')), timeout)
+    )
+    const fetchPromise = fetch('https://production.get-easynode-latest-version.chaoszhu.workers.dev/version')
+
+    const response = await Promise.race([fetchPromise, timeoutPromise,])
     if (!response.ok) {
       throw new Error('版本信息请求失败: ' + response.statusText)
     }
     const data = await response.json()
     latestVersion.value = data.tag_name
   } catch (error) {
+    checkVersionErr.value = true
     console.error('版本信息请求失败:', error.message)
   }
-
 }
 
 checkLatestVersion()
@@ -124,6 +131,9 @@ const handleLogout = () => {
     }
     p {
       line-height: 35px;
+    }
+    .conspicuous {
+      color: red;
     }
   }
 }
