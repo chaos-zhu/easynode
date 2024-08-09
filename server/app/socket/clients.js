@@ -15,7 +15,7 @@ async function getClientsInfo(clientSockets) {
   })
   hostList
     .map(({ host, name }) => {
-      if (clientSockets.some(item => item.host === host)) return { name, isIo: true } // 已经建立io连接(无论是否连接成功)的host不再重复建立连接
+      if (clientSockets.some(item => item.host === host)) return { name, isIo: true } // 已经建立io连接(无论是否连接成功)的host不再重复建立连接,因为存在多次(reconnectionAttempts)的重试机制
       let clientSocket = ClientIO(`http://${ host }:${ clientPort }`, {
         path: '/client/os-info',
         forceNew: true,
@@ -34,7 +34,7 @@ async function getClientsInfo(clientSockets) {
     .forEach((item) => {
       if (item.isIo) return // console.log('已经建立io连接的host不再重复建立连接', item.name)
       const { host, name, clientSocket } = item
-      clientsData[host] = { connect: false }
+      // clientsData[host] = { connect: false }
       clientSocket
         .on('connect', () => {
           consola.success('client connect success:', host, name)

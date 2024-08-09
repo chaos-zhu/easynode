@@ -24,7 +24,7 @@
           @change="handleCsvFile"
         >
       </li>
-      <li @click="handleFromJson">
+      <li @click="handleFromJson(false)">
         <svg-icon name="icon-json" class="icon" />
         <span class="from">FinalShell</span>
         <span class="type">(json)</span>
@@ -35,19 +35,24 @@
           multiple
           name="jsonInput"
           style="display: none;"
+          @click.stop
           @change="handleJsonFile"
         >
+      </li>
+      <li @click="handleFromJson(true)">
+        <svg-icon name="icon-json" class="icon" />
+        <span class="from">EadyNode</span>
+        <span class="type">(json)</span>
       </li>
     </ul>
   </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive, computed, getCurrentInstance, nextTick } from 'vue'
-import { RSAEncrypt, AESEncrypt, randomStr } from '@utils/index.js'
+import { ref, computed, getCurrentInstance } from 'vue'
 import { parse } from 'csv-parse/browser/esm/sync'
 
-const { proxy: { $api, $router, $message, $store } } = getCurrentInstance()
+const { proxy: { $api, $message } } = getCurrentInstance()
 
 const props = defineProps({
   show: {
@@ -69,7 +74,11 @@ function handleFromCsv() {
   csvInputRef.value.click()
 }
 
-function handleFromJson() {
+let isEasyNodeJson = ref(false)
+
+function handleFromJson(isENJson) {
+  isEasyNodeJson.value = isENJson
+  console.log('isEasyNodeJson:', isEasyNodeJson.value)
   jsonInputRef.value.click()
 }
 
@@ -106,7 +115,8 @@ const handleCsvFile = (event) => {
 
   Promise.all(readerPromises)
     .then(jsonContents => {
-      let formatJson = jsonContents.map(item => {
+      let formatJson = jsonContents.flat(Infinity)
+      formatJson = formatJson.map(item => {
         const { name, host, port, user_name: username } = item
         return { name, host, port, username }
       })
@@ -115,6 +125,9 @@ const handleCsvFile = (event) => {
     .catch(error => {
       $message.error('导入失败: ', error.message)
       console.error('导入失败: ', error)
+    })
+    .finally(() => {
+      event.target.value = null
     })
 }
 
@@ -143,22 +156,28 @@ const handleJsonFile = (event) => {
 
   Promise.all(readerPromises)
     .then(jsonContents => {
-      let formatJson = jsonContents.map(item => {
-        const { name, host, port, user_name: username } = item
-        return { name, host, port, username }
-      })
+      let formatJson = jsonContents.flat(Infinity)
+      if (!isEasyNodeJson.value) {
+        formatJson = formatJson.map(item => {
+          const { name, host, port, user_name: username } = item
+          return { name, host, port, username }
+        })
+      }
       handleImportHost(formatJson)
     })
     .catch(error => {
       $message.error('导入失败: ', error.message)
       console.error('导入失败: ', error)
     })
+    .finally(() => {
+      event.target.value = null
+    })
 }
 
 async function handleImportHost(importHost) {
   // console.log('导入: ', importHost)
   try {
-    let { data: { len } } = await $api.importHost({ importHost })
+    let { data: { len } } = await $api.importHost({ importHost, isEasyNodeJson: isEasyNodeJson.value })
     $message({ type: 'success', center: true, message: `成功导入实例: ${ len }台` })
     emit('update-list')
     visible.value = false

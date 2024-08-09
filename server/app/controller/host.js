@@ -5,11 +5,15 @@ async function getHostList({ res }) {
   let data = await readHostList()
   data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
   for (const item of data) {
-    let { username, port, authType, _id: id, credential } = item
-    // console.log('解密凭证title: ', credential)
-    if (credential) credential = await AESDecryptSync(credential)
-    const isConfig = Boolean(username && port && (item[authType]))
-    Object.assign(item, { id, isConfig, password: '', privateKey: '', credential })
+    try {
+      let { username, port, authType, _id: id, credential } = item
+      // console.log('解密凭证title: ', credential)
+      if (credential) credential = await AESDecryptSync(credential)
+      const isConfig = Boolean(username && port && (item[authType]))
+      Object.assign(item, { id, isConfig, password: '', privateKey: '', credential })
+    } catch (error) {
+      consola.error('getHostList error: ', error.message)
+    }
   }
   res.success({ data })
 }
@@ -119,13 +123,13 @@ async function removeHost({
     hostList.splice(hostIdx, 1)
   }
   writeHostList(hostList)
-  res.success({ data: `${ host }已移除` })
+  res.success({ data: '已移除' })
 }
 
 async function importHost({
   res, request
 }) {
-  let { body: { importHost } } = request
+  let { body: { importHost, isEasyNodeJson = false } } = request
   if (!Array.isArray(importHost)) return res.fail({ msg: '参数错误' })
   let hostList = await readHostList()
   // 过滤已存在的host
@@ -134,15 +138,26 @@ async function importHost({
   let newHostListLen = newHostList.length
   if (newHostListLen === 0) return res.fail({ msg: '导入的实例已存在' })
 
-  let extraFiels = {
-    expired: null, expiredNotify: false, group: 'default', consoleUrl: '', remark: '',
-    authType: 'privateKey', password: '', privateKey: '', credential: '', command: ''
+  if (isEasyNodeJson) {
+    newHostList = newHostList.map((item) => {
+      item.credential = ''
+      item.isConfig = false
+      delete item.id
+      delete item.isConfig
+      return item
+    })
+  } else {
+    let extraFiels = {
+      expired: null, expiredNotify: false, group: 'default', consoleUrl: '', remark: '',
+      authType: 'privateKey', password: '', privateKey: '', credential: '', command: ''
+    }
+    newHostList = newHostList.map((item, index) => {
+      item.port = Number(item.port) || 0
+      item.index = newHostListLen - index
+      return Object.assign(item, { ...extraFiels })
+    })
+
   }
-  newHostList = newHostList.map((item, index) => {
-    item.port = Number(item.port) || 0
-    item.index = newHostListLen - index
-    return Object.assign(item, { ...extraFiels })
-  })
   hostList.push(...newHostList)
   writeHostList(hostList)
   res.success({ data: { len: newHostList.length } })

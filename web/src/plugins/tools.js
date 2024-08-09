@@ -17,7 +17,7 @@ export default {
     return `${ (netSpeedMB * 1024).toFixed(1) } KB/s`
   },
   // format: time OR date
-  formatTimestamp: (timestamp, format = 'time') => {
+  formatTimestamp: (timestamp, format = 'time', afterSeparator = ':') => {
     if(typeof(timestamp) !== 'number') return '--'
     let date = new Date(timestamp)
     let padZero = (num) => String(num).padStart(2, '0')
@@ -31,9 +31,9 @@ export default {
       case 'date':
         return `${ year }-${ mounth }-${ day }`
       case 'time':
-        return `${ year }-${ mounth }-${ day } ${ hours }:${ minute }:${ second }`
+        return `${ year }-${ mounth }-${ day } ${ hours }${ afterSeparator }${ minute }${ afterSeparator }${ second }`
       default:
-        return `${ year }-${ mounth }-${ day } ${ hours }:${ minute }:${ second }`
+        return `${ year }-${ mounth }-${ day } ${ hours }${ afterSeparator }${ minute }${ afterSeparator }${ second }`
     }
   },
   ping

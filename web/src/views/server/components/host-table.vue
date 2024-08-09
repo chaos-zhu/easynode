@@ -4,6 +4,8 @@
       ref="tableRef"
       :data="hosts"
       row-key="host"
+      :default-sort="defaultSort"
+      @sort-change="handleSortChange"
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="expand">
@@ -43,8 +45,18 @@
         </template>
       </el-table-column>
       <el-table-column type="selection" reserve-selection />
-      <el-table-column prop="index" label="序号" width="100px" />
-      <el-table-column label="名称">
+      <el-table-column
+        property="index"
+        label="序号"
+        sortable
+        width="100px"
+      />
+      <el-table-column
+        label="名称"
+        property="name"
+        sortable
+        :sort-method="(a, b) => a.name - b.name"
+      >
         <template #default="scope">{{ scope.row.name }}</template>
       </el-table-column>
       <el-table-column property="username" label="用户名" />
@@ -53,9 +65,15 @@
       <!-- <el-table-column property="port" label="认证类型">
         <template #default="scope">{{ scope.row.authType === 'password' ? '密码' : '密钥' }}</template>
       </el-table-column> -->
-      <el-table-column label="监控服务">
+      <el-table-column
+        label="监控服务"
+        property="monitorData"
+        sortable
+        :sort-method="(a, b) => a.monitorData?.connect - b.monitorData?.connect"
+      >
         <template #default="scope">
-          <el-tag v-if="scope.row.monitorData?.connect" type="success">已安装</el-tag>
+          <el-tag v-if="typeof(scope.row.monitorData?.connect) !== 'boolean'" type="info">连接中</el-tag>
+          <el-tag v-else-if="scope.row.monitorData?.connect" type="success">已安装</el-tag>
           <el-tag v-else type="warning">未安装</el-tag>
         </template>
       </el-table-column>
@@ -70,7 +88,7 @@
           >
             <el-button type="success" :disabled="!row.isConfig" @click="handleSSH(row)">连接终端</el-button>
           </el-tooltip>
-          <el-button type="primary" @click="handleUpdate(row)">修改</el-button>
+          <el-button type="primary" @click="handleUpdate(row)">配置</el-button>
           <el-button type="danger" @click="handleRemoveHost(row)">删除</el-button>
         </template>
       </el-table-column>
@@ -125,6 +143,15 @@ const handleOnekey = async (row) => {
     return
   }
   $router.push({ path: '/onekey', query: { host, execClientInstallScript: 'true' } })
+}
+
+let defaultSortLocal = localStorage.getItem('host_table_sort')
+defaultSortLocal = defaultSortLocal ? JSON.parse(defaultSortLocal) : { prop: 'index', order: 'ascending' }
+let defaultSort = ref(defaultSortLocal)
+
+const handleSortChange = (sortObj) => {
+  defaultSort.value = sortObj
+  localStorage.setItem('host_table_sort', JSON.stringify(sortObj))
 }
 
 let selectHosts = ref([])

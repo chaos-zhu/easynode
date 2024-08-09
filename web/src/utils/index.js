@@ -114,3 +114,17 @@ export const downloadFile = ({ buffer, name }) => {
 export const getSuffix = (name = '') => {
   return String(name).split(/\./).pop()
 }
+
+export const exportFile = (data, filename, mimeType = 'application/json') =>{
+  const blob = new Blob([JSON.stringify(data),], { type: mimeType })
+  const url = window.URL.createObjectURL(blob)
+
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', filename)
+
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+}

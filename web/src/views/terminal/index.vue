@@ -23,7 +23,7 @@
               </el-button>
               <el-button
                 v-else
-                type="success"
+                type="primary"
                 link
                 @click="handleUpdateHost(row)"
               >

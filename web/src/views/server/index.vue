@@ -2,11 +2,22 @@
   <div class="server_group_container">
     <div class="server_group_header">
       <!-- <el-button v-show="selectHosts.length" type="primary" @click="hostFormVisible = true">批量操作</el-button> -->
-      <el-button type="primary" @click="hostFormVisible = true">添加实例</el-button>
+      <el-button type="primary" class="add_host_btn" @click="hostFormVisible = true">添加实例</el-button>
       <!-- <el-button type="primary" @click="handleHiddenIP">
         {{ hiddenIp ? '显示IP' : '隐藏IP' }}
       </el-button> -->
-      <el-button type="primary" @click="importVisible = true">导入实例</el-button>
+      <!-- <el-button type="primary" @click="importVisible = true">导入实例</el-button> -->
+      <el-dropdown trigger="click">
+        <el-button type="primary" class="group_action_btn">
+          导入导出<el-icon class="el-icon--right"><arrow-down /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="importVisible = true">导入实例</el-dropdown-item>
+            <el-dropdown-item @click="handleBatchExport">导出实例</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
       <el-dropdown trigger="click">
         <el-button type="primary" class="group_action_btn">
           批量操作<el-icon class="el-icon--right"><arrow-down /></el-icon>
@@ -77,8 +88,9 @@ import HostTable from './components/host-table.vue'
 import HostForm from './components/host-form.vue'
 import ImportHost from './components/import-host.vue'
 import { ArrowDown } from '@element-plus/icons-vue'
+import { exportFile } from '@/utils'
 
-const { proxy: { $api, $store, $router, $message, $messageBox } } = getCurrentInstance()
+const { proxy: { $api, $store, $router, $message, $messageBox, $tools } } = getCurrentInstance()
 
 let updateHostData = ref(null)
 let hostFormVisible = ref(false)
@@ -155,6 +167,20 @@ let handleBatchOnekey = async () => {
   $router.push({ path: '/onekey', query: { host: ips, execClientInstallScript: 'true' } })
 }
 
+let handleBatchExport = () => {
+  collectSelectHost()
+  if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
+  console.log(selectHosts.value)
+  let exportData = JSON.parse(JSON.stringify(selectHosts.value))
+  exportData = exportData.map(item => {
+    delete item.monitorData
+    return item
+  })
+  const fileName = `easynode-${ $tools.formatTimestamp(Date.now(), 'time', '.') }.json`
+  exportFile(exportData, fileName, 'application/json')
+  hostTableRefs.value.forEach(item => item.clearSelection())
+}
+
 let handleHiddenIP = () => {
   hiddenIp.value = hiddenIp.value ? 0 : 1
   localStorage.setItem('hiddenIp', String(hiddenIp.value))
@@ -207,8 +233,11 @@ let hostFormClosed = () => {
     display: flex;
     align-items: center;
     justify-content: end;
+    .add_host_btn {
+      margin-right: 12px;
+    }
     .group_action_btn {
-      margin: 0 12px;
+      margin-right: 12px;
     }
   }
 
