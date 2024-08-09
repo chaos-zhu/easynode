@@ -9,7 +9,7 @@
         link
         @click="visible = true"
       >
-        关于 <span class="link">{{ isNew ? `(新版本可用)` : '' }}</span>
+        关于 <span class="new_version">{{ isNew ? `(新版本可用)` : '' }}</span>
       </el-button>
       <el-dropdown trigger="click">
         <span class="username top_text"><el-icon><User /></el-icon> {{ user }}</span>
@@ -34,7 +34,7 @@
         <p>当前版本: {{ currentVersion }}</p>
         <p v-if="checkVersionErr" class="conspicuous">Error：版本更新检测失败(版本检测API需要外网环境)</p>
         <p v-if="isNew" class="conspicuous">
-          有新版本可用: {{ latestVersion }} -> <a class="link" href="https://github.com/chaos-zhu/easynode/releases" target="_blank">https://github.com/chaos-zhu/easynode/releases</a>
+          新版本可用: {{ latestVersion }} -> <a class="link" href="https://github.com/chaos-zhu/easynode/releases" target="_blank">https://github.com/chaos-zhu/easynode/releases</a>
         </p>
         <p>作者: <a class="link" href="https://github.com/chaos-zhu" target="_blank">ChaosZhu</a></p>
         <p>开源仓库: <a class="link" href="https://github.com/chaos-zhu/easynode" target="_blank">https://github.com/chaos-zhu/easynode</a></p>
@@ -119,8 +119,10 @@ const handleLogout = () => {
       cursor: pointer;
     }
     .top_text {
-      color: var(--el-menu-text-color);
       font-size: 14px;
+      .new_version {
+        color: red;
+      }
     }
   }
   .about_content {
