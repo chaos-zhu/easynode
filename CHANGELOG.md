@@ -5,6 +5,7 @@
 * 新增导入导出功能(EasyNode JSON) ✔
 * 新增服务器列表排序与排序缓存 ✔
 * 优化客户端连接状态展示 ✔
+* 优化版本更新提示 ✔
 
 ## [2.1.1](https://github.com/chaos-zhu/easynode/releases) (2024-08-05)
 
