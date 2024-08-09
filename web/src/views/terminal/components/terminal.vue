@@ -188,13 +188,11 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResizeTerminalSftp)
 })
 
-const handleUpdateList = async ({ isConfig, host }) => {
+const handleUpdateList = async ({ host }) => {
   try {
     await $store.getHostList()
-    if (isConfig) {
-      let targetHost = hostList.value.find(item => item.host === host)
-      if (targetHost !== -1) emit('add-host', targetHost)
-    }
+    let targetHost = hostList.value.find(item => item.host === host)
+    if (targetHost) emit('add-host', targetHost)
   } catch (err) {
     $message.error('获取实例列表失败')
     console.error('获取实例列表失败: ', err)

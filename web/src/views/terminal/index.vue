@@ -60,8 +60,6 @@ import { randomStr } from '@utils/index.js'
 
 const { proxy: { $store, $message } } = getCurrentInstance()
 
-// const emit = defineEmits(['add-host',])
-
 let terminalTabs = reactive([])
 let hostFormVisible = ref(false)
 let updateHostData = ref(null)
@@ -88,13 +86,11 @@ function handleRemoveTab(index) {
   terminalTabs.splice(index, 1)
 }
 
-const handleUpdateList = async ({ isConfig, host }) => {
+const handleUpdateList = async ({ host }) => {
   try {
     await $store.getHostList()
-    if (isConfig) {
-      let targetHost = hostList.value.find(item => item.host === host)
-      if (targetHost !== -1) linkTerminal(targetHost)
-    }
+    let targetHost = hostList.value.find(item => item.host === host)
+    if (targetHost) linkTerminal(targetHost)
   } catch (err) {
     $message.error('获取实例列表失败')
     console.error('获取实例列表失败: ', err)

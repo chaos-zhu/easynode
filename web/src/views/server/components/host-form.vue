@@ -431,7 +431,7 @@ const handleSave = () => {
         }
       }
       visible.value = false
-      emit('update-list')
+      emit('update-list', { host: isBatchModify.value ? batchHosts.value : hostForm.value.host })
     })
 }
 </script>
