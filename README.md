@@ -9,12 +9,12 @@
 > webssh与监控服务都将以`该服务器作为中转`。中国大陆连接建议使用香港、新加坡、日本、韩国等地区的低延迟服务器来安装服务端 -->
 
   - [功能](#功能)
-  - [安装](#安装指南)
+  - [安装](#安装)
     - [服务端安装](#服务端安装)
     - [监控服务安装](#监控服务安装)
   - [版本日志](#版本日志)
   - [开发](#开发)
-  - [Q&A](#Q&A)
+  - [QA](#QA)
   - [捐赠](#捐赠)
   - [License](#license)
 
@@ -109,9 +109,9 @@ curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/
 3. `yarn dev`启动项目
 4. web: `http://localhost:18090/`
 
-## Q&A
+## QA
 
-- [Q&A](./Q%26A.md)
+- [QA](./Q%26A.md)
 
 ## 捐赠
 
