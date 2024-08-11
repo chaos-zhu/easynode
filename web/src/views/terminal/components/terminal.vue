@@ -252,6 +252,12 @@ watch(terminalTabsLen, () => {
   deep: false
 })
 
+watch(showSftp, () => {
+  nextTick(() => {
+    resizeTerminal()
+  })
+})
+
 // const windowBeforeUnload = () => {
 //   window.onbeforeunload = () => {
 //     return ''
@@ -288,11 +294,6 @@ const handleFullScreen = () => {
 // const handleDblclick = (e) => {
 //   let key = e.target.id.substring(4)
 //   removeTab(key)
-// }
-
-// const handleVisibleSidebar = () => {
-//   visible.value = !visible.value
-//   resizeTerminal()
 // }
 
 const resizeTerminal = () => {
