@@ -1,3 +1,9 @@
+## [2.1.3](https://github.com/chaos-zhu/easynode/releases) (2024-08-11)
+
+### Features
+
+* 修复开启or关闭SFTP功能开关时，终端光标位置错误的bug ✔
+
 ## [2.1.2](https://github.com/chaos-zhu/easynode/releases) (2024-08-09)
 
 ### Features
