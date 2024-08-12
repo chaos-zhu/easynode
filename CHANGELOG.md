@@ -1,3 +1,11 @@
+## [2.1.5](https://github.com/chaos-zhu/easynode/releases) (2024-08-12)
+
+### Features
+
+* 新增终端设置 ✔
+* 支持更多终端主题 ✔
+* 支持终端背景图片(当前版本只缓存在前端且只可以使用内置背景图片) ✔
+
 ## [2.1.4](https://github.com/chaos-zhu/easynode/releases) (2024-08-12)
 
 ### Features
