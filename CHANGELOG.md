@@ -1,3 +1,10 @@
+## [2.1.4](https://github.com/chaos-zhu/easynode/releases) (2024-08-12)
+
+### Features
+
+* 新增cd全路径命令联动SFTP面板 ✔
+* 修复SFTP文件编辑文件名称显示错误的bug ✔
+
 ## [2.1.3](https://github.com/chaos-zhu/easynode/releases) (2024-08-11)
 
 ### Features
