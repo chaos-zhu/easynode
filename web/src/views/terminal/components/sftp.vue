@@ -281,12 +281,17 @@ const connectSftp = () => {
 }
 
 const listenSftp = () => {
-  socket.value.on('dir_ls', (dirLs) => {
+  socket.value.on('dir_ls', (dirLs, path) => {
     childDir.value = sortDirTree(dirLs)
     childDirLoading.value = false
+    // 格式化path为当前目录
+    let formatPath = path.split('/').filter(item => item)
+    formatPath.unshift('/')
+    // console.log('formatPath:', formatPath)
+    paths.value = formatPath
   })
   socket.value.on('not_exists_dir', (errMsg) => {
-    $message.error(errMsg)
+    if (errMsg) $message.error(errMsg)
     childDirLoading.value = false
   })
   socket.value.on('rm_success', (res) => {
@@ -517,15 +522,19 @@ const uploadSliceFile = (fileInfo) => {
   })
 }
 
-const openDir = () => {
+const openDir = (path = '', tips = true) => {
   childDirLoading.value = true
   curTarget.value = null
-  socket.value.emit('open_dir', curPath.value)
+  socket.value.emit('open_dir', path || curPath.value, tips)
 }
 
 const getPath = (name = '') => {
   return curPath.value.length === 1 ? `/${ name }` : `${ curPath.value }/${ name }`
 }
+
+defineExpose({
+  openDir
+})
 
 </script>
 

@@ -35,12 +35,12 @@ const pipeStream = (path, writeStream) => {
 }
 
 function listenInput(sftpClient, socket) {
-  socket.on('open_dir', async (path) => {
+  socket.on('open_dir', async (path, tips = true) => {
     const exists = await sftpClient.exists(path)
-    if(!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
+    if(!exists) return socket.emit('not_exists_dir', tips ? '目录不存在或当前不可访问' : '')
     try {
       let dirLs = await sftpClient.list(path)
-      socket.emit('dir_ls', dirLs)
+      socket.emit('dir_ls', dirLs, path)
     } catch (error) {
       consola.error('open_dir Error', error.message)
       socket.emit('sftp_error', error.message)

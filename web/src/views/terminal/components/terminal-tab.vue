@@ -22,7 +22,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['inputCommand',])
+const emit = defineEmits(['inputCommand', 'cdCommand',])
 
 const socket = ref(null)
 const term = ref(null)
@@ -194,14 +194,76 @@ const onSelectionChange = () => {
   })
 }
 
+const terminalText = ref(null)
+const enterTimer = ref(null)
+
+function filterAnsiSequences(str) {
+  // 使用正则表达式移除ANSI转义序列
+  // return str.replace(/\x1b\[[0-9;]*m|\x1b\[?[\d;]*[A-HJKSTfmin]/g, '')
+  // eslint-disable-next-line
+  return str.replace(/\x1b\[[0-9;]*[mGK]|(\x1b\][0-?]*[0-7;]*\x07)|(\x1b[\[\]()#%;][0-9;?]*[0-9A-PRZcf-ntqry=><])/g, '')
+}
+
+// 处理 Backspace，删除前一个字符
+function applyBackspace(text) {
+  let result = []
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '\b') {
+      if (result.length > 0) {
+        result.pop()
+      }
+    } else {
+      result.push(text[i])
+    }
+  }
+  return result.join('')
+}
+
+function extractLastCdPath(text) {
+  const regex = /cd\s+([^\s]+)(?=\s|$)/g
+  let lastMatch
+  let match
+  regex.lastIndex = 0
+  while ((match = regex.exec(text)) !== null) {
+    lastMatch = match
+  }
+  return lastMatch ? lastMatch[1] : null
+}
+
 const onData = () => {
   socket.value.on('output', (str) => {
     term.value.write(str)
+    terminalText.value += str
+    // console.log(terminalText.value)
   })
   term.value.onData((key) => {
     let acsiiCode = key.codePointAt()
     if (acsiiCode === 22) return handlePaste()
     if (acsiiCode === 6) return searchBar.value.show()
+    enterTimer.value = setTimeout(() => {
+      if (enterTimer.value) clearTimeout(enterTimer.value)
+      if (key === '\r') { // Enter
+        let cleanText = applyBackspace(filterAnsiSequences(terminalText.value))
+        const lines = cleanText.split('\n')
+        // console.log('lines: ', lines)
+        const lastLine = lines[lines.length - 1].trim()
+        // console.log('lastLine: ', lastLine)
+        // 截取最后一个提示符后的内容（'$'或'#'后的内容）
+        const commandStartIndex = lastLine.lastIndexOf('#') + 1
+        const commandText = lastLine.substring(commandStartIndex).trim()
+        // console.log('Processed command: ', commandText)
+        // eslint-disable-next-line
+        const cdPath = extractLastCdPath(commandText)
+
+        if (cdPath) {
+          console.log('cd command path:', cdPath)
+          let firstChar = cdPath.charAt(0)
+          if (!['/',].includes(firstChar)) return console.log('err fullpath:', cdPath) // 后端依赖不支持 '~'
+          emit('cdCommand', cdPath)
+        }
+        terminalText.value = ''
+      }
+    })
     emit('inputCommand', key)
     socket.value.emit('input', key)
   })

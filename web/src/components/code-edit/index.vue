@@ -12,7 +12,8 @@
   >
     <template #header>
       <div class="title">
-        {{ FileName }} - <span>{{ status }}</span>
+        {{ filename }}
+        <!-- {{ filename }} - <span>{{ status }}</span> -->
       </div>
     </template>
     <codemirror

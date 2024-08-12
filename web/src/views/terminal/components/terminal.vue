@@ -125,8 +125,14 @@
               ref="terminalRefs"
               :host="item.host"
               @input-command="terminalInput"
+              @cd-command="cdCommand"
             />
-            <Sftp v-if="showSftp" :host="item.host" @resize="resizeTerminal" />
+            <Sftp
+              v-if="showSftp"
+              ref="sftpRefs"
+              :host="item.host"
+              @resize="resizeTerminal"
+            />
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -165,9 +171,10 @@ const emit = defineEmits(['closed', 'removeTab', 'add-host',])
 const showInputCommand = ref(false)
 const infoSideRef = ref(null)
 const terminalRefs = ref([])
+const sftpRefs = ref([])
 let activeTabIndex = ref(0)
 let visible = ref(true)
-let showSftp = ref(false)
+let showSftp = ref(localStorage.getItem('showSftp') === 'true')
 let mainHeight = ref('')
 let isSyncAllSession = ref(false)
 let hostFormVisible = ref(false)
@@ -233,6 +240,18 @@ const terminalInput = (command) => {
   })
 }
 
+const cdCommand = (path) => {
+  // console.log('cdCommand:', path)
+  if (!showSftp.value) return
+  if (isSyncAllSession.value) {
+    sftpRefs.value.forEach(sftpRef => {
+      sftpRef.openDir(path)
+    })
+  } else {
+    sftpRefs.value[activeTabIndex.value].openDir(path, false)
+  }
+}
+
 const tabChange = async (index) => {
   await $nextTick()
   const curTerminalRef = terminalRefs.value[index]
@@ -253,6 +272,7 @@ watch(terminalTabsLen, () => {
 })
 
 watch(showSftp, () => {
+  localStorage.setItem('showSftp', showSftp.value)
   nextTick(() => {
     resizeTerminal()
   })
