@@ -1,9 +1,9 @@
 <template>
-  <div ref="terminalRefs" class="terminal_tab_container" />
+  <div ref="terminalRef" class="terminal_tab_container" />
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance, watch, nextTick } from 'vue'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { FitAddon } from '@xterm/addon-fit'
@@ -19,6 +19,14 @@ const props = defineProps({
   host: {
     required: true,
     type: String
+  },
+  theme: {
+    required: true,
+    type: Object
+  },
+  background: {
+    required: true,
+    type: String
   }
 })
 
@@ -31,9 +39,34 @@ const timer = ref(null)
 const fitAddon = ref(null)
 const searchBar = ref(null)
 const isManual = ref(false)
-const terminalRefs = ref(null)
+const terminal = ref(null)
+const terminalRef = ref(null)
 
 const token = computed(() => $store.token)
+const theme = computed(() => props.theme)
+const background = computed(() => props.background)
+
+watch(theme, () => {
+  nextTick(() => {
+    if (!background.value) terminal.value.options.theme = theme.value
+    else terminal.value.options.theme = { ...theme.value, background: '#00000080' }
+  })
+})
+
+watch(background, (newVal) => {
+  nextTick(() => {
+    if (newVal) {
+      // terminal.value.options.theme.background = '#00000080'
+      terminal.value.options.theme = { ...theme.value, background: '#00000080' }
+      terminalRef.value.style.backgroundImage = `url(${ background.value })`
+      terminalRef.value.style.backgroundImage = `url(${ background.value })`
+      // terminalRef.value.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15)), url(${ background.value })`
+    } else {
+      terminal.value.options.theme.background = theme.value.background
+      terminalRef.value.style.backgroundImage = null
+    }
+  })
+}, { immediate: true })
 
 const getCommand = async () => {
   let { data } = await $api.getCommand(props.host)
@@ -117,7 +150,7 @@ const reConnect = () => {
 }
 
 const createLocalTerminal = () => {
-  let terminal = new Terminal({
+  let terminalInstance = new Terminal({
     rendererType: 'dom',
     bellStyle: 'sound',
     convertEol: true,
@@ -126,20 +159,22 @@ const createLocalTerminal = () => {
     fontSize: 18,
     minimumContrastRatio: 7,
     allowTransparency: true,
-    theme: {
-      foreground: '#ECECEC',
-      background: '#000000', // 'transparent',
-      // cursor: 'help',
-      selection: '#ff9900',
-      lineHeight: 20
-    }
+    theme: theme.value
+    // {
+    //   foreground: '#ECECEC',
+    //   background: '#000000', // 'transparent',
+    //   // cursor: 'help',
+    //   selection: '#ff9900',
+    //   lineHeight: 20
+    // }
   })
-  term.value = terminal
-  terminal.open(terminalRefs.value)
-  terminal.writeln('\x1b[1;32mWelcome to EasyNode terminal\x1b[0m.')
-  terminal.writeln('\x1b[1;32mAn experimental Web-SSH Terminal\x1b[0m.')
-  terminal.focus()
+  term.value = terminalInstance
+  terminalInstance.open(terminalRef.value)
+  terminalInstance.writeln('\x1b[1;32mWelcome to EasyNode terminal\x1b[0m.')
+  terminalInstance.writeln('\x1b[1;32mAn experimental Web-SSH Terminal\x1b[0m.')
+  terminalInstance.focus()
   onSelectionChange()
+  terminal.value = terminalInstance
 }
 
 const onResize = () => {
@@ -315,9 +350,8 @@ defineExpose({
 .terminal_tab_container {
   min-height: 200px;
 
-  // background-image: url('@/assets/bg.jpg');
-  // background-size: cover;
-  // background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
 
   :deep(.xterm) {
     height: 100%;

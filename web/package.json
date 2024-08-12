@@ -39,7 +39,8 @@
     "socket.io-client": "^4.7.5",
     "vue": "^3.4.31",
     "vue-codemirror": "^6.1.1",
-    "vue-router": "^4.4.0"
+    "vue-router": "^4.4.0",
+    "xterm-theme": "^1.1.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.5",

@@ -12,17 +12,6 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <!-- <el-dropdown trigger="click">
-          <span class="link_text">会话同步<el-icon><arrow-down /></el-icon></span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="handleSyncSession">
-                <el-icon v-show="isSyncAllSession"><Select class="action_icon" /></el-icon>
-                <span>同步键盘输入到所有会话</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown> -->
         <el-dropdown
           trigger="click"
           max-height="50vh"
@@ -38,6 +27,16 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+        <!-- <el-dropdown trigger="click" max-height="50vh">
+          <span class="link_text">主题<el-icon><arrow-down /></el-icon></span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-for="(value, key) in themeList" :key="key" @click="handleChangeTheme(key)">
+                <span :style="{color: key === themeName ? 'var(--el-menu-active-color)' : ''}">{{ key }}</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown> -->
         <el-dropdown trigger="click">
           <span class="link_text">设置<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
@@ -45,8 +44,8 @@
               <el-dropdown-item @click="handleFullScreen">
                 <span>开启全屏</span>
               </el-dropdown-item>
-              <el-dropdown-item disabled @click="handleFullScreen">
-                <span>终端设置(开发中)</span>
+              <el-dropdown-item @click="showSetting = true">
+                <span>终端设置</span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -124,6 +123,8 @@
             <TerminalTab
               ref="terminalRefs"
               :host="item.host"
+              :theme="themeObj"
+              :background="terminalBackground"
               @input-command="terminalInput"
               @cd-command="cdCommand"
             />
@@ -144,6 +145,12 @@
       @update-list="handleUpdateList"
       @closed="updateHostData = null"
     />
+    <TerminalSetting
+      v-model:show="showSetting"
+      v-model:themeName="themeName"
+      v-model:background="terminalBackground"
+      @closed="showSetting = false"
+    />
   </div>
 </template>
 
@@ -155,7 +162,9 @@ import InfoSide from './info-side.vue'
 import Sftp from './sftp.vue'
 import InputCommand from '@/components/input-command/index.vue'
 import HostForm from '../../server/components/host-form.vue'
+import TerminalSetting from './terminal-setting.vue'
 // import { randomStr } from '@utils/index.js'
+import themeList from 'xterm-theme'
 
 const { proxy: { $nextTick, $store, $message } } = getCurrentInstance()
 
@@ -172,19 +181,33 @@ const showInputCommand = ref(false)
 const infoSideRef = ref(null)
 const terminalRefs = ref([])
 const sftpRefs = ref([])
-let activeTabIndex = ref(0)
-let visible = ref(true)
-let showSftp = ref(localStorage.getItem('showSftp') === 'true')
-let mainHeight = ref('')
-let isSyncAllSession = ref(false)
-let hostFormVisible = ref(false)
-let updateHostData = ref(null)
+const activeTabIndex = ref(0)
+const visible = ref(true)
+const showSftp = ref(localStorage.getItem('showSftp') === 'true')
+const mainHeight = ref('')
+const isSyncAllSession = ref(false)
+const hostFormVisible = ref(false)
+const updateHostData = ref(null)
+const showSetting = ref(false)
+const themeName = ref(localStorage.getItem('themeName') || 'Afterglow')
+let localTerminalBackground = localStorage.getItem('terminalBackground')
+const terminalBackground = ref(localTerminalBackground === undefined ? '/01.png' : localTerminalBackground)
 
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
-let hostList = computed(() => $store.hostList)
+const hostList = computed(() => $store.hostList)
 const curHost = computed(() => hostList.value.find(item => item.host === terminalTabs.value[activeTabIndex.value]?.host))
-let scriptList = computed(() => $store.scriptList)
+const scriptList = computed(() => $store.scriptList)
+const themeObj = computed(() => themeList[themeName.value])
+
+watch(themeName, (newVal) => {
+  console.log('update theme:', newVal)
+  localStorage.setItem('themeName', newVal)
+})
+watch(terminalBackground, (newVal) => {
+  console.log('update terminalBackground:', newVal)
+  localStorage.setItem('terminalBackground', newVal)
+})
 
 onMounted(() => {
   handleResizeTerminalSftp()
