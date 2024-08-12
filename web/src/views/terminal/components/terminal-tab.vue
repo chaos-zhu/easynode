@@ -62,7 +62,7 @@ watch(background, (newVal) => {
       terminalRef.value.style.backgroundImage = `url(${ background.value })`
       // terminalRef.value.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15)), url(${ background.value })`
     } else {
-      terminal.value.options.theme.background = theme.value.background
+      terminal.value.options.theme = theme.value
       terminalRef.value.style.backgroundImage = null
     }
   })

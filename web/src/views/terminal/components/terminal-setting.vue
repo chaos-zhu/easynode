@@ -47,6 +47,14 @@
             <el-image class="image" :src="url" />
           </li>
         </ul>
+        <div class="custom_background">
+          <el-input
+            v-model="backgroundUrl"
+            clearable
+            placeholder="自定义背景图片url"
+            autocomplete="on"
+          />
+        </div>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -140,6 +148,9 @@ const changeBackground = (url) => {
       justify-content: center;
     }
   }
+}
+.custom_background {
+  width: 90%;
 }
 .dialog_footer {
   display: flex;
