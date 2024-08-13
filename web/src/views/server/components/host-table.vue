@@ -40,7 +40,7 @@
             </el-descriptions-item>
           </el-descriptions>
           <div v-else class="no_client_data">
-            监控客户端未安装，无法获取实时数据。<span class="link" @click="handleOnekey(row)">去安装</span>
+            监控客户端服务未连接，无法获取实例监控数据。<span class="link" @click="handleOnekey(row)">去安装</span>
           </div>
         </template>
       </el-table-column>
@@ -73,8 +73,8 @@
       >
         <template #default="scope">
           <el-tag v-if="typeof(scope.row.monitorData?.connect) !== 'boolean'" type="info">连接中</el-tag>
-          <el-tag v-else-if="scope.row.monitorData?.connect" type="success">已安装</el-tag>
-          <el-tag v-else type="warning">未安装</el-tag>
+          <el-tag v-else-if="scope.row.monitorData?.connect" type="success">已连接</el-tag>
+          <el-tag v-else type="warning">未连接</el-tag>
         </template>
       </el-table-column>
       <!-- <el-table-column property="isConfig" label="登录配置" /> -->
