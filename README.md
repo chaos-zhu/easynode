@@ -21,7 +21,7 @@
 ## 功能
 
 - [x] webssh终端&SFTP
-- [x] 批量导入导出实例(Xshell&FinalShell)
+- [x] 批量导入导出实例(Xshell&FinalShell&EasyNode)
 - [x] 实例分组
 - [x] 凭据托管
 - [x] 邮件通知

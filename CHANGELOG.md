@@ -1,3 +1,10 @@
+## [2.1.6](https://github.com/chaos-zhu/easynode/releases) (2024-08-13)
+
+### Features
+
+* SFTP支持上传嵌套文件夹 ✔
+* 修复面板服务缓存文件夹偶尔不存在的bug  ✔
+
 ## [2.1.5](https://github.com/chaos-zhu/easynode/releases) (2024-08-12)
 
 ### Features
