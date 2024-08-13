@@ -1,29 +1,14 @@
 const { Server } = require('socket.io')
 const SFTPClient = require('ssh2-sftp-client')
 const rawPath = require('path')
-const fs = require('fs')
-const { readHostList, readSSHRecord, verifyAuthSync, RSADecryptSync, AESDecryptSync } = require('../utils')
+const fs = require('fs-extra')
+
+const { readHostList, readSSHRecord, verifyAuthSync, AESDecryptSync } = require('../utils')
 const { sftpCacheDir } = require('../config')
 const CryptoJS = require('crypto-js')
 
-function clearDir(path, rmSelf = false) {
-  let files = []
-  if(!fs.existsSync(path)) return consola.info('clearDir: 目标文件夹不存在')
-  files = fs.readdirSync(path)
-  files.forEach((file) => {
-    let curPath = path + '/' + file
-    if(fs.statSync(curPath).isDirectory()){
-      clearDir(curPath) //递归删除文件夹
-      fs.rmdirSync(curPath) // 删除文件夹
-    } else {
-      fs.unlinkSync(curPath) //删除文件
-    }
-  })
-  if(rmSelf) fs.rmdirSync(path)
-  consola.success('clearDir: 已清空缓存文件')
-}
+// 读取切片
 const pipeStream = (path, writeStream) => {
-  // console.log('path', path)
   return new Promise(resolve => {
     const readStream = fs.createReadStream(path)
     readStream.on('end', () => {
@@ -110,7 +95,7 @@ function listenInput(sftpClient, socket) {
     }
   })
   socket.on('up_file', async ({ targetPath, fullPath, name, file }) => {
-    console.log({ targetPath, fullPath, name, file })
+    // console.log({ targetPath, fullPath, name, file })
     const exists = await sftpClient.exists(targetPath)
     if(!exists) return socket.emit('not_exists_dir', '文件夹不存在或当前不可访问')
     try {
@@ -125,43 +110,54 @@ function listenInput(sftpClient, socket) {
     }
   })
 
+  // 上传文件夹先在目标sftp服务器创建文件夹
+  socket.on('create_remote_dir', async ({ targetDirPath, folderName }) => {
+    let fullPath = rawPath.posix.join(targetDirPath, folderName)
+    consola.info('创建远程服务器文件夹:', fullPath)
+    const exists = await sftpClient.exists(fullPath)
+    if(exists) return socket.emit('is_exists_dir', '上传文件夹失败,文件夹已存在')
+    let res = await sftpClient.mkdir(fullPath)
+    consola.success('创建远程服务器文件夹成功:', fullPath)
+    socket.emit('create_remote_dir_success', res)
+  })
+
   /** 分片上传 */
   // 1. 创建本地缓存文件夹
   let md5List = []
-  socket.on('create_cache_dir', async ({ targetPath, name }) => {
-    // console.log({ targetPath, name })
-    const exists = await sftpClient.exists(targetPath)
+  socket.on('create_cache_dir', async ({ targetDirPath, name }) => {
+    // console.log({ targetDirPath, name })
+    const exists = await sftpClient.exists(targetDirPath)
     if(!exists) return socket.emit('not_exists_dir', '文件夹不存在或当前不可访问')
     md5List = []
     const localPath = rawPath.join(sftpCacheDir, name)
-    if(fs.existsSync(localPath)) clearDir(localPath) // 清空目录
-    fs.mkdirSync(localPath, { recursive: true })
-    console.log('================create_cache_success================')
+    fs.emptyDirSync(localPath) // 不存在会创建，存在则清空
     socket.emit('create_cache_success')
   })
+  // 2. 上传分片
   socket.on('up_file_slice', async ({ name, sliceFile, fileIndex }) => {
     // console.log('up_file_slice:', fileIndex, name)
     try {
       let md5 = `${ fileIndex }.${ CryptoJS.MD5(fileIndex+name).toString() }`
-      const localPath = rawPath.join(sftpCacheDir, name, md5)
-      md5List.push(localPath)
-      fs.writeFileSync(localPath, sliceFile)
+      const md5LocalPath = rawPath.join(sftpCacheDir, name, md5)
+      md5List.push(md5LocalPath)
+      fs.writeFileSync(md5LocalPath, sliceFile)
       socket.emit('up_file_slice_success', md5)
     } catch (error) {
       consola.error('up_file_slice Error', error.message)
       socket.emit('up_file_slice_fail', error.message)
     }
   })
-  socket.on('up_file_slice_over', async ({ name, fullPath, range, size }) => {
-    const resultDirPath = rawPath.join(sftpCacheDir, name)
+  // 3. 完成上传
+  socket.on('up_file_slice_over', async ({ name, targetFilePath, range, size }) => {
+    const md5CacheDirPath = rawPath.join(sftpCacheDir, name)
     const resultFilePath = rawPath.join(sftpCacheDir, name, name)
+    fs.ensureDirSync(md5CacheDirPath)
     try {
 	    console.log('md5List: ', md5List)
 	    const arr = md5List.map((chunkFilePath, index) => {
 	      return pipeStream(
 	        chunkFilePath,
-	        // 指定位置创建可写流
-	        fs.createWriteStream(resultFilePath, {
+	        fs.createWriteStream(resultFilePath, { // 指定位置创建可写流
 	          start: index * range,
 	          end: (index + 1) * range
 	        })
@@ -170,7 +166,7 @@ function listenInput(sftpClient, socket) {
 	    md5List = []
 	    await Promise.all(arr)
 	    let timer = null
-	    let res = await sftpClient.fastPut(resultFilePath, fullPath, {
+	    let res = await sftpClient.fastPut(resultFilePath, targetFilePath, {
 	      step: step => {
 	        if(timer) return
 	        timer = setTimeout(() => {
@@ -183,11 +179,14 @@ function listenInput(sftpClient, socket) {
 	    })
 	    consola.success('sftp上传成功: ', res)
 	    socket.emit('up_file_success', res)
-	    clearDir(resultDirPath, true) // 传服务器后移除文件夹及其文件
     } catch (error) {
 	    consola.error('sftp上传失败: ', error.message)
       socket.emit('up_file_fail', error.message)
-	    clearDir(resultDirPath, true) // 传服务器后移除文件夹及其文件
+    } finally {
+      fs.remove(md5CacheDirPath)
+        .then(() => {
+          console.log('clean md5CacheDirPath:', md5CacheDirPath)
+        })
     }
   })
 }
@@ -237,6 +236,7 @@ module.exports = (httpServer) => {
         .connect(authInfo)
         .then(() => {
           consola.success('连接Sftp成功：', host)
+          fs.ensureDirSync(sftpCacheDir)
           return sftpClient.list('/')
         })
         .then((rootLs) => {
@@ -260,8 +260,10 @@ module.exports = (httpServer) => {
         })
         .finally(() => {
           sftpClient = null
-          const cacheDir = rawPath.join(sftpCacheDir)
-          clearDir(cacheDir)
+          fs.emptyDir(sftpCacheDir)
+            .then(() => {
+              consola.success('clean sftpCacheDir: ', sftpCacheDir)
+            })
         })
     })
   })
