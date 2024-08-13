@@ -55,10 +55,12 @@ function listenInput(sftpClient, socket) {
   })
   // socket.on('down_dir', async (path) => {
   //   const exists = await sftpClient.exists(path)
-  //   if(!exists) return socket.emit('not_exists_dir', '文件夹不存在或当前不可访问')
+  //   if(!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
   //   let res = await sftpClient.downloadDir(path, sftpCacheDir)
   //   socket.emit('down_dir_success', res)
   // })
+
+  // 下载
   socket.on('down_file', async ({ path, name, size, target = 'down' }) => {
     // target: down or preview
     const exists = await sftpClient.exists(path)
@@ -94,10 +96,12 @@ function listenInput(sftpClient, socket) {
       socket.emit('sftp_error', error.message)
     }
   })
+
+  // 上传
   socket.on('up_file', async ({ targetPath, fullPath, name, file }) => {
     // console.log({ targetPath, fullPath, name, file })
     const exists = await sftpClient.exists(targetPath)
-    if(!exists) return socket.emit('not_exists_dir', '文件夹不存在或当前不可访问')
+    if(!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
     try {
       const localPath = rawPath.join(sftpCacheDir, name)
       fs.writeFileSync(localPath, file)
@@ -110,30 +114,35 @@ function listenInput(sftpClient, socket) {
     }
   })
 
-  // 上传文件夹先在目标sftp服务器创建文件夹
-  socket.on('create_remote_dir', async ({ targetDirPath, folderName }) => {
-    let fullPath = rawPath.posix.join(targetDirPath, folderName)
-    consola.info('创建远程服务器文件夹:', fullPath)
-    const exists = await sftpClient.exists(fullPath)
-    if(exists) return socket.emit('is_exists_dir', '上传文件夹失败,文件夹已存在')
-    let res = await sftpClient.mkdir(fullPath)
-    consola.success('创建远程服务器文件夹成功:', fullPath)
-    socket.emit('create_remote_dir_success', res)
+  // 上传目录先在目标sftp服务器创建目录
+  socket.on('create_remote_dir', async ({ targetDirPath, foldersName }) => {
+    let baseFolderPath = rawPath.posix.join(targetDirPath, foldersName[0].split('/')[0])
+    let baseFolderPathExists = await sftpClient.exists(baseFolderPath)
+    if (baseFolderPathExists) return socket.emit('create_remote_dir_exists', `远程目录已存在: ${ baseFolderPath }`)
+    consola.info('准备创建远程服务器目录:', foldersName)
+    for (const folderName of foldersName) {
+      const fullPath = rawPath.posix.join(targetDirPath, folderName)
+      const exists = await sftpClient.exists(fullPath)
+      if (exists) continue
+      await sftpClient.mkdir(fullPath, true)
+      consola.info('创建目录:', fullPath)
+    }
+    socket.emit('create_remote_dir_success')
   })
 
   /** 分片上传 */
-  // 1. 创建本地缓存文件夹
+  // 1. 创建本地缓存目录
   let md5List = []
   socket.on('create_cache_dir', async ({ targetDirPath, name }) => {
     // console.log({ targetDirPath, name })
     const exists = await sftpClient.exists(targetDirPath)
-    if(!exists) return socket.emit('not_exists_dir', '文件夹不存在或当前不可访问')
+    if(!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
     md5List = []
     const localPath = rawPath.join(sftpCacheDir, name)
     fs.emptyDirSync(localPath) // 不存在会创建，存在则清空
     socket.emit('create_cache_success')
   })
-  // 2. 上传分片
+  // 2. 上传分片到面板服务
   socket.on('up_file_slice', async ({ name, sliceFile, fileIndex }) => {
     // console.log('up_file_slice:', fileIndex, name)
     try {
@@ -147,7 +156,7 @@ function listenInput(sftpClient, socket) {
       socket.emit('up_file_slice_fail', error.message)
     }
   })
-  // 3. 完成上传
+  // 3. 合并分片上传到服务器
   socket.on('up_file_slice_over', async ({ name, targetFilePath, range, size }) => {
     const md5CacheDirPath = rawPath.join(sftpCacheDir, name)
     const resultFilePath = rawPath.join(sftpCacheDir, name, name)

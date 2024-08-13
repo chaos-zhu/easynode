@@ -459,15 +459,22 @@ const handleUploadDir = async (event) => {
   if (showFileProgress.value) return $message.warning('需等待当前任务完成')
   let { files } = event.target
   if(files.length === 0) return $message.warning('不允许上传空文件夹')
-  let folderName = files[0].webkitRelativePath.split('/')[0]
-  console.log(folderName)
-  console.log(files)
+  files = Array.from(files)
+  // console.log(files)
+  // 文件夹可能嵌套, 需先创建文件夹
+  let foldersName = files.map(file => file.webkitRelativePath.split('/').slice(0, -1).join('/'))
+  if (foldersName.length === 0) return $message.warning('不允许上传空文件夹')
+  // console.log(foldersName)
   let targetDirPath = curPath.value
-  socket.value.emit('create_remote_dir', { targetDirPath, folderName })
-  socket.value.once('is_exists_dir', (res) => { $message.error(res) })
+  socket.value.emit('create_remote_dir', { targetDirPath, foldersName })
+  socket.value.once('create_remote_dir_exists', (res) => {
+    $message.error(res)
+    uploadDirRef.value = null
+  })
   socket.value.once('create_remote_dir_success', async () => {
-    for (let file of files) {
-      let fullFilePath = getPath(`${ folderName }/${ file.name }`)
+    for (let [index, file,] of files.entries()) {
+      let fullFilePath = getPath(`${ foldersName[index] }/${ file.name }`)
+      console.log('fullFilePath: ', fullFilePath)
       try {
         await uploadFile(file, fullFilePath)
       } catch (error) {
@@ -481,16 +488,13 @@ const handleUploadDir = async (event) => {
 const uploadFile = (file, targetFilePath) => {
   return new Promise((resolve, reject) => {
     if (!file) return reject('file is not defined')
-    // if ((file.size / 1024 / 1024) > 1000) {
-    //   $message.warn('用网页传这么大文件你是认真的吗?')
-    // }
     let reader = new FileReader()
     reader.onload = async () => {
       const { name } = file
       const targetDirPath = curPath.value
       curUploadFileName.value = name
       const size = file.size
-      if(size === 0) return reject('文件大小为0KB, 无法上传')
+      if (size === 0) return reject('文件大小为0KB, 无法上传')
       socket.value.emit('create_cache_dir', { targetDirPath, name })
       socket.value.once('create_cache_success', async () => {
         let start = 0
@@ -501,7 +505,7 @@ const uploadFile = (file, targetFilePath) => {
         try {
           upFileProgress.value = 0
           showFileProgress.value = true
-          childDirLoading.value = true
+          // childDirLoading.value = true
           const totalSliceCount = Math.ceil(size / range)
           while (end < size) {
             fileIndex++
@@ -563,7 +567,6 @@ const uploadSliceFile = (fileInfo) => {
 }
 
 const openDir = (path = '', tips = true) => {
-  if (showFileProgress.value) return $message.warning('需等待当前任务完成')
   childDirLoading.value = true
   curTarget.value = null
   socket.value.emit('open_dir', path || curPath.value, tips)
