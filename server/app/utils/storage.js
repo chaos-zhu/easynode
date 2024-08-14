@@ -49,6 +49,7 @@ const writeSSHRecord = async (record = []) => {
         consola.error('清空SSHRecord出错:', err)
         reject(err)
       } else {
+        sshRecordDB.compactDatafile()
         sshRecordDB.insert(record, (err, newDocs) => {
           if (err) {
             consola.error('写入新的ssh记录出错:', err)
@@ -85,6 +86,7 @@ const writeHostList = async (record = []) => {
         consola.error('清空HostList出错:', err)
         reject(err)
       } else {
+        hostListDB.compactDatafile()
         // 插入新的数据列表
         hostListDB.insert(record, (err, newDocs) => {
           if (err) {
@@ -184,6 +186,7 @@ const writeNotifyList = async (notifyList) => {
         consola.error('清空notify list出错:', err)
         reject(err)
       } else {
+        notifyDB.compactDatafile()
         notifyDB.insert(notifyList, (err, newDocs) => {
           if (err) {
             consola.error('写入新的notify list出错:', err)
@@ -220,6 +223,7 @@ const writeGroupList = async (list = []) => {
         consola.error('清空group list出错:', err)
         reject(err)
       } else {
+        groupDB.compactDatafile()
         groupDB.insert(list, (err, newDocs) => {
           if (err) {
             consola.error('写入新的group list出错:', err)
@@ -256,6 +260,7 @@ const writeScriptList = async (list = []) => {
         consola.error('清空scripts list出错:', err)
         reject(err)
       } else {
+        scriptsDB.compactDatafile()
         scriptsDB.insert(list, (err, newDocs) => {
           if (err) {
             consola.error('写入新的group list出错:', err)
