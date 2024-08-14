@@ -1,3 +1,11 @@
+## [2.1.7](https://github.com/chaos-zhu/easynode/releases) (2024-08-14)
+
+### Features
+
+* 客户端监控服务支持swap内存交换回传 ✔
+* 面板支持展示swap内存交换状态展示 ✔
+* 添加初始账户登录警告 ✔
+
 ## [2.1.6](https://github.com/chaos-zhu/easynode/releases) (2024-08-13)
 
 ### Features
