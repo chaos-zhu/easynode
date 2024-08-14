@@ -55,6 +55,9 @@ const timer = ref(null)
 const fitAddon = ref(null)
 const searchBar = ref(null)
 const isManual = ref(false)
+const isConnectFail = ref(false)
+const isConnecting = ref(true)
+const isReConnect = ref(false)
 const terminal = ref(null)
 const terminalRef = ref(null)
 
@@ -109,6 +112,12 @@ const connectIO = () => {
     console.log('/terminal socket已连接：', socket.value.id)
     socket.value.emit('create', { host, token: token.value })
     socket.value.on('connect_success', () => {
+      isConnectFail.value = false
+      isConnecting.value = false
+      if (isReConnect.value) {
+        isReConnect.value = false
+        return // 重连不需要再注册监听事件
+      }
       onData()
       socket.value.on('connect_terminal', () => {
         onResize()
@@ -121,35 +130,37 @@ const connectIO = () => {
       //   commandHistoryList.value = data
       // })
     })
-    socket.value.on('create_fail', (message) => {
-      console.error(message)
-      $notification({
-        title: '创建失败',
-        message,
-        type: 'error'
-      })
-    })
     socket.value.on('token_verify_fail', () => {
-      $notification({
-        title: 'Error',
-        message: 'token校验失败，请重新登录',
-        type: 'error'
-      })
+      $notification({ title: 'Error', message: 'token校验失败，请重新登录', type: 'error' })
       $router.push('/login')
     })
-    socket.value.on('connect_fail', (message) => {
+    socket.value.on('connect_close', () => {
+      if (isConnectFail.value) return
+      isReConnect.value = true // 重连状态标记为true
+      isConnecting.value = true
+      console.warn('连接断开')
+      term.value.write('\r\n连接断开,3秒后自动重连...\r\n')
+      // socket.value.removeAllListeners()
+      // socket.value.off('output') // 取消output监听,取消onData输入监听，重新注册
+      socket.value.emit('reconnect_terminal')
+    })
+    socket.value.on('create_fail', (message) => {
+      isConnectFail.value = true
+      isConnecting.value = false
       console.error(message)
-      $notification({
-        title: '终端连接失败',
-        message,
-        type: 'error'
-      })
+      term.value.write(`\r\n创建失败: ${ message }\r\n`)
+    })
+    socket.value.on('connect_fail', (message) => {
+      isConnectFail.value = true
+      isConnecting.value = false
+      console.error('连接失败:', message)
+      term.value.write(`\r\n连接失败: ${ message }\r\n`)
     })
   })
 
   socket.value.on('disconnect', () => {
     console.warn('terminal websocket 连接断开')
-    if (!isManual.value) reConnect()
+    if (!isManual.value) $notification({ title: '与面板socket连接断开', message: `${ props.host }-请检查socket服务是否稳定`, type: 'error' })
   })
 
   socket.value.on('connect_error', (err) => {
@@ -160,21 +171,6 @@ const connectIO = () => {
       type: 'error'
     })
   })
-}
-
-const reConnect = () => {
-  socket.value.close && socket.value.close()
-  $message.warning('终端连接断开')
-  // $messageBox.alert(
-  //   '<strong>终端连接断开</strong>',
-  //   'Error',
-  //   {
-  //     dangerouslyUseHTMLString: true,
-  //     confirmButtonText: '刷新页面'
-  //   }
-  // ).then(() => {
-  //   location.reload()
-  // })
 }
 
 const createLocalTerminal = () => {
@@ -300,6 +296,7 @@ const onData = () => {
     terminalText.value += str
     // console.log(terminalText.value)
   })
+  // term.value.off('data', listenerInput)
   term.value.onData((key) => {
     let acsiiCode = key.codePointAt()
     if (acsiiCode === 22) return handlePaste()
@@ -307,6 +304,11 @@ const onData = () => {
     enterTimer.value = setTimeout(() => {
       if (enterTimer.value) clearTimeout(enterTimer.value)
       if (key === '\r') { // Enter
+        if (isConnectFail.value && !isConnecting.value) { // 连接失败&&未正在连接，按回车可触发重连
+          term.value.write('\r\n连接中...\r\n')
+          socket.value.emit('reconnect_terminal')
+          return
+        }
         let cleanText = applyBackspace(filterAnsiSequences(terminalText.value))
         const lines = cleanText.split('\n')
         // console.log('lines: ', lines)
