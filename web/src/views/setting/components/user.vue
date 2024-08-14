@@ -27,7 +27,7 @@
         autocomplete="off"
       />
     </el-form-item>
-    <el-form-item label="新用户名" prop="oldPwd">
+    <el-form-item label="新用户名" prop="newLoginName">
       <el-input
         v-model.trim="formData.newLoginName"
         clearable

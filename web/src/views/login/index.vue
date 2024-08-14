@@ -83,7 +83,7 @@ import { RSAEncrypt } from '@utils/index.js'
 // import useStore from '@store/index'
 
 // const router = useRouter()
-const { proxy: { $store, $api, $message, $router } } = getCurrentInstance()
+const { proxy: { $store, $api, $message, $messageBox, $router } } = getCurrentInstance()
 
 const loginFormRefs = ref(null)
 const isSession = ref(true)
@@ -115,7 +115,18 @@ const handleLogin = () => {
         $store.setJwtToken(token, isSession.value)
         $store.setUser(loginName)
         $message.success({ message: msg || 'success', center: true })
-        $router.push('/')
+        if (loginName === 'admin' && pwd === 'admin') {
+          $messageBox.confirm('请立即修改初始用户名及密码！防止恶意扫描！', '警告', {
+            confirmButtonText: '确定',
+            showCancelButton: false,
+            type: 'warning'
+          })
+            .then(async () => {
+              $router.push('/setting')
+            })
+        } else{
+          $router.push('/')
+        }
       })
       .finally(() => {
         loading.value = false
