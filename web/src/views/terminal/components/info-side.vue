@@ -76,6 +76,22 @@
       <el-descriptions-item>
         <template #label>
           <div class="item-title">
+            交换
+          </div>
+        </template>
+        <el-progress
+          :text-inside="true"
+          :stroke-width="18"
+          :percentage="swapPercentage"
+          :color="handleColor(swapPercentage)"
+        />
+        <div class="position-right">
+          {{ $tools.toFixed(swapInfo.swapUsed / 1024) }}/{{ $tools.toFixed(swapInfo.swapTotal / 1024) }}G
+        </div>
+      </el-descriptions-item>
+      <el-descriptions-item>
+        <template #label>
+          <div class="item-title">
             硬盘
           </div>
         </template>
@@ -197,10 +213,9 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, getCurrentInstance } from 'vue'
-import socketIo from 'socket.io-client'
+import { ref, onBeforeUnmount, computed, getCurrentInstance } from 'vue'
 
-const { proxy: { $store, $serviceURI, $message, $notification, $tools } } = getCurrentInstance()
+const { proxy: { $message, $tools } } = getCurrentInstance()
 
 const props = defineProps({
   hostInfo: {
@@ -232,6 +247,7 @@ const ipInfo = computed(() => hostData.value?.ipInfo || {})
 // const isError = computed(() => !Boolean(hostData.value?.osInfo))
 const cpuInfo = computed(() => hostData.value?.cpuInfo || {})
 const memInfo = computed(() => hostData.value?.memInfo || {})
+const swapInfo = computed(() => hostData.value?.swapInfo || {})
 const osInfo = computed(() => hostData.value?.osInfo || {})
 const driveInfo = computed(() => hostData.value?.driveInfo || {})
 const netstatInfo = computed(() => {
@@ -241,6 +257,10 @@ const netstatInfo = computed(() => {
 // const openedCount = computed(() => hostData.value?.openedCount || 0)
 const cpuUsage = computed(() => Number(cpuInfo.value?.cpuUsage) || 0)
 const usedMemPercentage = computed(() => Number(memInfo.value?.usedMemPercentage) || 0)
+const swapPercentage = computed(() => {
+  let swapPercentage = swapInfo.value?.swapPercentage === 'NaN' || Number.isNaN(swapInfo.value?.swapPercentage)
+  return swapPercentage ? 0 : Number(swapPercentage || 0)
+})
 const usedPercentage = computed(() => Number(driveInfo.value?.usedPercentage) || 0)
 const output = computed(() => {
   let outputMb = Number(netstatInfo.value.netTotal?.outputMb) || 0
@@ -292,12 +312,6 @@ const getHostPing = () => {
       })
   }, 3000)
 }
-
-onMounted(() => {
-  // name.value = $router.currentRoute.value.query.name || ''
-  // if (!props.host || !name.value) return $message.error('参数错误')
-  // connectIO()
-})
 
 onBeforeUnmount(() => {
   socket.value && socket.value.close()
