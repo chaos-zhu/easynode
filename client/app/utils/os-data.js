@@ -1,4 +1,5 @@
 const osu = require('node-os-utils')
+const osSwap = require('../lib/swap')
 const os = require('os')
 
 let cpu = osu.cpu
@@ -9,7 +10,7 @@ let osuOs = osu.os
 let users = osu.users
 
 async function cpuInfo() {
-  let cpuUsage = await cpu.usage(200)
+  let cpuUsage = await cpu.usage(500)
   let cpuCount = cpu.count()
   let cpuModel = cpu.model()
   return {
@@ -23,6 +24,13 @@ async function memInfo() {
   let memInfo = await mem.info()
   return {
     ...memInfo
+  }
+}
+
+async function swapInfo() {
+  let swapInfo = await osSwap()
+  return {
+    ...swapInfo
   }
 }
 
@@ -71,6 +79,7 @@ module.exports = async () => {
     data = {
       cpuInfo: await cpuInfo(),
       memInfo: await memInfo(),
+      swapInfo: await swapInfo(),
       driveInfo: await driveInfo(),
       netstatInfo: await netstatInfo(),
       osInfo: await osInfo(),

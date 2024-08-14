@@ -1,6 +1,6 @@
 {
   "name": "easynode-client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "easynode-client",
   "bin": "./bin/www",
   "pkg": {
@@ -8,9 +8,9 @@
   },
   "scripts": {
     "client": "nodemon ./app/main.js",
-    "pkg": "pkg .",
-    "pkglinux:x86": "pkg . -t node18-linux-x64",
-    "pkglinux:arm": "pkg . -t node18"
+    "pkgwin": "pkg . -t node16-win-x64",
+    "pkglinux:x86": "pkg . -t node16-linux-x64 -o  dist/easynode-client-x86",
+    "pkglinux:arm": "pkg . -t node16-linux-arm64 -o dist/easynode-client-arm64"
   },
   "keywords": [],
   "author": "",

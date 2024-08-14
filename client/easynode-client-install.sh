@@ -42,14 +42,14 @@ echo "***********************创建文件PATH***********************"
 mkdir -p ${FILE_PATH}
 
 echo "***********************下载开始***********************"
-DOWNLOAD_SERVICE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.0.0/easynode-client.service"
+DOWNLOAD_SERVICE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.1.7/easynode-client.service"
 
 ARCH=$(uname -m)
 
 if [ "$ARCH" = "x86_64" ] ; then
-  DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.0.0/easynode-client-x86"
+  DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.1.7/easynode-client-x86"
 elif [ "$ARCH" = "aarch64" ] ; then
-  DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.0.0/easynode-client-arm64"
+  DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.1.7/easynode-client-arm64"
 else
   echo "未知的架构：$ARCH"
   exit 1

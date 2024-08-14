@@ -35,12 +35,14 @@ async function addHost({
     name, host: newHost, index, expired, expiredNotify, group, consoleUrl, remark,
     port, username, authType, password, privateKey, credential, command
   }
-  const clearTempKey = await RSADecryptSync(tempKey)
-  console.log('clearTempKey:', clearTempKey)
-  const clearSSHKey = await AESDecryptSync(record[authType], clearTempKey)
-  console.log(`${ authType }原密文: `, clearSSHKey)
-  record[authType] = await AESEncryptSync(clearSSHKey)
-  console.log(`${ authType }__commonKey加密存储: `, record[authType])
+  if (record[authType]) {
+    const clearTempKey = await RSADecryptSync(tempKey)
+    console.log('clearTempKey:', clearTempKey)
+    const clearSSHKey = await AESDecryptSync(record[authType], clearTempKey)
+    console.log(`${ authType }原密文: `, clearSSHKey)
+    record[authType] = await AESEncryptSync(clearSSHKey)
+    console.log(`${ authType }__commonKey加密存储: `, record[authType])
+  }
   hostList.push(record)
   await writeHostList(hostList)
   res.success()
