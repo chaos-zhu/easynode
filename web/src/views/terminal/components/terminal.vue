@@ -125,6 +125,7 @@
               :host="item.host"
               :theme="themeObj"
               :background="terminalBackground"
+              :font-size="terminalFontSize"
               @input-command="terminalInput"
               @cd-command="cdCommand"
             />
@@ -149,6 +150,7 @@
       v-model:show="showSetting"
       v-model:themeName="themeName"
       v-model:background="terminalBackground"
+      v-model:font-size="terminalFontSize"
       @closed="showSetting = false"
     />
   </div>
@@ -191,7 +193,9 @@ const updateHostData = ref(null)
 const showSetting = ref(false)
 const themeName = ref(localStorage.getItem('themeName') || 'Afterglow')
 let localTerminalBackground = localStorage.getItem('terminalBackground')
-const terminalBackground = ref(localTerminalBackground === undefined ? '/01.png' : localTerminalBackground)
+const terminalBackground = ref(localTerminalBackground || '/terminal/01.png')
+let localTerminalFontSize = localStorage.getItem('terminalFontSize')
+const terminalFontSize = ref(Number(localTerminalFontSize) || 18)
 
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
@@ -207,6 +211,10 @@ watch(themeName, (newVal) => {
 watch(terminalBackground, (newVal) => {
   console.log('update terminalBackground:', newVal)
   localStorage.setItem('terminalBackground', newVal)
+})
+watch(terminalFontSize, (newVal) => {
+  console.log('update terminalFontSize:', newVal)
+  localStorage.setItem('terminalFontSize', newVal)
 })
 
 onMounted(() => {

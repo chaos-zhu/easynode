@@ -14,11 +14,7 @@
       :show-message="false"
     >
       <el-form-item label="主题" prop="theme">
-        <el-select
-          v-model="theme"
-          placeholder=""
-          style="width: 100%;"
-        >
+        <el-select v-model="theme" placeholder="" style="width: 100%;">
           <el-option
             v-for="(value, key) in themeList"
             :key="key"
@@ -56,6 +52,9 @@
           />
         </div>
       </el-form-item>
+      <el-form-item label="字体" prop="fontSize">
+        <el-input-number v-model="fontSize" :min="12" :max="30" />
+      </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog_footer">
@@ -80,10 +79,14 @@ const props = defineProps({
   },
   background: {
     required: true,
-    type: String
+    type: [String, null,]
+  },
+  fontSize: {
+    required: true,
+    type: Number
   }
 })
-const emit = defineEmits(['update:show', 'update:themeName', 'update:background',])
+const emit = defineEmits(['update:show', 'update:themeName', 'update:background', 'update:fontSize',])
 
 const backgroundImages = ref([
   '/terminal/03.png',
@@ -108,6 +111,10 @@ const theme = computed({
 const backgroundUrl = computed({
   get: () => props.background,
   set: (newVal) => emit('update:background', newVal)
+})
+const fontSize = computed({
+  get: () => props.fontSize,
+  set: (newVal) => emit('update:fontSize', newVal)
 })
 
 const changeBackground = (url) => {

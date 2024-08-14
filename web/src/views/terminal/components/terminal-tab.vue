@@ -1,9 +1,19 @@
 <template>
-  <div ref="terminalRef" class="terminal_tab_container" />
+  <div class="terminal_tab_container">
+    <div
+      ref="terminalRef"
+      class="terminal_container"
+      @contextmenu.prevent="handleRightClick"
+    />
+    <!-- <div class="terminal_command_history">
+      <CommandHistory :list="commandHistoryList" />
+    </div> -->
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance, watch, nextTick } from 'vue'
+// import CommandHistory from './command_history.vue'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { FitAddon } from '@xterm/addon-fit'
@@ -20,19 +30,25 @@ const props = defineProps({
     required: true,
     type: String
   },
+  fontSize: {
+    required: false,
+    default: 18,
+    type: Number
+  },
   theme: {
     required: true,
     type: Object
   },
   background: {
     required: true,
-    type: String
+    type: [String, null,]
   }
 })
 
 const emit = defineEmits(['inputCommand', 'cdCommand',])
 
 const socket = ref(null)
+// const commandHistoryList = ref([])
 const term = ref(null)
 const command = ref('')
 const timer = ref(null)
@@ -44,12 +60,20 @@ const terminalRef = ref(null)
 
 const token = computed(() => $store.token)
 const theme = computed(() => props.theme)
+const fontSize = computed(() => props.fontSize)
 const background = computed(() => props.background)
 
 watch(theme, () => {
   nextTick(() => {
     if (!background.value) terminal.value.options.theme = theme.value
     else terminal.value.options.theme = { ...theme.value, background: '#00000080' }
+  })
+})
+
+watch(fontSize, () => {
+  nextTick(() => {
+    terminal.value.options.fontSize = fontSize.value
+    fitAddon.value.fit()
   })
 })
 
@@ -92,6 +116,10 @@ const connectIO = () => {
         onWebLinks()
         if (command.value) socket.value.emit('input', command.value + '\n')
       })
+      // socket.value.on('terminal_command_history', (data) => {
+      //   console.log(data)
+      //   commandHistoryList.value = data
+      // })
     })
     socket.value.on('create_fail', (message) => {
       console.error(message)
@@ -156,9 +184,10 @@ const createLocalTerminal = () => {
     convertEol: true,
     cursorBlink: true,
     disableStdin: false,
-    fontSize: 18,
     minimumContrastRatio: 7,
     allowTransparency: true,
+    fontFamily: 'Cascadia Code, Menlo, monospace',
+    fontSize: fontSize.value,
     theme: theme.value
     // {
     //   foreground: '#ECECEC',
@@ -304,6 +333,19 @@ const onData = () => {
   })
 }
 
+const handleRightClick = async () => {
+  try {
+    const clipboardText = await navigator.clipboard.readText()
+    if (!clipboardText) return
+    // 移除多余空格与换行符
+    const formattedText = clipboardText.trim().replace(/\s+/g, ' ').replace(/\n/g, '')
+    if (formattedText.includes('rm -rf /')) return $message.warning(`高危指令,禁止粘贴: ${ formattedText }` )
+    socket.value.emit('input', clipboardText)
+  } catch (error) {
+    $message.warning('右键默认粘贴行为,需要https支持')
+  }
+}
+
 const handleClear = () => {
   term.value.clear()
 }
@@ -349,18 +391,31 @@ defineExpose({
 <style lang="scss" scoped>
 .terminal_tab_container {
   min-height: 200px;
+  position: relative;
+  .terminal_container {
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
 
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
+    :deep(.xterm) {
+      height: 100%;
+    }
 
-  :deep(.xterm) {
-    height: 100%;
+    :deep(.xterm-viewport),
+    :deep(.xterm-screen) {
+      padding: 0 0 0 10px;
+      border-radius: var(--el-border-radius-base);
+    }
   }
-
-  :deep(.xterm-viewport),
-  :deep(.xterm-screen) {
-    padding: 0 0 0 10px;
-    border-radius: var(--el-border-radius-base);
+  .terminal_command_history {
+    width: 200px;
+    height: 100%;
+    overflow: auto;
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1;
+    background-color: #fff;
+    border-radius: 6px
   }
 }
 </style>

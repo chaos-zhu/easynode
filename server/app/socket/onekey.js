@@ -49,7 +49,7 @@ function execShell(socket, sshClient, curRes, resolve) {
     }
     stream
       .on('close', async () => {
-        // ssh连接关闭后，再执行一次输出，防止最后一次节流函数发生在延迟时间内导致终端的输出数据丢失
+        // shell关闭后，再执行一次输出，防止最后一次节流函数发生在延迟时间内导致终端的输出数据丢失
         await throttledDataHandler.last() // 等待最后一次节流函数执行完成，再执行一次数据输出
         // console.log('onekey终端执行完成, 关闭连接: ', curRes.host)
         if (curRes.status === execStatusEnum.executing) {

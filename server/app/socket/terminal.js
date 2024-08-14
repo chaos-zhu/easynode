@@ -29,6 +29,29 @@ function createTerminal(socket, sshClient) {
   })
 }
 
+function execShell(sshClient, command = '', callback) {
+  if (!command) return
+  let result = ''
+  sshClient.exec(`source ~/.bashrc && ${ command }`, (err, stream) => {
+    if (err) return callback(err.toString())
+    stream
+      .on('data', (data) => {
+        result += data.toString()
+      })
+      .stderr
+      .on('data', (data) => {
+        result += data.toString()
+      })
+      .on('close', () => {
+        consola.info('一次性指令执行完成:', command)
+        callback(result)
+      })
+      .on('error', (error) => {
+        console.log('Error:', error.toString())
+      })
+  })
+}
+
 module.exports = (httpServer) => {
   const serverIo = new Server(httpServer, {
     path: '/terminal',
@@ -74,6 +97,11 @@ module.exports = (httpServer) => {
             consola.success('连接终端成功：', host)
             socket.emit('connect_success', `已连接到终端：${ host }`)
             createTerminal(socket, sshClient)
+            // execShell(sshClient, 'history', (data) => {
+            //   data = data.split('\n').filter(item => item)
+            //   console.log(data)
+            //   socket.emit('terminal_command_history', data)
+            // })
           })
           .on('error', (err) => {
             console.log(err)
