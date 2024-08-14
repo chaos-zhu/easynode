@@ -1,3 +1,11 @@
+## [2.1.8](https://github.com/chaos-zhu/easynode/releases) (2024-08-15)
+
+### Features
+
+* 终端支持选中复制&右键粘贴 ✔
+* 终端设置支持字体大小 ✔
+* 终端默认字体样式更改为`Cascadia Code` ✔
+
 ## [2.1.7](https://github.com/chaos-zhu/easynode/releases) (2024-08-14)
 
 ### Features

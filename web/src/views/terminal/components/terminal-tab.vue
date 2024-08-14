@@ -338,9 +338,12 @@ const handleRightClick = async () => {
     const clipboardText = await navigator.clipboard.readText()
     if (!clipboardText) return
     // 移除多余空格与换行符
-    const formattedText = clipboardText.trim().replace(/\s+/g, ' ').replace(/\n/g, '')
+    const formattedText = clipboardText.trim().replace(/\s+/g, ' ')
+    // console.log(formattedText)
     if (formattedText.includes('rm -rf /')) return $message.warning(`高危指令,禁止粘贴: ${ formattedText }` )
-    socket.value.emit('input', clipboardText)
+    const safeText = formattedText.replace(/\r?\n|\r/g, '')
+    // console.log(safeText)
+    socket.value.emit('input', safeText)
   } catch (error) {
     $message.warning('右键默认粘贴行为,需要https支持')
   }

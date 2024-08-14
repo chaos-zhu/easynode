@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "2.1.7",
+  "version": "2.1.8",
   "description": "easynode-web",
   "private": true,
   "scripts": {
