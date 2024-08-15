@@ -16,7 +16,7 @@ function createInteractiveShell(socket, sshClient) {
           consola.info('交互终端已关闭')
           sshClient.end()
         })
-      socket.emit('connect_terminal') // 已连接终端，web端可以执行指令了
+      socket.emit('connect_shell_success') // 已连接终端，web端可以执行指令了
       // web端输入
       // socket.on('input', key => {
       //   if (sshClient._sock.writable === false) return consola.info('终端连接已关闭,禁止输入')
@@ -80,7 +80,7 @@ async function createTerminal(ip, socket, sshClient) {
       sshClient
         .on('ready', async() => {
           consola.success('终端连接成功：', host)
-          socket.emit('connect_success', `终端连接成功：${ host }`)
+          socket.emit('connect_terminal_success', `终端连接成功：${ host }`)
           let stream = await createInteractiveShell(socket, sshClient)
           resolve(stream)
         // execShell(sshClient, 'history', (data) => {
@@ -90,12 +90,12 @@ async function createTerminal(ip, socket, sshClient) {
         // })
         })
         .on('close', () => {
-          consola.info('终端连接断开close')
+          consola.info('终端连接断开close: ', host)
           socket.emit('connect_close')
         })
         .on('error', (err) => {
           consola.log(err)
-          consola.error('连接终端失败:', err.level)
+          consola.error('连接终端失败:', host, err.message)
           socket.emit('connect_fail', err.message)
         })
         .connect({
@@ -103,7 +103,7 @@ async function createTerminal(ip, socket, sshClient) {
         // debug: (info) => console.log(info)
         })
     } catch (err) {
-      consola.error('创建终端失败:', err.message)
+      consola.error('创建终端失败: ', host, err.message)
       socket.emit('create_fail', err.message)
     }
   })
@@ -134,7 +134,7 @@ module.exports = (httpServer) => {
       // setTimeout(() => {
       //   sshClient.end()
       // }, 3000)
-      let stream = await createTerminal(ip, socket, sshClient)
+      let stream = null
 
       function listenerInput(key) {
         if (sshClient._sock.writable === false) return consola.info('终端连接已关闭,禁止输入')
@@ -148,6 +148,7 @@ module.exports = (httpServer) => {
       socket.on('resize', resizeShell)
       // 重连
       socket.on('reconnect_terminal', async () => {
+        consola.info('重连终端: ', ip)
         socket.off('input', listenerInput) // 取消监听,重新注册监听,操作新的stream
         socket.off('resize', resizeShell)
         sshClient?.end()
@@ -161,6 +162,7 @@ module.exports = (httpServer) => {
           socket.on('resize', resizeShell)
         }, 3000)
       })
+      stream = await createTerminal(ip, socket, sshClient)
     })
 
     socket.on('disconnect', (reason) => {

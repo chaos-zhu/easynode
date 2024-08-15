@@ -3,20 +3,20 @@ html, body, div, ul, section, textarea {
   box-sizing: border-box;
   // 滚动条整体部分
   &::-webkit-scrollbar {
-    height: 8px;
-    width: 2px;
+    height: 5px;
+    width: 5px;
     background-color: #ffffff;
   }
 
   // 底层轨道
   &::-webkit-scrollbar-track {
     background-color: #ffffff;
-    border-radius: 10px;
+    border-radius: 3px;
   }
 
   // 滚动滑块
   &::-webkit-scrollbar-thumb {
-    border-radius: 10px;
+    border-radius: 3px;
     // background-color: #1989fa;
     background-image: -webkit-gradient(linear, 40% 0%, 75% 84%, from(#a18cd1), to(#fbc2eb), color-stop(.6, #54DE5D));
   }

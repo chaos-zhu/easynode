@@ -55,6 +55,7 @@ const timer = ref(null)
 const fitAddon = ref(null)
 const searchBar = ref(null)
 const isManual = ref(false)
+const isConnectSuccess = ref(false)
 const isConnectFail = ref(false)
 const isConnecting = ref(true)
 const isReConnect = ref(false)
@@ -107,59 +108,75 @@ const connectIO = () => {
     forceNew: false,
     reconnectionAttempts: 1
   })
-
   socket.value.on('connect', () => {
-    console.log('/terminal socket已连接：', socket.value.id)
+    console.log('/terminal socket已连接：', host)
     socket.value.emit('create', { host, token: token.value })
-    socket.value.on('connect_success', () => {
+    socket.value.on('connect_terminal_success', () => {
       isConnectFail.value = false
       isConnecting.value = false
       if (isReConnect.value) {
         isReConnect.value = false
         return // 重连不需要再注册监听事件
       }
-      onData()
-      socket.value.on('connect_terminal', () => {
+
+      socket.value.on('output', (str) => {
+        term.value.write(str)
+        terminalText.value += str
+      })
+
+      socket.value.on('connect_shell_success', () => {
+        isConnectSuccess.value = true
         onResize()
         onFindText()
         onWebLinks()
         if (command.value) socket.value.emit('input', command.value + '\n')
       })
+
       // socket.value.on('terminal_command_history', (data) => {
       //   console.log(data)
       //   commandHistoryList.value = data
       // })
     })
+
     socket.value.on('token_verify_fail', () => {
       $notification({ title: 'Error', message: 'token校验失败，请重新登录', type: 'error' })
       $router.push('/login')
     })
+
     socket.value.on('connect_close', () => {
       if (isConnectFail.value) return
       isReConnect.value = true // 重连状态标记为true
       isConnecting.value = true
-      console.warn('连接断开')
+      isConnectSuccess.value = false
+      console.warn('连接断开,3秒后重连: ', host)
       term.value.write('\r\n连接断开,3秒后自动重连...\r\n')
-      // socket.value.removeAllListeners()
-      // socket.value.off('output') // 取消output监听,取消onData输入监听，重新注册
       socket.value.emit('reconnect_terminal')
     })
+
     socket.value.on('create_fail', (message) => {
       isConnectFail.value = true
       isConnecting.value = false
-      console.error(message)
+      isConnectSuccess.value = false
+      console.error('n创建失败:', host, message)
       term.value.write(`\r\n创建失败: ${ message }\r\n`)
     })
+
     socket.value.on('connect_fail', (message) => {
       isConnectFail.value = true
       isConnecting.value = false
-      console.error('连接失败:', message)
+      isConnectSuccess.value = false
+      console.error('连接失败:', host, message)
       term.value.write(`\r\n连接失败: ${ message }\r\n`)
     })
   })
 
   socket.value.on('disconnect', () => {
     console.warn('terminal websocket 连接断开')
+    socket.value.removeAllListeners() // 取消所有监听
+    // socket.value.off('output') // 取消output监听,取消onData输入监听，重新注册
+    isConnectFail.value = true
+    isConnecting.value = true
+    isConnectSuccess.value = false
     if (!isManual.value) $notification({ title: '与面板socket连接断开', message: `${ props.host }-请检查socket服务是否稳定`, type: 'error' })
   })
 
@@ -291,11 +308,6 @@ function extractLastCdPath(text) {
 }
 
 const onData = () => {
-  socket.value.on('output', (str) => {
-    term.value.write(str)
-    terminalText.value += str
-    // console.log(terminalText.value)
-  })
   // term.value.off('data', listenerInput)
   term.value.onData((key) => {
     let acsiiCode = key.codePointAt()
@@ -305,31 +317,35 @@ const onData = () => {
       if (enterTimer.value) clearTimeout(enterTimer.value)
       if (key === '\r') { // Enter
         if (isConnectFail.value && !isConnecting.value) { // 连接失败&&未正在连接，按回车可触发重连
+          isConnecting.value = true
           term.value.write('\r\n连接中...\r\n')
           socket.value.emit('reconnect_terminal')
           return
         }
-        let cleanText = applyBackspace(filterAnsiSequences(terminalText.value))
-        const lines = cleanText.split('\n')
-        // console.log('lines: ', lines)
-        const lastLine = lines[lines.length - 1].trim()
-        // console.log('lastLine: ', lastLine)
-        // 截取最后一个提示符后的内容（'$'或'#'后的内容）
-        const commandStartIndex = lastLine.lastIndexOf('#') + 1
-        const commandText = lastLine.substring(commandStartIndex).trim()
-        // console.log('Processed command: ', commandText)
-        // eslint-disable-next-line
-        const cdPath = extractLastCdPath(commandText)
+        if (isConnectSuccess.value) {
+          let cleanText = applyBackspace(filterAnsiSequences(terminalText.value))
+          const lines = cleanText.split('\n')
+          // console.log('lines: ', lines)
+          const lastLine = lines[lines.length - 1].trim()
+          // console.log('lastLine: ', lastLine)
+          // 截取最后一个提示符后的内容（'$'或'#'后的内容）
+          const commandStartIndex = lastLine.lastIndexOf('#') + 1
+          const commandText = lastLine.substring(commandStartIndex).trim()
+          // console.log('Processed command: ', commandText)
+          // eslint-disable-next-line
+          const cdPath = extractLastCdPath(commandText)
 
-        if (cdPath) {
-          console.log('cd command path:', cdPath)
-          let firstChar = cdPath.charAt(0)
-          if (!['/',].includes(firstChar)) return console.log('err fullpath:', cdPath) // 后端依赖不支持 '~'
-          emit('cdCommand', cdPath)
+          if (cdPath) {
+            console.log('cd command path:', cdPath)
+            let firstChar = cdPath.charAt(0)
+            if (!['/',].includes(firstChar)) return console.log('err fullpath:', cdPath) // 后端依赖不支持 '~'
+            emit('cdCommand', cdPath)
+          }
+          terminalText.value = ''
         }
-        terminalText.value = ''
       }
     })
+    if (isConnectFail.value || isConnecting.value) return console.warn(`isConnectFail: ${ isConnectFail.value }, isConnecting: ${ isConnecting.value }`)
     emit('inputCommand', key)
     socket.value.emit('input', key)
   })
@@ -377,6 +393,7 @@ onMounted(async () => {
   createLocalTerminal()
   await getCommand()
   connectIO()
+  onData()
 })
 
 onBeforeUnmount(() => {

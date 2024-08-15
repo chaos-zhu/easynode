@@ -372,7 +372,7 @@ const handleInputCommand = async (command) => {
   :deep(.el-tabs__content) {
     flex: 1;
     width: 100%;
-    padding: 0 5px 5px 0;
+    padding: 0 0 5px 0;
   }
 
   :deep(.el-tabs--border-card) {
