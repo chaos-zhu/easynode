@@ -13,5 +13,10 @@
     "name": "查询本机公网IP",
     "command": "curl ifconfig.me",
     "description": "查询本机公网IP"
+  },
+  {
+    "name": "生成ssh密钥对",
+    "command": "ssh-keygen -t rsa -b 2048",
+    "description": "生成ssh密钥对"
   }
 ]

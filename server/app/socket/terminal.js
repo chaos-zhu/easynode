@@ -17,16 +17,6 @@ function createInteractiveShell(socket, sshClient) {
           sshClient.end()
         })
       socket.emit('connect_shell_success') // 已连接终端，web端可以执行指令了
-      // web端输入
-      // socket.on('input', key => {
-      //   if (sshClient._sock.writable === false) return consola.info('终端连接已关闭,禁止输入')
-      //   stream.write(key)
-      // })
-      // 监听按键重置终端大小
-      // socket.on('resize', ({ rows, cols }) => {
-      //   // consola.info('更改tty终端行&列: ', { rows, cols })
-      //   stream.setWindow(rows, cols)
-      // })
     })
   })
 }
