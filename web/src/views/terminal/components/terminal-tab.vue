@@ -59,10 +59,7 @@ const fitAddon = ref(null)
 const searchBar = ref(null)
 const hasRegisterEvent = ref(false)
 
-// const isConnectSuccess = ref(false)
-// const isConnectFail = ref(false)
-// const isConnecting = ref(true)
-// const isReConnect = ref(false)
+const socketConnected = ref(false)
 const curStatus = ref(CONNECTING)
 const terminal = ref(null)
 const terminalRef = ref(null)
@@ -121,6 +118,7 @@ const connectIO = () => {
   })
   socket.value.on('connect', () => {
     console.log('/terminal socket已连接：', host.value)
+    socketConnected.value = true
     socket.value.emit('create', { host: host.value, token: token.value })
     socket.value.on('connect_terminal_success', () => {
       if (hasRegisterEvent.value) return // 以下事件连接成功后仅可注册一次, 否则会多次触发. 除非socket重连
@@ -180,6 +178,7 @@ const connectIO = () => {
     socket.value.removeAllListeners() // 取消所有监听
     // socket.value.off('output') // 取消output监听,取消onData输入监听，重新注册
     curStatus.value = CONNECT_FAIL
+    socketConnected.value = false
     term.value.write('\r\nError: 与面板socket连接断开。请关闭此tab，并检查本地与面板连接是否稳定\r\n')
   })
 
@@ -313,6 +312,7 @@ function extractLastCdPath(text) {
 const onData = () => {
   // term.value.off('data', listenerInput)
   term.value.onData((key) => {
+    if (socketConnected.value === false) return
     let acsiiCode = key.codePointAt()
     if (acsiiCode === 22) return handlePaste()
     if (acsiiCode === 6) return searchBar.value.show()

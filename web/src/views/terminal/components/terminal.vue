@@ -481,6 +481,7 @@ const handleInputCommand = async (command) => {
         height: 8px;
         border-radius: 50%;
         margin-right: 5px;
+        transition: all 0.5s;
         // background-color: var(--el-color-primary);
       }
     }
