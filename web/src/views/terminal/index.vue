@@ -57,6 +57,8 @@ import { useRoute } from 'vue-router'
 import Terminal from './components/terminal.vue'
 import HostForm from '../server/components/host-form.vue'
 import { randomStr } from '@utils/index.js'
+import { terminalStatus } from '@/utils/enum'
+const { CONNECTING } = terminalStatus
 
 const { proxy: { $store, $message } } = getCurrentInstance()
 
@@ -74,7 +76,7 @@ let isAllConfssh = computed(() => {
 
 function linkTerminal(row) {
   const { name, host } = row
-  terminalTabs.push({ key: randomStr(16), name, host })
+  terminalTabs.push({ key: randomStr(16), name, host, status: CONNECTING })
 }
 
 function handleUpdateHost(row) {
@@ -103,7 +105,7 @@ onActivated(async () => {
   if (!host) return
   let targetHosts = hostList.value.filter(item => host.includes(item.host)).map(item => {
     const { name, host } = item
-    return { key: randomStr(16), name, host }
+    return { key: randomStr(16), name, host, status: CONNECTING }
   })
   if (!targetHosts || !targetHosts.length) return
   terminalTabs.push(...targetHosts)

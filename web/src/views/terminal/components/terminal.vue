@@ -119,10 +119,16 @@
           :closable="true"
           class="el_tab_pane"
         >
+          <template #label>
+            <div class="tab_label">
+              <span class="tab_status" :style="{ background: getStatusColor(item.status) }" />
+              <span>{{ item.name }}</span>
+            </div>
+          </template>
           <div class="tab_content_wrap" :style="{ height: mainHeight + 'px' }">
             <TerminalTab
               ref="terminalRefs"
-              :host="item.host"
+              :host-obj="item"
               :theme="themeObj"
               :background="terminalBackground"
               :font-size="terminalFontSize"
@@ -165,8 +171,8 @@ import Sftp from './sftp.vue'
 import InputCommand from '@/components/input-command/index.vue'
 import HostForm from '../../server/components/host-form.vue'
 import TerminalSetting from './terminal-setting.vue'
-// import { randomStr } from '@utils/index.js'
 import themeList from 'xterm-theme'
+import { terminalStatusList } from '@/utils/enum'
 
 const { proxy: { $nextTick, $store, $message } } = getCurrentInstance()
 
@@ -225,6 +231,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResizeTerminalSftp)
 })
+
+const getStatusColor = (status) => {
+  return terminalStatusList.find(item => item.value === status)?.color || 'gray'
+}
 
 const handleUpdateList = async ({ host }) => {
   try {
@@ -461,6 +471,19 @@ const handleInputCommand = async (command) => {
     display: flex;
     flex-direction: column;
     position: relative;
+    .tab_label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      .tab_status {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 5px;
+        // background-color: var(--el-color-primary);
+      }
+    }
     .tab_content_wrap {
       display: flex;
       flex-direction: column;

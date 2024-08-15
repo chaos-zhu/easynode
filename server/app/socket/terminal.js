@@ -158,6 +158,7 @@ module.exports = (httpServer) => {
           // 初始化新的SSH客户端对象
           sshClient = new SSHClient()
           stream = await createTerminal(ip, socket, sshClient)
+          socket.emit('reconnect_terminal_success')
           socket.on('input', listenerInput)
           socket.on('resize', resizeShell)
         }, 3000)

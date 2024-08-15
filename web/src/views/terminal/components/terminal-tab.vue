@@ -21,14 +21,17 @@ import { SearchAddon } from '@xterm/addon-search'
 // import { SearchBarAddon } from 'xterm-addon-search-bar'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import socketIo from 'socket.io-client'
+import { terminalStatus } from '@/utils/enum'
+
+const { CONNECTING, RECONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
 
 const { io } = socketIo
 const { proxy: { $api, $store, $serviceURI, $notification, $router, $message } } = getCurrentInstance()
 
 const props = defineProps({
-  host: {
+  hostObj: {
     required: true,
-    type: String
+    type: Object
   },
   fontSize: {
     required: false,
@@ -54,11 +57,13 @@ const command = ref('')
 const timer = ref(null)
 const fitAddon = ref(null)
 const searchBar = ref(null)
-const isManual = ref(false)
-const isConnectSuccess = ref(false)
-const isConnectFail = ref(false)
-const isConnecting = ref(true)
-const isReConnect = ref(false)
+const hasRegisterEvent = ref(false)
+
+// const isConnectSuccess = ref(false)
+// const isConnectFail = ref(false)
+// const isConnecting = ref(true)
+// const isReConnect = ref(false)
+const curStatus = ref(CONNECTING)
 const terminal = ref(null)
 const terminalRef = ref(null)
 
@@ -66,6 +71,8 @@ const token = computed(() => $store.token)
 const theme = computed(() => props.theme)
 const fontSize = computed(() => props.fontSize)
 const background = computed(() => props.background)
+const hostObj = computed(() => props.hostObj)
+const host = computed(() => hostObj.value.host)
 
 watch(theme, () => {
   nextTick(() => {
@@ -96,28 +103,28 @@ watch(background, (newVal) => {
   })
 }, { immediate: true })
 
+watch(curStatus, () => {
+  console.warn(`status: ${ curStatus.value }`)
+  hostObj.value.status = curStatus.value
+})
+
 const getCommand = async () => {
-  let { data } = await $api.getCommand(props.host)
+  let { data } = await $api.getCommand(host.value)
   if (data) command.value = data
 }
 
 const connectIO = () => {
-  const { host } = props
   socket.value = io($serviceURI, {
     path: '/terminal',
     forceNew: false,
     reconnectionAttempts: 1
   })
   socket.value.on('connect', () => {
-    console.log('/terminal socket已连接：', host)
-    socket.value.emit('create', { host, token: token.value })
+    console.log('/terminal socket已连接：', host.value)
+    socket.value.emit('create', { host: host.value, token: token.value })
     socket.value.on('connect_terminal_success', () => {
-      isConnectFail.value = false
-      isConnecting.value = false
-      if (isReConnect.value) {
-        isReConnect.value = false
-        return // 重连不需要再注册监听事件
-      }
+      if (hasRegisterEvent.value) return // 以下事件连接成功后仅可注册一次, 否则会多次触发. 除非socket重连
+      hasRegisterEvent.value = true
 
       socket.value.on('output', (str) => {
         term.value.write(str)
@@ -125,7 +132,7 @@ const connectIO = () => {
       })
 
       socket.value.on('connect_shell_success', () => {
-        isConnectSuccess.value = true
+        curStatus.value = CONNECT_SUCCESS
         onResize()
         onFindText()
         onWebLinks()
@@ -144,28 +151,26 @@ const connectIO = () => {
     })
 
     socket.value.on('connect_close', () => {
-      if (isConnectFail.value) return
-      isReConnect.value = true // 重连状态标记为true
-      isConnecting.value = true
-      isConnectSuccess.value = false
-      console.warn('连接断开,3秒后重连: ', host)
+      if (curStatus.value === CONNECT_FAIL) return // 连接失败不需要自动重连
+      curStatus.value = RECONNECTING
+      console.warn('连接断开,3秒后自动重连: ', host.value)
       term.value.write('\r\n连接断开,3秒后自动重连...\r\n')
       socket.value.emit('reconnect_terminal')
     })
 
+    socket.value.on('reconnect_terminal_success', () => {
+      curStatus.value = CONNECT_SUCCESS
+    })
+
     socket.value.on('create_fail', (message) => {
-      isConnectFail.value = true
-      isConnecting.value = false
-      isConnectSuccess.value = false
-      console.error('n创建失败:', host, message)
+      curStatus.value = CONNECT_FAIL
+      console.error('n创建失败:', host.value, message)
       term.value.write(`\r\n创建失败: ${ message }\r\n`)
     })
 
     socket.value.on('connect_fail', (message) => {
-      isConnectFail.value = true
-      isConnecting.value = false
-      isConnectSuccess.value = false
-      console.error('连接失败:', host, message)
+      curStatus.value = CONNECT_FAIL
+      console.error('连接失败:', host.value, message)
       term.value.write(`\r\n连接失败: ${ message }\r\n`)
     })
   })
@@ -174,10 +179,8 @@ const connectIO = () => {
     console.warn('terminal websocket 连接断开')
     socket.value.removeAllListeners() // 取消所有监听
     // socket.value.off('output') // 取消output监听,取消onData输入监听，重新注册
-    isConnectFail.value = true
-    isConnecting.value = true
-    isConnectSuccess.value = false
-    if (!isManual.value) $notification({ title: '与面板socket连接断开', message: `${ props.host }-请检查socket服务是否稳定`, type: 'error' })
+    curStatus.value = CONNECT_FAIL
+    term.value.write('\r\nError: 与面板socket连接断开。请关闭此tab，并检查本地与面板连接是否稳定\r\n')
   })
 
   socket.value.on('connect_error', (err) => {
@@ -316,13 +319,13 @@ const onData = () => {
     enterTimer.value = setTimeout(() => {
       if (enterTimer.value) clearTimeout(enterTimer.value)
       if (key === '\r') { // Enter
-        if (isConnectFail.value && !isConnecting.value) { // 连接失败&&未正在连接，按回车可触发重连
-          isConnecting.value = true
+        if (curStatus.value === CONNECT_FAIL) { // 连接失败&&未正在连接，按回车可触发重连
+          curStatus.value = CONNECTING
           term.value.write('\r\n连接中...\r\n')
           socket.value.emit('reconnect_terminal')
           return
         }
-        if (isConnectSuccess.value) {
+        if (curStatus.value === CONNECT_SUCCESS) {
           let cleanText = applyBackspace(filterAnsiSequences(terminalText.value))
           const lines = cleanText.split('\n')
           // console.log('lines: ', lines)
@@ -345,7 +348,7 @@ const onData = () => {
         }
       }
     })
-    if (isConnectFail.value || isConnecting.value) return console.warn(`isConnectFail: ${ isConnectFail.value }, isConnecting: ${ isConnecting.value }`)
+    if (curStatus.value !== CONNECT_SUCCESS) return
     emit('inputCommand', key)
     socket.value.emit('input', key)
   })
@@ -393,11 +396,11 @@ onMounted(async () => {
   createLocalTerminal()
   await getCommand()
   connectIO()
+  await nextTick()
   onData()
 })
 
 onBeforeUnmount(() => {
-  isManual.value = true
   socket.value?.close()
   window.removeEventListener('resize', handleResize)
 })
