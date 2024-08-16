@@ -40,9 +40,10 @@
         <el-input
           v-model.trim="noticeConfig.email.service"
           clearable
-          placeholder="邮箱服务商简写, 例如: Gmial、qq、126、163"
+          placeholder=""
           autocomplete="off"
         />
+        <span class="tips">邮箱服务商, 例如: Gmial、qq、126、163, 支持列表: <a class="link" href="https://github.com/nodemailer/nodemailer/blob/master/lib/well-known/services.json" target="_blank">点击查询</a> </span>
       </el-form-item>
       <el-form-item label="邮箱地址" prop="email.user" class="form_item">
         <el-input
@@ -63,7 +64,7 @@
     </template>
     <el-form-item label="" class="form_item">
       <el-button type="primary" :loading="loading" @click="handleSave">
-        保存并测试
+        测试并保存
       </el-button>
       <!-- <el-tooltip effect="dark" content="重复添加的邮箱将会被覆盖" placement="right">
         </el-tooltip> -->
@@ -100,20 +101,28 @@ const rules = reactive({
 const handleSave = () => {
   formRef.value.validate(async (valid) => {
     if (!valid) return
-    await $api.updateNotifyConfig({ noticeConfig: { ...noticeConfig.value } })
-    $message.success('保存成功')
+    try {
+      loading.value = true
+      await $api.updateNotifyConfig({ noticeConfig: { ...noticeConfig.value } })
+      // $message.success('保存成功')
+      $notification.success({
+        title: '测试通过 | 保存成功',
+        message: '请确认通知方式是否已收到通知'
+      })
+    } catch (error) {
+      console.error(error)
+    } finally {
+      loading.value = false
+    }
   })
 }
 
 const getNotifyConfig = async () => {
   try {
-    loading.value = true
     let { data } = await $api.getNotifyConfig()
     noticeConfig.value = data || {}
   } catch (error) {
     console.error(error)
-  } finally {
-    loading.value = false
   }
 }
 
@@ -126,5 +135,10 @@ onMounted(() => {
 <style lang="scss" scoped>
 .form_item {
   width: 350px;
+
+  .tips {
+    font-size: 12px;
+    color: #999;
+  }
 }
 </style>

@@ -1,4 +1,5 @@
 const { readNotifyConfig, writeNotifyConfig, readNotifyList, writeNotifyList } = require('../utils')
+const { sctTest, emailTest } = require('../utils/test-notify')
 // const commonTemp = require('../template/commonTemp')
 
 async function getNotifyConfig({ res }) {
@@ -9,8 +10,21 @@ async function getNotifyConfig({ res }) {
 // 根据type待编写测试方法，测试通过才保存到库
 async function updateNotifyConfig({ res, request }) {
   let { body: { noticeConfig } } = request
-  await writeNotifyConfig(noticeConfig)
-  return res.success()
+  let { type } = noticeConfig
+  try {
+    switch(type) {
+      case 'sct':
+        await sctTest(noticeConfig[type])
+        break
+      case 'email':
+        await emailTest(noticeConfig[type])
+        break
+    }
+    await writeNotifyConfig(noticeConfig)
+    return res.success({ msg: '测试通过 | 保存成功' })
+  } catch (error) {
+    return res.fail({ msg: error.message })
+  }
 }
 
 async function getNotifyList({ res }) {
