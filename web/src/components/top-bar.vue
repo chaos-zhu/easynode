@@ -61,18 +61,30 @@ let isNew = computed(() => {
 
 async function checkLatestVersion() {
   const timeout = 3000
+  const proxy = 'https://ghproxy.com/'
   try {
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('请求超时')), timeout)
     )
-    const fetchPromise = fetch('https://production.get-easynode-latest-version.chaoszhu.workers.dev/version')
+
+    const url = 'https://api.github.com/repos/chaos-zhu/easynode/releases'
+    const fetchPromise = fetch(url, {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    })
 
     const response = await Promise.race([fetchPromise, timeoutPromise,])
     if (!response.ok) {
       throw new Error('版本信息请求失败: ' + response.statusText)
     }
-    const data = await response.json()
-    latestVersion.value = data.tag_name
+
+    const releases = await response.json()
+    // console.log('releases:', releases)
+    const filteredReleases = releases.filter(release => !release.tag_name.startsWith('client'))
+    if (filteredReleases.length > 0) {
+      latestVersion.value = filteredReleases[0].tag_name
+    }
   } catch (error) {
     checkVersionErr.value = true
     console.error('版本信息请求失败:', error.message)
