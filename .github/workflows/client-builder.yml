@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'clients/**'
+      - 'client/**'
   workflow_dispatch:
 
 jobs:
