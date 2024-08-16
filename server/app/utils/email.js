@@ -1,6 +1,6 @@
 // :TODO: 重写
 const nodemailer = require('nodemailer')
-const { readSupportEmailList, readUserEmailList } = require('./storage')
+const { readNotifyConfig, readNotifyList } = require('./storage')
 const commonTemp = require('../template/commonTemp')
 
 const emailCode = {
