@@ -1,3 +1,9 @@
+## [2.1.9](https://github.com/chaos-zhu/easynode/releases) (2024-08-16)
+
+### Features
+
+* 过滤客户端检测更新 ✔
+
 ## [2.1.8](https://github.com/chaos-zhu/easynode/releases) (2024-08-15)
 
 ### Features
