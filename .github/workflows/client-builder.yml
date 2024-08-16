@@ -24,12 +24,12 @@ jobs:
         run: npm install
         working-directory: client
 
-      - name: Build for Linux x86
-        run: npm run pkglinux:x86
+      - name: Build for Linux x64
+        run: npm run pkglinux:x64
         working-directory: client
 
-      - name: Build for Linux ARM64
-        run: npm run pkglinux:arm
+      - name: Build for Linux arm64
+        run: npm run pkglinux:arm64
         working-directory: client
 
       - name: Get the latest release ID
