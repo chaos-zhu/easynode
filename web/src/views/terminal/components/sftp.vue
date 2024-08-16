@@ -452,6 +452,7 @@ const handleUploadFiles = async (event) => {
       $message.error(`${ file.name }上传失败: ${ error }`)
     }
   }
+  event.target.value = ''
   uploadFileRef.value = null
 }
 
@@ -469,6 +470,7 @@ const handleUploadDir = async (event) => {
   socket.value.emit('create_remote_dir', { targetDirPath, foldersName })
   socket.value.once('create_remote_dir_exists', (res) => {
     $message.error(res)
+    event.target.value = ''
     uploadDirRef.value = null
   })
   socket.value.once('create_remote_dir_success', async () => {
@@ -481,6 +483,7 @@ const handleUploadDir = async (event) => {
         $message.error(`${ file.name }上传失败: ${ error }`)
       }
     }
+    event.target.value = ''
     uploadDirRef.value = null
   })
 }
