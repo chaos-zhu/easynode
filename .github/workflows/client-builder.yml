@@ -45,12 +45,12 @@ jobs:
         id: get_release
         run: echo "RELEASE_ID=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .id)" >> $GITHUB_ENV
 
-      - name: Upload Linux x86 Binary to Release
+      - name: Upload Linux x64 Binary to Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}/assets
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
           asset_path: client/dist/easynode-client-x64
           asset_name: easynode-client-x64
           asset_content_type: application/octet-stream
@@ -60,7 +60,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}/assets
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
           asset_path: client/dist/easynode-client-arm64
           asset_name: easynode-client-arm64
           asset_content_type: application/octet-stream
