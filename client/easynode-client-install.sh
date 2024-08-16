@@ -52,7 +52,7 @@ if [ "$ARCH" = "x86_64" ] ; then
 elif [ "$ARCH" = "aarch64" ] ; then
   DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.1.7/easynode-client-arm64"
 else
-  echo "未知的架构：$ARCH"
+  echo "不支持的架构：$ARCH. 只支持x86_64和aarch64，其他架构请自行构建"
   exit 1
 fi
 
