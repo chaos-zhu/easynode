@@ -46,8 +46,9 @@ DOWNLOAD_SERVICE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/ea
 
 ARCH=$(uname -m)
 
+echo "***********************系统架构: ${$ARCH}***********************"
 if [ "$ARCH" = "x86_64" ] ; then
-  DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.1.7/easynode-client-x86"
+  DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.1.7/easynode-client-x64"
 elif [ "$ARCH" = "aarch64" ] ; then
   DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.1.7/easynode-client-arm64"
 else

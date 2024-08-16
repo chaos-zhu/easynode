@@ -9,8 +9,8 @@
   "scripts": {
     "client": "nodemon ./app/main.js",
     "pkgwin": "pkg . -t node16-win-x64",
-    "pkglinux:x86": "pkg . -t node16-linux-x64 -o  dist/easynode-client-x86",
-    "pkglinux:arm": "pkg . -t node16-linux-arm64 -o dist/easynode-client-arm64"
+    "pkglinux:x64": "pkg . -t node16-linux-x64 -o  dist/easynode-client-x64",
+    "pkglinux:arm64": "pkg . -t node16-linux-arm64 -o dist/easynode-client-arm64"
   },
   "keywords": [],
   "author": "",
