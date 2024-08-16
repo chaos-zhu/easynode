@@ -128,11 +128,11 @@ module.exports = (httpServer) => {
 
       function listenerInput(key) {
         if (sshClient._sock.writable === false) return consola.info('终端连接已关闭,禁止输入')
-        stream.write(key)
+        stream && stream.write(key)
       }
       function resizeShell({ rows, cols }) {
         // consola.info('更改tty终端行&列: ', { rows, cols })
-        stream.setWindow(rows, cols)
+        stream && stream.setWindow(rows, cols)
       }
       socket.on('input', listenerInput)
       socket.on('resize', resizeShell)
@@ -144,6 +144,7 @@ module.exports = (httpServer) => {
         sshClient?.end()
         sshClient?.destroy()
         sshClient = null
+        stream = null
         setTimeout(async () => {
           // 初始化新的SSH客户端对象
           sshClient = new SSHClient()
