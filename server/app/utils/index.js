@@ -5,19 +5,18 @@ const {
   writeHostList,
   readKey,
   writeKey,
-  readSupportEmailList,
-  readUserEmailList,
-  writeUserEmailList,
-  readNotifyList,
-  getNotifySwByType,
-  writeNotifyList,
   readGroupList,
   writeGroupList,
   readScriptList,
   writeScriptList,
   readOneKeyRecord,
   writeOneKeyRecord,
-  deleteOneKeyRecord
+  deleteOneKeyRecord,
+  readNotifyConfig,
+  writeNotifyConfig,
+  getNotifySwByType,
+  readNotifyList,
+  writeNotifyList
 } = require('./storage')
 const { RSADecryptSync, AESEncryptSync, AESDecryptSync, SHA1Encrypt } = require('./encrypt')
 const { verifyAuthSync, isProd } = require('./verify-auth')
@@ -44,19 +43,18 @@ module.exports = {
   writeHostList,
   readKey,
   writeKey,
-  readSupportEmailList,
-  readUserEmailList,
-  writeUserEmailList,
   emailTransporter,
   sendEmailToConfList,
-  readNotifyList,
-  getNotifySwByType,
-  writeNotifyList,
   readGroupList,
   writeGroupList,
   readScriptList,
   writeScriptList,
   readOneKeyRecord,
   writeOneKeyRecord,
-  deleteOneKeyRecord
+  deleteOneKeyRecord,
+  readNotifyConfig,
+  writeNotifyConfig,
+  getNotifySwByType,
+  readNotifyList,
+  writeNotifyList
 }

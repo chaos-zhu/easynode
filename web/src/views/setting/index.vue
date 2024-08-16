@@ -14,20 +14,22 @@
         <Sort @update-list="emitUpdateList" />
       </el-tab-pane> -->
       <el-tab-pane label="全局通知" lazy>
-        <NotifyList />
+        <GlobalNotify />
       </el-tab-pane>
-      <el-tab-pane label="邮箱配置" lazy>
-        <EmailList />
+      <el-tab-pane label="通知配置" lazy>
+        <!-- <EmailList /> -->
+        <NotifyConfig />
       </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 
 <script setup>
-import NotifyList from './components/notify-list.vue'
-import EmailList from './components/email-list.vue'
+import GlobalNotify from './components/global-notify.vue'
+// import EmailList from './components/email-list.vue'
 import Record from './components/record.vue'
 import User from './components/user.vue'
+import NotifyConfig from './components/notify-config.vue'
 
 </script>
 

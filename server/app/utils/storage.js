@@ -1,4 +1,4 @@
-const { KeyDB, HostListDB, SshRecordDB, NotifyDB, GroupDB, EmailNotifyDB, ScriptsDB, OnekeyDB } = require('./db-class')
+const { KeyDB, HostListDB, SshRecordDB, NotifyDB, NotifyConfigDB, ScriptsDB, GroupDB, OnekeyDB } = require('./db-class')
 
 const readKey = async () => {
   return new Promise((resolve, reject) => {
@@ -102,54 +102,31 @@ const writeHostList = async (record = []) => {
   })
 }
 
-const readEmailNotifyConf = () => {
+const readNotifyConfig = async () => {
   return new Promise((resolve, reject) => {
-    const emailNotifyDB = new EmailNotifyDB().getInstance()
-    emailNotifyDB.findOne({}, (err, docs) => {
+    const notifyConfigDB = new NotifyConfigDB().getInstance()
+    notifyConfigDB.findOne({}, (err, doc) => {
       if (err) {
-        consola.error('读取email-notify-conf-db错误:', err)
         reject(err)
       } else {
-        resolve(docs)
+        resolve(doc)
       }
     })
   })
 }
-const writeUserEmailList = (user) => {
-  const emailNotifyDB = new EmailNotifyDB().getInstance()
-  // eslint-disable-next-line no-async-promise-executor
-  return new Promise(async (resolve, reject) => {
-    let support = await readSupportEmailList()
-    const emailConf = { support, user }
-    emailNotifyDB.update({}, { $set: emailConf }, { upsert: true }, (err) => {
+
+const writeNotifyConfig = async (keyObj = {}) => {
+  const notifyConfigDB = new NotifyConfigDB().getInstance()
+  return new Promise((resolve, reject) => {
+    notifyConfigDB.update({}, { $set: keyObj }, { upsert: true }, (err, numReplaced) => {
       if (err) {
-        reject({ code: -1, msg: err.message || err })
+        reject(err)
       } else {
-        emailNotifyDB.compactDatafile()
-        resolve({ code: 0 })
+        notifyConfigDB.compactDatafile()
+        resolve(numReplaced)
       }
     })
   })
-}
-
-const readSupportEmailList = async () => {
-  let support = []
-  try {
-    support = (await readEmailNotifyConf()).support
-  } catch (error) {
-    consola.error('读取email support错误: ', error)
-  }
-  return support
-}
-
-const readUserEmailList = async () => {
-  let user = []
-  try {
-    user = (await readEmailNotifyConf()).user
-  } catch (error) {
-    consola.error('读取email config错误: ', error)
-  }
-  return user
 }
 
 const getNotifySwByType = async (type) => {
@@ -283,6 +260,7 @@ const readOneKeyRecord = async () => {
         consola.error('读取onekey record错误: ', err)
         reject(err)
       } else {
+        onekeyDB.compactDatafile()
         resolve(docs)
       }
     })
@@ -319,23 +297,12 @@ const deleteOneKeyRecord = async (ids =[]) => {
 }
 
 module.exports = {
-  readSSHRecord,
-  writeSSHRecord,
-  readHostList,
-  writeHostList,
-  readKey,
-  writeKey,
-  readNotifyList,
-  getNotifySwByType,
-  writeNotifyList,
-  readGroupList,
-  writeGroupList,
-  readSupportEmailList,
-  readUserEmailList,
-  writeUserEmailList,
-  readScriptList,
-  writeScriptList,
-  readOneKeyRecord,
-  writeOneKeyRecord,
-  deleteOneKeyRecord
+  readSSHRecord, writeSSHRecord,
+  readHostList, writeHostList,
+  readKey, writeKey,
+  readNotifyList, writeNotifyList,
+  readNotifyConfig, writeNotifyConfig, getNotifySwByType,
+  readGroupList, writeGroupList,
+  readScriptList, writeScriptList,
+  readOneKeyRecord, writeOneKeyRecord, deleteOneKeyRecord
 }

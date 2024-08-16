@@ -55,20 +55,26 @@ export default {
   // updateHostSort(data) {
   //   return axios({ url: '/host-sort', method: 'put', data })
   // },
-  getUserEmailList() {
-    return axios({ url: '/user-email', method: 'get' })
+  // getUserEmailList() {
+  //   return axios({ url: '/user-email', method: 'get' })
+  // },
+  // getSupportEmailList() {
+  //   return axios({ url: '/support-email', method: 'get' })
+  // },
+  // updateUserEmailList(data) {
+  //   return axios({ url: '/user-email', method: 'post', data })
+  // },
+  // deleteUserEmail(email) {
+  //   return axios({ url: `/user-email/${ email }`, method: 'delete' })
+  // },
+  // pushTestEmail(data) {
+  //   return axios({ url: '/push-email', method: 'post', data })
+  // },
+  getNotifyConfig() {
+    return axios({ url: '/notify-config', method: 'get' })
   },
-  getSupportEmailList() {
-    return axios({ url: '/support-email', method: 'get' })
-  },
-  updateUserEmailList(data) {
-    return axios({ url: '/user-email', method: 'post', data })
-  },
-  deleteUserEmail(email) {
-    return axios({ url: `/user-email/${ email }`, method: 'delete' })
-  },
-  pushTestEmail(data) {
-    return axios({ url: '/push-email', method: 'post', data })
+  updateNotifyConfig(data) {
+    return axios({ url: '/notify-config', method: 'put', data })
   },
   getNotifyList() {
     return axios({ url: '/notify', method: 'get' })

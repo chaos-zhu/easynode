@@ -11,10 +11,10 @@ module.exports = {
   credentialsDBPath: path.join(process.cwd(),'app/db/credentials.db'),
   keyDBPath: path.join(process.cwd(),'app/db/key.db'),
   hostListDBPath: path.join(process.cwd(),'app/db/host.db'),
-  notifyConfDBPath: path.join(process.cwd(),'app/db/notify.db'),
   groupConfDBPath: path.join(process.cwd(),'app/db/group.db'),
-  emailNotifyDBPath: path.join(process.cwd(),'app/db/email.db'),
   scriptsDBPath: path.join(process.cwd(),'app/db/scripts.db'),
+  notifyDBPath: path.join(process.cwd(),'app/db/notify.db'),
+  notifyConfigDBPath: path.join(process.cwd(),'app/db/notify-config.db'),
   onekeyDBPath: path.join(process.cwd(),'app/db/onekey.db'),
   apiPrefix: '/api/v1',
   logConfig: {

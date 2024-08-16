@@ -1,7 +1,7 @@
 const { getSSHList, addSSH, updateSSH, removeSSH, getCommand } = require('../controller/ssh')
 const { getHostList, addHost, updateHost, removeHost, importHost } = require('../controller/host')
 const { login, getpublicKey, updatePwd, getLoginRecord, getEasynodeVersion } = require('../controller/user')
-const { getSupportEmailList, getUserEmailList, updateUserEmailList, removeUserEmail, pushEmail, getNotifyList, updateNotifyList } = require('../controller/notify')
+const { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
 const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript } = require('../controller/scripts')
 const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
@@ -90,28 +90,13 @@ const user = [
 const notify = [
   {
     method: 'get',
-    path: '/support-email',
-    controller: getSupportEmailList
+    path: '/notify-config',
+    controller: getNotifyConfig
   },
   {
-    method: 'get',
-    path: '/user-email',
-    controller: getUserEmailList
-  },
-  {
-    method: 'post',
-    path: '/user-email',
-    controller: updateUserEmailList
-  },
-  {
-    method: 'post',
-    path: '/push-email',
-    controller: pushEmail
-  },
-  {
-    method: 'delete',
-    path: '/user-email/:email',
-    controller: removeUserEmail
+    method: 'put',
+    path: '/notify-config',
+    controller: updateNotifyConfig
   },
   {
     method: 'get',

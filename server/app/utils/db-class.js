@@ -1,5 +1,14 @@
 const Datastore = require('@seald-io/nedb')
-const { credentialsDBPath, hostListDBPath, keyDBPath, emailNotifyDBPath, notifyConfDBPath, groupConfDBPath, scriptsDBPath, onekeyDBPath } = require('../config')
+const {
+  credentialsDBPath,
+  hostListDBPath,
+  keyDBPath,
+  notifyDBPath,
+  notifyConfigDBPath,
+  groupConfDBPath,
+  scriptsDBPath,
+  onekeyDBPath
+} = require('../config')
 
 module.exports.KeyDB = class KeyDB {
   constructor() {
@@ -37,11 +46,22 @@ module.exports.SshRecordDB = class SshRecordDB {
 module.exports.NotifyDB = class NotifyDB {
   constructor() {
     if (!NotifyDB.instance) {
-      NotifyDB.instance = new Datastore({ filename: notifyConfDBPath, autoload: true })
+      NotifyDB.instance = new Datastore({ filename: notifyDBPath, autoload: true })
     }
   }
   getInstance() {
     return NotifyDB.instance
+  }
+}
+
+module.exports.NotifyConfigDB = class NotifyConfigDB {
+  constructor() {
+    if (!NotifyConfigDB.instance) {
+      NotifyConfigDB.instance = new Datastore({ filename: notifyConfigDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return NotifyConfigDB.instance
   }
 }
 
@@ -53,17 +73,6 @@ module.exports.GroupDB = class GroupDB {
   }
   getInstance() {
     return GroupDB.instance
-  }
-}
-
-module.exports.EmailNotifyDB = class EmailNotifyDB {
-  constructor() {
-    if (!EmailNotifyDB.instance) {
-      EmailNotifyDB.instance = new Datastore({ filename: emailNotifyDBPath, autoload: true })
-    }
-  }
-  getInstance() {
-    return EmailNotifyDB.instance
   }
 }
 

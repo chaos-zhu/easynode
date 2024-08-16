@@ -1,9 +1,14 @@
 <template>
-  <el-alert type="success" :closable="false">
+  <!-- <el-alert type="success" :closable="false">
     <template #title>
       <span style="letter-spacing: 2px;"> 请添加邮箱并确保测试邮件通过 </span>
     </template>
-  </el-alert>
+  </el-alert> -->
+  <!--
+  {"type":"login","desc":"登录面板提醒","sw":true,"_id":"jxbeElEds9virx4m"}
+  {"type":"updatePwd","desc":"修改密码提醒","sw":true,"_id":"uPa6imN4pKnAIgMW"}
+  {"type":"err_login","desc":"登录错误提醒(连续5次)","sw":true,"_id":"wARAnQXturdZHdWK"}
+  -->
   <el-table v-loading="notifyListLoading" :data="notifyList">
     <el-table-column prop="desc" label="通知类型" />
     <el-table-column prop="sw" label="开关">

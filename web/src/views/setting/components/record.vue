@@ -1,7 +1,7 @@
 <template>
   <el-alert type="success" :closable="false">
     <template #title>
-      <span style="letter-spacing: 2px;"> 系统只保存最近10条登录记录, 目前版本只保存在内存中 </span>
+      <span style="letter-spacing: 2px;"> 系统只保存最近10条登录记录, 目前版本只保存在内存中, 重启面板服务后会丢失 </span>
     </template>
   </el-alert>
   <el-table v-loading="loading" :data="loginRecordList">
