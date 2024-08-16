@@ -61,13 +61,12 @@ let isNew = computed(() => {
 
 async function checkLatestVersion() {
   const timeout = 3000
-  const proxy = 'https://ghproxy.com/'
   try {
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('请求超时')), timeout)
     )
 
-    const url = 'https://api.github.com/repos/chaos-zhu/easynode/releases'
+    const url = `https://api.github.com/repos/chaos-zhu/easynode/releases?ts=${ new Date().getTime() }`
     const fetchPromise = fetch(url, {
       headers: {
         'Accept': 'application/vnd.github.v3+json'
