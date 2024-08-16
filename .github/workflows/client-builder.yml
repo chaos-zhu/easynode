@@ -50,7 +50,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          upload_url: ${{ github.event.release.upload_url }}
           asset_path: client/dist/easynode-client-x64
           asset_name: easynode-client-x64
           asset_content_type: application/octet-stream
@@ -60,7 +60,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          upload_url: ${{ github.event.release.upload_url }}
           asset_path: client/dist/easynode-client-arm64
           asset_name: easynode-client-arm64
           asset_content_type: application/octet-stream
