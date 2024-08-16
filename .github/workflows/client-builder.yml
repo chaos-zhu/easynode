@@ -1,0 +1,59 @@
+name: Build and Upload to Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'clients/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./clients
+
+      - name: Build for Linux x86
+        run: npm run pkglinux:x86
+        working-directory: ./clients
+
+      - name: Build for Linux ARM64
+        run: npm run pkglinux:arm
+        working-directory: ./clients
+
+      - name: Get the latest release ID
+        id: get_release
+        run: echo "RELEASE_ID=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .id)" >> $GITHUB_ENV
+
+      - name: Upload Linux x86 Binary to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}/assets
+          asset_path: ./clients/dist/easynode-client-x86
+          asset_name: easynode-client-x86
+          asset_content_type: application/octet-stream
+          overwrite: true
+
+      - name: Upload Linux ARM64 Binary to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}/assets
+          asset_path: ./clients/dist/easynode-client-arm64
+          asset_name: easynode-client-arm64
+          asset_content_type: application/octet-stream
+          overwrite: true

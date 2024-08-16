@@ -3,7 +3,7 @@ name: Docker Build and Push
 on:
   release:
     types: [published]
-  workflow_dispatch: # 手动构建
+  workflow_dispatch:
     inputs:
       tag_name:
         description: 'Tag Name (leave empty for default latest)'
