@@ -51,7 +51,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}/assets
-          asset_path: dist/easynode-client-x64
+          asset_path: client/dist/easynode-client-x64
           asset_name: easynode-client-x64
           asset_content_type: application/octet-stream
 
@@ -61,6 +61,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}/assets
-          asset_path: dist/easynode-client-arm64
+          asset_path: client/dist/easynode-client-arm64
           asset_name: easynode-client-arm64
           asset_content_type: application/octet-stream
