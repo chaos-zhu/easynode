@@ -41,26 +41,35 @@ jobs:
         run: npm run pkglinux:arm64
         working-directory: client
 
-      - name: Get the latest release ID
-        id: get_release
-        run: echo "RELEASE_ID=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .id)" >> $GITHUB_ENV
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
 
-      - name: Upload Linux x64 Binary to Release
+      - name: Upload Release Asset
+        id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: client/dist/easynode-client-x64
           asset_name: easynode-client-x64
           asset_content_type: application/octet-stream
+
 
       - name: Upload Linux ARM64 Binary to Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: client/dist/easynode-client-arm64
           asset_name: easynode-client-arm64
           asset_content_type: application/octet-stream
