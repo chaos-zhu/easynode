@@ -1,4 +1,4 @@
-name: Build and Upload to Release
+name: Build Client to Release
 
 on:
   push:
@@ -22,15 +22,15 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: clients
+        working-directory: client
 
       - name: Build for Linux x86
         run: npm run pkglinux:x86
-        working-directory: clients
+        working-directory: client
 
       - name: Build for Linux ARM64
         run: npm run pkglinux:arm
-        working-directory: clients
+        working-directory: client
 
       - name: Get the latest release ID
         id: get_release
@@ -42,7 +42,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}/assets
-          asset_path: clients/dist/easynode-client-x86
+          asset_path: client/dist/easynode-client-x86
           asset_name: easynode-client-x86
           asset_content_type: application/octet-stream
           overwrite: true
@@ -53,7 +53,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}/assets
-          asset_path: clients/dist/easynode-client-arm64
+          asset_path: client/dist/easynode-client-arm64
           asset_name: easynode-client-arm64
           asset_content_type: application/octet-stream
           overwrite: true
