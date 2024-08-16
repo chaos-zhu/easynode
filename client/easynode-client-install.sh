@@ -8,9 +8,10 @@ fi
 SERVER_NAME=easynode-client
 FILE_PATH=/root/local/easynode-client
 SERVICE_PATH=/etc/systemd/system
-SERVER_VERSION=v1.0
+CLIENT_VERSION=client-2024-08-16 # 目前监控客户端版本发布需手动更改为最新版本号
+SERVER_PROXY="${SERVER_PROXY:-https://mirror.ghproxy.com/}" # 末尾需加斜杠，使用外部环境变量或默认值
 
-echo "***********************开始安装 easynode-client_${SERVER_VERSION}***********************"
+echo "***********************开始安装EasyNode监控客户端端,当前版本号: ${CLIENT_VERSION}***********************"
 
 systemctl status ${SERVER_NAME} > /dev/null 2>&1
 if [ $? != 4 ]
@@ -42,15 +43,15 @@ echo "***********************创建文件PATH***********************"
 mkdir -p ${FILE_PATH}
 
 echo "***********************下载开始***********************"
-DOWNLOAD_SERVICE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.1.7/easynode-client.service"
+DOWNLOAD_SERVICE_URL="${SERVER_PROXY}https://github.com/chaos-zhu/easynode/releases/download/${CLIENT_VERSION}/easynode-client.service"
 
 ARCH=$(uname -m)
 
-echo "***********************系统架构: ${$ARCH}***********************"
+echo "***********************系统架构: $ARCH***********************"
 if [ "$ARCH" = "x86_64" ] ; then
-  DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.1.7/easynode-client-x64"
+  DOWNLOAD_FILE_URL="${SERVER_PROXY}https://github.com/chaos-zhu/easynode/releases/download/${CLIENT_VERSION }/easynode-client-x64"
 elif [ "$ARCH" = "aarch64" ] ; then
-  DOWNLOAD_FILE_URL="https://mirror.ghproxy.com/https://github.com/chaos-zhu/easynode/releases/download/v2.1.7/easynode-client-arm64"
+  DOWNLOAD_FILE_URL="${SERVER_PROXY}https://github.com/chaos-zhu/easynode/releases/download/${CLIENT_VERSION }/easynode-client-arm64"
 else
   echo "不支持的架构：$ARCH. 只支持x86_64和aarch64，其他架构请自行构建"
   exit 1
