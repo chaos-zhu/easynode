@@ -46,6 +46,15 @@ jobs:
           asset_name: easynode-client-x86
           asset_content_type: application/octet-stream
 
+      - name: Install QEMU
+        run: sudo apt-get update && sudo apt-get install -y qemu qemu-user-static binfmt-support
+
+      - name: Setup QEMU ARM64
+        run: |
+          sudo update-binfmts --enable qemu-aarch64
+          sudo cp /usr/bin/qemu-aarch64-static /usr/local/bin
+          uname -a
+
       - name: Upload Linux ARM64 Binary to Release
         uses: actions/upload-release-asset@v1
         env:
