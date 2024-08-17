@@ -103,8 +103,7 @@ module.exports = (httpServer) => {
         return
       }
       setTimeout(() => {
-        // 超时未执行完成，断开连接
-        disconnectAllExecClient()
+        // 超时未执行完成，强制断开连接
         const { connecting, executing } = execStatusEnum
         execResult.forEach(item => {
           // 连接中和执行中的状态设定为超时
@@ -116,6 +115,7 @@ module.exports = (httpServer) => {
         asyncSendNotice('onekey_complete', '批量指令执行超时', reason)
         socket.emit('timeout', { reason, result: execResult })
         socket.disconnect()
+        disconnectAllExecClient()
       }, timeout * 1000)
       console.log('hosts:', hosts)
       // console.log('token:', token)
@@ -128,7 +128,8 @@ module.exports = (httpServer) => {
       socket.emit('ready')
       let execPromise = targetHostsInfo.map((hostInfo, index) => {
         // eslint-disable-next-line no-async-promise-executor
-        return new Promise(async (resolve) => {
+        return new Promise(async (resolve, reject) => {
+          setTimeout(() => reject('执行超时'), timeout * 1000)
           let { authType, host, port, username } = hostInfo
           let authInfo = { host, port, username }
           let curRes = { command, host, name: hostInfo.name, result: '', status: execStatusEnum.connecting, date: Date.now() - (targetHostsInfo.length - index) } // , execStatusEnum
@@ -174,11 +175,15 @@ module.exports = (httpServer) => {
           }
         })
       })
-      await Promise.all(execPromise)
-      consola.success('onekey执行完成')
-      socket.emit('exec_complete')
-      asyncSendNotice('onekey_complete', '批量指令执行完成', '请登录面板查看执行结果')
-      socket.disconnect()
+      try {
+        await Promise.all(execPromise)
+        consola.success('onekey执行完成')
+        socket.emit('exec_complete')
+        asyncSendNotice('onekey_complete', '批量指令执行完成', '请登录面板查看执行结果')
+        socket.disconnect()
+      } catch (error) {
+        consola.error('onekey执行失败', error)
+      }
     })
 
     socket.on('disconnect', async (reason) => {
