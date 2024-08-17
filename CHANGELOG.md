@@ -1,3 +1,17 @@
+## [2.2.0](https://github.com/chaos-zhu/easynode/releases) (2024-08-17)
+
+### Features
+
+* 重构通知模块 ✔
+* 支持大多数邮箱SMTP配置通知 ✔
+* 支持Server酱通知 ✔
+* 新增批量指令执行结果提醒 ✔
+* 新增终端登录与登录状态提醒 ✔
+* 新增服务器到期提醒 ✔
+* 修复上传同一个文件无法选择的bug ✔
+* 修复终端连接失败抛出异常的bug ✔
+* 调整客户端安装脚本 ✔
+
 ## [2.1.9](https://github.com/chaos-zhu/easynode/releases) (2024-08-16)
 
 ### Features
