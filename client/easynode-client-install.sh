@@ -64,7 +64,7 @@ then
   exit 1
 fi
 
-DOWNLOAD_SERVICE_URL="${SERVER_PROXY}https://github.com/chaos-zhu/easynode/releases/download/${CLIENT_VERSION}/easynode-client.service"
+DOWNLOAD_SERVICE_URL="${SERVER_PROXY}https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client.service"
 
 wget -O ${FILE_PATH}/${SERVER_NAME}.service --no-check-certificate --no-cache ${DOWNLOAD_SERVICE_URL}
 
