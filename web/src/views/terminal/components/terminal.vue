@@ -405,8 +405,6 @@ const handleInputCommand = async (command) => {
     padding: 0 15px;
     position: sticky;
     top: 0;
-    border-bottom: 1px solid #fff;
-    // background-color: #fff;
     background: var(--el-fill-color-light);
     color: var(--el-text-color-regular);
     z-index: 3;
@@ -462,6 +460,7 @@ const handleInputCommand = async (command) => {
     overflow: auto;
     display: flex;
     flex-direction: column;
+    border: var(--el-descriptions-table-border);
   }
 
   .terminals_sftp_wrap {

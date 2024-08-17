@@ -40,7 +40,7 @@
       </el-table-column>
       <el-table-column prop="command" label="指令" show-overflow-tooltip>
         <template #default="{ row }">
-          <span style="letter-spacing: 2px;background: rgba(227, 230, 235, 0.7);color: rgb(54, 52, 52);"> {{ row.command }} </span>
+          <span> {{ row.command }} </span>
         </template>
       </el-table-column>
       <el-table-column prop="status" label="执行结果" show-overflow-tooltip>
@@ -436,14 +436,13 @@ onActivated(async () => {
     position: sticky;
     top: 0;
     z-index: 1;
-    background-color: #fff;
   }
   .detail_content_box {
     max-height: 200px;
     overflow: auto;
     white-space: pre-line;
     line-height: 1.1;
-    background: rgba(227, 230, 235, .7);
+    // background: rgba(227, 230, 235, .7);
     padding: 25px;
     border-radius: 3px;
   }

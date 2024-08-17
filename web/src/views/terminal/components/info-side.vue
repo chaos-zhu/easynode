@@ -323,8 +323,7 @@ onBeforeUnmount(() => {
 .info_container {
   // border-top: 1px solid var(--el-border-color);
   flex-shrink: 0;
-  overflow: scroll;
-  background-color: #fff; //#E0E2EF;
+  // overflow: scroll;
   transition: all 0.15s;
 
   // header {
@@ -412,7 +411,7 @@ onBeforeUnmount(() => {
       display: flex;
 
       span {
-        color: #000;
+        color: #434343;
       }
     }
   }

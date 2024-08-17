@@ -15,7 +15,8 @@ const useStore = defineStore({
     HostStatusSocket: null,
     user: localStorage.getItem('user') || null,
     token: sessionStorage.getItem('token') || localStorage.getItem('token') || null,
-    title: ''
+    title: '',
+    isDark: false
   }),
   actions: {
     async setJwtToken(token, isSession = true) {
@@ -109,6 +110,26 @@ const useStore = defineStore({
       socketInstance.on('connect_error', (message) => {
         console.error('clients websocket 连接出错: ', message)
       })
+    },
+    setTheme(isDark) {
+      // $store.setThemeConfig({ isDark: val })
+      const html = document.documentElement
+      if (isDark) html.setAttribute('class', 'dark')
+      else html.setAttribute('class', '')
+      localStorage.setItem('isDark', isDark)
+      this.$patch({ isDark })
+    },
+    setDefaultTheme() {
+      let isDark = false
+      if (localStorage.getItem('isDark')) {
+        isDark = localStorage.getItem('isDark') === 'true' ? true : false
+      } else {
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)')
+        const systemTheme = prefersDarkScheme.matches
+        // console.log('当前系统使用的是深色模式：', systemTheme ? '是' : '否')
+        isDark = systemTheme
+      }
+      this.setTheme(isDark)
     }
   }
 })

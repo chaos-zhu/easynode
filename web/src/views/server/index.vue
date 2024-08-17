@@ -242,6 +242,9 @@ let hostFormClosed = () => {
   }
 
   .server_group_collapse {
+    :deep(.el-card__body) {
+      padding: 0;
+    }
     :deep(.el-collapse-item__header) {
       padding: 0 35px;
     }

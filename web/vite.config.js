@@ -59,6 +59,13 @@ export default defineConfig({
       deleteOriginFile: false
     }),
   ],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: '@use "@/assets/scss/element/index.scss" as *;'
+      }
+    }
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL(

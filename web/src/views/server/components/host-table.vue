@@ -146,7 +146,7 @@ const handleOnekey = async (row) => {
 }
 
 let defaultSortLocal = localStorage.getItem('host_table_sort')
-defaultSortLocal = defaultSortLocal ? JSON.parse(defaultSortLocal) : { prop: 'index', order: 'ascending' }
+defaultSortLocal = defaultSortLocal ? JSON.parse(defaultSortLocal) : { prop: 'index', order: null } // 'ascending' or 'descending'
 let defaultSort = ref(defaultSortLocal)
 
 const handleSortChange = (sortObj) => {

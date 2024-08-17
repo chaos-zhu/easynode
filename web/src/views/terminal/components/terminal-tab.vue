@@ -429,6 +429,7 @@ defineExpose({
     :deep(.xterm-screen) {
       padding: 0 0 0 10px;
       border-radius: var(--el-border-radius-base);
+      // background-color: rgba(0, 0, 0, 0.6);
     }
   }
   .terminal_command_history {

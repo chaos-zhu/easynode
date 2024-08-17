@@ -10,8 +10,6 @@ import api from './api'
 import App from './app.vue'
 import './assets/scss/reset.scss'
 import './assets/scss/global.scss'
-import './assets/scss/element-ui.scss'
-import './assets/scss/animate.scss'
 
 const app = createApp(App)
 elementPlugins(app)

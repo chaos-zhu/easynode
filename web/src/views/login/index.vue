@@ -161,7 +161,6 @@ onMounted(async () => {
     padding: 20px;
     border-radius: 6px;
     background-color: #ffffff;
-    border: 1px solid #ebedef;
 
     h2 {
       text-align: center;
