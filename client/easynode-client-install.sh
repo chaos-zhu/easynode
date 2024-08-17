@@ -43,15 +43,14 @@ echo "***********************创建文件PATH***********************"
 mkdir -p ${FILE_PATH}
 
 echo "***********************下载开始***********************"
-DOWNLOAD_SERVICE_URL="${SERVER_PROXY}https://github.com/chaos-zhu/easynode/releases/download/${CLIENT_VERSION}/easynode-client.service"
 
 ARCH=$(uname -m)
 
 echo "***********************系统架构: $ARCH***********************"
 if [ "$ARCH" = "x86_64" ] ; then
-  DOWNLOAD_FILE_URL="${SERVER_PROXY}https://github.com/chaos-zhu/easynode/releases/download/${CLIENT_VERSION }/easynode-client-x64"
+  DOWNLOAD_FILE_URL="${SERVER_PROXY}https://github.com/chaos-zhu/easynode/releases/download/${CLIENT_VERSION}/easynode-client-x64"
 elif [ "$ARCH" = "aarch64" ] ; then
-  DOWNLOAD_FILE_URL="${SERVER_PROXY}https://github.com/chaos-zhu/easynode/releases/download/${CLIENT_VERSION }/easynode-client-arm64"
+  DOWNLOAD_FILE_URL="${SERVER_PROXY}https://github.com/chaos-zhu/easynode/releases/download/${CLIENT_VERSION}/easynode-client-arm64"
 else
   echo "不支持的架构：$ARCH. 只支持x86_64和aarch64，其他架构请自行构建"
   exit 1
@@ -64,6 +63,8 @@ then
   echo "***********************下载${SERVER_NAME}失败***********************"
   exit 1
 fi
+
+DOWNLOAD_SERVICE_URL="${SERVER_PROXY}https://github.com/chaos-zhu/easynode/releases/download/${CLIENT_VERSION}/easynode-client.service"
 
 wget -O ${FILE_PATH}/${SERVER_NAME}.service --no-check-certificate --no-cache ${DOWNLOAD_SERVICE_URL}
 
