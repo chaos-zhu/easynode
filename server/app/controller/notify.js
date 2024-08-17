@@ -1,5 +1,5 @@
 const { readNotifyConfig, writeNotifyConfig, readNotifyList, writeNotifyList } = require('../utils')
-const { sctTest, emailTest } = require('../utils/notify')
+const { sendServerChan, sendEmail } = require('../utils/notify')
 // const commonTemp = require('../template/commonTemp')
 
 async function getNotifyConfig({ res }) {
@@ -13,10 +13,10 @@ async function updateNotifyConfig({ res, request }) {
   try {
     switch(type) {
       case 'sct':
-        await sctTest(noticeConfig[type])
+        await sendServerChan(noticeConfig[type]['sendKey'], 'EasyNode通知测试', '这是一条测试通知')
         break
       case 'email':
-        await emailTest(noticeConfig[type])
+        await sendEmail(noticeConfig[type], 'EasyNode通知测试', '这是一条测试通知')
         break
     }
     await writeNotifyConfig(noticeConfig)

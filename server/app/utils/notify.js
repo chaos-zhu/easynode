@@ -1,27 +1,34 @@
 const nodemailer = require('nodemailer')
 const axios = require('axios')
+const { getNotifySwByType, readNotifyConfig } = require('../utils')
 
-module.exports.sctTest = function ({ sendKey }) {
-  // eslint-disable-next-line no-async-promise-executor
+function sendServerChan(sendKey, title, content) {
+  if (!sendKey) return consola.error('发送server酱通知失败, sendKey 为空')
   return new Promise((async (resolve, reject) => {
-    consola.info('server酱通知测试: ', sendKey)
     try {
-      let { data } = await axios.get(`https://sctapi.ftqq.com/${ sendKey }.send?title=messagetitle`)
+      consola.info('server酱通知预发送: ', title)
+      const url = `https://sctapi.ftqq.com/${ sendKey }.send`
+      const params = new URLSearchParams({ text: title, desp: content })
+      let { data } = await axios.post(url, params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      })
       resolve(data)
-      consola.success('测试成功')
+      consola.info('server酱通知发送成功: ', title)
     } catch (error) {
       reject(error)
-      consola.error('测试失败: ', error)
+      consola.error('server酱通知发送失败: ', error)
     }
   }))
+
 }
 
-module.exports.emailTest = function (conf) {
-  // eslint-disable-next-line no-async-promise-executor
+function sendEmail({ service, user, pass }, title, content) {
+  if (!service || !user || !pass) return consola.info('发送通知失败, 邮箱配置信息不完整: ', { service, user, pass })
   return new Promise((async (resolve, reject) => {
-    consola.info('邮箱通知测试: ', conf)
     try {
-      const { service, user, pass } = conf
+      consola.info('邮箱通知预发送: ', title)
       let transporter = nodemailer.createTransport({
         service,
         auth: {
@@ -29,19 +36,52 @@ module.exports.emailTest = function (conf) {
           pass
         }
       })
-      let info = await transporter.sendMail({
+      await transporter.sendMail({
         from: user,
         to: user,
-        subject: 'EasyNode: 测试邮件通知',
-        text: '测试邮件',
-        html: '<b>测试邮件</b>'
+        subject: title,
+        // text: '', // 纯文本版本内容，如果收件人的邮件客户端不支持HTML显示，就会显示这个文本
+        html: content
       })
-      consola.info('Message sent: %s', info.messageId)
+      consola.info('邮件通知发送成功: ', title)
       resolve()
-      consola.success('测试成功')
     } catch (error) {
       reject(error)
-      consola.error('测试失败: ', error)
+      consola.error('邮件通知发送失败: ', error)
     }
   }))
+}
+
+// 异步发送通知
+async function asyncSendNotice(noticeAction, title, content) {
+  try {
+    let sw = await getNotifySwByType(noticeAction) // 获取对应动作的通知开关
+    if (!sw) return
+    let notifyConfig = await readNotifyConfig()
+    let { type } = notifyConfig
+    if (!type) return consola.error('通知类型不存在: ', type)
+    content += `<br/>通知发送时间：${ new Date() }`
+    switch (type) {
+      case 'sct':
+        let { sendKey } = notifyConfig['sct']
+        if (!sendKey) return consola.info('未发送server酱通知, sendKey 为空')
+        await sendServerChan(sendKey, title, content)
+        break
+      case 'email':
+        let { service, user, pass } = notifyConfig['email']
+        if (!service || !user || !pass) return consola.info('未发送邮件通知通知, 未配置邮箱: ', { service, user, pass })
+        await sendEmail({ service, user, pass }, title, content)
+        break
+      default:
+        break
+    }
+  } catch (error) {
+    consola.error('通知发送失败: ', error)
+  }
+}
+
+module.exports = {
+  asyncSendNotice,
+  sendServerChan,
+  sendEmail
 }
