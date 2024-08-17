@@ -14,7 +14,7 @@
 html.dark {
   // * admin
   --bg-color: #000;
-  --v-main-bg-color: #181818;
+  --main-bg-color: #181818;
   --v-border-light: 1px solid #4c4c4d;
 
   body {
@@ -24,20 +24,20 @@ html.dark {
   .login_container {
     // background: rgba(171, 181, 196, 0.3);
     .login_box {
-      background-color: var(--v-main-bg-color) !important;
+      background-color: var(--main-bg-color) !important;
     }
   }
 
   .top_bar_container {
-    background-color: var(--bg-color) !important;
+    background-color: var(--main-bg-color) !important;
   }
 
   .router_box {
-    background-color: var(--v-main-bg-color) !important;
+    background-color: var(--main-bg-color) !important;
   }
 
   .aside_container {
-    background-color: var(--v-main-bg-color) !important;
+    background-color: var(--main-bg-color) !important;
   }
 
   .terminal_top {
@@ -66,7 +66,7 @@ html.dark {
   }
 
   .app-main-container {
-    background-color: var(--v-main-bg-color) !important;
+    background-color: var(--main-bg-color) !important;
 
     .card {
       background-color: var(--bg-color) !important;
@@ -75,7 +75,7 @@ html.dark {
 
   .layout-footer-container {
     color: var(--el-text-color-regular) !important;
-    background-color: var(--v-main-bg-color) !important;
+    background-color: var(--main-bg-color) !important;
   }
 
   .fold-unfold {
@@ -128,7 +128,7 @@ html.dark {
 
     .el-tabs__item.is-active {
       color: var(--el-color-primary);
-      background-color: var(--v-main-bg-color) !important;
+      background-color: var(--main-bg-color) !important;
 
       .el-icon {
         color: var(--el-color-primary) !important;
@@ -136,7 +136,7 @@ html.dark {
     }
 
     .el-tabs__item:not(.is_active):hover {
-      background-color: var(--v-main-bg-color) !important;
+      background-color: var(--main-bg-color) !important;
 
       .el-icon {
         color: var(--el-color-primary) !important;

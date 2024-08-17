@@ -9,7 +9,6 @@
         :active-icon="Moon"
         :inactive-icon="Sunny"
         class="dark_switch"
-        @change="setTheme"
       />
       <el-button
         type="info"
@@ -62,15 +61,14 @@ let visible = ref(false)
 let checkVersionErr = ref(false)
 let currentVersion = ref(`v${ packageJson.version }`)
 let latestVersion = ref(null)
-// let isDark = ref(true)
 
 let isNew = computed(() => latestVersion.value && latestVersion.value !== currentVersion.value)
 let user = computed(() => $store.user)
 let title = computed(() => $store.title)
 let isDark = computed({
   get: () => $store.isDark,
-  set: (value) => {
-    $store.setTheme({ isDark: value })
+  set: (isDark) => {
+    $store.setTheme(isDark)
   }
 })
 

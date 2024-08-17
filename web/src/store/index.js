@@ -114,6 +114,10 @@ const useStore = defineStore({
     setTheme(isDark) {
       // $store.setThemeConfig({ isDark: val })
       const html = document.documentElement
+      document.startViewTransition(() => {
+        // 在 startViewTransition 中修改 DOM 状态产生动画
+        document.documentElement.classList.toggle('dark')
+      })
       if (isDark) html.setAttribute('class', 'dark')
       else html.setAttribute('class', '')
       localStorage.setItem('isDark', isDark)
@@ -126,7 +130,7 @@ const useStore = defineStore({
       } else {
         const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)')
         const systemTheme = prefersDarkScheme.matches
-        // console.log('当前系统使用的是深色模式：', systemTheme ? '是' : '否')
+        console.log('当前系统使用的是深色模式：', systemTheme ? '是' : '否')
         isDark = systemTheme
       }
       this.setTheme(isDark)

@@ -1,5 +1,5 @@
 <template>
-  <el-card shadow="always" class="host_card">
+  <div class="host_card">
     <el-table
       ref="tableRef"
       :data="hosts"
@@ -93,7 +93,7 @@
         </template>
       </el-table-column>
     </el-table>
-  </el-card>
+  </div>
 </template>
 
 <script setup>
@@ -194,21 +194,8 @@ const handleRemoveHost = async ({ host }) => {
 
 <style lang="scss" scoped>
 .host_card {
-  margin: -10px 30px 0 30px;
-  transition: all 0.5s;
-  position: relative;
-
-  // &:hover {
-  //   box-shadow: 0px 0px 15px rgba(6, 30, 37, 0.5);
-  // }
-
-  :deep(.el-descriptions__title) {
-    display: none;
-  }
-  :deep(.el-descriptions) {
-    padding: 0 25px;
-  }
-
+  margin: 0px 10px;
+  // transition: all 0.5s;
   .no_client_data {
     font-size: 14px;
     font-weight: normal;
