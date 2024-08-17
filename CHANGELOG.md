@@ -1,3 +1,9 @@
+## [2.2.1](https://github.com/chaos-zhu/easynode/releases) (2024-08-18)
+
+### Features
+
+* 支持暗黑主题切换 ✔
+
 ## [2.2.0](https://github.com/chaos-zhu/easynode/releases) (2024-08-17)
 
 ### Features
