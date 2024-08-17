@@ -1,26 +1,40 @@
 module.exports = (content) => {
-  return `<!DOCTYPE html
-  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
-<html xmlns="http://www.w3.org/1999/xhtml">
-
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-</head>
-
-<body style="margin: 0; padding: 0;text-align: center;">
-  <table border="0" cellpadding="0" cellspacing="0" width="100%">
-    <tr>
-      <td>
-        <h3 style="font-size: 18px;color: #5992D3;padding:0 0 0 10px;">
-          ${ content }
-        </h3>
-      </td>
-    </tr>
-  </table>
-</body>
-
-</html>
+  return `<!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 15px 5px;
+                color: #333;
+                background-color: #f4f4f4;
+                line-height: 1.6;
+            }
+            .container {
+                background-color: #fff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+            h1 {
+                color: #4CAF50;
+            }
+            p {
+                margin: 12px 0;
+            }
+            .footer {
+                text-align: center;
+                font-size: 0.9em;
+                color: #777;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <p>${ content }</p>
+            <p class="footer">通知发送时间: ${ new Date() }</p>
+        </div>
+    </body>
+    </html>
   `
 }

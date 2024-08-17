@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer')
 const axios = require('axios')
 const { getNotifySwByType, readNotifyConfig } = require('../utils')
+const commonTemp = require('../template/commonTemp')
 
 function sendServerChan(sendKey, title, content) {
   if (!sendKey) return consola.error('发送server酱通知失败, sendKey 为空')
@@ -41,7 +42,7 @@ function sendEmail({ service, user, pass }, title, content) {
         to: user,
         subject: title,
         // text: '', // 纯文本版本内容，如果收件人的邮件客户端不支持HTML显示，就会显示这个文本
-        html: content
+        html: commonTemp(content)
       })
       consola.info('邮件通知发送成功: ', title)
       resolve()

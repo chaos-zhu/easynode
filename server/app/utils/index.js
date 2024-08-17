@@ -21,7 +21,6 @@ const {
 const { RSADecryptSync, AESEncryptSync, AESDecryptSync, SHA1Encrypt } = require('./encrypt')
 const { verifyAuthSync, isProd } = require('./verify-auth')
 const { getNetIPInfo, throwError, isIP, randomStr, getUTCDate, formatTimestamp, shellThrottle } = require('./tools')
-const { emailTransporter, sendEmailToConfList } = require('./email')
 
 module.exports = {
   getNetIPInfo,
@@ -43,8 +42,6 @@ module.exports = {
   writeHostList,
   readKey,
   writeKey,
-  emailTransporter,
-  sendEmailToConfList,
   readGroupList,
   writeGroupList,
   readScriptList,

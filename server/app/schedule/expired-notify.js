@@ -1,5 +1,6 @@
 const schedule = require('node-schedule')
-const { readHostList, sendEmailToConfList, formatTimestamp } = require('../utils')
+const { readHostList, formatTimestamp } = require('../utils')
+const { asyncSendNotice } = require('../utils/notify')
 
 const expiredNotifyJob = async () => {
   consola.info('=====开始检测服务器到期时间=====', new Date())
@@ -13,13 +14,13 @@ const expiredNotifyJob = async () => {
     let content = `别名: ${ name }<br/>IP: ${ host }<br/>到期时间：${ formatTimestamp(expired, 'week') }<br/>控制台: ${ consoleUrl || '未填写' }`
     if(0 <= restDay && restDay <= 1) {
       let temp = '有服务器将在一天后到期，请关注<br/>'
-      sendEmailToConfList(title, temp + content)
+      asyncSendNotice('host_expired', title, temp + content)
     }else if(3 <= restDay && restDay < 4) {
       let temp = '有服务器将在三天后到期，请关注<br/>'
-      sendEmailToConfList(title, temp + content)
+      asyncSendNotice('host_expired', title, temp + content)
     }else if(7 <= restDay && restDay < 8) {
       let temp = '有服务器将在七天后到期，请关注<br/>'
-      sendEmailToConfList(title, temp + content)
+      asyncSendNotice('host_expired', title, temp + content)
     }
   }
 }
