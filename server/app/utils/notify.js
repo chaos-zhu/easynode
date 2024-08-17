@@ -61,6 +61,7 @@ async function asyncSendNotice(noticeAction, title, content) {
     let notifyConfig = await readNotifyConfig()
     let { type } = notifyConfig
     if (!type) return consola.error('通知类型不存在: ', type)
+    title = `EasyNode-${ title }`
     content += `<br/>通知发送时间：${ new Date() }`
     switch (type) {
       case 'sct':

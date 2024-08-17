@@ -1,6 +1,7 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
 const { readHostList, readSSHRecord, verifyAuthSync, AESDecryptSync } = require('../utils')
+const { asyncSendNotice } = require('../utils/notify')
 
 function createInteractiveShell(socket, sshClient) {
   return new Promise((resolve) => {
@@ -49,7 +50,7 @@ async function createTerminal(ip, socket, sshClient) {
   return new Promise(async (resolve) => {
     const hostList = await readHostList()
     const targetHostInfo = hostList.find(item => item.host === ip) || {}
-    let { authType, host, port, username } = targetHostInfo
+    let { authType, host, port, username, name } = targetHostInfo
     if (!host) return socket.emit('create_fail', `查找【${ ip }】凭证信息失败`)
     let authInfo = { host, port, username }
     // 统一使用commonKey解密
@@ -69,6 +70,7 @@ async function createTerminal(ip, socket, sshClient) {
       consola.log('连接信息', { username, port, authType })
       sshClient
         .on('ready', async() => {
+          asyncSendNotice('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录成功`)
           consola.success('终端连接成功：', host)
           socket.emit('connect_terminal_success', `终端连接成功：${ host }`)
           let stream = await createInteractiveShell(socket, sshClient)
@@ -85,6 +87,7 @@ async function createTerminal(ip, socket, sshClient) {
         })
         .on('error', (err) => {
           consola.log(err)
+          asyncSendNotice('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录失败`)
           consola.error('连接终端失败:', host, err.message)
           socket.emit('connect_fail', err.message)
         })

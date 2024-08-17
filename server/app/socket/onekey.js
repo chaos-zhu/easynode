@@ -1,6 +1,7 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
 const { readHostList, readSSHRecord, verifyAuthSync, AESDecryptSync, writeOneKeyRecord, shellThrottle } = require('../utils')
+const { asyncSendNotice } = require('../utils/notify')
 
 const execStatusEnum = {
   connecting: '连接中',
@@ -111,7 +112,9 @@ module.exports = (httpServer) => {
             item.status = execStatusEnum.execTimeout
           }
         })
-        socket.emit('timeout', { reason: `执行超时,已强制终止执行 - 超时时间${ timeout }秒`, result: execResult })
+        let reason = `执行超时,已强制终止执行 - 超时时间${ timeout }秒`
+        asyncSendNotice('onekey_complete', '批量指令执行超时', reason)
+        socket.emit('timeout', { reason, result: execResult })
         socket.disconnect()
       }, timeout * 1000)
       console.log('hosts:', hosts)
@@ -174,6 +177,7 @@ module.exports = (httpServer) => {
       await Promise.all(execPromise)
       consola.success('onekey执行完成')
       socket.emit('exec_complete')
+      asyncSendNotice('onekey_complete', '批量指令执行完成', '请登录面板查看执行结果')
       socket.disconnect()
     })
 

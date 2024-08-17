@@ -59,23 +59,27 @@ function initNotifyDB() {
             'type': 'login',
             'desc': '登录面板提醒',
             'sw': true
-          },
-          {
+          }, {
             'type': 'err_login',
             'desc': '登录错误提醒(连续5次)',
             'sw': true
-          },
-          {
+          }, {
             'type': 'updatePwd',
             'desc': '修改密码提醒',
             'sw': true
-          },
-          {
+          }, {
+            'type': 'host_login',
+            'desc': '服务器登录提醒',
+            'sw': true
+          }, {
+            'type': 'onekey_complete',
+            'desc': '批量指令执行完成提醒',
+            'sw': true
+          }, {
             'type': 'host_expired',
             'desc': '服务器到期提醒',
             'sw': true
-          }
-          ]
+          } ]
           await writeNotifyList(defaultData)
         }
 
