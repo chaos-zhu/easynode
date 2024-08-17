@@ -111,17 +111,55 @@ const useStore = defineStore({
         console.error('clients websocket 连接出错: ', message)
       })
     },
-    setTheme(isDark) {
+    setTheme(isDark, animate = true) {
       // $store.setThemeConfig({ isDark: val })
       const html = document.documentElement
-      document.startViewTransition(() => {
+      if(animate) {
+        let transition = document.startViewTransition(() => {
         // 在 startViewTransition 中修改 DOM 状态产生动画
-        document.documentElement.classList.toggle('dark')
-      })
-      if (isDark) html.setAttribute('class', 'dark')
-      else html.setAttribute('class', '')
-      localStorage.setItem('isDark', isDark)
-      this.$patch({ isDark })
+          document.documentElement.classList.toggle('dark')
+        })
+        transition.ready.then(() => {
+        // 由于我们要从鼠标点击的位置开始做动画，所以我们需要先获取到鼠标的位置
+        // 假设 'e' 是从某个事件监听器传入的事件对象
+
+          // 窗口中心点
+          // const screenWidth = window.innerWidth
+          // const screenHeight = window.innerHeight
+          // const centerX = screenWidth / 2
+          // const centerY = screenHeight / 2
+          const centerX = 0
+          const centerY = 0
+
+          // 现在 centerX 和 centerY 包含了屏幕中心的坐标
+          console.log('Screen center X:', centerX, 'Screen center Y:', centerY)
+
+          // 计算半径，以鼠标点击的位置为圆心，到四个角的距离中最大的那个作为半径
+          const radius = Math.hypot(
+            Math.max(centerX, innerWidth - centerX),
+            Math.max(centerY, innerHeight - centerY)
+          )
+
+          // 自定义动画
+          document.documentElement.animate(
+            {
+              clipPath: [
+                `circle(0% at ${ centerX }px ${ centerY }px)`,
+                `circle(${ radius }px at ${ centerX }px ${ centerY }px)`,
+              ]
+            },
+            {
+              duration: 500,
+              pseudoElement: '::view-transition-new(root)'
+            }
+          )
+
+          if (isDark) html.setAttribute('class', 'dark')
+          else html.setAttribute('class', '')
+          localStorage.setItem('isDark', isDark)
+          this.$patch({ isDark })
+        })
+      }
     },
     setDefaultTheme() {
       let isDark = false
@@ -133,7 +171,7 @@ const useStore = defineStore({
         console.log('当前系统使用的是深色模式：', systemTheme ? '是' : '否')
         isDark = systemTheme
       }
-      this.setTheme(isDark)
+      this.setTheme(isDark, false)
     }
   }
 })

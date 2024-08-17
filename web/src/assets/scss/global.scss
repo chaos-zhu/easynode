@@ -26,14 +26,14 @@ html, body, div, ul, section, textarea {
   }
 }
 
+::view-transition-new(root),
+::view-transition-old(root) {
+/* 关闭默认动画，否则影响自定义动画的执行 */
+   animation: none;
+}
 
 // 全局背景
 body {
-  // background-position: center center;
-  // background-attachment: fixed;
-  // background-size: cover;
-  // background-repeat: no-repeat;
-  // // background-image: url(../bg.jpg), linear-gradient(to bottom, #010179, #F5C4C1, #151799);
   background-color: #E7EBF4;
   background-image: url(https://gw.alipayobjects.com/zos/rmsportal/TVYTbAXWheQpRcWDaDMu.svg);
   background-repeat: no-repeat;
