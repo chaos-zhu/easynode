@@ -26,7 +26,7 @@ const login = async ({ res, request }) => {
   if (loginErrCount >= allowErrCount) {
     const { ip, country, city } = await getNetIPInfo(clientIp)
     // 异步发送通知&禁止登录
-    asyncSendNotice('err_login', '登录错误提醒', `错误登录次数: ${ loginErrTotal }<br/>地点：${ country + city }<br/>IP: ${ ip }`)
+    asyncSendNotice('err_login', '登录错误提醒', `错误登录次数: ${ loginErrTotal }\n地点：${ country + city }\nIP: ${ ip }`)
     forbidLogin = true
     loginErrCount = 0
 
@@ -82,7 +82,7 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
   consola.info('登录成功:', new Date(), { ip, country, city })
 
   // 邮件登录通知
-  asyncSendNotice('login', '登录提醒', `地点：${ country + city }<br/>IP: ${ ip }`)
+  asyncSendNotice('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }`)
 
   global.loginRecord.unshift(clientIPInfo)
   if (global.loginRecord.length > 10) global.loginRecord = global.loginRecord.slice(0, 10)
@@ -102,7 +102,7 @@ const updatePwd = async ({ res, request }) => {
   keyObj.pwd = newPwd
   await writeKey(keyObj)
 
-  asyncSendNotice('updatePwd', '用户密码修改提醒', `原用户名：${ user }<br/>更新用户名: ${ newLoginName }`)
+  asyncSendNotice('updatePwd', '用户密码修改提醒', `原用户名：${ user }\n更新用户名: ${ newLoginName }`)
 
   res.success({ data: true, msg: 'success' })
 }

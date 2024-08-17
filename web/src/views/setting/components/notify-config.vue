@@ -16,7 +16,7 @@
     label-suffix="："
   >
     <el-form-item label="通知方式" prop="type" class="form_item">
-      <el-select v-model="noticeConfig.type" placeholder="">
+      <el-select v-model="noticeConfig.type" placeholder="" class="input">
         <el-option
           v-for="item in noticeTypeList"
           :key="item.type"
@@ -25,6 +25,7 @@
         />
       </el-select>
     </el-form-item>
+    <!-- server酱 -->
     <template v-if="noticeConfig.type === 'sct'">
       <el-form-item label="SendKey" prop="sct.sendKey" class="form_item">
         <el-input
@@ -32,9 +33,12 @@
           clearable
           placeholder="SCT******"
           autocomplete="off"
+          class="input"
         />
+        <p class="tips">普通用户每日最多支持5条，有条件建议开通会员服务防止丢失重要通知。<a class="link" href="https://sct.ftqq.com/r/9338" target="_blank">Server酱官网</a> </p>
       </el-form-item>
     </template>
+    <!-- 邮箱 -->
     <template v-if="noticeConfig.type === 'email'">
       <el-form-item label="服务商" prop="email.service" class="form_item">
         <el-input
@@ -42,8 +46,9 @@
           clearable
           placeholder=""
           autocomplete="off"
+          class="input"
         />
-        <span class="tips">邮箱服务商, 例如: Gmial、qq、126、163, 支持列表: <a class="link" href="https://github.com/nodemailer/nodemailer/blob/master/lib/well-known/services.json" target="_blank">点击查询</a> </span>
+        <span class="tips">邮箱服务商, 例如: QQ、126、163、Gmial, 支持列表: <a class="link" href="https://github.com/nodemailer/nodemailer/blob/master/lib/well-known/services.json" target="_blank">点击查询</a> </span>
       </el-form-item>
       <el-form-item label="邮箱地址" prop="email.user" class="form_item">
         <el-input
@@ -51,6 +56,7 @@
           clearable
           placeholder="邮箱地址"
           autocomplete="off"
+          class="input"
         />
       </el-form-item>
       <el-form-item label="SMTP" prop="auth.pass" class="form_item">
@@ -59,6 +65,7 @@
           clearable
           placeholder="SMTP授权码/密码"
           autocomplete="off"
+          class="input"
         />
       </el-form-item>
     </template>
@@ -75,7 +82,7 @@
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 
-const { proxy: { $api, $message, $messageBox, $notification } } = getCurrentInstance()
+const { proxy: { $api, $notification } } = getCurrentInstance()
 
 const loading = ref(false)
 const noticeConfig = ref({})
@@ -134,10 +141,13 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .form_item {
-  width: 350px;
-
+  // width: 350px;
+  .input {
+    width: 450px;
+  }
   .tips {
-    font-size: 12px;
+    width: 100%;
+    font-size: 14px;
     color: #999;
   }
 }

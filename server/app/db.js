@@ -48,41 +48,47 @@ function initGroupDB() {
 function initNotifyDB() {
   return new Promise((resolve, reject) => {
     const notifyDB = new NotifyDB().getInstance()
-    notifyDB.count({}, async (err, count) => {
+    notifyDB.find({}, async (err, notifyList) => {
       if (err) {
         consola.log('初始化notifyDB错误:', err)
         reject(err)
       } else {
-        if (count === 0) {
+        let defaultData = [{
+          'type': 'login',
+          'desc': '登录面板提醒',
+          'sw': false
+        }, {
+          'type': 'err_login',
+          'desc': '登录错误提醒(连续5次)',
+          'sw': false
+        }, {
+          'type': 'updatePwd',
+          'desc': '修改密码提醒',
+          'sw': false
+        }, {
+          'type': 'host_login',
+          'desc': '服务器登录提醒',
+          'sw': false
+        }, {
+          'type': 'onekey_complete',
+          'desc': '批量指令执行完成提醒',
+          'sw': false
+        }, {
+          'type': 'host_expired',
+          'desc': '服务器到期提醒',
+          'sw': false
+        }]
+        if (notifyList.length === 0) {
           consola.log('初始化notifyDB✔')
-          const defaultData = [{
-            'type': 'login',
-            'desc': '登录面板提醒',
-            'sw': true
-          }, {
-            'type': 'err_login',
-            'desc': '登录错误提醒(连续5次)',
-            'sw': true
-          }, {
-            'type': 'updatePwd',
-            'desc': '修改密码提醒',
-            'sw': true
-          }, {
-            'type': 'host_login',
-            'desc': '服务器登录提醒',
-            'sw': true
-          }, {
-            'type': 'onekey_complete',
-            'desc': '批量指令执行完成提醒',
-            'sw': true
-          }, {
-            'type': 'host_expired',
-            'desc': '服务器到期提醒',
-            'sw': true
-          } ]
-          await writeNotifyList(defaultData)
+        } else {
+          consola.log('同步notifyDB✔')
+          defaultData = defaultData.map(defaultItem => {
+            let item = notifyList.find(notify => notify.type === defaultItem.type)
+            defaultItem.sw = item ? item.sw : false
+            return item
+          })
         }
-
+        await writeNotifyList(defaultData)
       }
       resolve()
     })

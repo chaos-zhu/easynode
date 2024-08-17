@@ -57,12 +57,13 @@ function sendEmail({ service, user, pass }, title, content) {
 async function asyncSendNotice(noticeAction, title, content) {
   try {
     let sw = await getNotifySwByType(noticeAction) // 获取对应动作的通知开关
+    console.log(noticeAction, sw)
     if (!sw) return
     let notifyConfig = await readNotifyConfig()
     let { type } = notifyConfig
     if (!type) return consola.error('通知类型不存在: ', type)
     title = `EasyNode-${ title }`
-    content += `<br/>通知发送时间：${ new Date() }`
+    content += `\n通知发送时间：${ new Date() }`
     switch (type) {
       case 'sct':
         let { sendKey } = notifyConfig['sct']
