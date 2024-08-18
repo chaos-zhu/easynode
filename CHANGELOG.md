@@ -6,6 +6,7 @@
 * 批量脚本下发执行结果通知重复的bug ✔
 * 修复交换内存占比的bug ✔
 * 优化服务端代码引用 ✔
+* 修复Code scanning提到的依赖风险 ✔
 
 ## [2.2.0](https://github.com/chaos-zhu/easynode/releases) (2024-08-17)
 
