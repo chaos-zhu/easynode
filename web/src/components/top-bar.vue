@@ -38,16 +38,17 @@
     >
       <div class="about_content">
         <h1>EasyNode</h1>
-        <p>当前版本: {{ currentVersion }}</p>
+        <p>当前版本: {{ currentVersion }} <span v-show="!isNew">(最新)</span> </p>
         <p v-if="checkVersionErr" class="conspicuous">Error：版本更新检测失败(版本检测API需要外网环境)</p>
         <p v-if="isNew" class="conspicuous">
           新版本可用: {{ latestVersion }} -> <a class="link" href="https://github.com/chaos-zhu/easynode/releases" target="_blank">https://github.com/chaos-zhu/easynode/releases</a>
         </p>
-        <p>作者: <a class="link" href="https://github.com/chaos-zhu" target="_blank">ChaosZhu</a></p>
+        <p>更新日志：<a class="link" href="https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md" target="_blank">https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md</a></p>
         <p>开源仓库: <a class="link" href="https://github.com/chaos-zhu/easynode" target="_blank">https://github.com/chaos-zhu/easynode</a></p>
+        <p>作者: <a class="link" href="https://github.com/chaos-zhu" target="_blank">chaoszhu</a></p>
         <p>tg交流群：<a class="link" href="https://t.me/+aB62lFaqp8EwOWRl" target="_blank">https://t.me/+aB62lFaqp8EwOWRl</a></p>
         <p>
-          打赏: EasyNode开源且无任何收费，如果您认为此项目帮到了您, 您可以请我喝杯阔乐~
+          打赏: EasyNode开源且无任何收费，如果您认为此项目帮到了您, 您可以请我喝杯阔乐(留个备注咯)~
         </p>
         <p class="qrcode">
           <img src="@/assets/wx.jpg" alt="">
