@@ -657,7 +657,6 @@ defineExpose({
         li {
           font-size: 14px;
           padding: 5px 3px;
-          color: #303133;
           display: flex;
           align-items: center;
           // cursor: pointer;

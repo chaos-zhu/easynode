@@ -43,6 +43,17 @@ html.dark {
   .terminal_top {
     border-bottom: 1px solid #454242;
   }
+  .sftp_tab_container {
+    background-color: var(--main-bg-color) !important;
+    .dir-list {
+      .active {
+        background-color: #454242 !important;
+      }
+      li:hover {
+        background-color: #454242 !important;
+      }
+    }
+  }
   .info_box {
     border-right: 1px solid #454242;
     .el-progress-bar__innerText {
