@@ -131,7 +131,7 @@ const useStore = defineStore({
             Math.max(centerX, window.innerWidth - centerX),
             Math.max(centerY, window.innerHeight - centerY)
           )
-          console.log('radius: ', innerWidth, innerHeight, radius)
+          // console.log('radius: ', innerWidth, innerHeight, radius)
           // 自定义动画
           document.documentElement.animate(
             {

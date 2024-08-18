@@ -78,7 +78,7 @@ let isEasyNodeJson = ref(false)
 
 function handleFromJson(isENJson) {
   isEasyNodeJson.value = isENJson
-  console.log('isEasyNodeJson:', isEasyNodeJson.value)
+  // console.log('isEasyNodeJson:', isEasyNodeJson.value)
   jsonInputRef.value.click()
 }
 
@@ -212,7 +212,7 @@ async function handleImportHost(importHost) {
       cursor: pointer;
       border-radius: 3px;
       &:hover {
-        background-color: #f1f2f5;
+        // background-color: #f1f2f5;
         color: var(--el-menu-active-color);
       }
       .icon {
