@@ -1,4 +1,4 @@
-const { readNotifyConfig, writeNotifyConfig, readNotifyList, writeNotifyList } = require('../utils')
+const { readNotifyConfig, writeNotifyConfig, readNotifyList, writeNotifyList } = require('../utils/storage')
 const { sendServerChan, sendEmail } = require('../utils/notify')
 // const commonTemp = require('../template/commonTemp')
 

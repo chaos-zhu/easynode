@@ -1,7 +1,9 @@
 const jwt = require('jsonwebtoken')
 const axios = require('axios')
-const { getNetIPInfo, readKey, writeKey, RSADecryptSync, AESEncryptSync, SHA1Encrypt } = require('../utils')
 const { asyncSendNotice } = require('../utils/notify')
+const { readKey, writeKey } = require('../utils/storage')
+const { RSADecryptSync, AESEncryptSync, SHA1Encrypt } = require('../utils/encrypt')
+const { getNetIPInfo } = require('../utils/tools')
 
 const getpublicKey = async ({ res }) => {
   let { publicKey: data } = await readKey()

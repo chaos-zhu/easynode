@@ -1,6 +1,8 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const { readHostList, readSSHRecord, verifyAuthSync, AESDecryptSync } = require('../utils')
+const { verifyAuthSync } = require('../utils/verify-auth')
+const { AESDecryptSync } = require('../utils/encrypt')
+const { readSSHRecord, readHostList } = require('../utils/storage')
 const { asyncSendNotice } = require('../utils/notify')
 
 function createInteractiveShell(socket, sshClient) {

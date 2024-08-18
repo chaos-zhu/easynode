@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer')
 const axios = require('axios')
-const { getNotifySwByType, readNotifyConfig } = require('../utils')
+const { getNotifySwByType, readNotifyConfig } = require('../utils/storage')
 const commonTemp = require('../template/commonTemp')
 
 function sendServerChan(sendKey, title, content) {

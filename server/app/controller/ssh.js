@@ -1,4 +1,5 @@
-const { readSSHRecord, writeSSHRecord, readHostList, writeHostList, RSADecryptSync, AESEncryptSync, AESDecryptSync } = require('../utils')
+const { readSSHRecord, writeSSHRecord, readHostList, writeHostList } = require('../utils/storage')
+const { RSADecryptSync, AESEncryptSync, AESDecryptSync } = require('../utils/encrypt')
 
 async function getSSHList({ res }) {
   // console.log('get-host-list')

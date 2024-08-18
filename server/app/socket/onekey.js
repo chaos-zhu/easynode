@@ -1,7 +1,10 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const { readHostList, readSSHRecord, verifyAuthSync, AESDecryptSync, writeOneKeyRecord, shellThrottle } = require('../utils')
 const { asyncSendNotice } = require('../utils/notify')
+const { readSSHRecord, readHostList, writeOneKeyRecord } = require('../utils/storage')
+const { verifyAuthSync } = require('../utils/verify-auth')
+const { shellThrottle } = require('../utils/tools')
+const { AESDecryptSync } = require('../utils/encrypt')
 
 const execStatusEnum = {
   connecting: '连接中',

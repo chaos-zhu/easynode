@@ -1,5 +1,6 @@
 const localShellJson = require('../config/shell.json')
-const { readScriptList, writeScriptList, randomStr } = require('../utils')
+const { readScriptList, writeScriptList } = require('../utils/storage')
+const { randomStr } = require('../utils/tools')
 
 let localShell = JSON.parse(JSON.stringify(localShellJson)).map((item) => {
   return { ...item, id: randomStr(10), index: '--', description: item.description + '|内置脚本' }

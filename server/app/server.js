@@ -8,7 +8,7 @@ const wsSftp = require('./socket/sftp')
 // const wsHostStatus = require('./socket/host-status')
 const wsClientInfo = require('./socket/clients')
 const wsOnekey = require('./socket/onekey')
-const { throwError } = require('./utils')
+const { throwError } = require('./utils/tools')
 
 const httpServer = () => {
   const app = new Koa()

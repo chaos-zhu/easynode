@@ -1,8 +1,8 @@
 const { Server: ServerIO } = require('socket.io')
 const { io: ClientIO } = require('socket.io-client')
-const { readHostList } = require('../utils')
+const { readHostList } = require('../utils/storage')
 const { clientPort } = require('../config')
-const { verifyAuthSync } = require('../utils')
+const { verifyAuthSync } = require('../utils/verify-auth')
 
 let clientSockets = []
 let clientsData = {}

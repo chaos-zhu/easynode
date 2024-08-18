@@ -226,6 +226,11 @@ let shellThrottle = (fn, delay = 1000) => {
   return throttled
 }
 
+const isProd = () => {
+  const EXEC_ENV = process.env.EXEC_ENV || 'production'
+  return EXEC_ENV === 'production'
+}
+
 module.exports = {
   getNetIPInfo,
   throwError,
@@ -234,5 +239,6 @@ module.exports = {
   getUTCDate,
   formatTimestamp,
   resolvePath,
-  shellThrottle
+  shellThrottle,
+  isProd
 }

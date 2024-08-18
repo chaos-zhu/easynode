@@ -23,12 +23,6 @@ const verifyAuthSync = async (token, clientIp) => {
   }
 }
 
-const isProd = () => {
-  const EXEC_ENV = process.env.EXEC_ENV || 'production'
-  return EXEC_ENV === 'production'
-}
-
 module.exports = {
-  verifyAuthSync,
-  isProd
+  verifyAuthSync
 }

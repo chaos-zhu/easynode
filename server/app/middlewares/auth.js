@@ -1,5 +1,5 @@
-const { verifyAuthSync } = require('../utils')
 const { apiPrefix } = require('../config')
+const { verifyAuthSync } = require('../utils/verify-auth')
 
 let whitePath = [
   '/login',

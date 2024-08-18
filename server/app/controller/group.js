@@ -1,4 +1,4 @@
-const { readGroupList, writeGroupList, readHostList, writeHostList, randomStr } = require('../utils')
+const { readGroupList, writeGroupList, readHostList, writeHostList } = require('../utils/storage')
 
 async function getGroupList({ res }) {
   let data = await readGroupList()

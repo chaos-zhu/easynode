@@ -1,4 +1,4 @@
-const { readOneKeyRecord, deleteOneKeyRecord } = require('../utils')
+const { readOneKeyRecord, deleteOneKeyRecord } = require('../utils/storage')
 
 async function getOnekeyRecord({ res }) {
   let data = await readOneKeyRecord()

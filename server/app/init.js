@@ -1,20 +1,7 @@
 const NodeRSA = require('node-rsa')
-const { getNetIPInfo, readHostList, writeHostList, readKey, writeKey, randomStr, isProd, AESEncryptSync } = require('./utils')
-
-const isDev = !isProd()
-
-// 存储本机IP, 供host列表接口调用
-// eslint-disable-next-line no-unused-vars
-async function initLocalIp() {
-  if(isDev) return consola.info('非生产环境不初始化保存本地IP')
-  const localNetIPInfo = await getNetIPInfo()
-  let vpsList = await readHostList()
-  let { ip: localNetIP } = localNetIPInfo
-  if(vpsList.some(({ host }) => host === localNetIP)) return consola.info('本机IP已储存: ', localNetIP)
-  vpsList.unshift({ name: 'server-side-host', host: localNetIP, group: 'default' })
-  writeHostList(vpsList)
-  consola.info('Task: 生产环境首次启动储存本机IP: ', localNetIP)
-}
+const { readKey, writeKey } = require('./utils/storage')
+const { randomStr } = require('./utils/tools')
+const { AESEncryptSync } = require('./utils/encrypt')
 
 // 初始化公私钥, 供登录、保存ssh密钥/密码等加解密
 async function initRsa() {
@@ -43,7 +30,6 @@ async function randomJWTSecret() {
 module.exports = async () => {
   await randomJWTSecret() // 全局密钥
   await initRsa() // 全局公钥密钥
-  // initLocalIp() // :TODO: 默认添加服务端vps
   // 用于记录客户端登录IP的列表
   global.loginRecord = []
 }

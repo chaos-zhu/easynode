@@ -1,11 +1,12 @@
-const { Server } = require('socket.io')
-const SFTPClient = require('ssh2-sftp-client')
 const rawPath = require('path')
 const fs = require('fs-extra')
-
-const { readHostList, readSSHRecord, verifyAuthSync, AESDecryptSync } = require('../utils')
-const { sftpCacheDir } = require('../config')
+const SFTPClient = require('ssh2-sftp-client')
 const CryptoJS = require('crypto-js')
+const { Server } = require('socket.io')
+const { sftpCacheDir } = require('../config')
+const { verifyAuthSync } = require('../utils/verify-auth')
+const { AESDecryptSync } = require('../utils/encrypt')
+const { readSSHRecord, readHostList } = require('../utils/storage')
 
 // 读取切片
 const pipeStream = (path, writeStream) => {
