@@ -2,18 +2,22 @@
   <div class="aside_container">
     <div class="logo_wrap">
       <img src="@/assets/logo.png" alt="logo">
-      <h1>EasyNode</h1>
+      <Transition name="el-fade-in-linear">
+        <h1 v-show="!menuCollapse">EasyNode</h1>
+      </Transition>
     </div>
     <el-menu
       :default-active="defaultActiveMenu"
+      :collapse="menuCollapse"
       class="menu"
+      :collapse-transition="true"
       @select="handleSelect"
     >
       <el-menu-item v-for="(item, index) in menuList" :key="index" :index="item.index">
+        <el-icon>
+          <component :is="item.icon" />
+        </el-icon>
         <template #title>
-          <el-icon>
-            <component :is="item.icon" />
-          </el-icon>
           <span>{{ item.name }}</span>
         </template>
       </el-menu-item>
@@ -21,6 +25,10 @@
     <!-- <div class="logout_wrap">
       <el-button type="info" link @click="handleLogout">退出登录</el-button>
     </div> -->
+    <div class="collapse" @click="handleCollapse">
+      <el-icon v-if="menuCollapse"><Expand /></el-icon>
+      <el-icon v-else><Fold /></el-icon>
+    </div>
   </div>
 </template>
 
@@ -33,7 +41,9 @@ import {
   ScaleToOriginal,
   ArrowRight,
   Pointer,
-  FolderOpened
+  FolderOpened,
+  Expand,
+  Fold
 } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 
@@ -79,6 +89,8 @@ let menuList = reactive([
   },
 ])
 
+let menuCollapse = computed(() => $store.menuCollapse)
+
 // eslint-disable-next-line no-useless-escape
 const regex = /^\/([^\/]+)/
 let defaultActiveMenu = computed(() => {
@@ -96,13 +108,16 @@ const handleSelect = (path) => {
   // console.log(path)
   $router.push(path)
 }
+
+const handleCollapse = () => {
+  $store.setMenuCollapse(!menuCollapse.value)
+}
 </script>
 
 <style lang="scss" scoped>
 .aside_container {
   background-color: #fff;
-  border-right: 1px solid var(--el-menu-border-color);
-  width: 180px;
+  // width: 180px;
   display: flex;
   flex-direction: column;
   :deep(.el-menu) {
@@ -110,20 +125,28 @@ const handleSelect = (path) => {
   }
   .logo_wrap {
     display: flex;
-    justify-content: center;
     align-items: center;
-    padding: 15px 0;
+    padding: 15px 0 15px 20px;
+    position: relative;
     img {
       height: 30px;
       width: 30px;
     }
     h1 {
+      position: absolute;
+      left: 52px;
+      font-size: 14px;
+      // color: #1890ff;
+    }
+  }
+  .collapse {
+    margin-top: auto;
+    margin-left: auto;
+    margin-bottom: 10px;
+    margin-right: 10px;
+    cursor: pointer;
+    &:hover {
       color: #1890ff;
-      font-size: 16px;
-      margin: 0 5px;
-      font-weight: 600;
-      font-size: 16px;
-      vertical-align: middle;
     }
   }
   .logout_wrap {

@@ -70,6 +70,13 @@ const fontSize = computed(() => props.fontSize)
 const background = computed(() => props.background)
 const hostObj = computed(() => props.hostObj)
 const host = computed(() => hostObj.value.host)
+let menuCollapse = computed(() => $store.menuCollapse)
+
+watch(menuCollapse, () => {
+  nextTick(() => {
+    handleResize()
+  })
+})
 
 watch(theme, () => {
   nextTick(() => {
@@ -81,7 +88,8 @@ watch(theme, () => {
 watch(fontSize, () => {
   nextTick(() => {
     terminal.value.options.fontSize = fontSize.value
-    fitAddon.value.fit()
+    // fitAddon.value.fit()
+    handleResize()
   })
 })
 
@@ -233,19 +241,18 @@ const onResize = () => {
 const handleResize = () => {
   if (timer.value) clearTimeout(timer.value)
   timer.value = setTimeout(() => {
-    let temp = []
-    let panes = Array.from(document.getElementsByClassName('el-tab-pane'))
-    panes.forEach((item, index) => {
-      temp[index] = item.style.display
-      item.style.display = 'block'
-    })
+    // let temp = []
+    // let panes = Array.from(document.getElementsByClassName('el-tab-pane'))
+    // panes.forEach((item, index) => {
+    //   temp[index] = item.style.display
+    //   item.style.display = 'block'
+    // })
+    // panes.forEach((item, index) => {
+    //   item.style.display = temp[index]
+    // })
     fitAddon.value?.fit()
-    panes.forEach((item, index) => {
-      item.style.display = temp[index]
-    })
     let { rows, cols } = term.value
     socket.value?.emit('resize', { rows, cols })
-    focusTab()
   }, 200)
 }
 
@@ -429,7 +436,6 @@ defineExpose({
     :deep(.xterm-screen) {
       padding: 0 0 0 10px;
       border-radius: var(--el-border-radius-base);
-      // background-color: rgba(0, 0, 0, 0.6);
     }
   }
   .terminal_command_history {

@@ -381,8 +381,7 @@ const handleInputCommand = async (command) => {
   height: 100%;
 
   :deep(.el-tabs__content) {
-    flex: 1;
-    width: 100%;
+    // width: 100%;
     padding: 0 0 5px 0;
   }
 

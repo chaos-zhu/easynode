@@ -16,7 +16,8 @@ const useStore = defineStore({
     user: localStorage.getItem('user') || null,
     token: sessionStorage.getItem('token') || localStorage.getItem('token') || null,
     title: '',
-    isDark: false
+    isDark: false,
+    menuCollapse: localStorage.getItem('menuCollapse') === 'true'
   }),
   actions: {
     async setJwtToken(token, isSession = true) {
@@ -162,6 +163,11 @@ const useStore = defineStore({
         isDark = systemTheme
       }
       this.setTheme(isDark, false)
+    },
+    setMenuCollapse() {
+      let newState = !this.menuCollapse
+      localStorage.setItem('menuCollapse', newState)
+      this.$patch({ menuCollapse: newState })
     }
   }
 })
