@@ -264,7 +264,8 @@ const handleCommandHost = (host) => {
 }
 
 const handleExecScript = (scriptObj) => {
-  const { command } = scriptObj
+  let { command } = scriptObj
+  command += '\n'
   if (!isSyncAllSession.value) return handleInputCommand(command)
   terminalRefs.value.forEach(terminalRef => {
     terminalRef.inputCommand(command)

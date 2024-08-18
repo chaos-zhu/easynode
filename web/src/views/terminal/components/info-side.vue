@@ -258,8 +258,9 @@ const netstatInfo = computed(() => {
 const cpuUsage = computed(() => Number(cpuInfo.value?.cpuUsage) || 0)
 const usedMemPercentage = computed(() => Number(memInfo.value?.usedMemPercentage) || 0)
 const swapPercentage = computed(() => {
-  let swapPercentage = swapInfo.value?.swapPercentage === 'NaN' || Number.isNaN(swapInfo.value?.swapPercentage)
-  return swapPercentage ? 0 : Number(swapPercentage || 0)
+  let swapPercentage = swapInfo.value?.swapPercentage
+  let isNaN = swapPercentage === 'NaN' || Number.isNaN(swapInfo.value?.swapPercentage)
+  return isNaN ? 0 : Number(swapPercentage || 0)
 })
 const usedPercentage = computed(() => Number(driveInfo.value?.usedPercentage) || 0)
 const output = computed(() => {
@@ -295,10 +296,9 @@ const handleCopy = async () => {
 }
 
 const handleColor = (num) => {
-  if (num < 65) return '#8AE234'
-  if (num < 85) return '#FFD700'
-  if (num < 90) return '#FFFF33'
-  if (num <= 100) return '#FF3333'
+  if (num < 60) return '#13ce66'
+  if (num < 80) return '#e6a23c'
+  if (num <= 100) return '#ff4949'
 }
 
 const getHostPing = () => {
