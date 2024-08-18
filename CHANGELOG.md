@@ -1,3 +1,9 @@
+## [2.2.2](https://github.com/chaos-zhu/easynode/releases) (2024-08-xx)
+
+### Features
+
+* 支持菜单栏的折叠与展开 ✔
+
 ## [2.2.1](https://github.com/chaos-zhu/easynode/releases) (2024-08-18)
 
 ### Features

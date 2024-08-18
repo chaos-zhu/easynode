@@ -27,16 +27,22 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <!-- <el-dropdown trigger="click" max-height="50vh">
-          <span class="link_text">主题<el-icon><arrow-down /></el-icon></span>
+        <el-dropdown trigger="click">
+          <span class="link_text">分屏<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item v-for="(value, key) in themeList" :key="key" @click="handleChangeTheme(key)">
-                <span :style="{color: key === themeName ? 'var(--el-menu-active-color)' : ''}">{{ key }}</span>
+              <el-dropdown-item @click="handleFullScreen">
+                <span>双屏</span>
+              </el-dropdown-item>
+              <el-dropdown-item @click="handleFullScreen">
+                <span>三屏</span>
+              </el-dropdown-item>
+              <el-dropdown-item @click="handleFullScreen">
+                <span>四屏</span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
-        </el-dropdown> -->
+        </el-dropdown>
         <el-dropdown trigger="click">
           <span class="link_text">设置<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
@@ -50,11 +56,6 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <!-- <el-dropdown trigger="click">
-          <span class="link_text">设置
-            <el-icon class="hidden_icon"><arrow-down /></el-icon>
-          </span>
-        </el-dropdown> -->
       </div>
       <div class="right_overview">
         <div class="switch_wrap">

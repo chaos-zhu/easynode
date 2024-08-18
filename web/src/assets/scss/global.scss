@@ -1,35 +1,45 @@
 // 滚动条
-html, body, div, ul, section, textarea {
+html,
+body,
+div,
+ul,
+section,
+textarea {
   box-sizing: border-box;
+
   // 滚动条整体部分
   &::-webkit-scrollbar {
-    height: 5px;
-    width: 5px;
-    background-color: #ffffff;
+    width: 6px;
+    height: 6px;
   }
 
   // 底层轨道
-  &::-webkit-scrollbar-track {
-    background-color: #ffffff;
-    border-radius: 3px;
-  }
+  // &::-webkit-scrollbar-track {
+  //   background-color: #ffffff;
+  //   border-radius: 3px;
+  // }
 
   // 滚动滑块
   &::-webkit-scrollbar-thumb {
-    border-radius: 3px;
-    // background-color: #1989fa;
-    background-image: -webkit-gradient(linear, 40% 0%, 75% 84%, from(#a18cd1), to(#fbc2eb), color-stop(.6, #54DE5D));
+    background-color: #0003;
+    border-radius: 10px;
+    transition: all .2s ease-in-out;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background-color: #067ef7;
+    cursor: pointer;
+    background-color: #0000004d;
+  }
+
+  &::-webkit-scrollbar-track {
+    border-radius: 10px;
   }
 }
 
 ::view-transition-new(root),
 ::view-transition-old(root) {
-/* 关闭默认动画，否则影响自定义动画的执行 */
-   animation: none;
+  /* 关闭默认动画，否则影响自定义动画的执行 */
+  animation: none;
 }
 
 // 全局背景

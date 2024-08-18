@@ -64,94 +64,17 @@ html.dark {
   }
 
   // scroll-bar
-  ::-webkit-scrollbar {
-    background-color: var(--el-scrollbar-bg-color) !important;
-  }
-
   ::-webkit-scrollbar-thumb {
-    background-color: var(--el-border-color-darker) !important;
+    background-color: #5c5c5c;
+    border-radius: 10px;
+    transition: all .2s ease-in-out;
   }
-
-  .layout-sidebar-container {
-    background-color: var(--bg-color) !important;
+  ::-webkit-scrollbar-thumb:hover {
+    cursor: pointer;
+    background-color: #6d6d6d;
   }
-
-  .app-main-container {
-    background-color: var(--main-bg-color) !important;
-
-    .card {
-      background-color: var(--bg-color) !important;
-    }
-  }
-
-  .layout-footer-container {
-    color: var(--el-text-color-regular) !important;
-    background-color: var(--main-bg-color) !important;
-  }
-
-  .fold-unfold {
-    color: #fff !important;
-  }
-
-  // .el-menu,
-  // .el-sub-menu,
-  // .el-menu-item,
-  // .el-sub-menu__title {
-  //   background-color: var(--bg-color) !important;
-
-  //   &:not(.is-active) {
-  //     color: #bdbdc0 !important;
-  //   }
-
-  //   &.is-active {
-  //     color: #fff !important;
-  //     background-color: #000 !important;
-  //   }
-  // }
 
   .el-menu-item:not(.is-active):hover {
     color: var(--el-menu-active-color);
-  }
-
-  .nav-bar-container {
-    background-color: var(--bg-color) !important;
-  }
-
-  .table-header {
-    .el-icon {
-      color: #fff;
-    }
-  }
-
-  .tabs-bar-container {
-    background-color: var(--bg-color) !important;
-    border-top: 1px solid var(--el-border-color-light) !important;
-
-    .tabs-action {
-      .el-icon {
-        color: #fff !important;
-      }
-    }
-
-    .fold-unfold {
-      color: #fff;
-    }
-
-    .el-tabs__item.is-active {
-      color: var(--el-color-primary);
-      background-color: var(--main-bg-color) !important;
-
-      .el-icon {
-        color: var(--el-color-primary) !important;
-      }
-    }
-
-    .el-tabs__item:not(.is_active):hover {
-      background-color: var(--main-bg-color) !important;
-
-      .el-icon {
-        color: var(--el-color-primary) !important;
-      }
-    }
   }
 }
