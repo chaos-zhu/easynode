@@ -45,6 +45,13 @@
         </p>
         <p>作者: <a class="link" href="https://github.com/chaos-zhu" target="_blank">ChaosZhu</a></p>
         <p>开源仓库: <a class="link" href="https://github.com/chaos-zhu/easynode" target="_blank">https://github.com/chaos-zhu/easynode</a></p>
+        <p>tg交流群：<a class="link" href="https://t.me/+aB62lFaqp8EwOWRl" target="_blank">https://t.me/+aB62lFaqp8EwOWRl</a></p>
+        <p>
+          打赏: EasyNode开源且无任何收费，如果您认为此项目帮到了您, 您可以请我喝杯阔乐~
+        </p>
+        <p class="qrcode">
+          <img src="@/assets/wx.jpg" alt="">
+        </p>
       </div>
     </el-dialog>
   </div>
@@ -153,6 +160,12 @@ checkLatestVersion()
     }
     p {
       line-height: 35px;
+    }
+    .qrcode {
+      text-align: center;
+      img {
+        width: 250px;
+      }
     }
     .conspicuous {
       color: red;
