@@ -24,7 +24,7 @@ const addSSH = async ({ res, request }) => {
   const clearSSHKey = await AESDecryptSync(record[authType], clearTempKey)
   // console.log(`${ authType }原密文: `, clearSSHKey)
   record[authType] = await AESEncryptSync(clearSSHKey)
-  console.log(`${ authType }__commonKey加密存储: `, record[authType])
+  // console.log(`${ authType }__commonKey加密存储: `, record[authType])
 
   sshRecord.push({ ...record, date: Date.now() })
   await writeSSHRecord(sshRecord)
@@ -51,7 +51,7 @@ const updateSSH = async ({ res, request }) => {
     const clearSSHKey = await AESDecryptSync(record[authType], clearTempKey)
     // console.log(`${ authType }原密文: `, clearSSHKey)
     record[authType] = await AESEncryptSync(clearSSHKey)
-    console.log(`${ authType }__commonKey加密存储: `, record[authType])
+    // console.log(`${ authType }__commonKey加密存储: `, record[authType])
   }
   record._id = sshRecord[idx]._id
   sshRecord.splice(idx, 1, record)

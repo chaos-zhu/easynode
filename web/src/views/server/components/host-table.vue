@@ -13,9 +13,10 @@
           <!-- { monitorData: { connect, cpuInfo, memInfo, driveInfo, ipInfo, netstatInfo } } -->
           <el-descriptions
             v-if="row.monitorData?.connect"
-            title="实例信息"
+            title=""
             :column="5"
             direction="vertical"
+            class="host_info"
           >
             <el-descriptions-item label="CPU" width="35%">
               {{ `${row.monitorData?.cpuInfo?.cpuModel}-${row.monitorData?.cpuInfo?.cpuCount}-(${row.monitorData?.cpuInfo?.cpuUsage}%)` }}
@@ -202,6 +203,9 @@ const handleRemoveHost = async ({ host }) => {
     line-height: 23px;
     text-align: center;
     color: var(--el-color-warning);;
+  }
+  .host_info {
+    padding: 0 20px;
   }
 }
 </style>

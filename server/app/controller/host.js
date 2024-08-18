@@ -42,7 +42,7 @@ async function addHost({
     const clearSSHKey = await AESDecryptSync(record[authType], clearTempKey)
     console.log(`${ authType }原密文: `, clearSSHKey)
     record[authType] = await AESEncryptSync(clearSSHKey)
-    console.log(`${ authType }__commonKey加密存储: `, record[authType])
+    // console.log(`${ authType }__commonKey加密存储: `, record[authType])
   }
   hostList.push(record)
   await writeHostList(hostList)
