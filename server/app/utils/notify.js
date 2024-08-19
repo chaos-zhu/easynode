@@ -57,7 +57,7 @@ function sendEmail({ service, user, pass }, title, content) {
 async function asyncSendNotice(noticeAction, title, content) {
   try {
     let sw = await getNotifySwByType(noticeAction) // 获取对应动作的通知开关
-    console.log(noticeAction, sw)
+    console.log('notify swtich: ', noticeAction, sw)
     if (!sw) return
     let notifyConfig = await readNotifyConfig()
     let { type } = notifyConfig

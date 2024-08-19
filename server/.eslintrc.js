@@ -28,6 +28,9 @@ module.exports = {
     quotes: ['error', 'single'], // 引号：single单引 double双引
     semi: ['error', 'never'], // 结尾分号：never禁止 always必须
     'comma-dangle': ['error', 'never'], // 对象拖尾逗号
+    'space-before-blocks': ['error', 'always'],
+    'space-in-parens': ['error', 'never'],
+    'keyword-spacing': ['error', { 'before': true, 'after': true }],
     'no-redeclare': ['error', { builtinGlobals: true }], // 禁止重复对象声明
     'no-multi-assign': 0,
     'no-restricted-globals': 0,

@@ -53,7 +53,7 @@
       <el-table-column label="操作">
         <template #default="{ row }">
           <el-button
-            v-if="!row.pendding"
+            v-if="!row.pending"
             v-show="row.id !== 'own'"
             :loading="row.loading"
             type="danger"
@@ -174,7 +174,7 @@ const loading = ref(false)
 const formVisible = ref(false)
 const socket = ref(null)
 let recordList = ref([])
-let penddingRecord = ref([])
+let pendingRecord = ref([])
 let checkAll = ref(false)
 let indeterminate = ref(false)
 const updateFormRef = ref(null)
@@ -194,13 +194,13 @@ let isExecuting = computed(() => timeRemaining.value > 0)
 const hasConfigHostList = computed(() => hostList.value.filter(item => item.isConfig))
 
 const tableData = computed(() => {
-  return penddingRecord.value.concat(recordList.value).map(item => {
+  return pendingRecord.value.concat(recordList.value).map(item => {
     item.loading = false
     return item
   })
 })
 const expandRows = computed(() => {
-  let rows = tableData.value.filter(item => item.pendding).map(item => item.id)
+  let rows = tableData.value.filter(item => item.pending).map(item => item.id)
   return rows
 })
 
@@ -240,7 +240,7 @@ const createExecShell = (hosts = [], command = 'ls', timeout = 60) => {
     console.log('onekey socket已连接：', socket.value.id)
 
     socket.value.on('ready', () => {
-      penddingRecord.value = [] // 每轮执行前清空
+      pendingRecord.value = [] // 每轮执行前清空
     })
 
     socket.value.emit('create', { hosts, token: token.value, command, timeout })
@@ -249,8 +249,8 @@ const createExecShell = (hosts = [], command = 'ls', timeout = 60) => {
       loading.value = false
       if (Array.isArray(result) && result.length > 0) {
         // console.log('output', result)
-        result = result.map(item => ({ ...item, pendding: true }))
-        penddingRecord.value = result
+        result = result.map(item => ({ ...item, pending: true }))
+        pendingRecord.value = result
         nextTick(() => {
           document.querySelectorAll('.detail_content_box').forEach(container => {
             container.scrollTop = container.scrollHeight
@@ -267,8 +267,8 @@ const createExecShell = (hosts = [], command = 'ls', timeout = 60) => {
       })
       if (Array.isArray(result) && result.length > 0) {
         // console.log('output', result)
-        result = result.map(item => ({ ...item, pendding: true }))
-        penddingRecord.value = result
+        result = result.map(item => ({ ...item, pending: true }))
+        pendingRecord.value = result
       }
     })
     socket.value.on('create_fail', (reason) => {
@@ -374,7 +374,7 @@ function execOnekey() {
       if (hosts.length === 0) {
         return $message.error('请选择主机')
       }
-      await getOnekeyRecord() // 获取新纪录前会清空 penddingRecord，所以需要获取一次最新的list
+      await getOnekeyRecord() // 获取新纪录前会清空 pendingRecord，所以需要获取一次最新的list
       createExecShell(hosts, command, timeout)
       formVisible.value = false
     })
@@ -399,7 +399,7 @@ const handleRemoveAll = async () => {
   })
     .then(async () => {
       await $api.deleteOnekeyRecord('ALL')
-      penddingRecord.value = []
+      pendingRecord.value = []
       await getOnekeyRecord()
       $message.success('success')
     })
