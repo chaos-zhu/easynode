@@ -1,9 +1,8 @@
-## [2.2.2](https://github.com/chaos-zhu/easynode/releases) (2024-08-xx)
+## [2.2.2](https://github.com/chaos-zhu/easynode/releases) (2024-08-19)
 
 ### Features
 
 * 支持菜单栏的折叠与展开 ✔
-* 支持终端分屏 ✔
 * 优化终端回显 ✔
 * 优化暗黑模式下滚动条样式 ✔
 

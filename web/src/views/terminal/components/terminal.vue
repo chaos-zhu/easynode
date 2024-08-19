@@ -27,7 +27,7 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-dropdown trigger="click">
+        <!-- <el-dropdown trigger="click">
           <span class="link_text">分屏<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -42,7 +42,7 @@
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
-        </el-dropdown>
+        </el-dropdown> -->
         <el-dropdown trigger="click">
           <span class="link_text">设置<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
