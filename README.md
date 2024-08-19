@@ -31,7 +31,7 @@
 ### docker镜像
 
 ```shell
-docker run -d --net=host --name=easynode-server -v /root/easynode/db:/easynode/app/db chaoszhu/easynode
+docker run -d --net=host --restart=always -v /root/easynode/db:/easynode/app/db chaoszhu/easynode
 # 容器支持使用-p 8082:8082映射端口, 但无法记录登录IP
 ```
 
