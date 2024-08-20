@@ -1,3 +1,12 @@
+## [2.2.3](https://github.com/chaos-zhu/easynode/releases) (2024-08-20)
+
+### Features
+
+* 添加环境变量 ✔
+* 支持IP访问白名单设置 ✔
+* 修复一些小bug ✔
+* 优化Eslint规则 ✔
+
 ## [2.2.2](https://github.com/chaos-zhu/easynode/releases) (2024-08-19)
 
 ### Features
