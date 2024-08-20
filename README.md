@@ -36,7 +36,7 @@ docker run -d --net=host --restart=always -v /root/easynode/db:/easynode/app/db 
 ```
 环境变量：
 - `DEBUG`: 启动debug日志 0：关闭 1：开启, 默认关闭
-- `ALLOWED_IPS`: 运行访问服务的IP, 多个使用逗号分隔, 例如: -e ALLOWED_IPS=127.0.0.1,127.0.0.2
+- `ALLOWED_IPS`: 运行访问服务的IP, 多个使用逗号分隔, 例如: `-e ALLOWED_IPS=127.0.0.1,127.0.0.2`
 
 ### 手动部署
 
@@ -102,7 +102,7 @@ curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/
 
 首先声明，任何系统无法保障没有bug的存在，EasyNode也一样。
 
-建议使用 **iptables** 限制IP访问或者不将面板服务暴露到公网，能使得安全性大大提升。
+面板提供了IP访问白名单配置, 可配合**iptables** 限制IP访问, 安全性将得到保障。如果需要更高级别的安全性，建议面板服务不要暴露到公网。
 
 webssh与监控服务都将以`该服务器作为中转`。中国大陆用户建议使用香港、新加坡、日本、韩国等地区的低延迟服务器来安装服务端面板
 

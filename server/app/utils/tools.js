@@ -235,7 +235,9 @@ let allowedIPs = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : 
 if (allowedIPs) consola.warn('allowedIPs:', allowedIPs)
 const isAllowedIp = (requestIP) => {
   if (allowedIPs.length === 0) return true
-  return allowedIPs.some(item => item.includes(requestIP))
+  let flag = allowedIPs.some(item => requestIP.includes(item))
+  if (!flag) consola.warn('requestIP:', requestIP, '不在允许的IP列表中')
+  return flag
 }
 
 module.exports = {
