@@ -1,3 +1,4 @@
+const ipFilter = require('./ipFilter') // IP过滤
 const responseHandler = require('./response') // 统一返回格式, 错误捕获
 const useAuth = require('./auth') // 鉴权
 // const useCors = require('./cors') // 处理跨域[暂时禁止]
@@ -8,8 +9,8 @@ const useStatic = require('./static') // 静态目录
 const compress = require('./compress') // br/gzip压缩
 const history = require('./history') // vue-router的history模式
 
-// 注意注册顺序
 module.exports = [
+  ipFilter,
   compress,
   history,
   useStatic, // staic先注册，不然会被jwt拦截

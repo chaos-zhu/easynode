@@ -5,7 +5,7 @@ const useStatic = koaStatic(staticDir, {
   maxage: 1000 * 60 * 60 * 24 * 30,
   gzip: true,
   setHeaders: (res, path) => {
-    if(path && path.endsWith('.html')) {
+    if (path && path.endsWith('.html')) {
       res.setHeader('Cache-Control', 'max-age=0')
     }
   }

@@ -4,6 +4,7 @@ const { verifyAuthSync } = require('../utils/verify-auth')
 const { AESDecryptSync } = require('../utils/encrypt')
 const { readSSHRecord, readHostList } = require('../utils/storage')
 const { asyncSendNotice } = require('../utils/notify')
+const { isAllowedIp } = require('../utils/tools')
 
 function createInteractiveShell(socket, sshClient) {
   return new Promise((resolve) => {
@@ -113,11 +114,16 @@ module.exports = (httpServer) => {
   })
   serverIo.on('connection', (socket) => {
     // 前者兼容nginx反代, 后者兼容nodejs自身服务
-    let clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    if (!isAllowedIp(requestIP)) {
+      socket.emit('ip_forbidden', 'IP地址不在白名单中')
+      socket.disconnect()
+      return
+    }
     consola.success('terminal websocket 已连接')
     let sshClient = null
     socket.on('create', async ({ host: ip, token }) => {
-      const { code } = await verifyAuthSync(token, clientIp)
+      const { code } = await verifyAuthSync(token, requestIP)
       if (code !== 1) {
         socket.emit('token_verify_fail')
         socket.disconnect()

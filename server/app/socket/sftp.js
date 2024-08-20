@@ -7,6 +7,7 @@ const { sftpCacheDir } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { AESDecryptSync } = require('../utils/encrypt')
 const { readSSHRecord, readHostList } = require('../utils/storage')
+const { isAllowedIp } = require('../utils/tools')
 
 // 读取切片
 const pipeStream = (path, writeStream) => {
@@ -23,7 +24,7 @@ const pipeStream = (path, writeStream) => {
 function listenInput(sftpClient, socket) {
   socket.on('open_dir', async (path, tips = true) => {
     const exists = await sftpClient.exists(path)
-    if(!exists) return socket.emit('not_exists_dir', tips ? '目录不存在或当前不可访问' : '')
+    if (!exists) return socket.emit('not_exists_dir', tips ? '目录不存在或当前不可访问' : '')
     try {
       let dirLs = await sftpClient.list(path)
       socket.emit('dir_ls', dirLs, path)
@@ -34,7 +35,7 @@ function listenInput(sftpClient, socket) {
   })
   socket.on('rm_dir', async (path) => {
     const exists = await sftpClient.exists(path)
-    if(!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
+    if (!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
     try {
       let res = await sftpClient.rmdir(path, true) // 递归删除
       socket.emit('rm_success', res)
@@ -45,7 +46,7 @@ function listenInput(sftpClient, socket) {
   })
   socket.on('rm_file', async (path) => {
     const exists = await sftpClient.exists(path)
-    if(!exists) return socket.emit('not_exists_dir', '文件不存在或当前不可访问')
+    if (!exists) return socket.emit('not_exists_dir', '文件不存在或当前不可访问')
     try {
       let res = await sftpClient.delete(path)
       socket.emit('rm_success', res)
@@ -65,13 +66,13 @@ function listenInput(sftpClient, socket) {
   socket.on('down_file', async ({ path, name, size, target = 'down' }) => {
     // target: down or preview
     const exists = await sftpClient.exists(path)
-    if(!exists) return socket.emit('not_exists_dir', '文件不存在或当前不可访问')
+    if (!exists) return socket.emit('not_exists_dir', '文件不存在或当前不可访问')
     try {
       const localPath = rawPath.join(sftpCacheDir, name)
       let timer = null
       let res = await sftpClient.fastGet(path, localPath, {
         step: step => {
-          if(timer) return
+          if (timer) return
           timer = setTimeout(() => {
             const percent = Math.ceil((step / size) * 100) // 下载进度为服务器下载到服务端的进度，前端无需*2
             console.log(`从服务器下载进度：${ percent }%`)
@@ -83,7 +84,7 @@ function listenInput(sftpClient, socket) {
       consola.success('sftp下载成功: ', res)
       let buffer = fs.readFileSync(localPath)
       let data = { buffer, name }
-      switch(target) {
+      switch (target) {
         case 'down':
           socket.emit('down_file_success', data)
           break
@@ -102,7 +103,7 @@ function listenInput(sftpClient, socket) {
   socket.on('up_file', async ({ targetPath, fullPath, name, file }) => {
     // console.log({ targetPath, fullPath, name, file })
     const exists = await sftpClient.exists(targetPath)
-    if(!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
+    if (!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
     try {
       const localPath = rawPath.join(sftpCacheDir, name)
       fs.writeFileSync(localPath, file)
@@ -137,7 +138,7 @@ function listenInput(sftpClient, socket) {
   socket.on('create_cache_dir', async ({ targetDirPath, name }) => {
     // console.log({ targetDirPath, name })
     const exists = await sftpClient.exists(targetDirPath)
-    if(!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
+    if (!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
     md5List = []
     const localPath = rawPath.join(sftpCacheDir, name)
     fs.emptyDirSync(localPath) // 不存在会创建，存在则清空
@@ -178,7 +179,7 @@ function listenInput(sftpClient, socket) {
 	    let timer = null
 	    let res = await sftpClient.fastPut(resultFilePath, targetFilePath, {
 	      step: step => {
-	        if(timer) return
+	        if (timer) return
 	        timer = setTimeout(() => {
 	          const percent = Math.ceil((step / size) * 100)
 	          console.log(`上传服务器进度：${ percent }%`)
@@ -210,13 +211,18 @@ module.exports = (httpServer) => {
   })
   serverIo.on('connection', (socket) => {
     // 前者兼容nginx反代, 后者兼容nodejs自身服务
-    let clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    if (!isAllowedIp(requestIP)) {
+      socket.emit('ip_forbidden', 'IP地址不在白名单中')
+      socket.disconnect()
+      return
+    }
     let sftpClient = new SFTPClient()
     consola.success('terminal websocket 已连接')
 
     socket.on('create', async ({ host: ip, token }) => {
-      const { code } = await verifyAuthSync(token, clientIp)
-      if(code !== 1) {
+      const { code } = await verifyAuthSync(token, requestIP)
+      if (code !== 1) {
         socket.emit('token_verify_fail')
         socket.disconnect()
         return

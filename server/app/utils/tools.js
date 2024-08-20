@@ -36,37 +36,37 @@ const getNetIPInfo = async (searchIp = '') => {
     let [ipApi, ipwho, ipdata, ipinfo, ipgeolocation, ipApi01, ip138] = result
 
     let searchResult = []
-    if(ipApi.status === 'fulfilled') {
+    if (ipApi.status === 'fulfilled') {
       let { query: ip, country, regionName, city } = ipApi.value?.data || {}
       searchResult.push({ ip, country, city: `${ regionName } ${ city }`, date })
     }
 
-    if(ipwho.status === 'fulfilled') {
+    if (ipwho.status === 'fulfilled') {
       let { ip, country, region: regionName, city } = ipwho.value?.data || {}
       searchResult.push({ ip, country, city: `${ regionName } ${ city }`, date })
     }
 
-    if(ipdata.status === 'fulfilled') {
+    if (ipdata.status === 'fulfilled') {
       let { ip, country_name: country, region: regionName, city } = ipdata.value?.data || {}
       searchResult.push({ ip, country, city: `${ regionName } ${ city }`, date })
     }
 
-    if(ipinfo.status === 'fulfilled') {
+    if (ipinfo.status === 'fulfilled') {
       let { ip, country, region: regionName, city } = ipinfo.value?.data || {}
       searchResult.push({ ip, country, city: `${ regionName } ${ city }`, date })
     }
 
-    if(ipgeolocation.status === 'fulfilled') {
+    if (ipgeolocation.status === 'fulfilled') {
       let { ip, country_name: country, state_prov: regionName, city } = ipgeolocation.value?.data || {}
       searchResult.push({ ip, country, city: `${ regionName } ${ city }`, date })
     }
 
-    if(ipApi01.status === 'fulfilled') {
+    if (ipApi01.status === 'fulfilled') {
       let { ip, country_name: country, region: regionName, city } = ipApi01.value?.data || {}
       searchResult.push({ ip, country, city: `${ regionName } ${ city }`, date })
     }
 
-    if(ip138.status === 'fulfilled') {
+    if (ip138.status === 'fulfilled') {
       let [res] = ip138.value?.data?.data || []
       let { origip: ip, location: country, city = '', regionName = '' } = res || {}
       searchResult.push({ ip, country, city: `${ regionName } ${ city }`, date })
@@ -175,7 +175,7 @@ const getUTCDate = (num = 8) => {
 }
 
 const formatTimestamp = (timestamp = Date.now(), format = 'time') => {
-  if(typeof(timestamp) !== 'number') return '--'
+  if (typeof(timestamp) !== 'number') return '--'
   let date = new Date(timestamp)
   let padZero = (num) => String(num).padStart(2, '0')
   let year = date.getFullYear()
@@ -231,6 +231,13 @@ const isProd = () => {
   return EXEC_ENV === 'production'
 }
 
+let allowedIPs = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : ''
+if (allowedIPs) consola.warn('allowedIPs:', allowedIPs)
+const isAllowedIp = (requestIP) => {
+  if (allowedIPs.length === 0) return true
+  return allowedIPs.some(item => item.includes(requestIP))
+}
+
 module.exports = {
   getNetIPInfo,
   throwError,
@@ -240,5 +247,6 @@ module.exports = {
   formatTimestamp,
   resolvePath,
   shellThrottle,
-  isProd
+  isProd,
+  isAllowedIp
 }

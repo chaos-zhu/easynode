@@ -3,6 +3,7 @@ const { io: ClientIO } = require('socket.io-client')
 const { readHostList } = require('../utils/storage')
 const { clientPort } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
+const { isAllowedIp } = require('../utils/tools')
 
 let clientSockets = []
 let clientsData = {}
@@ -66,9 +67,14 @@ module.exports = (httpServer) => {
 
   serverIo.on('connection', (socket) => {
     // 前者兼容nginx反代, 后者兼容nodejs自身服务
-    let clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    if (!isAllowedIp(requestIP)) {
+      socket.emit('ip_forbidden', 'IP地址不在白名单中')
+      socket.disconnect()
+      return
+    }
     socket.on('init_clients_data', async ({ token }) => {
-      const { code, msg } = await verifyAuthSync(token, clientIp)
+      const { code, msg } = await verifyAuthSync(token, requestIP)
       if (code !== 1) {
         socket.emit('token_verify_fail', msg || '鉴权失败')
         socket.disconnect()

@@ -5,6 +5,7 @@ const { readSSHRecord, readHostList, writeOneKeyRecord } = require('../utils/sto
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { shellThrottle } = require('../utils/tools')
 const { AESDecryptSync } = require('../utils/encrypt')
+const { isAllowedIp } = require('../utils/tools')
 
 const execStatusEnum = {
   connecting: '连接中',
@@ -90,7 +91,12 @@ module.exports = (httpServer) => {
   })
   serverIo.on('connection', (socket) => {
     // 前者兼容nginx反代, 后者兼容nodejs自身服务
-    let clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    if (!isAllowedIp(requestIP)) {
+      socket.emit('ip_forbidden', 'IP地址不在白名单中')
+      socket.disconnect()
+      return
+    }
     consola.success('onekey-terminal websocket 已连接')
     if (isExecuting) {
       socket.emit('create_fail', '正在执行中, 请稍后再试')
@@ -99,7 +105,7 @@ module.exports = (httpServer) => {
     }
     isExecuting = true
     socket.on('create', async ({ hosts, token, command, timeout }) => {
-      const { code } = await verifyAuthSync(token, clientIp)
+      const { code } = await verifyAuthSync(token, requestIP)
       if (code !== 1) {
         socket.emit('token_verify_fail')
         socket.disconnect()
