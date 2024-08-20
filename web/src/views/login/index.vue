@@ -100,7 +100,6 @@ const rules = reactive({
 })
 
 const handleLogin = () => {
-  console.log(loginForm)
   loginFormRefs.value.validate().then(() => {
     let { jwtExpires, loginName, pwd } = loginForm
     jwtExpires = isSession.value ? '12h' : `${ jwtExpires }h`

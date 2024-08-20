@@ -464,6 +464,11 @@ const handleUploadFiles = async (event) => {
       $message.error(`${ file.name }上传失败: ${ error }`)
     }
   }
+  $notification.success({
+    title: '文件上传完成',
+    message: '上传操作完成, 请确认服务器文件是否上传成功',
+    duration: 30000
+  })
   forbiddenAction.value = false
   event.target.value = ''
   uploadFileRef.value = null
@@ -510,6 +515,11 @@ const handleUploadDir = async (event) => {
         $message.error(`${ file.name }上传失败: ${ error }`)
       }
     }
+    $notification.success({
+      title: '文件夹上传完成',
+      message: '上传操作完成, 请确认服务器文件夹是否上传成功',
+      duration: 30000
+    })
     forbiddenAction.value = false
     event.target.value = ''
     uploadDirRef.value = null
