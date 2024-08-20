@@ -202,7 +202,7 @@ const themeName = ref(localStorage.getItem('themeName') || 'Afterglow')
 let localTerminalBackground = localStorage.getItem('terminalBackground')
 const terminalBackground = ref(localTerminalBackground || '/terminal/01.png')
 let localTerminalFontSize = localStorage.getItem('terminalFontSize')
-const terminalFontSize = ref(Number(localTerminalFontSize) || 18)
+const terminalFontSize = ref(Number(localTerminalFontSize) || 16)
 
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)

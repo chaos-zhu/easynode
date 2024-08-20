@@ -53,6 +53,11 @@ html.dark {
         background-color: #454242 !important;
       }
     }
+    section {
+      .left {
+        border: none !important;
+      }
+    }
   }
   .info_box {
     border-right: 1px solid #454242;

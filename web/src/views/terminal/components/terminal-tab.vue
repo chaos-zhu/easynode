@@ -35,7 +35,7 @@ const props = defineProps({
   },
   fontSize: {
     required: false,
-    default: 18,
+    default: 16,
     type: Number
   },
   theme: {
@@ -370,7 +370,7 @@ const handleRightClick = async () => {
     // 移除多余空格与换行符
     const formattedText = clipboardText.trim().replace(/\s+/g, ' ')
     // console.log(formattedText)
-    if (formattedText.includes('rm -rf /')) return $message.warning(`高危指令,禁止粘贴: ${ formattedText }` )
+    if (formattedText.includes('rm -rf /')) return $message.warning(`高危指令,禁止粘贴: ${ formattedText }`)
     const safeText = formattedText.replace(/\r?\n|\r/g, '')
     // console.log(safeText)
     socket.value.emit('input', safeText)

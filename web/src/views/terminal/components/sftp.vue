@@ -108,12 +108,15 @@
               :percentage="upFileProgress"
             />
           </div>
+          <div v-if="showDirProgress">
+            <span>文件夹创建: {{ curUploadDirName }}</span>
+          </div>
         </div>
         <ul
           v-if="fileList.length !== 0"
           ref="childDirRef"
           v-loading="childDirLoading"
-          element-loading-text="加载中..."
+          element-loading-text="操作中..."
           class="dir-list"
         >
           <li
@@ -187,11 +190,16 @@ const curTarget = ref(null)
 const showFileProgress = ref(false)
 const upFileProgress = ref(0)
 const curUploadFileName = ref('')
+
+const showDirProgress = ref(false)
+const curUploadDirName = ref(0)
+
 const adjustRef = ref(null)
 const sftpTabContainerRef = ref(null)
 const childDirRef = ref(null)
 const uploadFileRef = ref(null)
 const uploadDirRef = ref(null)
+const forbiddenAction = ref(false)
 
 const token = computed(() => $store.token)
 const curPath = computed(() => paths.value.join('/').replace(/\/{2,}/g, '/'))
@@ -308,6 +316,7 @@ const listenSftp = () => {
   socket.value.on('rm_success', (res) => {
     $message.success(res)
     childDirLoading.value = false
+    forbiddenAction.value = false
     handleRefresh()
   })
   socket.value.on('down_file_success', (res) => {
@@ -324,6 +333,7 @@ const listenSftp = () => {
   })
   socket.value.on('sftp_error', (res) => {
     $message.error(res)
+    forbiddenAction.value = false
     resetFileStatusFlag()
   })
   socket.value.on('up_file_progress', (res) => {
@@ -336,7 +346,7 @@ const listenSftp = () => {
 }
 
 const openRootChild = (item) => {
-  if (showFileProgress.value) return $message.warning('需等待当前任务完成')
+  if (forbiddenAction.value) return $message.warning('需等待当前任务完成')
   const { name, type } = item
   if (isDir(type)) {
     childDirLoading.value = true
@@ -353,7 +363,7 @@ const openRootChild = (item) => {
 }
 
 const openTarget = (item) => {
-  if (showFileProgress.value) return $message.warning('需等待当前任务完成')
+  if (forbiddenAction.value) return $message.warning('需等待当前任务完成')
   const { name, type, size } = item
   if (isDir(type)) {
     paths.value.push(name)
@@ -388,7 +398,7 @@ const selectFile = (item) => {
 }
 
 const handleReturn = () => {
-  if (showFileProgress.value) return $message.warning('需等待当前任务完成')
+  if (forbiddenAction.value) return $message.warning('需等待当前任务完成')
   if (paths.value.length === 1) return
   paths.value.pop()
   openDir()
@@ -399,7 +409,7 @@ const handleRefresh = () => {
 }
 
 const handleDownload = () => {
-  if (showFileProgress.value) return $message.warning('需等待当前任务完成')
+  if (forbiddenAction.value) return $message.warning('需等待当前任务完成')
   if (curTarget.value === null) return $message.warning('先选择一个文件')
   const { name, size, type } = curTarget.value
   if (isDir(type)) return $message.error('暂不支持下载文件夹')
@@ -422,7 +432,7 @@ const handleDownload = () => {
 }
 
 const handleDelete = () => {
-  if (showFileProgress.value) return $message.warning('需等待当前任务完成')
+  if (forbiddenAction.value) return $message.warning('需等待当前任务完成')
   if (curTarget.value === null) return $message.warning('先选择一个文件(夹)')
   const { name, type } = curTarget.value
   $messageBox.confirm(`确认删除：${ name }`, 'Warning', {
@@ -432,6 +442,7 @@ const handleDelete = () => {
   }).then(() => {
     childDirLoading.value = true
     const path = getPath(name)
+    forbiddenAction.value = true
     if (isDir(type)) {
       socket.value.emit('rm_dir', path)
     } else {
@@ -441,9 +452,10 @@ const handleDelete = () => {
 }
 
 const handleUploadFiles = async (event) => {
-  if (showFileProgress.value) return $message.warning('需等待当前任务完成')
+  if (forbiddenAction.value) return $message.warning('需等待当前任务完成')
   let { files } = event.target
 
+  forbiddenAction.value = true
   for (let file of files) {
     try {
       const targetFilePath = getPath(file.name)
@@ -452,14 +464,15 @@ const handleUploadFiles = async (event) => {
       $message.error(`${ file.name }上传失败: ${ error }`)
     }
   }
+  forbiddenAction.value = false
   event.target.value = ''
   uploadFileRef.value = null
 }
 
 const handleUploadDir = async (event) => {
-  if (showFileProgress.value) return $message.warning('需等待当前任务完成')
+  if (forbiddenAction.value) return $message.warning('需等待当前任务完成')
   let { files } = event.target
-  if(files.length === 0) return $message.warning('不允许上传空文件夹')
+  if (files.length === 0) return $message.warning('不允许上传空文件夹')
   files = Array.from(files)
   // console.log(files)
   // 文件夹可能嵌套, 需先创建文件夹
@@ -467,13 +480,27 @@ const handleUploadDir = async (event) => {
   if (foldersName.length === 0) return $message.warning('不允许上传空文件夹')
   // console.log(foldersName)
   let targetDirPath = curPath.value
+  forbiddenAction.value = true
   socket.value.emit('create_remote_dir', { targetDirPath, foldersName })
   socket.value.once('create_remote_dir_exists', (res) => {
     $message.error(res)
     event.target.value = ''
     uploadDirRef.value = null
+    forbiddenAction.value = false
   })
+  function computedUploadDirProgress(path) {
+    // $message.success('创建服务器文件夹中...')
+    // console.log(path)
+    showDirProgress.value = true
+    curUploadDirName.value = path
+  }
+  $message.success('创建服务器文件夹中...')
+  socket.value.on('create_remote_dir_progress', computedUploadDirProgress)
   socket.value.once('create_remote_dir_success', async () => {
+    socket.value.off('create_remote_dir_progress', computedUploadDirProgress)
+    showDirProgress.value = false
+    curUploadDirName.value = ''
+    $message.success('服务器文件夹创建成功, 开始上传文件')
     for (let [index, file,] of files.entries()) {
       let fullFilePath = getPath(`${ foldersName[index] }/${ file.name }`)
       console.log('fullFilePath: ', fullFilePath)
@@ -483,6 +510,7 @@ const handleUploadDir = async (event) => {
         $message.error(`${ file.name }上传失败: ${ error }`)
       }
     }
+    forbiddenAction.value = false
     event.target.value = ''
     uploadDirRef.value = null
   })
@@ -508,7 +536,6 @@ const uploadFile = (file, targetFilePath) => {
         try {
           upFileProgress.value = 0
           showFileProgress.value = true
-          // childDirLoading.value = true
           const totalSliceCount = Math.ceil(size / range)
           while (end < size) {
             fileIndex++

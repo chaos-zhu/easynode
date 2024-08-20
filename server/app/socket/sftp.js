@@ -36,6 +36,7 @@ function listenInput(sftpClient, socket) {
   socket.on('rm_dir', async (path) => {
     const exists = await sftpClient.exists(path)
     if (!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
+    consola.info('rm_dir: ', path)
     try {
       let res = await sftpClient.rmdir(path, true) // 递归删除
       socket.emit('rm_success', res)
@@ -127,6 +128,7 @@ function listenInput(sftpClient, socket) {
       const exists = await sftpClient.exists(fullPath)
       if (exists) continue
       await sftpClient.mkdir(fullPath, true)
+      socket.emit('create_remote_dir_progress', fullPath)
       consola.info('创建目录:', fullPath)
     }
     socket.emit('create_remote_dir_success')
