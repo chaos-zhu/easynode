@@ -200,7 +200,7 @@ const updateHostData = ref(null)
 const showSetting = ref(false)
 const themeName = ref(localStorage.getItem('themeName') || 'Afterglow')
 let localTerminalBackground = localStorage.getItem('terminalBackground')
-const terminalBackground = ref(localTerminalBackground || '/terminal/01.png')
+const terminalBackground = ref(localTerminalBackground || '')
 let localTerminalFontSize = localStorage.getItem('terminalFontSize')
 const terminalFontSize = ref(Number(localTerminalFontSize) || 16)
 

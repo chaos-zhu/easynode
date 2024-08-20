@@ -89,15 +89,15 @@ const props = defineProps({
 const emit = defineEmits(['update:show', 'update:themeName', 'update:background', 'update:fontSize',])
 
 const backgroundImages = ref([
-  '/terminal/03.png',
-  '/terminal/04.png',
-  '/terminal/01.png',
-  '/terminal/02.png',
-  '/terminal/05.png',
-  '/terminal/06.png',
-  '/terminal/07.jpg',
-  '/terminal/08.jpg',
-  '/terminal/09.png',
+  'https://wmimg.com/i/1099/2024/08/66c42ff3cd6ab.png',
+  'https://wmimg.com/i/1099/2024/08/66c42ff3e3f45.png',
+  'https://wmimg.com/i/1099/2024/08/66c42ff411ffb.png',
+  'https://wmimg.com/i/1099/2024/08/66c42ff4c5753.png',
+  'https://wmimg.com/i/1099/2024/08/66c42ff4e8b4d.jpg',
+  'https://wmimg.com/i/1099/2024/08/66c42ff51ee3a.jpg',
+  'https://wmimg.com/i/1099/2024/08/66c42ff5db377.png',
+  'https://wmimg.com/i/1099/2024/08/66c42ff536a64.png',
+  'https://wmimg.com/i/1099/2024/08/66c42ff51d8dd.png',
 ])
 
 const visible = computed({
