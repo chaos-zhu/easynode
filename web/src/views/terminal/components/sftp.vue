@@ -100,7 +100,17 @@
               clearable
             />
           </div>
-          <span class="path">{{ curPath }}</span>
+          <el-input
+            v-if="showPathInput"
+            ref="pathInputRef"
+            v-model="pathInput"
+            class="path-input"
+            size="small"
+            clearable
+            @blur="showPathInput = false"
+            @keyup.enter="handleInputPath"
+          />
+          <span v-else class="path" @click="handleShowPathInput">{{ curPath }}</span>
           <div v-if="showFileProgress">
             <span>{{ curUploadFileName }}</span>
             <el-progress
@@ -200,6 +210,10 @@ const childDirRef = ref(null)
 const uploadFileRef = ref(null)
 const uploadDirRef = ref(null)
 const forbiddenAction = ref(false)
+
+const pathInputRef = ref(null)
+const showPathInput = ref(false)
+const pathInput = ref('')
 
 const token = computed(() => $store.token)
 const curPath = computed(() => paths.value.join('/').replace(/\/{2,}/g, '/'))
@@ -616,6 +630,20 @@ const getPath = (name = '') => {
   return curPath.value.length === 1 ? `/${ name }` : `${ curPath.value }/${ name }`
 }
 
+const handleShowPathInput = () => {
+  showPathInput.value = true
+  pathInput.value = curPath.value
+  $nextTick(() => {
+    pathInputRef.value.focus()
+  })
+}
+const handleInputPath = () => {
+  if (forbiddenAction.value) return $message.warning('需等待当前任务完成')
+  // socket.value.emit('input_path', curPath.value)
+  showPathInput.value = false
+  openDir(pathInput.value)
+}
+
 defineExpose({
   openDir
 })
@@ -670,11 +698,20 @@ defineExpose({
         }
         .filter-input {
           width: 200px;
+          min-width: 200px;
           margin: 0 20px 0 10px;
+        }
+        .path-input {
+          width: 450px;
+          min-width: 450px;
         }
         .path {
           flex: 1;
           user-select: all;
+          cursor: pointer;
+          &:hover {
+            color: var(--el-color-primary);
+          }
         }
         .up-file-progress-wrap {
           min-width: 200px;
