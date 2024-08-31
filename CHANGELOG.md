@@ -1,3 +1,9 @@
+## [2.2.4](https://github.com/chaos-zhu/easynode/releases) (2024-08-31)
+
+### Features
+
+* SFTP支持输入路径跳转
+
 ## [2.2.3](https://github.com/chaos-zhu/easynode/releases) (2024-08-20)
 
 ### Features
