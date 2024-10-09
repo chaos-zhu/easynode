@@ -31,12 +31,12 @@
 ### docker镜像
 
 ```shell
-docker run -d --net=host --restart=always -v /root/easynode/db:/easynode/app/db chaoszhu/easynode
+docker run -d --net=host --name=easynode --restart=always -v /root/easynode/db:/easynode/app/db chaoszhu/easynode
 # 容器支持使用-p 8082:8082映射端口, 但无法记录登录IP
 ```
 环境变量：
 - `DEBUG`: 启动debug日志 0：关闭 1：开启, 默认关闭
-- `ALLOWED_IPS`: 可以访问服务的IP白名单, 多个使用逗号分隔, 例如: `-e ALLOWED_IPS=127.0.0.1,127.0.0.2`
+- `ALLOWED_IPS`: 可以访问服务的IP白名单, 多个使用逗号分隔, 支持填写部分ip前缀, 例如: `-e ALLOWED_IPS=127.0.0.1,196.168`
 
 ### 手动部署
 
