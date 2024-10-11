@@ -69,7 +69,7 @@ const theme = computed(() => props.theme)
 const fontSize = computed(() => props.fontSize)
 const background = computed(() => props.background)
 const hostObj = computed(() => props.hostObj)
-const host = computed(() => hostObj.value.host)
+const hostId = computed(() => hostObj.value.id)
 let menuCollapse = computed(() => $store.menuCollapse)
 
 watch(menuCollapse, () => {
@@ -114,7 +114,7 @@ watch(curStatus, () => {
 })
 
 const getCommand = async () => {
-  let { data } = await $api.getCommand(host.value)
+  let { data } = await $api.getCommand(hostId.value)
   if (data) command.value = data
 }
 
@@ -125,9 +125,9 @@ const connectIO = () => {
     reconnectionAttempts: 1
   })
   socket.value.on('connect', () => {
-    console.log('/terminal socket已连接：', host.value)
+    console.log('/terminal socket已连接：', hostId.value)
     socketConnected.value = true
-    socket.value.emit('create', { host: host.value, token: token.value })
+    socket.value.emit('create', { hostId: hostId.value, token: token.value })
     socket.value.on('connect_terminal_success', () => {
       if (hasRegisterEvent.value) return // 以下事件连接成功后仅可注册一次, 否则会多次触发. 除非socket重连
       hasRegisterEvent.value = true
@@ -159,7 +159,7 @@ const connectIO = () => {
     socket.value.on('connect_close', () => {
       if (curStatus.value === CONNECT_FAIL) return // 连接失败不需要自动重连
       curStatus.value = RECONNECTING
-      console.warn('连接断开,3秒后自动重连: ', host.value)
+      console.warn('连接断开,3秒后自动重连: ', hostId.value)
       term.value.write('\r\n连接断开,3秒后自动重连...\r\n')
       socket.value.emit('reconnect_terminal')
     })
@@ -170,13 +170,13 @@ const connectIO = () => {
 
     socket.value.on('create_fail', (message) => {
       curStatus.value = CONNECT_FAIL
-      console.error('n创建失败:', host.value, message)
+      console.error('n创建失败:', hostId.value, message)
       term.value.write(`\r\n创建失败: ${ message }\r\n`)
     })
 
     socket.value.on('connect_fail', (message) => {
       curStatus.value = CONNECT_FAIL
-      console.error('连接失败:', host.value, message)
+      console.error('连接失败:', hostId.value, message)
       term.value.write(`\r\n连接失败: ${ message }\r\n`)
     })
   })

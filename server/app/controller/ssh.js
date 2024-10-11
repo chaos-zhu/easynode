@@ -15,7 +15,7 @@ async function getSSHList({ res }) {
 const addSSH = async ({ res, request }) => {
   let { body: { name, authType, password, privateKey, tempKey } } = request
   let record = { name, authType, password, privateKey }
-  if(!name || !record[authType]) return res.fail({ data: false, msg: '参数错误' })
+  if (!name || !record[authType]) return res.fail({ data: false, msg: '参数错误' })
   let sshRecord = await readSSHRecord()
   if (sshRecord.some(item => item.name === name)) return res.fail({ data: false, msg: '已存在同名凭证' })
 
@@ -35,11 +35,11 @@ const addSSH = async ({ res, request }) => {
 const updateSSH = async ({ res, request }) => {
   let { body: { id, name, authType, password, privateKey, date, tempKey } } = request
   let record = { name, authType, password, privateKey, date }
-  if(!id || !name) return res.fail({ data: false, msg: '请输入凭据名称' })
+  if (!id || !name) return res.fail({ data: false, msg: '请输入凭据名称' })
   let sshRecord = await readSSHRecord()
   let idx = sshRecord.findIndex(item => item._id === id)
   if (sshRecord.some(item => item.name === name && item.date !== date)) return res.fail({ data: false, msg: '已存在同名凭证' })
-  if(idx === -1) res.fail({ data: false, msg: '请输入凭据名称' })
+  if (idx === -1) res.fail({ data: false, msg: '请输入凭据名称' })
   const oldRecord = sshRecord[idx]
   // 判断原记录是否存在当前更新记录的认证方式
   if (!oldRecord[authType] && !record[authType]) return res.fail({ data: false, msg: `请输入${ authType === 'password' ? '密码' : '密钥' }` })
@@ -64,7 +64,7 @@ const removeSSH = async ({ res, request }) => {
   let { params: { id } } = request
   let sshRecord = await readSSHRecord()
   let idx = sshRecord.findIndex(item => item._id === id)
-  if(idx === -1) return res.fail({ msg: '凭证不存在' })
+  if (idx === -1) return res.fail({ msg: '凭证不存在' })
   sshRecord.splice(idx, 1)
   // 将删除的凭证id从host中删除
   let hostList = await readHostList()
@@ -79,14 +79,14 @@ const removeSSH = async ({ res, request }) => {
 }
 
 const getCommand = async ({ res, request }) => {
-  let { host } = request.query
-  if(!host) return res.fail({ data: false, msg: '参数错误' })
+  let { hostId } = request.query
+  if (!hostId) return res.fail({ data: false, msg: '参数错误' })
   let hostInfo = await readHostList()
-  let record = hostInfo?.find(item => item.host === host)
-  consola.info('查询登录后执行的指令：', host)
-  if(!record) return res.fail({ data: false, msg: 'host not found' }) // host不存在
+  let record = hostInfo?.find(item => item._id === hostId)
+  consola.info('查询登录后执行的指令：', hostId)
+  if (!record) return res.fail({ data: false, msg: 'host not found' }) // host不存在
   const { command } = record
-  if(!command) return res.success({ data: false }) // command不存在
+  if (!command) return res.success({ data: false }) // command不存在
   res.success({ data: command }) // 存在
 }
 

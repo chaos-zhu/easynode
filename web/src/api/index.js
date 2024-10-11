@@ -22,8 +22,8 @@ export default {
   // existSSH(host) {
   //   return axios({ url: '/exist-ssh', method: 'post', data: { host } })
   // },
-  getCommand(host) {
-    return axios({ url: '/command', method: 'get', params: { host } })
+  getCommand(hostId) {
+    return axios({ url: '/command', method: 'get', params: { hostId } })
   },
   getHostList() {
     return axios({ url: '/host-list', method: 'get' })

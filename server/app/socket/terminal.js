@@ -25,36 +25,36 @@ function createInteractiveShell(socket, sshClient) {
   })
 }
 
-function execShell(sshClient, command = '', callback) {
-  if (!command) return
-  let result = ''
-  sshClient.exec(`source ~/.bashrc && ${ command }`, (err, stream) => {
-    if (err) return callback(err.toString())
-    stream
-      .on('data', (data) => {
-        result += data.toString()
-      })
-      .stderr
-      .on('data', (data) => {
-        result += data.toString()
-      })
-      .on('close', () => {
-        consola.info('一次性指令执行完成:', command)
-        callback(result)
-      })
-      .on('error', (error) => {
-        console.log('Error:', error.toString())
-      })
-  })
-}
+// function execShell(sshClient, command = '', callback) {
+//   if (!command) return
+//   let result = ''
+//   sshClient.exec(`source ~/.bashrc && ${ command }`, (err, stream) => {
+//     if (err) return callback(err.toString())
+//     stream
+//       .on('data', (data) => {
+//         result += data.toString()
+//       })
+//       .stderr
+//       .on('data', (data) => {
+//         result += data.toString()
+//       })
+//       .on('close', () => {
+//         consola.info('一次性指令执行完成:', command)
+//         callback(result)
+//       })
+//       .on('error', (error) => {
+//         console.log('Error:', error.toString())
+//       })
+//   })
+// }
 
-async function createTerminal(ip, socket, sshClient) {
+async function createTerminal(hostId, socket, sshClient) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve) => {
     const hostList = await readHostList()
-    const targetHostInfo = hostList.find(item => item.host === ip) || {}
+    const targetHostInfo = hostList.find(item => item._id === hostId) || {}
     let { authType, host, port, username, name } = targetHostInfo
-    if (!host) return socket.emit('create_fail', `查找【${ ip }】凭证信息失败`)
+    if (!host) return socket.emit('create_fail', `查找hostId【${ hostId }】凭证信息失败`)
     let authInfo = { host, port, username }
     // 统一使用commonKey解密
     try {
@@ -122,7 +122,7 @@ module.exports = (httpServer) => {
     }
     consola.success('terminal websocket 已连接')
     let sshClient = null
-    socket.on('create', async ({ host: ip, token }) => {
+    socket.on('create', async ({ hostId, token }) => {
       const { code } = await verifyAuthSync(token, requestIP)
       if (code !== 1) {
         socket.emit('token_verify_fail')
@@ -149,7 +149,7 @@ module.exports = (httpServer) => {
       socket.on('resize', resizeShell)
       // 重连
       socket.on('reconnect_terminal', async () => {
-        consola.info('重连终端: ', ip)
+        consola.info('重连终端: ', hostId)
         socket.off('input', listenerInput) // 取消监听,重新注册监听,操作新的stream
         socket.off('resize', resizeShell)
         sshClient?.end()
@@ -159,13 +159,13 @@ module.exports = (httpServer) => {
         setTimeout(async () => {
           // 初始化新的SSH客户端对象
           sshClient = new SSHClient()
-          stream = await createTerminal(ip, socket, sshClient)
+          stream = await createTerminal(hostId, socket, sshClient)
           socket.emit('reconnect_terminal_success')
           socket.on('input', listenerInput)
           socket.on('resize', resizeShell)
         }, 3000)
       })
-      stream = await createTerminal(ip, socket, sshClient)
+      stream = await createTerminal(hostId, socket, sshClient)
     })
 
     socket.on('disconnect', (reason) => {

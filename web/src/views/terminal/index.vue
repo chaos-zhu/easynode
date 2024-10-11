@@ -75,10 +75,10 @@ let isAllConfssh = computed(() => {
   return hostList.value?.every(item => item.isConfig)
 })
 
-function linkTerminal({ id }) {
-  let targetHost = hostList.value.find(item => item.id === id)
-  const { host, name } = targetHost
-  terminalTabs.push({ key: randomStr(16), name, host, status: CONNECTING })
+function linkTerminal(hostInfo) {
+  let targetHost = hostList.value.find(item => item.id === hostInfo.id)
+  const { id, host, name } = targetHost
+  terminalTabs.push({ key: randomStr(16), id, name, host, status: CONNECTING })
 }
 
 function handleUpdateHost(row) {
@@ -110,8 +110,8 @@ onActivated(async () => {
   const { hostIds } = route.query
   if (!hostIds) return
   let targetHosts = hostList.value.filter(item => hostIds.includes(item.id)).map(item => {
-    const { name, host } = item
-    return { key: randomStr(16), name, host, status: CONNECTING }
+    const { id, name, host } = item
+    return { key: randomStr(16), id, name, host, status: CONNECTING }
   })
   if (!targetHosts || !targetHosts.length) return
   terminalTabs.push(...targetHosts)
