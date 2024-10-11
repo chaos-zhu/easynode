@@ -101,9 +101,9 @@ const handleUpdateList = async ({ host }) => {
 
 onActivated(async () => {
   await nextTick()
-  const { host } = route.query
-  if (!host) return
-  let targetHosts = hostList.value.filter(item => host.includes(item.host)).map(item => {
+  const { hostIds } = route.query
+  if (!hostIds) return
+  let targetHosts = hostList.value.filter(item => hostIds.includes(item.id)).map(item => {
     const { name, host } = item
     return { key: randomStr(16), name, host, status: CONNECTING }
   })

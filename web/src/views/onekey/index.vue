@@ -34,8 +34,9 @@
       </el-table-column>
       <el-table-column prop="name" label="实例">
         <template #default="{ row }">
-          <span style="letter-spacing: 2px;"> {{ row.name }} </span>
-          <span style="letter-spacing: 2px;"> {{ row.host }} </span>
+          <span style="letter-spacing: 2px;"> {{ row.name }} </span> -
+          <span style="letter-spacing: 2px;"> {{ row.host }} </span> :
+          <span style="letter-spacing: 2px;"> {{ row.port }} </span>
         </template>
       </el-table-column>
       <el-table-column prop="command" label="指令" show-overflow-tooltip>
@@ -81,10 +82,10 @@
         label-width="80px"
         :show-message="false"
       >
-        <el-form-item label="实例" prop="hosts">
+        <el-form-item label="实例" prop="hostIds">
           <div class="select_host_wrap">
             <el-select
-              v-model="formData.hosts"
+              v-model="formData.hostIds"
               :teleported="false"
               multiple
               placeholder=""
@@ -105,7 +106,7 @@
                 v-for="item in hasConfigHostList"
                 :key="item.id"
                 :label="item.name"
-                :value="item.host"
+                :value="item.id"
               />
             </el-select>
             <!-- <el-button type="primary" class="btn" @click="selectAllHost">全选</el-button> -->
@@ -182,7 +183,7 @@ let timeRemaining = ref(0)
 const isClient = ref(false)
 
 let formData = reactive({
-  hosts: [],
+  hostIds: [],
   command: '',
   timeout: 120
 })
@@ -206,13 +207,13 @@ const expandRows = computed(() => {
 
 const rules = computed(() => {
   return {
-    hosts: { required: true, trigger: 'change' },
+    hostIds: { required: true, trigger: 'change' },
     command: { required: true, trigger: 'change' },
     timeout: { required: true, type: 'number', trigger: 'change' }
   }
 })
 
-watch(() => formData.hosts, (val) => {
+watch(() => formData.hostIds, (val) => {
   if (val.length === 0) {
     checkAll.value = false
     indeterminate.value = false
@@ -224,7 +225,7 @@ watch(() => formData.hosts, (val) => {
   }
 })
 
-const createExecShell = (hosts = [], command = 'ls', timeout = 60) => {
+const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
   loading.value = true
   timeRemaining.value = Number(formData.timeout)
   let timer = null
@@ -243,7 +244,7 @@ const createExecShell = (hosts = [], command = 'ls', timeout = 60) => {
       pendingRecord.value = [] // 每轮执行前清空
     })
 
-    socket.value.emit('create', { hosts, token: token.value, command, timeout })
+    socket.value.emit('create', { hostIds, token: token.value, command, timeout })
 
     socket.value.on('output', (result) => {
       loading.value = false
@@ -320,9 +321,9 @@ onMounted(async () => {
 let selectAllHost = (val) => {
   indeterminate.value = false
   if (val) {
-    formData.hosts = hasConfigHostList.value.map(item => item.host)
+    formData.hostIds = hasConfigHostList.value.map(item => item.id)
   } else {
-    formData.hosts = []
+    formData.hostIds = []
   }
 }
 
@@ -366,16 +367,16 @@ let addOnekey = () => {
 function execOnekey() {
   updateFormRef.value.validate()
     .then(async () => {
-      let { hosts, command, timeout } = formData
+      let { hostIds, command, timeout } = formData
       timeout = Number(timeout)
       if (timeout < 1) {
         return $message.error('超时时间不能小于1秒')
       }
-      if (hosts.length === 0) {
+      if (hostIds.length === 0) {
         return $message.error('请选择主机')
       }
       await getOnekeyRecord() // 获取新纪录前会清空 pendingRecord，所以需要获取一次最新的list
-      createExecShell(hosts, command, timeout)
+      createExecShell(hostIds, command, timeout)
       formVisible.value = false
     })
 }
@@ -407,11 +408,12 @@ const handleRemoveAll = async () => {
 
 onActivated(async () => {
   await nextTick()
-  const { host, execClientInstallScript } = route.query
-  if (!host) return
+  const { hostIds, execClientInstallScript } = route.query
+  if (!hostIds) return
   if (execClientInstallScript === 'true') {
     let clientInstallScript = 'curl -o- https://mirror.ghproxy.com/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash\n'
-    createExecShell(host.split(','), clientInstallScript, 300)
+    console.log(hostIds.split(','))
+    createExecShell(hostIds.split(','), clientInstallScript, 300)
     // $messageBox.confirm(`准备安装客户端服务监控应用：${ host }`, 'Warning', {
     //   confirmButtonText: '确定',
     //   cancelButtonText: '取消',

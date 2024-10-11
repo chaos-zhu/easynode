@@ -3,7 +3,7 @@
     <el-table
       ref="tableRef"
       :data="hosts"
-      row-key="host"
+      row-key="id"
       :default-sort="defaultSort"
       @sort-change="handleSortChange"
       @selection-change="handleSelectionChange"
@@ -128,12 +128,12 @@ const handleToConsole = ({ consoleUrl }) => {
 }
 
 const handleSSH = async (row) => {
-  let { host } = row
-  $router.push({ path: '/terminal', query: { host } })
+  let { id } = row
+  $router.push({ path: '/terminal', query: { hostIds: id } })
 }
 
 const handleOnekey = async (row) => {
-  let { host, isConfig } = row
+  let { id, isConfig } = row
   if (!isConfig) {
     $message({
       message: '请先配置SSH连接信息',
@@ -143,7 +143,7 @@ const handleOnekey = async (row) => {
     handleUpdate(row)
     return
   }
-  $router.push({ path: '/onekey', query: { host, execClientInstallScript: 'true' } })
+  $router.push({ path: '/onekey', query: { hostIds: id, execClientInstallScript: 'true' } })
 }
 
 let defaultSortLocal = localStorage.getItem('host_table_sort')
@@ -175,13 +175,13 @@ defineExpose({
   clearSelection
 })
 
-const handleRemoveHost = async ({ host }) => {
+const handleRemoveHost = async ({ id }) => {
   $messageBox.confirm('确认删除实例', 'Warning', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
-    let { data } = await $api.removeHost({ host })
+    let { data } = await $api.removeHost({ ids: [id,] })
     $message({
       message: data,
       type: 'success',

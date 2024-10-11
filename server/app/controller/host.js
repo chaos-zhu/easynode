@@ -24,17 +24,16 @@ async function addHost({
 }) {
   let {
     body: {
-      name, host: newHost, index, expired, expiredNotify, group, consoleUrl, remark,
-      port, username, authType, password, privateKey, credential, command, tempKey
+      name, host, index, expired, expiredNotify, group, consoleUrl, remark,
+      port: newPort, username, authType, password, privateKey, credential, command, tempKey
     }
   } = request
   // console.log(request)
-  if (!newHost || !name) return res.fail({ msg: 'missing params: name or host' })
+  if (!host || !name) return res.fail({ msg: 'missing params: name or host' })
   let hostList = await readHostList()
-  if (hostList?.some(({ host }) => host === newHost)) return res.fail({ msg: `主机${ newHost }已存在` })
   let record = {
-    name, host: newHost, index, expired, expiredNotify, group, consoleUrl, remark,
-    port, username, authType, password, privateKey, credential, command
+    name, host, index, expired, expiredNotify, group, consoleUrl, remark,
+    port: newPort, username, authType, password, privateKey, credential, command
   }
   if (record[authType]) {
     const clearTempKey = await RSADecryptSync(tempKey)
@@ -53,6 +52,7 @@ async function updateHost({ res, request }) {
   let {
     body: {
       hosts,
+      id,
       host: newHost, name: newName, index, oldHost, expired, expiredNotify, group, consoleUrl, remark,
       port, username, authType, password, privateKey, credential, command, tempKey
     }
@@ -61,10 +61,9 @@ async function updateHost({ res, request }) {
   if (isBatch) {
     if (!hosts.length) return res.fail({ msg: 'hosts为空' })
     let hostList = await readHostList()
-    // console.log('批量修改实例')
     let newHostList = []
     for (let oldRecord of hostList) {
-      let record = hosts.find(item => item.host === oldRecord.host)
+      let record = hosts.find(item => item.id === oldRecord._id)
       if (!record) {
         newHostList.push(oldRecord)
         continue
@@ -94,7 +93,7 @@ async function updateHost({ res, request }) {
   }
   if (!hostList.some(({ host }) => host === oldHost)) return res.fail({ msg: `原实例[${ oldHost }]不存在,请尝试添加实例` })
 
-  let idx = hostList.findIndex(({ host }) => host === oldHost)
+  let idx = hostList.findIndex(({ _id }) => _id === id)
   const oldRecord = hostList[idx]
   // 如果存在原认证方式则保存下来
   if (!record[authType] && oldRecord[authType]) {
@@ -115,16 +114,10 @@ async function updateHost({ res, request }) {
 async function removeHost({
   res, request
 }) {
-  let { body: { host } } = request
+  let { body: { ids } } = request
   let hostList = await readHostList()
-  if (Array.isArray(host)) {
-    hostList = hostList.filter(item => !host.includes(item.host))
-    // if (hostList.length === 0) return res.fail({ msg: '没有可删除的实例' })
-  } else {
-    let hostIdx = hostList.findIndex(item => item.host === host)
-    if (hostIdx === -1) return res.fail({ msg: `${ host }不存在` })
-    hostList.splice(hostIdx, 1)
-  }
+  if (!Array.isArray(ids)) return res.fail({ msg: '参数错误' })
+  hostList = hostList.filter(({ id }) => !ids.includes(id))
   writeHostList(hostList)
   res.success({ data: '已移除' })
 }
@@ -135,9 +128,9 @@ async function importHost({
   let { body: { importHost, isEasyNodeJson = false } } = request
   if (!Array.isArray(importHost)) return res.fail({ msg: '参数错误' })
   let hostList = await readHostList()
-  // 过滤已存在的host
-  let hostListSet = new Set(hostList.map(item => item.host))
-  let newHostList = importHost.filter(item => !hostListSet.has(item.host))
+  // 考虑到批量导入可能会重复太多,先过滤已存在的host:port
+  let hostListSet = new Set(hostList.map(({ host, port }) => `${ host }:${ port }`))
+  let newHostList = importHost.filter(({ host, port }) => !hostListSet.has(`${ host }:${ port }`))
   let newHostListLen = newHostList.length
   if (newHostListLen === 0) return res.fail({ msg: '导入的实例已存在' })
 
@@ -159,7 +152,6 @@ async function importHost({
       item.index = newHostListLen - index
       return Object.assign(item, { ...extraFiels })
     })
-
   }
   hostList.push(...newHostList)
   writeHostList(hostList)

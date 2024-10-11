@@ -121,10 +121,10 @@ let collectSelectHost = () => {
 let handleBatchSSH = () => {
   collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
-  let ips = selectHosts.value.filter(item => item.isConfig).map(item => item.host)
-  if (!ips.length) return $message.warning('所选实例未配置ssh连接信息')
-  if (ips.length < selectHosts.value.length) $message.warning('部分实例未配置ssh连接信息,已忽略')
-  $router.push({ path: '/terminal', query: { host: ips.join(',') } })
+  let ids = selectHosts.value.filter(item => item.isConfig).map(item => item.id)
+  if (!ids.length) return $message.warning('所选实例未配置ssh连接信息')
+  if (ids.length < selectHosts.value.length) $message.warning('部分实例未配置ssh连接信息,已忽略')
+  $router.push({ path: '/terminal', query: { hostIds: ids.join(',') } })
 }
 
 let handleBatchModify = async () => {
@@ -137,7 +137,7 @@ let handleBatchModify = async () => {
 let handleBatchRemove = async () => {
   collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
-  let ips = selectHosts.value.map(item => item.host)
+  let ids = selectHosts.value.map(item => item.id)
   let names = selectHosts.value.map(item => item.name)
 
   $messageBox.confirm(() => h('p', { style: 'line-height: 18px;' }, `确认删除\n${ names.join(', ') }吗?`), 'Warning', {
@@ -145,7 +145,7 @@ let handleBatchRemove = async () => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
-    let { data } = await $api.removeHost({ host: ips })
+    let { data } = await $api.removeHost({ ids })
     $message({ message: data, type: 'success', center: true })
     selectHosts.value = []
     await handleUpdateList()
@@ -161,8 +161,8 @@ let handleUpdateHost = (defaultData) => {
 let handleBatchOnekey = async () => {
   collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
-  let ips = selectHosts.value.map(item => item.host).join(',')
-  $router.push({ path: '/onekey', query: { host: ips, execClientInstallScript: 'true' } })
+  let ids = selectHosts.value.map(item => item.id).join(',')
+  $router.push({ path: '/onekey', query: { hostIds: ids, execClientInstallScript: 'true' } })
 }
 
 let handleBatchExport = () => {

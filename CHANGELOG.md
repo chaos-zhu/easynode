@@ -1,3 +1,12 @@
+## [2.3.0](https://github.com/chaos-zhu/easynode/releases) (2024-10-xx)
+
+### Features
+
+* 不再对同IP:PORT的实例进行校验
+* 支持同IP任意端口的服务器录入
+* 支持关闭所有终端连接
+* TODO: 兼容移动端展示
+
 ## [2.2.4](https://github.com/chaos-zhu/easynode/releases) (2024-08-31)
 
 ### Features

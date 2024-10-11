@@ -104,7 +104,7 @@ module.exports = (httpServer) => {
       return
     }
     isExecuting = true
-    socket.on('create', async ({ hosts, token, command, timeout }) => {
+    socket.on('create', async ({ hostIds, token, command, timeout }) => {
       const { code } = await verifyAuthSync(token, requestIP)
       if (code !== 1) {
         socket.emit('token_verify_fail')
@@ -126,13 +126,13 @@ module.exports = (httpServer) => {
         socket.disconnect()
         disconnectAllExecClient()
       }, timeout * 1000)
-      console.log('hosts:', hosts)
+      console.log('hostIds:', hostIds)
       // console.log('token:', token)
       console.log('command:', command)
       const hostList = await readHostList()
-      const targetHostsInfo = hostList.filter(item => hosts.some(ip => item.host === ip)) || {}
+      const targetHostsInfo = hostList.filter(item => hostIds.some(id => item._id === id)) || {}
       // console.log('targetHostsInfo:', targetHostsInfo)
-      if (!targetHostsInfo.length) return socket.emit('create_fail', `未找到【${ hosts }】服务器信息`)
+      if (!targetHostsInfo.length) return socket.emit('create_fail', `未找到【${ hostIds }】服务器信息`)
       // 查找 hostInfo -> 并发执行
       socket.emit('ready')
       let execPromise = targetHostsInfo.map((hostInfo, index) => {
@@ -141,7 +141,7 @@ module.exports = (httpServer) => {
           setTimeout(() => reject('执行超时'), timeout * 1000)
           let { authType, host, port, username } = hostInfo
           let authInfo = { host, port, username }
-          let curRes = { command, host, name: hostInfo.name, result: '', status: execStatusEnum.connecting, date: Date.now() - (targetHostsInfo.length - index) } // , execStatusEnum
+          let curRes = { command, host, port, name: hostInfo.name, result: '', status: execStatusEnum.connecting, date: Date.now() - (targetHostsInfo.length - index) } // , execStatusEnum
           execResult.push(curRes)
           try {
             if (authType === 'credential') {
