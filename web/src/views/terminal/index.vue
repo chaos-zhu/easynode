@@ -40,6 +40,7 @@
         :terminal-tabs="terminalTabs"
         @remove-tab="handleRemoveTab"
         @add-host="linkTerminal"
+        @close-all-tab="handleRemoveAllTab"
       />
     </div>
     <HostForm
@@ -74,8 +75,9 @@ let isAllConfssh = computed(() => {
   return hostList.value?.every(item => item.isConfig)
 })
 
-function linkTerminal(row) {
-  const { name, host } = row
+function linkTerminal({ id }) {
+  let targetHost = hostList.value.find(item => item.id === id)
+  const { host, name } = targetHost
   terminalTabs.push({ key: randomStr(16), name, host, status: CONNECTING })
 }
 
@@ -86,6 +88,10 @@ function handleUpdateHost(row) {
 
 function handleRemoveTab(index) {
   terminalTabs.splice(index, 1)
+}
+
+function handleRemoveAllTab() {
+  terminalTabs.length = []
 }
 
 const handleUpdateList = async ({ host }) => {

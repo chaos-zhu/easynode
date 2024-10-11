@@ -208,7 +208,7 @@
       style="display: block;width: 80%;margin: 15px auto;"
       @click="clickInputCommand"
     >
-      命令输入框
+      长指令输入
     </el-button>
   </div>
 </template>

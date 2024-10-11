@@ -3,10 +3,13 @@
     <div class="terminal_top">
       <div class="left_menu">
         <el-dropdown trigger="click">
-          <span class="link_text">新建连接<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text">连接管理<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item v-for="(item, index) in hostList" :key="index" @click="handleCommandHost(item)">
+              <el-dropdown-item class="link_close_all" @click="handleCloseAllTab">
+                <span>关闭所有连接</span>
+              </el-dropdown-item>
+              <el-dropdown-item v-for="(item, index) in hostList" :key="index" @click="handleLinkHost(item)">
                 {{ item.name }} {{ item.host }}
               </el-dropdown-item>
             </el-dropdown-menu>
@@ -48,7 +51,7 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="handleFullScreen">
-                <span>开启全屏</span>
+                <span>启用全屏</span>
               </el-dropdown-item>
               <el-dropdown-item @click="showSetting = true">
                 <span>终端设置</span>
@@ -184,7 +187,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['closed', 'removeTab', 'add-host',])
+const emit = defineEmits(['closed', 'close-all-tab', 'removeTab', 'add-host',])
 
 const showInputCommand = ref(false)
 const infoSideRef = ref(null)
@@ -254,7 +257,7 @@ const handleResizeTerminalSftp = () => {
   })
 }
 
-const handleCommandHost = (host) => {
+const handleLinkHost = (host) => {
   if (!host.isConfig) {
     $message.warning('请先配置SSH连接信息')
     hostFormVisible.value = true
@@ -262,6 +265,10 @@ const handleCommandHost = (host) => {
     return
   }
   emit('add-host', host)
+}
+
+const handleCloseAllTab = () => {
+  emit('close-all-tab')
 }
 
 const handleExecScript = (scriptObj) => {
@@ -525,5 +532,8 @@ const handleInputCommand = async (command) => {
 <style>
 .action_icon {
   color: var(--el-color-primary);
+}
+.link_close_all:hover {
+  color: #ff4949!important;
 }
 </style>
