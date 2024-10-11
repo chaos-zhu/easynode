@@ -9,7 +9,7 @@ SERVER_NAME=easynode-client
 FILE_PATH=/root/local/easynode-client
 SERVICE_PATH=/etc/systemd/system
 CLIENT_VERSION=client-2024-08-17 # 目前监控客户端版本发布需手动更改为最新版本号
-SERVER_PROXY="https://mirror.ghproxy.com/"
+SERVER_PROXY="https://ghp.ci/"
 
 echo "***********************开始安装EasyNode监控客户端端,当前版本号: ${CLIENT_VERSION}***********************"
 
