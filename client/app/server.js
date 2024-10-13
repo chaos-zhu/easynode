@@ -1,14 +1,15 @@
 const http = require('http')
 const Koa = require('koa')
-const { httpPort } = require('./config')
+const { defaultPort } = require('./config')
 const wsOsInfo = require('./socket/monitor')
 
 const httpServer = () => {
   const app = new Koa()
   const server = http.createServer(app.callback())
   serverHandler(app, server)
-  server.listen(httpPort, () => {
-    console.log(`Server(http) is running on port:${ httpPort }`)
+  const port = process.env.CLIENT_PORT || defaultPort
+  server.listen(port, () => {
+    console.log(`Server(http) is running on port:${ port }`)
   })
 }
 

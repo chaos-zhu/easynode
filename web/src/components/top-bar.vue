@@ -46,7 +46,7 @@
         <p>更新日志：<a class="link" href="https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md" target="_blank">https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md</a></p>
         <p>开源仓库: <a class="link" href="https://github.com/chaos-zhu/easynode" target="_blank">https://github.com/chaos-zhu/easynode</a></p>
         <p>作者: <a class="link" href="https://github.com/chaos-zhu" target="_blank">chaoszhu</a></p>
-        <!-- <p>tg更新通知：<a class="link" href="https://t.me/easynode_notify" target="_blank">https://t.me/easynode_notify</a></p> -->
+        <p>tg更新通知：<a class="link" href="https://t.me/easynode_notify" target="_blank">https://t.me/easynode_notify</a></p>
         <p>
           打赏: EasyNode开源且无任何收费，如果您认为此项目帮到了您, 您可以请我喝杯阔乐(记得留个备注)~
         </p>

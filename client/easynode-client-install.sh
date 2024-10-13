@@ -5,13 +5,18 @@ if [ "$(id -u)" != "0" ] ; then
 	exit 1
 fi
 
+clientPort=${clientPort:-22022}
 SERVER_NAME=easynode-client
 FILE_PATH=/root/local/easynode-client
 SERVICE_PATH=/etc/systemd/system
-CLIENT_VERSION=client-2024-08-17 # 目前监控客户端版本发布需手动更改为最新版本号
+CLIENT_VERSION=client-2024-10-13 # 目前监控客户端版本发布需手动更改为最新版本号
 SERVER_PROXY="https://ghp.ci/"
 
-echo "***********************开始安装EasyNode监控客户端端,当前版本号: ${CLIENT_VERSION}***********************"
+if [ ! -z "$1" ]; then
+  clientPort=$1
+fi
+
+echo "***********************开始安装EasyNode监控客户端端,当前版本号: ${CLIENT_VERSION}, 端口: ${clientPort}***********************"
 
 systemctl status ${SERVER_NAME} > /dev/null 2>&1
 if [ $? != 4 ]
@@ -80,6 +85,8 @@ echo "***********************下载成功***********************"
 chmod +x ${FILE_PATH}/${SERVER_NAME}
 chmod 777 ${FILE_PATH}/${SERVER_NAME}.service
 
+sed -i "s/clientPort=22022/clientPort=${clientPort}/g" ${FILE_PATH}/${SERVER_NAME}.service
+
 # echo "***********************移动service&reload***********************"
 mv ${FILE_PATH}/${SERVER_NAME}.service ${SERVICE_PATH}
 
@@ -88,7 +95,6 @@ systemctl daemon-reload
 
 echo "***********************启动服务***********************"
 systemctl start ${SERVER_NAME}
-
 
 # echo "***********************设置开机启动***********************"
 systemctl enable ${SERVER_NAME}

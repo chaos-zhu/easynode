@@ -59,14 +59,18 @@ pm2 start index.js --name easynode-server
 
 ## 监控服务安装
 
-- 监控服务用于实时向服务端推送**系统、公网IP、CPU、内存、硬盘、网卡**等基础信息，不安装不影响使用面板，但是无法实时同步cpu占用、实时网速、硬盘容量等有用信息。
+- 监控服务用于实时向服务端推送**系统、公网IP、CPU、内存、硬盘、网卡**等基础信息，不安装不影响使用面板，但是无法实时同步cpu占用、实时网速、硬盘容量等实用信息。
 
-- 占用端口：**22022**
+- 默认端口：**22022**
 
 > 安装
 
 ```shell
+# 使用默认端口22022安装
 curl -o- https://ghp.ci/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash
+
+# 使用自定义端口安装, 例如54321
+curl -o- https://ghp.ci/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash -s -- 54321
 ```
 
 > 卸载

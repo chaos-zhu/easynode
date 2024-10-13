@@ -1,3 +1,3 @@
 module.exports = {
-  httpPort: 22022
+  defaultPort: 22022
 }
