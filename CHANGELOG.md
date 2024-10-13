@@ -1,4 +1,4 @@
-## [2.2.6](https://github.com/chaos-zhu/easynode/releases) (2024-10-12)
+## [2.2.6](https://github.com/chaos-zhu/easynode/releases) (2024-10-14)
 
 ### Features
 
