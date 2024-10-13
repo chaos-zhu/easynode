@@ -25,7 +25,7 @@ async function addHost({
   let {
     body: {
       name, host, index, expired, expiredNotify, group, consoleUrl, remark,
-      port: newPort, username, authType, password, privateKey, credential, command, tempKey
+      port: newPort, clientPort, username, authType, password, privateKey, credential, command, tempKey
     }
   } = request
   // console.log(request)
@@ -33,7 +33,7 @@ async function addHost({
   let hostList = await readHostList()
   let record = {
     name, host, index, expired, expiredNotify, group, consoleUrl, remark,
-    port: newPort, username, authType, password, privateKey, credential, command
+    port: newPort, clientPort, username, authType, password, privateKey, credential, command
   }
   if (record[authType]) {
     const clearTempKey = await RSADecryptSync(tempKey)
@@ -54,7 +54,7 @@ async function updateHost({ res, request }) {
       hosts,
       id,
       host: newHost, name: newName, index, oldHost, expired, expiredNotify, group, consoleUrl, remark,
-      port, username, authType, password, privateKey, credential, command, tempKey
+      port, clientPort, username, authType, password, privateKey, credential, command, tempKey
     }
   } = request
   let isBatch = Array.isArray(hosts)
@@ -80,18 +80,22 @@ async function updateHost({ res, request }) {
         record[authType] = await AESEncryptSync(clearSSHKey)
         // console.log(`${ authType }__commonKey加密存储: `, record[authType])
       }
+      delete oldRecord.monitorData
+      delete record.monitorData
       newHostList.push(Object.assign(oldRecord, record))
     }
     await writeHostList(newHostList)
     return res.success({ msg: '批量修改成功' })
   }
   if (!newHost || !newName || !oldHost) return res.fail({ msg: '参数错误' })
+
   let hostList = await readHostList()
+  if (!hostList.some(({ host }) => host === oldHost)) return res.fail({ msg: `原实例[${ oldHost }]不存在,请尝试添加实例` })
+
   let record = {
     name: newName, host: newHost, index, expired, expiredNotify, group, consoleUrl, remark,
-    port, username, authType, password, privateKey, credential, command
+    port, clientPort, username, authType, password, privateKey, credential, command
   }
-  if (!hostList.some(({ host }) => host === oldHost)) return res.fail({ msg: `原实例[${ oldHost }]不存在,请尝试添加实例` })
 
   let idx = hostList.findIndex(({ _id }) => _id === id)
   const oldRecord = hostList[idx]

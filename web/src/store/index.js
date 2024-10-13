@@ -1,7 +1,10 @@
 import { io } from 'socket.io-client'
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import $api from '@/api'
+import config from '@/config'
 // import ping from '@/utils/ping'
+
+const { defaultClientPort } = config
 
 const useStore = defineStore({
   id: 'global',
@@ -42,7 +45,7 @@ const useStore = defineStore({
       await this.getHostList()
       await this.getSSHList()
       await this.getScriptList()
-      this.wsHostStatus()
+      this.wsClientsStatus()
     },
     async getHostList() {
       let { data: newHostList } = await $api.getHostList()
@@ -80,7 +83,7 @@ const useStore = defineStore({
     //     })
     //   }, 2000)
     // },
-    async wsHostStatus() {
+    async wsClientsStatus() {
       // if (this.HostStatusSocket) this.HostStatusSocket.close()
       let socketInstance = io(this.serviceURI, {
         path: '/clients',
@@ -96,8 +99,8 @@ const useStore = defineStore({
         socketInstance.on('clients_data', (data) => {
           // console.log(data)
           this.hostList.forEach(item => {
-            const { host } = item
-            return Object.assign(item, { monitorData: Object.freeze(data[host]) })
+            const { host, clientPort } = item
+            return Object.assign(item, { monitorData: Object.freeze(data[`${ host }:${ clientPort || defaultClientPort }`]) })
           })
         })
         socketInstance.on('token_verify_fail', (message) => {

@@ -127,7 +127,7 @@
           <el-input
             v-model="hostForm.privateKey"
             type="textarea"
-            :rows="5"
+            :rows="3"
             clearable
             autocomplete="off"
             style="margin-top: 5px;"
@@ -183,7 +183,7 @@
           <el-input
             v-model="hostForm.command"
             type="textarea"
-            :rows="5"
+            :rows="3"
             clearable
             autocomplete="off"
             placeholder="连接服务器后自动执行的指令(例如: sudo -i)"
@@ -216,6 +216,14 @@
             placeholder="用于直达云服务商控制台"
             autocomplete="off"
             @keyup.enter="handleSave"
+          />
+        </el-form-item>
+        <el-form-item key="clientPort" label="客户端端口" prop="clientPort">
+          <el-input
+            v-model.trim.number="hostForm.clientPort"
+            clearable
+            placeholder="客户端上报信息端口(默认22022)"
+            autocomplete="off"
           />
         </el-form-item>
         <el-form-item
@@ -291,6 +299,7 @@ const formField = {
   password: '',
   privateKey: '',
   credential: '', // credentials -> _id
+  clientPort: '22022',
   index: 0,
   expired: null,
   expiredNotify: false,
@@ -313,6 +322,7 @@ const rules = computed(() => {
     name: { required: !isBatchModify.value, message: '输入实例别名', trigger: 'change' },
     host: { required: !isBatchModify.value, message: '输入IP/域名', trigger: 'change' },
     port: { required: !isBatchModify.value, type: 'number', message: '输入ssh端口', trigger: 'change' },
+    clientPort: { required: false, type: 'number', message: '输入ssh端口', trigger: 'change' },
     index: { required: !isBatchModify.value, type: 'number', message: '输入数字', trigger: 'change' },
     // password: [{ required: hostForm.authType === 'password', trigger: 'change' },],
     // privateKey: [{ required: hostForm.authType === 'privateKey', trigger: 'change' },],
