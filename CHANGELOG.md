@@ -1,3 +1,10 @@
+## [2.2.6](https://github.com/chaos-zhu/easynode/releases) (2024-10-12)
+
+### Features
+
+* 支持自定义客户端端口,方便穿透内网机器
+* 修复监控数据意外注入bug
+
 ## [2.2.5](https://github.com/chaos-zhu/easynode/releases) (2024-10-11)
 
 ### Features
