@@ -301,17 +301,17 @@ const handleColor = (num) => {
   if (num <= 100) return '#ff4949'
 }
 
-const getHostPing = () => {
-  pingTimer.value = setInterval(() => {
-    $tools.ping(`http://${ props.host }:22022`)
-      .then(res => {
-        ping.value = res
-        if (!import.meta.env.DEV) {
-          console.warn('Please tick \'Preserve Log\'')
-        }
-      })
-  }, 3000)
-}
+// const getHostPing = () => {
+//   pingTimer.value = setInterval(() => {
+//     $tools.ping(`http://${ props.host }:22022`)
+//       .then(res => {
+//         ping.value = res
+//         if (!import.meta.env.DEV) {
+//           console.warn('Please tick \'Preserve Log\'')
+//         }
+//       })
+//   }, 3000)
+// }
 
 onBeforeUnmount(() => {
   socket.value && socket.value.close()

@@ -1,7 +1,7 @@
 const { Server: ServerIO } = require('socket.io')
 const { io: ClientIO } = require('socket.io-client')
 const { readHostList } = require('../utils/storage')
-const { clientPort } = require('../config')
+const { clientDefaultPort } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { isAllowedIp } = require('../utils/tools')
 
@@ -15,9 +15,9 @@ async function getClientsInfo(clientSockets) {
     if (!hostList.some(item => item.host === clientItem.host)) clientItem.close && clientItem.close()
   })
   hostList
-    .map(({ host, name }) => {
+    .map(({ host, name, clientPort }) => {
       if (clientSockets.some(item => item.host === host)) return { name, isIo: true } // 已经建立io连接(无论是否连接成功)的host不再重复建立连接,因为存在多次(reconnectionAttempts)的重试机制
-      let clientSocket = ClientIO(`http://${ host }:${ clientPort }`, {
+      let clientSocket = ClientIO(`http://${ host }:${ clientPort || clientDefaultPort }`, {
         path: '/client/os-info',
         forceNew: true,
         timeout: 5000,

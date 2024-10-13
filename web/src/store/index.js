@@ -21,7 +21,7 @@ const useStore = defineStore({
   }),
   actions: {
     async setJwtToken(token, isSession = true) {
-      if(isSession) sessionStorage.setItem('token', token)
+      if (isSession) sessionStorage.setItem('token', token)
       else localStorage.setItem('token', token)
       this.$patch({ token })
     },
@@ -73,7 +73,7 @@ const useStore = defineStore({
     //   setInterval(() => {
     //     this.hostList.forEach((item) => {
     //       const { host } = item
-    //       ping(`http://${ host }:${ this.$clientPort }`)
+    //       ping(`http://${ host }:${ 22022 }`)
     //         .then((res) => {
     //           item.ping = res
     //         })
@@ -121,7 +121,7 @@ const useStore = defineStore({
         localStorage.setItem('isDark', isDark)
         this.$patch({ isDark })
       }
-      if(animate) {
+      if (animate) {
         let transition = document.startViewTransition(() => {
           document.documentElement.classList.toggle('dark')
         })

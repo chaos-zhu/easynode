@@ -37,8 +37,7 @@ export default defineConfig({
   define: {
     'process.env': {
       serviceURI,
-      serviceApiPrefix,
-      clientPort: 22022
+      serviceApiPrefix
     }
   },
   plugins: [
