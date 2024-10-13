@@ -7,7 +7,7 @@ const httpServer = () => {
   const app = new Koa()
   const server = http.createServer(app.callback())
   serverHandler(app, server)
-  const port = process.env.CLIENT_PORT || defaultPort
+  const port = process.env.clientPort || defaultPort
   server.listen(port, () => {
     console.log(`Server(http) is running on port:${ port }`)
   })
