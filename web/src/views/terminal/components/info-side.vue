@@ -14,7 +14,10 @@
           </div>
         </template>
         <span style="margin-right: 10px;">{{ host }}</span>
-        <el-tag size="small" style="cursor: pointer;" @click="handleCopy">复制</el-tag>
+        <template v-if="pingMs">
+          <span class="host-ping" :style="{backgroundColor: handlePingColor(pingMs)}">{{ pingMs }}ms</span>
+        </template>
+        <el-tag size="small" style="cursor: pointer;margin-left: 15px;" @click="handleCopy">复制</el-tag>
       </el-descriptions-item>
       <el-descriptions-item>
         <template #label>
@@ -22,16 +25,15 @@
             位置
           </div>
         </template>
-        <!-- <div size="small">{{ ipInfo.country || '--' }} {{ ipInfo.regionName }} {{ ipInfo.city }}</div> -->
         <div size="small">{{ ipInfo.country || '--' }} {{ ipInfo.regionName }}</div>
       </el-descriptions-item>
-      <!-- <el-descriptions-item>
+      <!-- <el-descriptions-item v-if="pingMs">
         <template #label>
           <div class="item-title">
             延迟
           </div>
         </template>
-        <span style="margin-right: 10px;" class="host-ping">{{ ping }}</span>
+        <span style="margin-right: 10px;" class="host-ping">{{ pingMs }}</span>
       </el-descriptions-item> -->
     </el-descriptions>
 
@@ -54,7 +56,7 @@
           :text-inside="true"
           :stroke-width="18"
           :percentage="cpuUsage"
-          :color="handleColor(cpuUsage)"
+          :color="handleUsedColor(cpuUsage)"
         />
       </el-descriptions-item>
       <el-descriptions-item>
@@ -67,7 +69,7 @@
           :text-inside="true"
           :stroke-width="18"
           :percentage="usedMemPercentage"
-          :color="handleColor(usedMemPercentage)"
+          :color="handleUsedColor(usedMemPercentage)"
         />
         <div class="position-right">
           {{ $tools.toFixed(memInfo.usedMemMb / 1024) }}/{{ $tools.toFixed(memInfo.totalMemMb / 1024) }}G
@@ -83,7 +85,7 @@
           :text-inside="true"
           :stroke-width="18"
           :percentage="swapPercentage"
-          :color="handleColor(swapPercentage)"
+          :color="handleUsedColor(swapPercentage)"
         />
         <div class="position-right">
           {{ $tools.toFixed(swapInfo.swapUsed / 1024) }}/{{ $tools.toFixed(swapInfo.swapTotal / 1024) }}G
@@ -99,7 +101,7 @@
           :text-inside="true"
           :stroke-width="18"
           :percentage="usedPercentage"
-          :color="handleColor(usedPercentage)"
+          :color="handleUsedColor(usedPercentage)"
         />
         <div class="position-right">
           {{ driveInfo.usedGb || '--' }}/{{ driveInfo.totalGb || '--' }}G
@@ -229,18 +231,18 @@ const props = defineProps({
   showInputCommand: {
     required: true,
     type: Boolean
+  },
+  pingData: {
+    required: true,
+    type: Object
   }
 })
 
 const emit = defineEmits(['update:inputCommandStyle', 'connect-sftp', 'click-input-command',])
 
 const socket = ref(null)
-// const name = ref('')
-const ping = ref(0)
 const pingTimer = ref(null)
-// const sftpStatus = ref(false)
 
-// const token = computed(() => $store.token)
 const hostData = computed(() => props.hostInfo.monitorData || {})
 const host = computed(() => props.hostInfo.host)
 const ipInfo = computed(() => hostData.value?.ipInfo || {})
@@ -280,6 +282,12 @@ const inputCommandStyle = computed({
   }
 })
 
+const pingMs = computed(() => {
+  let curPingData = props.pingData[host.value] || {}
+  if (!curPingData?.success) return false
+  return Number(curPingData?.time).toFixed(0)
+})
+
 // const handleSftp = () => {
 //   sftpStatus.value = !sftpStatus.value
 //   emit('connect-sftp', sftpStatus.value)
@@ -295,23 +303,17 @@ const handleCopy = async () => {
   $message.success({ message: 'success', center: true })
 }
 
-const handleColor = (num) => {
+const handleUsedColor = (num) => {
   if (num < 60) return '#13ce66'
   if (num < 80) return '#e6a23c'
   if (num <= 100) return '#ff4949'
 }
 
-// const getHostPing = () => {
-//   pingTimer.value = setInterval(() => {
-//     $tools.ping(`http://${ props.host }:22022`)
-//       .then(res => {
-//         ping.value = res
-//         if (!import.meta.env.DEV) {
-//           console.warn('Please tick \'Preserve Log\'')
-//         }
-//       })
-//   }, 3000)
-// }
+const handlePingColor = (num) => {
+  if (num < 100) return 'rgba(19, 206, 102, 0.5)' // #13ce66
+  if (num < 250) return 'rgba(230, 162, 60, 0.5)' // #e6a23c
+  return 'rgba(255, 73, 73, 0.5)' // #ff4949
+}
 
 onBeforeUnmount(() => {
   socket.value && socket.value.close()
@@ -351,10 +353,9 @@ onBeforeUnmount(() => {
 
   .host-ping {
     display: inline-block;
-    font-size: 13px;
-    color: #009933;
-    background-color: #e8fff3;
+    font-size: 10px;
     padding: 0 5px;
+    border-radius: 2px;
   }
 
   // 分割线title

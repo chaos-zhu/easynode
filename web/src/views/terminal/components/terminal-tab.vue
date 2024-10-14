@@ -48,13 +48,14 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['inputCommand', 'cdCommand',])
+const emit = defineEmits(['inputCommand', 'cdCommand', 'ping-data',])
 
 const socket = ref(null)
 // const commandHistoryList = ref([])
 const term = ref(null)
 const command = ref('')
 const timer = ref(null)
+const pingTimer = ref(null)
 const fitAddon = ref(null)
 const searchBar = ref(null)
 const hasRegisterEvent = ref(false)
@@ -70,6 +71,7 @@ const fontSize = computed(() => props.fontSize)
 const background = computed(() => props.background)
 const hostObj = computed(() => props.hostObj)
 const hostId = computed(() => hostObj.value.id)
+const host = computed(() => hostObj.value.host)
 let menuCollapse = computed(() => $store.menuCollapse)
 
 watch(menuCollapse, () => {
@@ -126,6 +128,7 @@ const connectIO = () => {
   })
   socket.value.on('connect', () => {
     console.log('/terminal socket已连接：', hostId.value)
+
     socketConnected.value = true
     socket.value.emit('create', { hostId: hostId.value, token: token.value })
     socket.value.on('connect_terminal_success', () => {
@@ -149,6 +152,14 @@ const connectIO = () => {
       //   console.log(data)
       //   commandHistoryList.value = data
       // })
+    })
+
+    pingTimer.value = setInterval(() => {
+      socket.value.emit('get_ping', host.value)
+    }, 3000)
+    socket.value.emit('get_ping', host.value) // 获取服务端到客户端的ping值
+    socket.value.on('ping_data', (pingMs) => {
+      emit('ping-data', Object.assign({ ip: host.value }, pingMs))
     })
 
     socket.value.on('token_verify_fail', () => {
@@ -412,6 +423,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   socket.value?.close()
   window.removeEventListener('resize', handleResize)
+  clearInterval(pingTimer.value)
 })
 
 defineExpose({

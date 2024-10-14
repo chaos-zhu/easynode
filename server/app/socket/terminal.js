@@ -4,7 +4,7 @@ const { verifyAuthSync } = require('../utils/verify-auth')
 const { AESDecryptSync } = require('../utils/encrypt')
 const { readSSHRecord, readHostList } = require('../utils/storage')
 const { asyncSendNotice } = require('../utils/notify')
-const { isAllowedIp } = require('../utils/tools')
+const { isAllowedIp, ping } = require('../utils/tools')
 
 function createInteractiveShell(socket, sshClient) {
   return new Promise((resolve) => {
@@ -98,6 +98,7 @@ async function createTerminal(hostId, socket, sshClient) {
           ...authInfo
         // debug: (info) => console.log(info)
         })
+
     } catch (err) {
       consola.error('创建终端失败: ', host, err.message)
       socket.emit('create_fail', err.message)
@@ -147,6 +148,7 @@ module.exports = (httpServer) => {
       }
       socket.on('input', listenerInput)
       socket.on('resize', resizeShell)
+
       // 重连
       socket.on('reconnect_terminal', async () => {
         consola.info('重连终端: ', hostId)
@@ -166,6 +168,14 @@ module.exports = (httpServer) => {
         }, 3000)
       })
       stream = await createTerminal(hostId, socket, sshClient)
+    })
+
+    socket.on('get_ping',async (ip) => {
+      try {
+        socket.emit('ping_data', await ping(ip, 2500))
+      } catch (error) {
+        socket.emit('ping_data', { success: false, msg: error.message })
+      }
     })
 
     socket.on('disconnect', (reason) => {

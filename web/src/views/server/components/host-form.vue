@@ -299,7 +299,7 @@ const formField = {
   password: '',
   privateKey: '',
   credential: '', // credentials -> _id
-  clientPort: '22022',
+  clientPort: 22022,
   index: 0,
   expired: null,
   expiredNotify: false,

@@ -104,6 +104,7 @@
         v-model:show-input-command="showInputCommand"
         :host-info="curHost"
         :visible="visible"
+        :ping-data="pingData"
         @click-input-command="clickInputCommand"
       />
     </div>
@@ -138,6 +139,7 @@
               :font-size="terminalFontSize"
               @input-command="terminalInput"
               @cd-command="cdCommand"
+              @ping-data="getPingData"
             />
             <Sftp
               v-if="showSftp"
@@ -191,6 +193,7 @@ const emit = defineEmits(['closed', 'close-all-tab', 'removeTab', 'add-host',])
 
 const showInputCommand = ref(false)
 const infoSideRef = ref(null)
+const pingData = ref({})
 const terminalRefs = ref([])
 const sftpRefs = ref([])
 const activeTabIndex = ref(0)
@@ -300,6 +303,10 @@ const cdCommand = (path) => {
   } else {
     sftpRefs.value[activeTabIndex.value].openDir(path, false)
   }
+}
+
+const getPingData = (data) => {
+  pingData.value[data.ip] = data
 }
 
 const tabChange = async (index) => {

@@ -28,6 +28,7 @@
     "dotenv": "^16.4.5",
     "fs-extra": "^11.2.0",
     "global": "^4.4.0",
+    "iconv-lite": "^0.6.3",
     "jsonwebtoken": "^9.0.2",
     "koa": "^2.15.3",
     "koa-body": "^6.0.1",

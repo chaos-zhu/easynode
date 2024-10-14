@@ -1,4 +1,7 @@
+const { exec } = require('child_process')
+const os = require('os')
 const net = require('net')
+const iconv = require('iconv-lite')
 const axios = require('axios')
 const request = axios.create({ timeout: 3000 })
 
@@ -240,6 +243,45 @@ const isAllowedIp = (requestIP) => {
   return flag
 }
 
+const ping = (ip, timeout = 5000) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ success: false, msg: 'ping timeout!' })
+    }, timeout)
+    let isWin = os.platform() === 'win32'
+    const command = isWin ? `ping -n 1 ${ ip }` : `ping -c 1 ${ ip }`
+    const options = isWin ? { encoding: 'buffer' } : {}
+
+    exec(command, options, (error, stdout) => {
+      if (error) {
+        resolve({ success: false, msg: 'ping error!' })
+        return
+      }
+      let output
+      if (isWin) {
+        output = iconv.decode(stdout, 'cp936')
+      } else {
+        output = stdout.toString()
+      }
+      // console.log('output:', output)
+      let match
+      if (isWin) {
+        match = output.match(/平均 = (\d+)ms/)
+        if (!match) {
+          match = output.match(/Average = (\d+)ms/)
+        }
+      } else {
+        match = output.match(/rtt min\/avg\/max\/mdev = [\d.]+\/([\d.]+)\/[\d.]+\/[\d.]+/)
+      }
+      if (match) {
+        resolve({ success: true, time: parseFloat(match[1]) })
+      } else {
+        resolve({ success: false, msg: 'Could not find time in ping output!' })
+      }
+    })
+  })
+}
+
 module.exports = {
   getNetIPInfo,
   throwError,
@@ -250,5 +292,6 @@ module.exports = {
   resolvePath,
   shellThrottle,
   isProd,
-  isAllowedIp
+  isAllowedIp,
+  ping
 }

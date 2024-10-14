@@ -1,3 +1,10 @@
+## [2.2.7](https://github.com/chaos-zhu/easynode/releases) (2024-10-xx)
+
+### Features
+
+* 终端连接页新增展示服务端ping客户端延迟ms
+* 修复自定义客户端端口默认字符串的bug
+
 ## [2.2.6](https://github.com/chaos-zhu/easynode/releases) (2024-10-14)
 
 ### Features
