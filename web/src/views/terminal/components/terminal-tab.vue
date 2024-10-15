@@ -154,6 +154,7 @@ const connectIO = () => {
       // })
     })
 
+    if (pingTimer.value) clearInterval(pingTimer.value)
     pingTimer.value = setInterval(() => {
       socket.value.emit('get_ping', host.value)
     }, 3000)
