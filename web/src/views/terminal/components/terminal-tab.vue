@@ -21,6 +21,7 @@ import { SearchAddon } from '@xterm/addon-search'
 // import { SearchBarAddon } from 'xterm-addon-search-bar'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import socketIo from 'socket.io-client'
+import themeList from 'xterm-theme'
 import { terminalStatus } from '@/utils/enum'
 
 const { CONNECTING, RECONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
@@ -32,19 +33,6 @@ const props = defineProps({
   hostObj: {
     required: true,
     type: Object
-  },
-  fontSize: {
-    required: false,
-    default: 16,
-    type: Number
-  },
-  theme: {
-    required: true,
-    type: Object
-  },
-  background: {
-    required: true,
-    type: [String, null,]
   }
 })
 
@@ -66,9 +54,9 @@ const terminal = ref(null)
 const terminalRef = ref(null)
 
 const token = computed(() => $store.token)
-const theme = computed(() => props.theme)
-const fontSize = computed(() => props.fontSize)
-const background = computed(() => props.background)
+const theme = computed(() => themeList[$store.terminalConfig.theme])
+const fontSize = computed(() => $store.terminalConfig.fontSize)
+const background = computed(() => $store.terminalConfig.background)
 const hostObj = computed(() => props.hostObj)
 const hostId = computed(() => hostObj.value.id)
 const host = computed(() => hostObj.value.host)

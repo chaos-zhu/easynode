@@ -35,7 +35,7 @@
             </el-image>
           </li>
           <li
-            v-for="url in backgroundImages"
+            v-for="url in defaultBackgroundImages"
             :key="url"
             :class="background === url ? 'active' : ''"
             @click="changeBackground(url)"
@@ -65,60 +65,39 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, getCurrentInstance } from 'vue'
 import themeList from 'xterm-theme'
+const { proxy: { $store } } = getCurrentInstance()
 
 const props = defineProps({
   show: {
     required: true,
     type: Boolean
-  },
-  themeName: {
-    required: true,
-    type: String
-  },
-  background: {
-    required: true,
-    type: [String, null,]
-  },
-  fontSize: {
-    required: true,
-    type: Number
   }
 })
-const emit = defineEmits(['update:show', 'update:themeName', 'update:background', 'update:fontSize',])
+const emit = defineEmits(['update:show',])
 
-const backgroundImages = ref([
-  'https://wmimg.com/i/1099/2024/08/66c42ff3cd6ab.png',
-  'https://wmimg.com/i/1099/2024/08/66c42ff3e3f45.png',
-  'https://wmimg.com/i/1099/2024/08/66c42ff411ffb.png',
-  'https://wmimg.com/i/1099/2024/08/66c42ff4c5753.png',
-  'https://wmimg.com/i/1099/2024/08/66c42ff4e8b4d.jpg',
-  'https://wmimg.com/i/1099/2024/08/66c42ff51ee3a.jpg',
-  'https://wmimg.com/i/1099/2024/08/66c42ff5db377.png',
-  'https://wmimg.com/i/1099/2024/08/66c42ff536a64.png',
-  'https://wmimg.com/i/1099/2024/08/66c42ff51d8dd.png',
-])
+const defaultBackgroundImages = computed(() => $store.defaultBackgroundImages)
 
 const visible = computed({
   get: () => props.show,
   set: (newVal) => emit('update:show', newVal)
 })
 const theme = computed({
-  get: () => props.themeName,
-  set: (newVal) => emit('update:themeName', newVal)
+  get: () => $store.terminalConfig.themeName,
+  set: (newVal) => $store.setTerminalSetting({ themeName: newVal })
 })
-const backgroundUrl = computed({
-  get: () => props.background,
-  set: (newVal) => emit('update:background', newVal)
+const background = computed({
+  get: () => $store.terminalConfig.background,
+  set: (newVal) => $store.setTerminalSetting({ background: newVal })
 })
 const fontSize = computed({
-  get: () => props.fontSize,
-  set: (newVal) => emit('update:fontSize', newVal)
+  get: () => $store.terminalConfig.fontSize,
+  set: (newVal) => $store.setTerminalSetting({ fontSize: newVal })
 })
 
 const changeBackground = (url) => {
-  backgroundUrl.value = url || ''
+  background.value = url || ''
 }
 </script>
 

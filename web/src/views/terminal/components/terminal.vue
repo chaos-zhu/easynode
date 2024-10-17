@@ -134,9 +134,6 @@
             <TerminalTab
               ref="terminalRefs"
               :host-obj="item"
-              :theme="themeObj"
-              :background="terminalBackground"
-              :font-size="terminalFontSize"
               @input-command="terminalInput"
               @cd-command="cdCommand"
               @ping-data="getPingData"
@@ -158,13 +155,7 @@
       @update-list="handleUpdateList"
       @closed="updateHostData = null"
     />
-    <TerminalSetting
-      v-model:show="showSetting"
-      v-model:themeName="themeName"
-      v-model:background="terminalBackground"
-      v-model:font-size="terminalFontSize"
-      @closed="showSetting = false"
-    />
+    <TerminalSetting v-model:show="showSetting" />
   </div>
 </template>
 
@@ -177,7 +168,6 @@ import Sftp from './sftp.vue'
 import InputCommand from '@/components/input-command/index.vue'
 import HostForm from '../../server/components/host-form.vue'
 import TerminalSetting from './terminal-setting.vue'
-import themeList from 'xterm-theme'
 import { terminalStatusList } from '@/utils/enum'
 
 const { proxy: { $nextTick, $store, $message } } = getCurrentInstance()
@@ -204,31 +194,12 @@ const isSyncAllSession = ref(false)
 const hostFormVisible = ref(false)
 const updateHostData = ref(null)
 const showSetting = ref(false)
-const themeName = ref(localStorage.getItem('themeName') || 'Afterglow')
-let localTerminalBackground = localStorage.getItem('terminalBackground')
-const terminalBackground = ref(localTerminalBackground || '')
-let localTerminalFontSize = localStorage.getItem('terminalFontSize')
-const terminalFontSize = ref(Number(localTerminalFontSize) || 16)
 
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
 const hostList = computed(() => $store.hostList)
 const curHost = computed(() => hostList.value.find(item => item.host === terminalTabs.value[activeTabIndex.value]?.host))
 const scriptList = computed(() => $store.scriptList)
-const themeObj = computed(() => themeList[themeName.value])
-
-watch(themeName, (newVal) => {
-  console.log('update theme:', newVal)
-  localStorage.setItem('themeName', newVal)
-})
-watch(terminalBackground, (newVal) => {
-  console.log('update terminalBackground:', newVal)
-  localStorage.setItem('terminalBackground', newVal)
-})
-watch(terminalFontSize, (newVal) => {
-  console.log('update terminalFontSize:', newVal)
-  localStorage.setItem('terminalFontSize', newVal)
-})
 
 onMounted(() => {
   handleResizeTerminalSftp()

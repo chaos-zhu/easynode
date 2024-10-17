@@ -20,7 +20,26 @@ const useStore = defineStore({
     token: sessionStorage.getItem('token') || localStorage.getItem('token') || null,
     title: '',
     isDark: false,
-    menuCollapse: localStorage.getItem('menuCollapse') === 'true'
+    menuCollapse: localStorage.getItem('menuCollapse') === 'true',
+    defaultBackgroundImages: [
+      'https://wmimg.com/i/1099/2024/08/66c42ff3cd6ab.png',
+      'https://wmimg.com/i/1099/2024/08/66c42ff3e3f45.png',
+      'https://wmimg.com/i/1099/2024/08/66c42ff411ffb.png',
+      'https://wmimg.com/i/1099/2024/08/66c42ff4c5753.png',
+      'https://wmimg.com/i/1099/2024/08/66c42ff4e8b4d.jpg',
+      'https://wmimg.com/i/1099/2024/08/66c42ff51ee3a.jpg',
+      'https://wmimg.com/i/1099/2024/08/66c42ff5db377.png',
+      'https://wmimg.com/i/1099/2024/08/66c42ff536a64.png',
+      'https://wmimg.com/i/1099/2024/08/66c42ff51d8dd.png',
+    ],
+    terminalConfig: {
+      ...{
+        fontSize: 14,
+        themeName: localStorage.getItem('themeName') || 'Afterglow',
+        background: localStorage.getItem('terminalBackground') || ''
+      },
+      ...(localStorage.getItem('terminalConfig') ? JSON.parse(localStorage.getItem('terminalConfig')) : {})
+    }
   }),
   actions: {
     async setJwtToken(token, isSession = true) {
@@ -72,17 +91,11 @@ const useStore = defineStore({
       const { data: localScriptList } = await $api.getLocalScriptList()
       this.$patch({ localScriptList })
     },
-    // getHostPing() {
-    //   setInterval(() => {
-    //     this.hostList.forEach((item) => {
-    //       const { host } = item
-    //       ping(`http://${ host }:${ 22022 }`)
-    //         .then((res) => {
-    //           item.ping = res
-    //         })
-    //     })
-    //   }, 2000)
-    // },
+    setTerminalSetting(setTarget = {}) {
+      let newConfig = { ...this.terminalConfig, ...setTarget }
+      localStorage.setItem('terminalConfig', JSON.stringify(newConfig))
+      this.$patch({ terminalConfig: newConfig })
+    },
     async wsClientsStatus() {
       // if (this.HostStatusSocket) this.HostStatusSocket.close()
       let socketInstance = io(this.serviceURI, {
