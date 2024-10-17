@@ -45,7 +45,7 @@ const command = ref('')
 const timer = ref(null)
 const pingTimer = ref(null)
 const fitAddon = ref(null)
-const searchBar = ref(null)
+// const searchBar = ref(null)
 const hasRegisterEvent = ref(false)
 
 const socketConnected = ref(false)
