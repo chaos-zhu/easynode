@@ -56,10 +56,10 @@ export const sortString = (arr = []) => {
     let c1 = ''
     let c2 = ''
     let temp = a.length > b.length ? b : a
-    for(let i = 0; i < temp.length; i++) {
+    for (let i = 0; i < temp.length; i++) {
       c1 = a[i].toLowerCase()
       c2 = b[i].toLowerCase()
-      if(c1 !== c2) break
+      if (c1 !== c2) break
     }
     return c1.charCodeAt() - c2.charCodeAt()
   })
@@ -83,10 +83,10 @@ export const sortDirTree = (tree = []) => {
       let c1 = ''
       let c2 = ''
       let temp = aName.length > bName.length ? bName : aName
-      for(let i = 0; i < temp.length; i++) {
+      for (let i = 0; i < temp.length; i++) {
         c1 = aName[i].toLowerCase()
         c2 = bName[i].toLowerCase()
-        if(c1 !== c2) break
+        if (c1 !== c2) break
       }
       return c1.charCodeAt() - c2.charCodeAt()
     })
@@ -127,4 +127,8 @@ export const exportFile = (data, filename, mimeType = 'application/json') =>{
   link.click()
   document.body.removeChild(link)
   window.URL.revokeObjectURL(url)
+}
+
+export const isHttps = () => {
+  return window.location.protocol === 'https:'
 }

@@ -3,7 +3,7 @@
     <div
       ref="terminalRef"
       class="terminal_container"
-      @contextmenu.prevent="handleRightClick"
+      @contextmenu="handleRightClick"
     />
     <!-- <div class="terminal_command_history">
       <CommandHistory :list="commandHistoryList" />
@@ -60,7 +60,10 @@ const background = computed(() => $store.terminalConfig.background)
 const hostObj = computed(() => props.hostObj)
 const hostId = computed(() => hostObj.value.id)
 const host = computed(() => hostObj.value.host)
-let menuCollapse = computed(() => $store.menuCollapse)
+const menuCollapse = computed(() => $store.menuCollapse)
+const quickCopy = computed(() => $store.terminalConfig.quickCopy)
+const quickPaste = computed(() => $store.terminalConfig.quickPaste)
+const autoExecuteScript = computed(() => $store.terminalConfig.autoExecuteScript)
 
 watch(menuCollapse, () => {
   nextTick(() => {
@@ -272,6 +275,7 @@ const onFindText = () => {
 
 const onSelectionChange = () => {
   term.value.onSelectionChange(() => {
+    if (!quickCopy.value) return
     let str = term.value.getSelection()
     if (!str) return
     const text = new Blob([str,], { type: 'text/plain' })
@@ -323,8 +327,9 @@ const onData = () => {
   term.value.onData((key) => {
     if (socketConnected.value === false) return
     let acsiiCode = key.codePointAt()
-    if (acsiiCode === 22) return handlePaste()
-    if (acsiiCode === 6) return searchBar.value.show()
+    // console.log(acsiiCode)
+    if (acsiiCode === 22) return handlePaste() // Ctrl + V
+    // if (acsiiCode === 6) return searchBar.value.show() // Ctrl + F
     enterTimer.value = setTimeout(() => {
       if (enterTimer.value) clearTimeout(enterTimer.value)
       if (key === '\r') { // Enter
@@ -363,7 +368,9 @@ const onData = () => {
   })
 }
 
-const handleRightClick = async () => {
+const handleRightClick = async (e) => {
+  if (!quickPaste.value) return
+  e.preventDefault()
   try {
     const clipboardText = await navigator.clipboard.readText()
     if (!clipboardText) return
@@ -384,6 +391,7 @@ const handleClear = () => {
 }
 
 const handlePaste = async () => {
+  if (!quickPaste.value) return
   let key = await navigator.clipboard.readText()
   emit('inputCommand', key)
   socket.value.emit('input', key)
@@ -398,6 +406,7 @@ const focusTab = () => {
 }
 
 const inputCommand = (command) => {
+  command = command + (autoExecuteScript.value ? '\n' : '')
   socket.value.emit('input', command)
 }
 

@@ -47,14 +47,14 @@
           </template>
         </el-dropdown> -->
         <el-dropdown trigger="click">
-          <span class="link_text">设置<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text">首选项<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="handleFullScreen">
                 <span>启用全屏</span>
               </el-dropdown-item>
               <el-dropdown-item @click="showSetting = true">
-                <span>终端设置</span>
+                <span>本地设置</span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -247,7 +247,6 @@ const handleCloseAllTab = () => {
 
 const handleExecScript = (scriptObj) => {
   let { command } = scriptObj
-  command += '\n'
   if (!isSyncAllSession.value) return handleInputCommand(command)
   terminalRefs.value.forEach(terminalRef => {
     terminalRef.inputCommand(command)
@@ -355,7 +354,7 @@ const handleInputCommand = async (command) => {
   const curTerminalRef = terminalRefs.value[activeTabIndex.value]
   await $nextTick()
   curTerminalRef?.focusTab()
-  curTerminalRef.inputCommand(`${ command }`) // \n
+  curTerminalRef.inputCommand(`${ command }`)
   showInputCommand.value = false
 }
 </script>

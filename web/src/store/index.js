@@ -2,7 +2,7 @@ import { io } from 'socket.io-client'
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import $api from '@/api'
 import config from '@/config'
-// import ping from '@/utils/ping'
+import { isHttps } from '@/utils'
 
 const { defaultClientPort } = config
 
@@ -34,9 +34,12 @@ const useStore = defineStore({
     ],
     terminalConfig: {
       ...{
-        fontSize: 14,
-        themeName: localStorage.getItem('themeName') || 'Afterglow',
-        background: localStorage.getItem('terminalBackground') || ''
+        fontSize: 16,
+        themeName: 'Afterglow',
+        background: '',
+        quickCopy: isHttps(),
+        quickPaste: isHttps(),
+        autoExecuteScript: false
       },
       ...(localStorage.getItem('terminalConfig') ? JSON.parse(localStorage.getItem('terminalConfig')) : {})
     }
