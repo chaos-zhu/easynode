@@ -155,9 +155,12 @@
             <TerminalTab
               ref="terminalRefs"
               :host-obj="item"
+              :long-press-ctrl="longPressCtrl"
+              :long-press-alt="longPressAlt"
               @input-command="terminalInput"
               @cd-command="cdCommand"
               @ping-data="getPingData"
+              @reset-long-press="resetLongPress"
             />
             <Sftp
               v-if="showSftp"
@@ -169,14 +172,25 @@
         </el-tab-pane>
       </el-tabs>
     </div>
+
     <InputCommand v-model:show="showInputCommand" @input-command="handleInputCommand" />
+
     <HostForm
       v-model:show="hostFormVisible"
       :default-data="updateHostData"
       @update-list="handleUpdateList"
       @closed="updateHostData = null"
     />
+
     <TerminalSetting v-model:show="showSetting" />
+
+    <FloatMenu
+      v-if="isMobileScreen"
+      v-model:show="showFloatMenu"
+      :long-press-ctrl="longPressCtrl"
+      :long-press-alt="longPressAlt"
+      @click-key="handleClickVirtualKeyboard"
+    />
   </div>
 </template>
 
@@ -185,7 +199,8 @@ import { ref, computed, getCurrentInstance, watch, onMounted, onBeforeUnmount, n
 import { ArrowDown } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import InputCommand from '@/components/input-command/index.vue'
-import { terminalStatusList } from '@/utils/enum'
+import FloatMenu from '@/components/float-menu/index.vue'
+import { terminalStatusList, virtualKeyType } from '@/utils/enum'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
 import Sftp from './sftp.vue'
@@ -217,6 +232,9 @@ const hostFormVisible = ref(false)
 const updateHostData = ref(null)
 const showSetting = ref(false)
 const showMobileInfoSideDialog = ref(false)
+const showFloatMenu = ref(false)
+const longPressCtrl = ref(false)
+const longPressAlt = ref(false)
 
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
@@ -266,6 +284,41 @@ const handleLinkHost = (host) => {
 
 const handleCloseAllTab = () => {
   emit('close-all-tab')
+}
+
+const { LONG_PRESS, SINGLE_PRESS } = virtualKeyType
+const handleClickVirtualKeyboard = async (virtualKey) => {
+  const { key, ansi ,type } = virtualKey
+  // console.log(key, ascii, ansi, type)
+  switch (type) {
+    case LONG_PRESS:
+      // console.log('待组合键')
+      if (key === 'Ctrl') {
+        longPressCtrl.value = true
+        longPressAlt.value = false
+      }
+      if (key === 'Alt') {
+        longPressAlt.value = true
+        longPressCtrl.value = false
+      }
+      // eslint-disable-next-line no-case-declarations
+      const curTerminalRef = terminalRefs.value[activeTabIndex.value]
+      await $nextTick()
+      curTerminalRef?.focusTab()
+      break
+    case SINGLE_PRESS:
+      longPressCtrl.value = false
+      longPressAlt.value = false
+      handleExecScript({ command: ansi })
+      break
+    default:
+      break
+  }
+}
+
+const resetLongPress = () => {
+  longPressCtrl.value = false
+  longPressAlt.value = false
 }
 
 const handleExecScript = (scriptObj) => {

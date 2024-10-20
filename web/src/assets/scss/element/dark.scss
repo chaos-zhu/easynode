@@ -79,6 +79,9 @@ html.dark {
     background-color: #6d6d6d;
   }
 
+  .el-menu {
+    border-right: none;
+  }
   .el-menu-item:not(.is-active):hover {
     color: var(--el-menu-active-color);
   }

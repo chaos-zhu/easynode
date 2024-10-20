@@ -33,10 +33,18 @@ const props = defineProps({
   hostObj: {
     required: true,
     type: Object
+  },
+  longPressCtrl: {
+    type: Boolean,
+    default: false
+  },
+  longPressAlt: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['inputCommand', 'cdCommand', 'ping-data',])
+const emit = defineEmits(['inputCommand', 'cdCommand', 'ping-data', 'reset-long-press',])
 
 const socket = ref(null)
 // const commandHistoryList = ref([])
@@ -64,6 +72,8 @@ const menuCollapse = computed(() => $store.menuCollapse)
 const quickCopy = computed(() => $store.terminalConfig.quickCopy)
 const quickPaste = computed(() => $store.terminalConfig.quickPaste)
 const autoExecuteScript = computed(() => $store.terminalConfig.autoExecuteScript)
+const isLongPressCtrl = computed(() => props.longPressCtrl)
+const isLongPressAlt = computed(() => props.longPressAlt)
 
 watch(menuCollapse, () => {
   nextTick(() => {
@@ -326,7 +336,21 @@ function extractLastCdPath(text) {
 const onData = () => {
   // term.value.off('data', listenerInput)
   term.value.onData((key) => {
+    // console.log('key: ', key)
+    // if (key === '\x03') console.log('Ctrl + C detected')
     if (socketConnected.value === false) return
+    if (isLongPressCtrl.value || isLongPressAlt.value) {
+      const keyCode = key.toUpperCase().charCodeAt(0)
+      const ansiCode = keyCode - 64
+      // console.log('ansiCode:', ansiCode)
+      if (ansiCode >= 1 && ansiCode <= 26) {
+        const controlChar = String.fromCharCode(ansiCode)
+        socket.value.emit('input', controlChar)
+      }
+      emit('reset-long-press')
+      return
+    }
+
     let acsiiCode = key.codePointAt()
     // console.log(acsiiCode)
     if (acsiiCode === 22) return handlePaste() // Ctrl + V

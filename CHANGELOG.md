@@ -3,9 +3,11 @@
 ### Features
 
 * 兼容移动端UI
+* 新增移动端虚拟功能按键映射
 * 调整终端功能菜单
 * 修复终端选中文本无法复制的bug
 * 修复无法展示服务端ping客户端延迟ms的bug
+* 修复暗黑模式下的一些样式问题
 
 ## [2.2.7](https://github.com/chaos-zhu/easynode/releases) (2024-10-17)
 

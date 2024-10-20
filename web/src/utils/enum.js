@@ -11,5 +11,7 @@ export const terminalStatusList = [
   { value: terminalStatus.CONNECT_FAIL, label: '连接失败', color: '#DC3545' },
   { value: terminalStatus.CONNECT_SUCCESS, label: '已连接', color: '#28A745' },
 ]
-
-// other...
+export const virtualKeyType = {
+  LONG_PRESS: 'long-press',
+  SINGLE_PRESS: 'single-press'
+}
