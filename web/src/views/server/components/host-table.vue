@@ -36,8 +36,14 @@
             <el-descriptions-item label="位置" width="20%">
               {{ row.monitorData?.ipInfo.country || '--' }} {{ row.monitorData?.ipInfo.regionName }}
             </el-descriptions-item>
-            <el-descriptions-item v-show="row.consoleUrl" label="其他" width="20%">
+            <el-descriptions-item v-show="row.expired" label="到期时间" width="20%">
+              <span>{{ row.expired }}</span>
+            </el-descriptions-item>
+            <el-descriptions-item v-show="row.consoleUrl" label="服务商控制台" width="20%">
               <span class="link" @click="handleToConsole(row)">服务商控制台</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="客户端端口" width="20%">
+              <span>{{ row.clientPort }}</span>
             </el-descriptions-item>
           </el-descriptions>
           <div v-else class="no_client_data">
@@ -79,18 +85,48 @@
         </template>
       </el-table-column>
       <!-- <el-table-column property="isConfig" label="登录配置" /> -->
-      <el-table-column label="操作" fixed="right" width="260px">
+      <el-table-column label="操作" fixed="right" :width="isMobileScreen ? 'auto' : '260px'">
         <template #default="{ row }">
-          <el-tooltip
-            :disabled="row.isConfig"
-            effect="dark"
-            content="请先配置ssh连接信息"
-            placement="left"
-          >
-            <el-button type="success" :disabled="!row.isConfig" @click="handleSSH(row)">连接终端</el-button>
-          </el-tooltip>
-          <el-button type="primary" @click="handleUpdate(row)">配置</el-button>
-          <el-button type="danger" @click="handleRemoveHost(row)">删除</el-button>
+          <el-dropdown v-if="isMobileScreen" trigger="click">
+            <span class="el-dropdown-link">
+              操作
+              <el-icon class="el-icon--right">
+                <arrow-down />
+              </el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item>
+                  <el-tooltip
+                    :disabled="row.isConfig"
+                    effect="dark"
+                    content="请先配置ssh连接信息"
+                    placement="left"
+                  >
+                    <el-button type="success" :disabled="!row.isConfig" @click="handleSSH(row)">连接</el-button>
+                  </el-tooltip>
+                </el-dropdown-item>
+                <el-dropdown-item>
+                  <el-button type="primary" @click="handleUpdate(row)">配置</el-button>
+                </el-dropdown-item>
+                <el-dropdown-item>
+                  <el-button type="danger" @click="handleRemoveHost(row)">删除</el-button>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <template v-else>
+            <el-tooltip
+              :disabled="row.isConfig"
+              effect="dark"
+              content="请先配置ssh连接信息"
+              placement="left"
+            >
+              <el-button type="success" :disabled="!row.isConfig" @click="handleSSH(row)">连接</el-button>
+            </el-tooltip>
+            <el-button type="primary" @click="handleUpdate(row)">配置</el-button>
+            <el-button type="danger" @click="handleRemoveHost(row)">删除</el-button>
+          </template>
         </template>
       </el-table-column>
     </el-table>
@@ -100,6 +136,8 @@
 <script setup>
 import { ref, computed, getCurrentInstance, nextTick } from 'vue'
 import { Download, Upload } from '@element-plus/icons-vue'
+import { ArrowDown } from '@element-plus/icons-vue'
+import useMobileWidth from '@/composables/useMobileWidth'
 
 const { proxy: { $message, $messageBox, $api, $router, $tools } } = getCurrentInstance()
 
@@ -112,6 +150,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update-list', 'update-host', 'select-change',])
 
+const { isMobileScreen } = useMobileWidth()
 let tableRef = ref(null)
 
 let hosts = computed(() => {

@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client'
 import { defineStore, acceptHMRUpdate } from 'pinia'
+import dayjs from 'dayjs'
 import $api from '@/api'
 import config from '@/config'
 import { isHttps } from '@/utils'
@@ -72,6 +73,7 @@ const useStore = defineStore({
     async getHostList() {
       let { data: newHostList } = await $api.getHostList()
       newHostList = newHostList.map(newHostObj => {
+        newHostObj.expired = dayjs(newHostObj.expired).format('YYYY-MM-DD')
         const oldHostObj = this.hostList.find(({ id }) => id === newHostObj.id)
         return oldHostObj ? Object.assign({}, { ...oldHostObj }, { ...newHostObj }) : newHostObj
       })
