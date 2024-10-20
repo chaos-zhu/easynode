@@ -32,26 +32,41 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="name" label="实例">
+      <el-table-column
+        prop="name"
+        label="实例"
+        show-overflow-tooltip
+        min-width="120px"
+      >
         <template #default="{ row }">
           <span style="letter-spacing: 2px;"> {{ row.name }} </span> -
           <span style="letter-spacing: 2px;"> {{ row.host }} </span> :
           <span style="letter-spacing: 2px;"> {{ row.port }} </span>
         </template>
       </el-table-column>
-      <el-table-column prop="command" label="指令" show-overflow-tooltip>
+      <el-table-column
+        prop="command"
+        label="指令"
+        show-overflow-tooltip
+        min-width="150px"
+      >
         <template #default="{ row }">
           <span> {{ row.command }} </span>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="执行结果" show-overflow-tooltip>
+      <el-table-column
+        prop="status"
+        label="执行结果"
+        show-overflow-tooltip
+        min-width="100px"
+      >
         <template #default="{ row }">
           <el-tag :color="getStatusType(row.status)">
             <span style="color: rgb(54, 52, 52);">{{ row.status }}</span>
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作">
+      <el-table-column label="操作" fixed="right" width="90px">
         <template #default="{ row }">
           <el-button
             v-if="!row.pending"

@@ -10,7 +10,7 @@
           {{ row.authType === 'privateKey' ? '密钥' : '密码' }}
         </template>
       </el-table-column>
-      <el-table-column label="操作">
+      <el-table-column width="160px" label="操作">
         <template #default="{ row }">
           <el-button type="primary" @click="handleChange(row)">修改</el-button>
           <el-button v-show="row.id !== 'default'" type="danger" @click="removeSSH(row)">删除</el-button>

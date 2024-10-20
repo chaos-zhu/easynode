@@ -258,7 +258,7 @@ module.exports = (httpServer) => {
           return sftpClient.list('/')
         })
         .then((rootLs) => {
-        // 普通文件-、目录文件d、链接文件l
+          // 普通文件-、目录文件d、链接文件l
           socket.emit('root_ls', rootLs) // 先返回根目录
           listenInput(sftpClient, socket) // 监听前端请求
         })

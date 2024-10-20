@@ -197,7 +197,7 @@
       </el-descriptions-item>
     </el-descriptions>
 
-    <el-divider content-position="center">FEATURE</el-divider>
+    <!-- <el-divider content-position="center">FEATURE</el-divider> -->
     <!-- <el-button
       :type="sftpStatus ? 'primary' : 'success'"
       style="display: block;width: 80%;margin: 30px auto;"
@@ -205,13 +205,13 @@
     >
       {{ sftpStatus ? '关闭SFTP' : '连接SFTP' }}
     </el-button> -->
-    <el-button
+    <!-- <el-button
       :type="inputCommandStyle ? 'primary' : 'success'"
       style="display: block;width: 80%;margin: 15px auto;"
       @click="clickInputCommand"
     >
       长指令输入
-    </el-button>
+    </el-button> -->
   </div>
 </template>
 <script setup>
@@ -238,7 +238,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:inputCommandStyle', 'connect-sftp', 'click-input-command',])
+// const emit = defineEmits(['update:inputCommandStyle', 'click-input-command',])
 
 const socket = ref(null)
 const pingTimer = ref(null)
@@ -275,12 +275,12 @@ const input = computed(() => {
   if (inputMb >= 1) return `${ inputMb.toFixed(2) } MB/s`
   return `${ (inputMb * 1024).toFixed(1) } KB/s`
 })
-const inputCommandStyle = computed({
-  get: () => props.showInputCommand,
-  set: (val) => {
-    emit('update:inputCommandStyle', val)
-  }
-})
+// const inputCommandStyle = computed({
+//   get: () => props.showInputCommand,
+//   set: (val) => {
+//     emit('update:inputCommandStyle', val)
+//   }
+// })
 
 const pingMs = computed(() => {
   let curPingData = props.pingData[host.value] || {}
@@ -288,15 +288,10 @@ const pingMs = computed(() => {
   return Number(curPingData?.time).toFixed(0)
 })
 
-// const handleSftp = () => {
-//   sftpStatus.value = !sftpStatus.value
-//   emit('connect-sftp', sftpStatus.value)
+// const clickInputCommand = () => {
+//   inputCommandStyle.value = true
+//   emit('click-input-command')
 // }
-
-const clickInputCommand = () => {
-  inputCommandStyle.value = true
-  emit('click-input-command')
-}
 
 const handleCopy = async () => {
   await navigator.clipboard.writeText(host.value)

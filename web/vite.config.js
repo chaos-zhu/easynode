@@ -1,5 +1,4 @@
 import { fileURLToPath, URL } from 'url'
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
@@ -7,6 +6,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import viteCompression from 'vite-plugin-compression'
+import { codeInspectorPlugin } from 'code-inspector-plugin'
 
 const serviceURI = 'http://localhost:8082/'
 const serviceApiPrefix = '/api/v1'
@@ -16,7 +16,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 18090,
-    strictPort: true,
+    // strictPort: true,
     cors: true,
     proxy: {
       [serviceApiPrefix]: {
@@ -57,12 +57,19 @@ export default defineConfig({
       algorithm: 'gzip',
       deleteOriginFile: false
     }),
+    codeInspectorPlugin({
+      bundler: 'vite'
+    }),
   ],
   css: {
     preprocessorOptions: {
       scss: {
         additionalData: '@use "@/assets/scss/element/index.scss" as *;'
       }
+    },
+    postcss: {
+      plugins: [
+      ]
     }
   },
   resolve: {

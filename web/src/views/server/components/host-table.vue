@@ -41,7 +41,7 @@
             </el-descriptions-item>
           </el-descriptions>
           <div v-else class="no_client_data">
-            监控客户端服务未连接，无法获取实例监控数据。<span class="link" @click="handleOnekey(row)">去安装</span>
+            客户端监控服务未安装或连接失败，无法获取实例监控数据。<span class="link" @click="handleOnekey(row)">去安装</span>
           </div>
         </template>
       </el-table-column>
@@ -79,7 +79,7 @@
         </template>
       </el-table-column>
       <!-- <el-table-column property="isConfig" label="登录配置" /> -->
-      <el-table-column label="操作" width="300px">
+      <el-table-column label="操作" fixed="right" width="260px">
         <template #default="{ row }">
           <el-tooltip
             :disabled="row.isConfig"

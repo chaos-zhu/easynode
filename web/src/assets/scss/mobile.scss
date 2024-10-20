@@ -1,0 +1,84 @@
+.mobile_menu_btn {
+  margin-right: auto;
+  font-size: 18px;
+}
+
+.mobile_menu_drawer {
+  width: auto !important;
+  .mobile_logo_wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 15px;
+    img {
+      width: 30px;
+    }
+    h1 {
+      font-size: 14px;
+      margin-left: 3px;
+    }
+  }
+  .el-drawer__body {
+    padding: 0;
+  }
+}
+
+
+@media screen and (min-width: 969px) {
+  [class^="mobile_"] {
+      display: none;
+  }
+}
+
+
+@media screen and (max-width: 968px) {
+  .view_container {
+    .aside_container {
+      display: none;
+    }
+    .top_bar_container {
+      width: 100%;
+      .bar_wrap {
+        h2 {
+          display: none;
+        }
+      }
+    }
+    .terminal_container {
+      .terminal_link_tips {
+        width: 100%;
+      }
+      .terminal_wrap {
+        .terminal_and_sftp_wrap {
+          flex: auto;
+          .sftp_tab_container {
+            section {
+              .left {
+                min-width: 150px;
+                max-width: 150px;
+              }
+              .right {
+                .filter_input {
+                  width: auto;
+                  min-width: auto;
+                  margin: 0 5px;
+                }
+                .path {
+                  display: inline-block;
+                  padding-right: 15px;
+                }
+                .path_input {
+                  width: auto;
+                  min-width: auto;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  .el-dialog {
+    --el-dialog-width: 94%!important;
+  }
+}

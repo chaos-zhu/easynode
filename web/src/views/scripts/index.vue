@@ -8,7 +8,7 @@
       <el-table-column prop="name" label="名称" />
       <el-table-column prop="description" label="描述" />
       <el-table-column prop="command" label="指令内容" show-overflow-tooltip />
-      <el-table-column label="操作">
+      <el-table-column label="操作" fixed="right" width="160px">
         <template #default="{ row }">
           <template v-if="row.index !== '--'">
             <el-button type="primary" @click="handleChange(row)">修改</el-button>

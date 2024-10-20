@@ -277,6 +277,7 @@ const onSelectionChange = () => {
   term.value.onSelectionChange(() => {
     if (!quickCopy.value) return
     let str = term.value.getSelection()
+    console.log(str)
     if (!str) return
     const text = new Blob([str,], { type: 'text/plain' })
     const item = new ClipboardItem({

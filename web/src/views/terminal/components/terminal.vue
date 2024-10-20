@@ -3,7 +3,7 @@
     <div class="terminal_top">
       <div class="left_menu">
         <el-dropdown trigger="click">
-          <span class="link_text">连接管理<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text">连接<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item class="link_close_all" @click="handleCloseAllTab">
@@ -47,9 +47,12 @@
           </template>
         </el-dropdown> -->
         <el-dropdown trigger="click">
-          <span class="link_text">首选项<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text">功能项<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
+              <el-dropdown-item @click="showInputCommand = true">
+                <span>长指令输入</span>
+              </el-dropdown-item>
               <el-dropdown-item @click="handleFullScreen">
                 <span>启用全屏</span>
               </el-dropdown-item>
@@ -61,6 +64,11 @@
         </el-dropdown>
       </div>
       <div class="right_overview">
+        <div v-if="isMobileScreen" class="switch_wrap">
+          <el-button :type="curHost?.monitorData?.connect ? 'success' : 'danger'" text @click="() => showMobileInfoSideDialog = true">
+            状态
+          </el-button>
+        </div>
         <div class="switch_wrap">
           <el-tooltip
             effect="dark"
@@ -98,17 +106,30 @@
         </el-icon> -->
       </div>
     </div>
-    <div class="info_box">
+
+    <el-drawer
+      v-if="isMobileScreen"
+      v-model="showMobileInfoSideDialog"
+      :with-header="false"
+      direction="ltr"
+      class="mobile_menu_drawer"
+    >
       <InfoSide
         ref="infoSideRef"
-        v-model:show-input-command="showInputCommand"
         :host-info="curHost"
         :visible="visible"
         :ping-data="pingData"
-        @click-input-command="clickInputCommand"
+      />
+    </el-drawer>
+    <div v-else class="info_box">
+      <InfoSide
+        ref="infoSideRef"
+        :host-info="curHost"
+        :visible="visible"
+        :ping-data="pingData"
       />
     </div>
-    <div class="terminals_sftp_wrap">
+    <div class="terminal_and_sftp_wrap">
       <el-tabs
         v-model="activeTabIndex"
         type="border-card"
@@ -162,13 +183,14 @@
 <script setup>
 import { ref, computed, getCurrentInstance, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
+import useMobileWidth from '@/composables/useMobileWidth'
+import InputCommand from '@/components/input-command/index.vue'
+import { terminalStatusList } from '@/utils/enum'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
 import Sftp from './sftp.vue'
-import InputCommand from '@/components/input-command/index.vue'
 import HostForm from '../../server/components/host-form.vue'
 import TerminalSetting from './terminal-setting.vue'
-import { terminalStatusList } from '@/utils/enum'
 
 const { proxy: { $nextTick, $store, $message } } = getCurrentInstance()
 
@@ -180,7 +202,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['closed', 'close-all-tab', 'removeTab', 'add-host',])
-
+const { isMobileScreen } = useMobileWidth()
 const showInputCommand = ref(false)
 const infoSideRef = ref(null)
 const pingData = ref({})
@@ -194,6 +216,7 @@ const isSyncAllSession = ref(false)
 const hostFormVisible = ref(false)
 const updateHostData = ref(null)
 const showSetting = ref(false)
+const showMobileInfoSideDialog = ref(false)
 
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
@@ -227,7 +250,7 @@ const handleUpdateList = async ({ host }) => {
 
 const handleResizeTerminalSftp = () => {
   $nextTick(() => {
-    mainHeight.value = document.querySelector('.terminals_sftp_wrap')?.offsetHeight - 45 // 45 is tab-header height+15
+    mainHeight.value = document.querySelector('.terminal_and_sftp_wrap')?.offsetHeight - 45 // 45 is tab-header height+15
   })
 }
 
@@ -311,10 +334,6 @@ watch(showSftp, () => {
 //   }
 // }
 
-const clickInputCommand = () => {
-  showInputCommand.value = true
-}
-
 const removeTab = (index) => {
   emit('removeTab', index)
   if (index === activeTabIndex.value) {
@@ -325,7 +344,7 @@ const removeTab = (index) => {
 }
 
 const handleFullScreen = () => {
-  document.getElementsByClassName('terminals_sftp_wrap')[0].requestFullscreen()
+  document.getElementsByClassName('terminal_and_sftp_wrap')[0].requestFullscreen()
 }
 
 // const registryDbClick = () => {
@@ -387,7 +406,7 @@ const handleInputCommand = async (command) => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 15px;
+    padding: 0 5px 0 15px;
     position: sticky;
     top: 0;
     background: var(--el-fill-color-light);
@@ -410,7 +429,7 @@ const handleInputCommand = async (command) => {
       color: var(--el-text-color-regular);
       // color: var(--el-color-primary);
       cursor: pointer;
-      margin-right: 15px;
+      margin-right: 10px;
 
       .hidden_icon {
         opacity: 0;
@@ -448,7 +467,7 @@ const handleInputCommand = async (command) => {
     border: var(--el-descriptions-table-border);
   }
 
-  .terminals_sftp_wrap {
+  .terminal_and_sftp_wrap {
     height: calc(100% - $terminalTopHeight);
     overflow: hidden;
     flex: 1;

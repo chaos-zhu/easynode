@@ -92,7 +92,7 @@
               </template>
             </el-dropdown>
           </div>
-          <div class="filter-input">
+          <div class="filter_input">
             <el-input
               v-model="filterKey"
               size="small"
@@ -104,7 +104,7 @@
             v-if="showPathInput"
             ref="pathInputRef"
             v-model="pathInput"
-            class="path-input"
+            class="path_input"
             size="small"
             clearable
             @blur="showPathInput = false"
@@ -159,7 +159,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 import socketIo from 'socket.io-client'
 import CodeEdit from '@/components/code-edit/index.vue'
-import { EventBus, isDir, isFile, sortDirTree, downloadFile } from '@/utils'
+import { EventBus, isDir, isFile, sortDirTree, downloadFile, isMobile } from '@/utils'
 import dirIcon from '@/assets/image/system/dir.png'
 import linkIcon from '@/assets/image/system/link.png'
 import fileIcon from '@/assets/image/system/file.png'
@@ -408,6 +408,7 @@ const handleClosedCode = () => {
 }
 
 const selectFile = (item) => {
+  if (isMobile()) openTarget(item)
   curTarget.value = item
 }
 
@@ -696,12 +697,12 @@ defineExpose({
             }
           }
         }
-        .filter-input {
+        .filter_input {
           width: 200px;
           min-width: 200px;
           margin: 0 20px 0 10px;
         }
-        .path-input {
+        .path_input {
           width: 450px;
           min-width: 450px;
         }
@@ -730,7 +731,7 @@ defineExpose({
         }
         li {
           font-size: 14px;
-          padding: 5px 3px;
+          padding: 5px 0 5px 3px;
           display: flex;
           align-items: center;
           // cursor: pointer;
@@ -749,7 +750,7 @@ defineExpose({
       }
     }
     .left {
-      width: 200px;
+      min-width: 200px;
       border-right: 1px solid #dcdfe6;
       .dir-list {
         li:nth-child(n+2){

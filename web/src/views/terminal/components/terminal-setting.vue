@@ -179,7 +179,7 @@ const changeBackground = (url) => {
   display: flex;
   flex-wrap: wrap;
   li {
-    width: 130px;
+    width: 126px;
     height: 75px;
     box-sizing: border-box;
     border-radius: 3px;

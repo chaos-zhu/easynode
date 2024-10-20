@@ -1,4 +1,3 @@
-
 import { reactive } from 'vue'
 import JSRsaEncrypt from 'jsencrypt'
 import CryptoJS from 'crypto-js'
@@ -93,7 +92,20 @@ export const sortDirTree = (tree = []) => {
   }
   sort(dirsAndlinks)
   sort(others)
-  return [].concat(dirsAndlinks, others)
+  let res = [].concat(dirsAndlinks, others)
+  let homeDirIndex = res.findIndex(item => item.name === 'home')
+  if (homeDirIndex !== -1) {
+    let homeDir = res[homeDirIndex]
+    res.splice(homeDirIndex, 1)
+    res.unshift(homeDir)
+  }
+  let rootDirIndex = res.findIndex(item => item.name === 'root')
+  if (rootDirIndex !== -1) {
+    let rootDir = res[rootDirIndex]
+    res.splice(rootDirIndex, 1)
+    res.unshift(rootDir)
+  }
+  return res
 }
 
 export const downloadFile = ({ buffer, name }) => {
@@ -131,4 +143,9 @@ export const exportFile = (data, filename, mimeType = 'application/json') =>{
 
 export const isHttps = () => {
   return window.location.protocol === 'https:'
+}
+
+export const isMobile = () => {
+  let userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
 }

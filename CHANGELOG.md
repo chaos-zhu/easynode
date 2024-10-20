@@ -1,3 +1,12 @@
+## [2.2.8](https://github.com/chaos-zhu/easynode/releases) (2024-10-20)
+
+### Features
+
+* 兼容移动端UI
+* 调整终端功能菜单
+* 修复终端选中文本无法复制的bug
+* 修复无法展示服务端ping客户端延迟ms的bug
+
 ## [2.2.7](https://github.com/chaos-zhu/easynode/releases) (2024-10-17)
 
 ### Features

@@ -23,7 +23,7 @@
     <template #footer>
       <footer>
         <div class="btns">
-          <el-button type="primary" @click="handleSave">执行</el-button>
+          <el-button type="primary" @click="handleSave">发送到终端</el-button>
           <el-button type="info" @click="visible = false">关闭</el-button>
         </div>
       </footer>

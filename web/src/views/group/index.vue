@@ -4,9 +4,9 @@
       <el-button type="primary" @click="addGroup">添加分组</el-button>
     </div>
     <el-table v-loading="loading" :data="list">
-      <el-table-column prop="index" label="序号" width="100px" />
+      <el-table-column prop="index" label="序号" />
       <el-table-column prop="name" label="分组名称" />
-      <el-table-column label="关联实例数量">
+      <el-table-column label="关联实例数量" min-width="115px">
         <template #default="{ row }">
           <el-popover
             v-if="row.hosts.list.length !== 0"
@@ -28,7 +28,7 @@
           <u v-else class="host_count">0</u>
         </template>
       </el-table-column>
-      <el-table-column label="操作">
+      <el-table-column label="操作" fixed="right" width="160px">
         <template #default="{ row }">
           <el-button type="primary" @click="handleChange(row)">修改</el-button>
           <el-button v-show="row.id !== 'default'" type="danger" @click="deleteGroup(row)">删除</el-button>

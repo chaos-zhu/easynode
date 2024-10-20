@@ -1,8 +1,10 @@
 <template>
   <div class="top_bar_container">
     <div class="bar_wrap">
+      <div class="mobile_menu_btn">
+        <el-icon @click="handleCollapse"><Fold /></el-icon>
+      </div>
       <h2>{{ title }}</h2>
-      <!-- <el-icon><UserFilled /></el-icon> -->
       <el-switch
         v-model="isDark"
         inline-prompt
@@ -33,6 +35,7 @@
     <el-dialog
       v-model="visible"
       title="关于"
+      top="10vh"
       width="30%"
       :append-to-body="false"
     >
@@ -55,30 +58,49 @@
         </p>
       </div>
     </el-dialog>
+
+    <el-drawer
+      v-model="menuCollapse"
+      :with-header="false"
+      direction="ltr"
+      class="mobile_menu_drawer"
+    >
+      <div class="mobile_logo_wrap">
+        <img src="@/assets/logo.png" alt="logo">
+        <h1>EasyNode</h1>
+      </div>
+      <MenuList @select="() => menuCollapse = false" />
+    </el-drawer>
   </div>
 </template>
 
 <script setup>
 import { ref, getCurrentInstance, computed } from 'vue'
-import { User, Sunny, Moon } from '@element-plus/icons-vue'
+import { User, Sunny, Moon, Fold } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
+import MenuList from './menuList.vue'
 
 const { proxy: { $router, $store, $message } } = getCurrentInstance()
 
-let visible = ref(false)
-let checkVersionErr = ref(false)
-let currentVersion = ref(`v${ packageJson.version }`)
-let latestVersion = ref(null)
+const visible = ref(false)
+const checkVersionErr = ref(false)
+const currentVersion = ref(`v${ packageJson.version }`)
+const latestVersion = ref(null)
+const menuCollapse = ref(false)
 
-let isNew = computed(() => latestVersion.value && latestVersion.value !== currentVersion.value)
-let user = computed(() => $store.user)
-let title = computed(() => $store.title)
-let isDark = computed({
+const isNew = computed(() => latestVersion.value && latestVersion.value !== currentVersion.value)
+const user = computed(() => $store.user)
+const title = computed(() => $store.title)
+const isDark = computed({
   get: () => $store.isDark,
   set: (isDark) => {
     $store.setTheme(isDark)
   }
 })
+
+const handleCollapse = () => {
+  menuCollapse.value = !menuCollapse.value
+}
 
 const handleLogout = () => {
   $store.clearJwtToken()

@@ -10,7 +10,7 @@
             }}</span>
           </template>
         </el-table-column>
-        <el-table-column v-show="!isAllConfssh">
+        <el-table-column v-show="!isAllConfssh" fixed="right" width="80px">
           <template #default="{ row }">
             <div class="actios_btns">
               <el-button
@@ -124,7 +124,7 @@ onActivated(async () => {
   height: calc(100vh - 60px - 20px);
   overflow: auto;
   .terminal_link_tips {
-    width: 50%;
+    width: 735px;
     display: flex;
     flex-direction: column;
     justify-content: center;
