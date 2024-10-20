@@ -32,6 +32,9 @@
 
 
 @media screen and (max-width: 968px) {
+  .login_box {
+    width: 86vw!important;
+  }
   .view_container {
     .aside_container {
       display: none;

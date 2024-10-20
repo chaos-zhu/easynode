@@ -334,18 +334,17 @@ function extractLastCdPath(text) {
 }
 
 const onData = () => {
-  // term.value.off('data', listenerInput)
   term.value.onData((key) => {
-    // console.log('key: ', key)
-    // if (key === '\x03') console.log('Ctrl + C detected')
+    console.log('key: ', key)
     if (socketConnected.value === false) return
     if (isLongPressCtrl.value || isLongPressAlt.value) {
       const keyCode = key.toUpperCase().charCodeAt(0)
+      console.log('keyCode: ', keyCode)
       const ansiCode = keyCode - 64
-      // console.log('ansiCode:', ansiCode)
+      console.log('ansiCode:', ansiCode)
       if (ansiCode >= 1 && ansiCode <= 26) {
         const controlChar = String.fromCharCode(ansiCode)
-        socket.value.emit('input', controlChar)
+        socket.value.emit('input', isLongPressCtrl.value ? controlChar : `\x1b${ key }`)
       }
       emit('reset-long-press')
       return
