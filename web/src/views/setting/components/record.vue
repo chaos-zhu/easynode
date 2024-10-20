@@ -1,7 +1,15 @@
 <template>
-  <el-alert type="success" :closable="false">
+  <el-alert v-if="allowedIPs" type="success" :closable="false">
     <template #title>
-      <span style="letter-spacing: 2px;"> 系统只保存最近10条登录记录, 目前版本只保存在内存中, 重启面板服务后会丢失 </span>
+      <span style="letter-spacing: 2px;"> 登录白名单IP: </span>
+      <el-tag
+        v-for="(item, index) in allowedIPs"
+        :key="index"
+        class="allowed_ip_tag"
+        type="warning"
+      >
+        {{ item }}
+      </el-tag>
     </template>
   </el-alert>
   <el-table v-loading="loading" :data="loginRecordList">
@@ -22,12 +30,17 @@ const { proxy: { $api, $tools } } = getCurrentInstance()
 
 const loginRecordList = ref([])
 const loading = ref(false)
+const total = ref('')
+const allowedIPs = ref('')
 
 const handleLookupLoginRecord = () => {
   loading.value = true
   $api.getLoginRecord()
     .then(({ data }) => {
-      loginRecordList.value = data.map((item) => {
+      const { list, whiteList } = data
+      total.value = list.length
+      allowedIPs.value = whiteList || []
+      loginRecordList.value = list.map((item) => {
         item.date = $tools.formatTimestamp(item.date)
         return item
       })
@@ -43,4 +56,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.allowed_ip_tag {
+  margin: 0 5px;
+}
 </style>

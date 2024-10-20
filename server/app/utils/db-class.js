@@ -7,7 +7,8 @@ const {
   notifyConfigDBPath,
   groupConfDBPath,
   scriptsDBPath,
-  onekeyDBPath
+  onekeyDBPath,
+  logDBPath
 } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
@@ -95,5 +96,16 @@ module.exports.OnekeyDB = class OnekeyDB {
   }
   getInstance() {
     return OnekeyDB.instance
+  }
+}
+
+module.exports.LogDB = class LogDB {
+  constructor() {
+    if (!LogDB.instance) {
+      LogDB.instance = new Datastore({ filename: logDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return LogDB.instance
   }
 }

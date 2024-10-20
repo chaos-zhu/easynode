@@ -1,4 +1,4 @@
-const { KeyDB, HostListDB, SshRecordDB, NotifyDB, NotifyConfigDB, ScriptsDB, GroupDB, OnekeyDB } = require('./db-class')
+const { KeyDB, HostListDB, SshRecordDB, NotifyDB, NotifyConfigDB, ScriptsDB, GroupDB, OnekeyDB, LogDB } = require('./db-class')
 
 const readKey = async () => {
   return new Promise((resolve, reject) => {
@@ -281,6 +281,7 @@ const writeOneKeyRecord = async (records =[]) => {
     })
   })
 }
+
 const deleteOneKeyRecord = async (ids =[]) => {
   return new Promise((resolve, reject) => {
     const onekeyDB = new OnekeyDB().getInstance()
@@ -296,6 +297,36 @@ const deleteOneKeyRecord = async (ids =[]) => {
   })
 }
 
+const readLog = async () => {
+  return new Promise((resolve, reject) => {
+    const logDB = new LogDB().getInstance()
+    logDB.find({}, (err, docs) => {
+      if (err) {
+        consola.error('读取log DB错误: ', err)
+        reject(err)
+      } else {
+        logDB.compactDatafile()
+        resolve(docs)
+      }
+    })
+  })
+}
+
+const writeLog = async (records = {}) => {
+  return new Promise((resolve, reject) => {
+    const logDB = new LogDB().getInstance()
+    logDB.insert(records, (err, newDocs) => {
+      if (err) {
+        consola.error('写入新的onekey记录出错:', err)
+        reject(err)
+      } else {
+        logDB.compactDatafile()
+        resolve(newDocs)
+      }
+    })
+  })
+}
+
 module.exports = {
   readSSHRecord, writeSSHRecord,
   readHostList, writeHostList,
@@ -304,5 +335,6 @@ module.exports = {
   readNotifyConfig, writeNotifyConfig, getNotifySwByType,
   readGroupList, writeGroupList,
   readScriptList, writeScriptList,
-  readOneKeyRecord, writeOneKeyRecord, deleteOneKeyRecord
+  readOneKeyRecord, writeOneKeyRecord, deleteOneKeyRecord,
+  readLog, writeLog
 }

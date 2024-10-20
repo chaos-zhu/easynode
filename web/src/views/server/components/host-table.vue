@@ -88,7 +88,7 @@
       <el-table-column label="操作" fixed="right" :width="isMobileScreen ? 'auto' : '260px'">
         <template #default="{ row }">
           <el-dropdown v-if="isMobileScreen" trigger="click">
-            <span class="el-dropdown-link">
+            <span class="link">
               操作
               <el-icon class="el-icon--right">
                 <arrow-down />

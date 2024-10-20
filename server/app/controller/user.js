@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 const axios = require('axios')
 const { asyncSendNotice } = require('../utils/notify')
-const { readKey, writeKey } = require('../utils/storage')
+const { readKey, writeKey, writeLog } = require('../utils/storage')
 const { RSADecryptSync, AESEncryptSync, SHA1Encrypt } = require('../utils/encrypt')
 const { getNetIPInfo } = require('../utils/tools')
 
@@ -86,8 +86,7 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
   // 邮件登录通知
   asyncSendNotice('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }`)
 
-  global.loginRecord.unshift(clientIPInfo)
-  if (global.loginRecord.length > 10) global.loginRecord = global.loginRecord.slice(0, 10)
+  await writeLog({ ip, country, city, date: Date.now(), type: 'login' })
   return token
 }
 
@@ -109,10 +108,6 @@ const updatePwd = async ({ res, request }) => {
   res.success({ data: true, msg: 'success' })
 }
 
-const getLoginRecord = async ({ res }) => {
-  res.success({ data: global.loginRecord, msg: 'success' })
-}
-
 const getEasynodeVersion = async ({ res }) => {
   try {
     // const { data } = await axios.get('https://api.github.com/repos/chaos-zhu/easynode/releases/latest')
@@ -129,6 +124,5 @@ module.exports = {
   login,
   getpublicKey,
   updatePwd,
-  getLoginRecord,
   getEasynodeVersion
 }

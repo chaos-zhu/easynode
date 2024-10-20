@@ -47,7 +47,7 @@ export default {
     return axios({ url: '/login', method: 'post', data })
   },
   getLoginRecord() {
-    return axios({ url: '/get-login-record', method: 'get' })
+    return axios({ url: '/log', method: 'get' })
   },
   updatePwd(data) {
     return axios({ url: '/pwd', method: 'put', data })

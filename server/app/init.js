@@ -6,7 +6,7 @@ const { AESEncryptSync } = require('./utils/encrypt')
 // 初始化公私钥, 供登录、保存ssh密钥/密码等加解密
 async function initRsa() {
   let keyObj = await readKey()
-  if(keyObj.privateKey && keyObj.publicKey) return consola.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
+  if (keyObj.privateKey && keyObj.publicKey) return consola.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
   let key = new NodeRSA({ b: 1024 })
   key.setOptions({ encryptionScheme: 'pkcs1', environment: 'browser' })
   let privateKey = key.exportKey('pkcs1-private-pem')
@@ -20,7 +20,7 @@ async function initRsa() {
 // 随机的commonKey secret
 async function randomJWTSecret() {
   let keyObj = await readKey()
-  if(keyObj?.commonKey) return consola.info('commonKey密钥已存在')
+  if (keyObj?.commonKey) return consola.info('commonKey密钥已存在')
 
   keyObj.commonKey = randomStr(16)
   await writeKey(keyObj)
@@ -30,6 +30,4 @@ async function randomJWTSecret() {
 module.exports = async () => {
   await randomJWTSecret() // 全局密钥
   await initRsa() // 全局公钥密钥
-  // 用于记录客户端登录IP的列表
-  global.loginRecord = []
 }

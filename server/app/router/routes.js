@@ -1,10 +1,11 @@
 const { getSSHList, addSSH, updateSSH, removeSSH, getCommand } = require('../controller/ssh')
 const { getHostList, addHost, updateHost, removeHost, importHost } = require('../controller/host')
-const { login, getpublicKey, updatePwd, getLoginRecord, getEasynodeVersion } = require('../controller/user')
+const { login, getpublicKey, updatePwd, getEasynodeVersion } = require('../controller/user')
 const { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
 const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript } = require('../controller/scripts')
 const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
+const { getLog } = require('../controller/log')
 
 const ssh = [
   {
@@ -75,11 +76,6 @@ const user = [
     method: 'put',
     path: '/pwd',
     controller: updatePwd
-  },
-  {
-    method: 'get',
-    path: '/get-login-record',
-    controller: getLoginRecord
   },
   {
     method: 'get',
@@ -173,4 +169,12 @@ const onekey = [
     controller: removeOnekeyRecord
   }
 ]
-module.exports = [].concat(ssh, host, user, notify, group, scripts, onekey)
+
+const log = [
+  {
+    method: 'get',
+    path: '/log',
+    controller: getLog
+  }
+]
+module.exports = [].concat(ssh, host, user, notify, group, scripts, onekey, log)
