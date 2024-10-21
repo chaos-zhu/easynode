@@ -196,22 +196,6 @@
         </div>
       </el-descriptions-item>
     </el-descriptions>
-
-    <!-- <el-divider content-position="center">FEATURE</el-divider> -->
-    <!-- <el-button
-      :type="sftpStatus ? 'primary' : 'success'"
-      style="display: block;width: 80%;margin: 30px auto;"
-      @click="handleSftp"
-    >
-      {{ sftpStatus ? '关闭SFTP' : '连接SFTP' }}
-    </el-button> -->
-    <!-- <el-button
-      :type="inputCommandStyle ? 'primary' : 'success'"
-      style="display: block;width: 80%;margin: 15px auto;"
-      @click="clickInputCommand"
-    >
-      长指令输入
-    </el-button> -->
   </div>
 </template>
 <script setup>
@@ -228,17 +212,11 @@ const props = defineProps({
     required: true,
     type: Boolean
   },
-  showInputCommand: {
-    required: true,
-    type: Boolean
-  },
   pingData: {
     required: true,
     type: Object
   }
 })
-
-// const emit = defineEmits(['update:inputCommandStyle', 'click-input-command',])
 
 const socket = ref(null)
 const pingTimer = ref(null)
@@ -275,23 +253,12 @@ const input = computed(() => {
   if (inputMb >= 1) return `${ inputMb.toFixed(2) } MB/s`
   return `${ (inputMb * 1024).toFixed(1) } KB/s`
 })
-// const inputCommandStyle = computed({
-//   get: () => props.showInputCommand,
-//   set: (val) => {
-//     emit('update:inputCommandStyle', val)
-//   }
-// })
 
 const pingMs = computed(() => {
   let curPingData = props.pingData[host.value] || {}
   if (!curPingData?.success) return false
   return Number(curPingData?.time).toFixed(0)
 })
-
-// const clickInputCommand = () => {
-//   inputCommandStyle.value = true
-//   emit('click-input-command')
-// }
 
 const handleCopy = async () => {
   await navigator.clipboard.writeText(host.value)

@@ -1,11 +1,12 @@
 <template>
-  <el-dialog
+  <el-drawer
     v-model="visible"
-    width="600px"
-    top="120px"
     title="本地设置"
-    :append-to-body="false"
-    :close-on-click-modal="false"
+    :direction="isMobileScreen ? 'ttb' : 'ltr'"
+    :close-on-click-modal="true"
+    :close-on-press-escape="true"
+    :modal="true"
+    modal-class="local_setting_drawer"
   >
     <el-tabs tab-position="top">
       <el-tab-pane label="终端设置" lazy>
@@ -26,7 +27,7 @@
             </el-select>
           </el-form-item>
           <el-form-item label="终端字体" prop="fontSize">
-            <el-input-number v-model="fontSize" :min="12" :max="30" />
+            <el-input-number v-model="fontSize" :min="6" :max="30" />
           </el-form-item>
           <el-form-item label="终端背景" prop="backgroundImage">
             <ul class="background_list">
@@ -40,13 +41,12 @@
                 </el-image>
               </li>
               <li
-                v-for="url in defaultBackgroundImages"
-                :key="url"
-                :class="background === url ? 'active' : ''"
-                @click="changeBackground(url)"
-              >
-                <el-image class="image" :src="url" />
-              </li>
+                v-for="item in defaultBackgroundImages"
+                :key="item"
+                :class="background === item ? 'active' : ''"
+                :style="`background: ${item};`"
+                @click="changeBackground(item)"
+              />
             </ul>
             <div class="custom_background">
               <el-input
@@ -122,12 +122,13 @@
         <el-button @click="visible = false">关闭</el-button>
       </span>
     </template>
-  </el-dialog>
+  </el-drawer>
 </template>
 
 <script setup>
 import { computed, getCurrentInstance } from 'vue'
 import themeList from 'xterm-theme'
+import useMobileWidth from '@/composables/useMobileWidth'
 const { proxy: { $store } } = getCurrentInstance()
 
 const props = defineProps({
@@ -138,6 +139,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:show',])
 
+const { isMobileScreen } = useMobileWidth()
 const defaultBackgroundImages = computed(() => $store.defaultBackgroundImages)
 
 const visible = computed({
@@ -169,8 +171,8 @@ const autoExecuteScript = computed({
   set: (newVal) => $store.setTerminalSetting({ autoExecuteScript: newVal })
 })
 
-const changeBackground = (url) => {
-  background.value = url || ''
+const changeBackground = (item) => {
+  background.value = item || ''
 }
 </script>
 
@@ -215,4 +217,13 @@ const changeBackground = (url) => {
   display: flex;
   justify-content: center;
 }
+</style>
+
+<style lang="scss">
+.local_setting_drawer {
+  .el-drawer__header {
+    margin-bottom: 0 !important;
+  }
+}
+
 </style>

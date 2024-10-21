@@ -62,7 +62,7 @@ const terminal = ref(null)
 const terminalRef = ref(null)
 
 const token = computed(() => $store.token)
-const theme = computed(() => themeList[$store.terminalConfig.theme])
+const theme = computed(() => themeList[$store.terminalConfig.themeName])
 const fontSize = computed(() => $store.terminalConfig.fontSize)
 const background = computed(() => $store.terminalConfig.background)
 const hostObj = computed(() => props.hostObj)
@@ -99,10 +99,8 @@ watch(fontSize, () => {
 watch(background, (newVal) => {
   nextTick(() => {
     if (newVal) {
-      // terminal.value.options.theme.background = '#00000080'
       terminal.value.options.theme = { ...theme.value, background: '#00000080' }
-      terminalRef.value.style.backgroundImage = `url(${ background.value })`
-      terminalRef.value.style.backgroundImage = `url(${ background.value })`
+      terminalRef.value.style.backgroundImage = background.value?.startsWith('http') ? `url(${ background.value })` : `${ background.value }`
       // terminalRef.value.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15)), url(${ background.value })`
     } else {
       terminal.value.options.theme = theme.value
@@ -335,7 +333,6 @@ function extractLastCdPath(text) {
 
 const onData = () => {
   term.value.onData((key) => {
-    console.log('key: ', key)
     if (socketConnected.value === false) return
     if (isLongPressCtrl.value || isLongPressAlt.value) {
       const keyCode = key.toUpperCase().charCodeAt(0)
