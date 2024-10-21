@@ -42,9 +42,6 @@
             <el-descriptions-item v-show="row.consoleUrl" label="服务商控制台" width="20%">
               <span class="link" @click="handleToConsole(row)">服务商控制台</span>
             </el-descriptions-item>
-            <el-descriptions-item label="客户端端口" width="20%">
-              <span>{{ row.clientPort }}</span>
-            </el-descriptions-item>
           </el-descriptions>
           <div v-else class="no_client_data">
             客户端监控服务未安装或连接失败，无法获取实例监控数据。<span class="link" @click="handleOnekey(row)">去安装</span>

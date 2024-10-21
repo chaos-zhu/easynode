@@ -58,9 +58,9 @@ const useStore = defineStore({
     async setTitle(title) {
       this.$patch({ title })
     },
-    async clearJwtToken() {
-      localStorage.clear('token')
-      sessionStorage.clear('token')
+    async removeJwtToken() {
+      localStorage.removeItem('token')
+      sessionStorage.removeItem('token')
       this.$patch({ token: null })
     },
     async getMainData() {

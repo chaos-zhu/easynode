@@ -101,12 +101,8 @@
             />
           </el-tooltip>
         </div>
-        <!-- <el-icon class="full_icon">
-          <FullScreen class="icon" @click="handleFullScreen" />
-        </el-icon> -->
       </div>
     </div>
-
     <el-drawer
       v-if="isMobileScreen"
       v-model="showMobileInfoSideDialog"

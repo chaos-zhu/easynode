@@ -194,6 +194,7 @@
           <el-date-picker
             v-model="hostForm.expired"
             type="date"
+            :editable="false"
             style="width: 100%;"
             value-format="x"
             placeholder="实例到期时间"

@@ -6,8 +6,6 @@ export default function useMobileWidth(maxWidth = 968) {
     isMobileScreen.value = window.innerWidth < maxWidth
   }
   onMounted(() => {
-    console.log('window.innerWidth: ', window.innerWidth)
-    console.log('window.innerWidth: ', window.innerWidth)
     window.addEventListener('resize', updateScreenWidth)
   })
 

@@ -103,7 +103,7 @@ const handleCollapse = () => {
 }
 
 const handleLogout = () => {
-  $store.clearJwtToken()
+  $store.removeJwtToken()
   $message({ type: 'success', message: '已安全退出', center: true })
   $router.push('/login')
 }

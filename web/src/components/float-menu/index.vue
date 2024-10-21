@@ -17,18 +17,6 @@
       :modal="false"
       modal-class="keyboard_drawer"
     >
-      <el-divider content-position="left">组合键</el-divider>
-      <ul class="keyboard">
-        <li
-          v-for="item in keyGroup"
-          :key="item.key"
-          class="key"
-          @click="handleClickKey(item)"
-        >
-          <div>{{ item.key }}</div>
-        </li>
-      </ul>
-      <el-divider content-position="left">功能键</el-divider>
       <ul class="keyboard">
         <li
           v-for="item in keys"
@@ -40,6 +28,8 @@
             {{ item.key }}
           </div>
         </li>
+        <li class="key placeholder" />
+        <li class="key placeholder" />
       </ul>
     </el-drawer>
   </div>
@@ -73,6 +63,14 @@ let showMenu = computed({
 
 const { LONG_PRESS, SINGLE_PRESS } = virtualKeyType
 const keys = ref([
+  { key: 'Ctrl+C', ascii: null, type: SINGLE_PRESS, ansi: '\x03' },
+  { key: 'Ctrl+A', ascii: null, type: SINGLE_PRESS, ansi: '\x01' },
+  { key: 'Ctrl+E', ascii: null, type: SINGLE_PRESS, ansi: '\x05' },
+  { key: 'Ctrl+L', ascii: null, type: SINGLE_PRESS, ansi: '\x0C' },
+  { key: 'Ctrl+R', ascii: null, type: SINGLE_PRESS, ansi: '\x12' },
+  { key: ':wq', ascii: null, type: SINGLE_PRESS, ansi: ':wq\r' },
+  { key: ':q!', ascii: null, type: SINGLE_PRESS, ansi: ':q!\r' },
+  { key: 'dd', ascii: null, type: SINGLE_PRESS, ansi: 'dd\r' },
   { key: 'Esc', ascii: 27, type: SINGLE_PRESS, ansi: '\x1B' },
   { key: 'Tab', ascii: 9, type: SINGLE_PRESS, ansi: '\x09' },
   { key: 'Ctrl', ascii: null, type: LONG_PRESS, ansi: '' },
@@ -99,17 +97,6 @@ const keys = ref([
   { key: '←', ascii: 37, type: SINGLE_PRESS, ansi: '\x1B[D' },
   { key: 'PageUp', ascii: 33, type: SINGLE_PRESS, ansi: '\x1B[5~' },
   { key: 'PageDown', ascii: 34, type: SINGLE_PRESS, ansi: '\x1B[6~' },
-])
-
-const keyGroup = ref([
-  { key: 'Ctrl+C', ascii: null, type: SINGLE_PRESS, ansi: '\x03' },
-  { key: 'Ctrl+A', ascii: null, type: SINGLE_PRESS, ansi: '\x01' },
-  { key: 'Ctrl+E', ascii: null, type: SINGLE_PRESS, ansi: '\x05' },
-  { key: 'Ctrl+L', ascii: null, type: SINGLE_PRESS, ansi: '\x0C' },
-  { key: 'Ctrl+R', ascii: null, type: SINGLE_PRESS, ansi: '\x12' },
-  { key: ':wq', ascii: null, type: SINGLE_PRESS, ansi: ':wq\r' },
-  { key: ':q!', ascii: null, type: SINGLE_PRESS, ansi: ':q!\r' },
-  { key: 'dd', ascii: null, type: SINGLE_PRESS, ansi: 'dd\r' },
 ])
 
 const handleClickKey = (key) => {
@@ -203,6 +190,13 @@ onMounted(() => {
   y.value = window.innerHeight - radius * 2
   styleObject.value.top = `${ y.value }px`
   styleObject.value.left = `${ x.value }px`
+
+  window.addEventListener('resize', () => {
+    x.value = window.innerWidth - radius * 2
+    y.value = window.innerHeight - radius * 2
+    styleObject.value.top = `${ y.value }px`
+    styleObject.value.left = `${ x.value }px`
+  })
 })
 </script>
 
@@ -218,31 +212,35 @@ onMounted(() => {
   }
 
   .keyboard_drawer {
-    height: 25vh;
+    height: 150px;
     .el-drawer {
       height: 100%!important;
       .el-drawer__header {
         margin-bottom: 10px;
       }
       .el-drawer__body {
-        padding: 0 20px;
+        padding: 10px 15px;
       }
     }
     .keyboard {
       list-style: none;
       display: flex;
       flex-wrap: wrap;
+      justify-content: space-around;
       padding: 0;
+      .key.placeholder {
+        opacity: 0;
+      }
       .key {
-        width: 80px;
+        width: 76px;
+        min-height: 15px;
         font-size: 12px;
         box-sizing: border-box;
-        padding: 10px;
+        padding: 8px;
         text-align: center;
-        margin-right: 12px;
+        margin-right: 8px;
         margin-bottom: 6px;
         border: 1px solid #ccc;
-        min-height: 15px;
       }
       .long_press {
         .active {

@@ -121,7 +121,7 @@ onActivated(async () => {
 
 <style lang="scss" scoped>
 .terminal_container {
-  height: calc(100vh - 60px - 20px);
+  height: calc(100% - 60px - 20px);
   overflow: auto;
   .terminal_link_tips {
     width: 735px;

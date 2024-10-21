@@ -46,10 +46,10 @@ onBeforeMount(async () => {
   height: 100vh;
   .main_container {
     flex: 1;
-    height: 100vh;
+    height: 100%;
     overflow: auto;
     .router_box {
-      min-height: calc(100vh - 60px - 20px);
+      height: calc(100% - 60px - 20px);
       background-color: #fff;
       border-radius: 6px;
       margin: 10px;
