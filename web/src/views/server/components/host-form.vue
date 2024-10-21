@@ -356,7 +356,7 @@ const setDefaultData = () => {
 
 const setBatchDefaultData = () => {
   if (!isBatchModify.value) return
-  Object.assign(hostForm.value, { ...formField }, { group: '', port: '', username: '', authType: '' })
+  Object.assign(hostForm.value, { ...formField }, { group: '', port: '', username: '', authType: '', clientPort: '' })
 }
 const handleOpen = async () => {
   setDefaultData()
@@ -416,7 +416,7 @@ const handleSave = () => {
         // eslint-disable-next-line
         let updateFileData = Object.fromEntries(Object.entries(formData).filter(([key, value]) => Boolean(value))) // 剔除掉未更改的值
         if (Object.keys(updateFileData).length === 0) return $message.warning('没有任何修改')
-        // console.log(updateFileData)
+        console.log(updateFileData)
         let newHosts = batchHosts.value
           .map(item => ({ ...item, ...updateFileData }))
           .map(item => {

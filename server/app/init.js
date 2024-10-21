@@ -1,7 +1,7 @@
 const NodeRSA = require('node-rsa')
 const { readKey, writeKey } = require('./utils/storage')
 const { randomStr } = require('./utils/tools')
-const { AESEncryptSync } = require('./utils/encrypt')
+const { AESEncryptAsync } = require('./utils/encrypt')
 
 // 初始化公私钥, 供登录、保存ssh密钥/密码等加解密
 async function initRsa() {
@@ -11,7 +11,7 @@ async function initRsa() {
   key.setOptions({ encryptionScheme: 'pkcs1', environment: 'browser' })
   let privateKey = key.exportKey('pkcs1-private-pem')
   let publicKey = key.exportKey('pkcs8-public-pem')
-  keyObj.privateKey = await AESEncryptSync(privateKey) // 加密私钥
+  keyObj.privateKey = await AESEncryptAsync(privateKey) // 加密私钥
   keyObj.publicKey = publicKey // 公开公钥
   await writeKey(keyObj)
   consola.info('Task: 已生成新的非对称加密公私钥')

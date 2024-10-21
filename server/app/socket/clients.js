@@ -1,15 +1,16 @@
 const { Server: ServerIO } = require('socket.io')
 const { io: ClientIO } = require('socket.io-client')
-const { readHostList } = require('../utils/storage')
 const { defaultClientPort } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { isAllowedIp } = require('../utils/tools')
+const { HostListDB } = require('../utils/db-class')
+const hostListDB = new HostListDB().getInstance()
 
 let clientSockets = []
 let clientsData = {}
 
 async function getClientsInfo(clientSockets) {
-  let hostList = await readHostList()
+  let hostList = await hostListDB.findAsync({})
   clientSockets.forEach((clientItem) => {
     // 被删除的客户端断开连接
     if (!hostList.some(item => item.host === clientItem.host)) clientItem.close && clientItem.close()

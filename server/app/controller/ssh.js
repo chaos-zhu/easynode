@@ -1,5 +1,7 @@
-const { readSSHRecord, writeSSHRecord, readHostList, writeHostList } = require('../utils/storage')
-const { RSADecryptSync, AESEncryptSync, AESDecryptSync } = require('../utils/encrypt')
+const { readSSHRecord, writeSSHRecord } = require('../utils/storage')
+const { RSADecryptAsync, AESEncryptAsync, AESDecryptAsync } = require('../utils/encrypt')
+const { HostListDB } = require('../utils/db-class')
+const hostListDB = new HostListDB().getInstance()
 
 async function getSSHList({ res }) {
   // console.log('get-host-list')
@@ -19,11 +21,11 @@ const addSSH = async ({ res, request }) => {
   let sshRecord = await readSSHRecord()
   if (sshRecord.some(item => item.name === name)) return res.fail({ data: false, msg: '已存在同名凭证' })
 
-  const clearTempKey = await RSADecryptSync(tempKey)
+  const clearTempKey = await RSADecryptAsync(tempKey)
   console.log('clearTempKey:', clearTempKey)
-  const clearSSHKey = await AESDecryptSync(record[authType], clearTempKey)
+  const clearSSHKey = await AESDecryptAsync(record[authType], clearTempKey)
   // console.log(`${ authType }原密文: `, clearSSHKey)
-  record[authType] = await AESEncryptSync(clearSSHKey)
+  record[authType] = await AESEncryptAsync(clearSSHKey)
   // console.log(`${ authType }__commonKey加密存储: `, record[authType])
 
   sshRecord.push({ ...record, date: Date.now() })
@@ -46,11 +48,11 @@ const updateSSH = async ({ res, request }) => {
   if (!record[authType] && oldRecord[authType]) {
     record[authType] = oldRecord[authType]
   } else {
-    const clearTempKey = await RSADecryptSync(tempKey)
+    const clearTempKey = await RSADecryptAsync(tempKey)
     console.log('clearTempKey:', clearTempKey)
-    const clearSSHKey = await AESDecryptSync(record[authType], clearTempKey)
+    const clearSSHKey = await AESDecryptAsync(record[authType], clearTempKey)
     // console.log(`${ authType }原密文: `, clearSSHKey)
-    record[authType] = await AESEncryptSync(clearSSHKey)
+    record[authType] = await AESEncryptAsync(clearSSHKey)
     // console.log(`${ authType }__commonKey加密存储: `, record[authType])
   }
   record._id = sshRecord[idx]._id
@@ -67,12 +69,15 @@ const removeSSH = async ({ res, request }) => {
   if (idx === -1) return res.fail({ msg: '凭证不存在' })
   sshRecord.splice(idx, 1)
   // 将删除的凭证id从host中删除
-  let hostList = await readHostList()
-  hostList = hostList.map(item => {
-    if (item.credential === id) item.credential = ''
-    return item
-  })
-  await writeHostList(hostList)
+  let hostList = await hostListDB.findAsync({})
+  if (Array.isArray(hostList) && hostList.length > 0) {
+    for (let item of hostList) {
+      if (item.credential === id) {
+        item.credential = ''
+        await hostListDB.updateAsync({ _id: item._id }, item)
+      }
+    }
+  }
   consola.info('移除凭证：', id)
   await writeSSHRecord(sshRecord)
   res.success({ data: '移除成功' })
@@ -81,7 +86,7 @@ const removeSSH = async ({ res, request }) => {
 const getCommand = async ({ res, request }) => {
   let { hostId } = request.query
   if (!hostId) return res.fail({ data: false, msg: '参数错误' })
-  let hostInfo = await readHostList()
+  let hostInfo = await hostListDB.findAsync({})
   let record = hostInfo?.find(item => item._id === hostId)
   consola.info('查询登录后执行的指令：', hostId)
   if (!record) return res.fail({ data: false, msg: 'host not found' }) // host不存在

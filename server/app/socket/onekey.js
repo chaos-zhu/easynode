@@ -1,11 +1,13 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
 const { asyncSendNotice } = require('../utils/notify')
-const { readSSHRecord, readHostList, writeOneKeyRecord } = require('../utils/storage')
+const { readSSHRecord, writeOneKeyRecord } = require('../utils/storage')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { shellThrottle } = require('../utils/tools')
-const { AESDecryptSync } = require('../utils/encrypt')
+const { AESDecryptAsync } = require('../utils/encrypt')
 const { isAllowedIp } = require('../utils/tools')
+const { HostListDB } = require('../utils/db-class')
+const hostListDB = new HostListDB().getInstance()
 
 const execStatusEnum = {
   connecting: '连接中',
@@ -129,7 +131,7 @@ module.exports = (httpServer) => {
       console.log('hostIds:', hostIds)
       // console.log('token:', token)
       console.log('command:', command)
-      const hostList = await readHostList()
+      const hostList = await hostListDB.findAsync({})
       const targetHostsInfo = hostList.filter(item => hostIds.some(id => item._id === id)) || {}
       // console.log('targetHostsInfo:', targetHostsInfo)
       if (!targetHostsInfo.length) return socket.emit('create_fail', `未找到【${ hostIds }】服务器信息`)
@@ -145,13 +147,13 @@ module.exports = (httpServer) => {
           execResult.push(curRes)
           try {
             if (authType === 'credential') {
-              let credentialId = await AESDecryptSync(hostInfo['credential'])
+              let credentialId = await AESDecryptAsync(hostInfo['credential'])
               const sshRecordList = await readSSHRecord()
               const sshRecord = sshRecordList.find(item => item._id === credentialId)
               authInfo.authType = sshRecord.authType
-              authInfo[authInfo.authType] = await AESDecryptSync(sshRecord[authInfo.authType])
+              authInfo[authInfo.authType] = await AESDecryptAsync(sshRecord[authInfo.authType])
             } else {
-              authInfo[authType] = await AESDecryptSync(hostInfo[authType])
+              authInfo[authType] = await AESDecryptAsync(hostInfo[authType])
             }
             consola.info('准备连接终端执行一次性指令：', host)
             consola.log('连接信息', { username, port, authType })

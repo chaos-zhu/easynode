@@ -1,10 +1,12 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
 const { verifyAuthSync } = require('../utils/verify-auth')
-const { AESDecryptSync } = require('../utils/encrypt')
-const { readSSHRecord, readHostList } = require('../utils/storage')
+const { AESDecryptAsync } = require('../utils/encrypt')
+const { readSSHRecord } = require('../utils/storage')
 const { asyncSendNotice } = require('../utils/notify')
 const { isAllowedIp, ping } = require('../utils/tools')
+const { HostListDB } = require('../utils/db-class')
+const hostListDB = new HostListDB().getInstance()
 
 function createInteractiveShell(socket, sshClient) {
   return new Promise((resolve) => {
@@ -51,7 +53,7 @@ function createInteractiveShell(socket, sshClient) {
 async function createTerminal(hostId, socket, sshClient) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve) => {
-    const hostList = await readHostList()
+    const hostList = await hostListDB.findAsync({})
     const targetHostInfo = hostList.find(item => item._id === hostId) || {}
     let { authType, host, port, username, name } = targetHostInfo
     if (!host) return socket.emit('create_fail', `查找hostId【${ hostId }】凭证信息失败`)
@@ -60,16 +62,16 @@ async function createTerminal(hostId, socket, sshClient) {
     try {
     // 解密放到try里面，防止报错【commonKey必须配对, 否则需要重新添加服务器密钥】
       if (authType === 'credential') {
-        let credentialId = await AESDecryptSync(targetHostInfo[authType])
+        let credentialId = await AESDecryptAsync(targetHostInfo[authType])
         const sshRecordList = await readSSHRecord()
         const sshRecord = sshRecordList.find(item => item._id === credentialId)
         authInfo.authType = sshRecord.authType
-        authInfo[authInfo.authType] = await AESDecryptSync(sshRecord[authInfo.authType])
+        authInfo[authInfo.authType] = await AESDecryptAsync(sshRecord[authInfo.authType])
       } else {
-        authInfo[authType] = await AESDecryptSync(targetHostInfo[authType])
+        authInfo[authType] = await AESDecryptAsync(targetHostInfo[authType])
       }
       consola.info('准备连接终端：', host)
-      // targetHostInfo[targetHostInfo.authType] = await AESDecryptSync(targetHostInfo[targetHostInfo.authType])
+      // targetHostInfo[targetHostInfo.authType] = await AESDecryptAsync(targetHostInfo[targetHostInfo.authType])
       consola.log('连接信息', { username, port, authType })
       sshClient
         .on('ready', async() => {

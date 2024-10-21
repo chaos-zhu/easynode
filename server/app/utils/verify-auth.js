@@ -1,5 +1,5 @@
 
-const { AESDecryptSync } = require('./encrypt')
+const { AESDecryptAsync } = require('./encrypt')
 const { readKey } = require('./storage')
 const jwt = require('jsonwebtoken')
 
@@ -13,7 +13,7 @@ const enumLoginCode = {
 const verifyAuthSync = async (token, clientIp) => {
   consola.info('verifyAuthSync IP：', clientIp)
   try {
-    token = await AESDecryptSync(token) // 先aes解密
+    token = await AESDecryptAsync(token) // 先aes解密
     const { commonKey } = await readKey()
     const { exp } = jwt.verify(token, commonKey)
     if (Date.now() > (exp * 1000)) return { code: -1, msg: 'token expires' } // 过期

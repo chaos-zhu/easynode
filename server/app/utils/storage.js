@@ -64,43 +64,43 @@ const writeSSHRecord = async (record = []) => {
   })
 }
 
-const readHostList = async () => {
-  return new Promise((resolve, reject) => {
-    const hostListDB = new HostListDB().getInstance()
-    hostListDB.find({}, (err, docs) => {
-      if (err) {
-        consola.error('读取host-list-db错误:', err)
-        reject(err)
-      } else {
-        resolve(docs)
-      }
-    })
-  })
-}
+// const readHostList = async () => {
+//   return new Promise((resolve, reject) => {
+//     const hostListDB = new HostListDB().getInstance()
+//     hostListDB.find({}, (err, docs) => {
+//       if (err) {
+//         consola.error('读取host-list-db错误:', err)
+//         reject(err)
+//       } else {
+//         resolve(docs)
+//       }
+//     })
+//   })
+// }
 
-const writeHostList = async (record = []) => {
-  return new Promise((resolve, reject) => {
-    const hostListDB = new HostListDB().getInstance()
-    hostListDB.remove({}, { multi: true }, (err) => {
-      if (err) {
-        consola.error('清空HostList出错:', err)
-        reject(err)
-      } else {
-        hostListDB.compactDatafile()
-        // 插入新的数据列表
-        hostListDB.insert(record, (err, newDocs) => {
-          if (err) {
-            consola.error('写入新的HostList出错:', err)
-            reject(err)
-          } else {
-            hostListDB.compactDatafile()
-            resolve(newDocs)
-          }
-        })
-      }
-    })
-  })
-}
+// const writeHostList = async (record = []) => {
+//   return new Promise((resolve, reject) => {
+//     const hostListDB = new HostListDB().getInstance()
+//     hostListDB.remove({}, { multi: true }, (err) => {
+//       if (err) {
+//         consola.error('清空HostList出错:', err)
+//         reject(err)
+//       } else {
+//         hostListDB.compactDatafile()
+//         // 插入新的数据列表
+//         hostListDB.insert(record, (err, newDocs) => {
+//           if (err) {
+//             consola.error('写入新的HostList出错:', err)
+//             reject(err)
+//           } else {
+//             hostListDB.compactDatafile()
+//             resolve(newDocs)
+//           }
+//         })
+//       }
+//     })
+//   })
+// }
 
 const readNotifyConfig = async () => {
   return new Promise((resolve, reject) => {
@@ -329,7 +329,7 @@ const writeLog = async (records = {}) => {
 
 module.exports = {
   readSSHRecord, writeSSHRecord,
-  readHostList, writeHostList,
+  // readHostList, writeHostList,
   readKey, writeKey,
   readNotifyList, writeNotifyList,
   readNotifyConfig, writeNotifyConfig, getNotifySwByType,

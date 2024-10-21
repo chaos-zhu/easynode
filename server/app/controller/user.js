@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken')
 const axios = require('axios')
 const { asyncSendNotice } = require('../utils/notify')
 const { readKey, writeKey, writeLog } = require('../utils/storage')
-const { RSADecryptSync, AESEncryptSync, SHA1Encrypt } = require('../utils/encrypt')
+const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt } = require('../utils/encrypt')
 const { getNetIPInfo } = require('../utils/tools')
 
 const getpublicKey = async ({ res }) => {
@@ -52,7 +52,7 @@ const login = async ({ res, request }) => {
   // 登录流程
   try {
     // console.log('ciphertext', ciphertext)
-    let loginPwd = await RSADecryptSync(ciphertext)
+    let loginPwd = await RSADecryptAsync(ciphertext)
     // console.log('Decrypt解密password:', loginPwd)
     let { user, pwd } = await readKey()
     if (loginName === user && loginPwd === 'admin' && pwd === 'admin') {
@@ -76,7 +76,7 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
   // 生产token
   let { commonKey } = await readKey()
   let token = jwt.sign({ date: Date.now() }, commonKey, { expiresIn: jwtExpires }) // 生成token
-  token = await AESEncryptSync(token) // 对称加密token后再传输给前端
+  token = await AESEncryptAsync(token) // 对称加密token后再传输给前端
 
   // 记录客户端登录IP(用于判断是否异地且只保留最近10条)
   const clientIPInfo = await getNetIPInfo(clientIp)
@@ -92,13 +92,13 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
 
 const updatePwd = async ({ res, request }) => {
   let { body: { oldLoginName, oldPwd, newLoginName, newPwd } } = request
-  let rsaOldPwd = await RSADecryptSync(oldPwd)
+  let rsaOldPwd = await RSADecryptAsync(oldPwd)
   oldPwd = rsaOldPwd === 'admin' ? 'admin' : SHA1Encrypt(rsaOldPwd)
   let keyObj = await readKey()
   let { user, pwd } = keyObj
   if (oldLoginName !== user || oldPwd !== pwd) return res.fail({ data: false, msg: '原用户名或密码校验失败' })
   // 旧密钥校验通过，加密保存新密码
-  newPwd = await RSADecryptSync(newPwd) === 'admin' ? 'admin' : SHA1Encrypt(await RSADecryptSync(newPwd))
+  newPwd = await RSADecryptAsync(newPwd) === 'admin' ? 'admin' : SHA1Encrypt(await RSADecryptAsync(newPwd))
   keyObj.user = newLoginName
   keyObj.pwd = newPwd
   await writeKey(keyObj)

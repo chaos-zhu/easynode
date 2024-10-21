@@ -168,7 +168,6 @@ let handleBatchOnekey = async () => {
 let handleBatchExport = () => {
   collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
-  console.log(selectHosts.value)
   let exportData = JSON.parse(JSON.stringify(selectHosts.value))
   exportData = exportData.map(item => {
     delete item.monitorData

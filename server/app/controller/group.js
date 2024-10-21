@@ -1,4 +1,7 @@
-const { readGroupList, writeGroupList, readHostList, writeHostList } = require('../utils/storage')
+const { readGroupList, writeGroupList } = require('../utils/storage')
+const { HostListDB } = require('../utils/db-class')
+
+const hostListDB = new HostListDB().getInstance()
 
 async function getGroupList({ res }) {
   let data = await readGroupList()
@@ -41,16 +44,17 @@ const removeGroup = async ({ res, request }) => {
   if (idx === -1) return res.fail({ msg: '分组不存在' })
 
   // 移除分组将所有该分组下host分配到default中去
-  let hostList = await readHostList()
-  hostList = hostList?.map((item) => {
-    if (item.group === groupList[idx]._id) item.group = 'default'
-    return item
-  })
-  await writeHostList(hostList)
-
+  let hostList = await hostListDB.findAsync({})
+  if (Array.isArray(hostList) && hostList.length > 0) {
+    for (let item of hostList) {
+      if (item.group === groupList[idx]._id) {
+        item.group = 'default'
+        await hostListDB.updateAsync({ _id: item._id }, item)
+      }
+    }
+  }
   groupList.splice(idx, 1)
   await writeGroupList(groupList)
-
   res.success({ data: '移除成功' })
 }
 
