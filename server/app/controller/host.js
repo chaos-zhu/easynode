@@ -111,7 +111,7 @@ async function updateHost({ res, request }) {
     // console.log(`${ authType }__commonKey加密存储: `, record[authType])
   }
   hostList.splice(idx, 1, record)
-  writeHostList(hostList)
+  await writeHostList(hostList)
   res.success()
 }
 
@@ -121,8 +121,8 @@ async function removeHost({
   let { body: { ids } } = request
   let hostList = await readHostList()
   if (!Array.isArray(ids)) return res.fail({ msg: '参数错误' })
-  hostList = hostList.filter(({ id }) => !ids.includes(id))
-  writeHostList(hostList)
+  hostList = hostList.filter(({ _id }) => !ids.includes(_id))
+  await writeHostList(hostList)
   res.success({ data: '已移除' })
 }
 
@@ -158,7 +158,7 @@ async function importHost({
     })
   }
   hostList.push(...newHostList)
-  writeHostList(hostList)
+  await writeHostList(hostList)
   res.success({ data: { len: newHostList.length } })
 }
 
