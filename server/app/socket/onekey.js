@@ -1,13 +1,13 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
 const { sendNoticeAsync } = require('../utils/notify')
-const { readSSHRecord } = require('../utils/storage')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { shellThrottle } = require('../utils/tools')
 const { AESDecryptAsync } = require('../utils/encrypt')
 const { isAllowedIp } = require('../utils/tools')
-const { HostListDB, OnekeyDB } = require('../utils/db-class')
+const { HostListDB, CredentialsDB, OnekeyDB } = require('../utils/db-class')
 const hostListDB = new HostListDB().getInstance()
+const credentialsDB = new CredentialsDB().getInstance()
 const onekeyDB = new OnekeyDB().getInstance()
 
 const execStatusEnum = {
@@ -149,7 +149,7 @@ module.exports = (httpServer) => {
           try {
             if (authType === 'credential') {
               let credentialId = await AESDecryptAsync(hostInfo['credential'])
-              const sshRecordList = await readSSHRecord()
+              const sshRecordList = await credentialsDB.findAsync({})
               const sshRecord = sshRecordList.find(item => item._id === credentialId)
               authInfo.authType = sshRecord.authType
               authInfo[authInfo.authType] = await AESDecryptAsync(sshRecord[authInfo.authType])

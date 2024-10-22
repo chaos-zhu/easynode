@@ -1,11 +1,11 @@
-const { readSSHRecord, writeSSHRecord } = require('../utils/storage')
 const { RSADecryptAsync, AESEncryptAsync, AESDecryptAsync } = require('../utils/encrypt')
-const { HostListDB } = require('../utils/db-class')
+const { HostListDB, CredentialsDB } = require('../utils/db-class')
 const hostListDB = new HostListDB().getInstance()
+const credentialsDB = new CredentialsDB().getInstance()
 
 async function getSSHList({ res }) {
   // console.log('get-host-list')
-  let data = await readSSHRecord()
+  let data = await credentialsDB.findAsync({})
   data = data?.map(item => {
     const { name, authType, _id: id, date } = item
     return { id, name, authType, privateKey: '', password: '', date }
@@ -18,8 +18,8 @@ const addSSH = async ({ res, request }) => {
   let { body: { name, authType, password, privateKey, tempKey } } = request
   let record = { name, authType, password, privateKey }
   if (!name || !record[authType]) return res.fail({ data: false, msg: '参数错误' })
-  let sshRecord = await readSSHRecord()
-  if (sshRecord.some(item => item.name === name)) return res.fail({ data: false, msg: '已存在同名凭证' })
+  let count = await credentialsDB.countAsync({ name })
+  if (count > 0) return res.fail({ data: false, msg: '已存在同名凭证' })
 
   const clearTempKey = await RSADecryptAsync(tempKey)
   console.log('clearTempKey:', clearTempKey)
@@ -27,9 +27,7 @@ const addSSH = async ({ res, request }) => {
   // console.log(`${ authType }原密文: `, clearSSHKey)
   record[authType] = await AESEncryptAsync(clearSSHKey)
   // console.log(`${ authType }__commonKey加密存储: `, record[authType])
-
-  sshRecord.push({ ...record, date: Date.now() })
-  await writeSSHRecord(sshRecord)
+  await credentialsDB.insertAsync({ ...record, date: Date.now() })
   consola.info('添加凭证：', name)
   res.success({ data: '保存成功' })
 }
@@ -38,11 +36,8 @@ const updateSSH = async ({ res, request }) => {
   let { body: { id, name, authType, password, privateKey, date, tempKey } } = request
   let record = { name, authType, password, privateKey, date }
   if (!id || !name) return res.fail({ data: false, msg: '请输入凭据名称' })
-  let sshRecord = await readSSHRecord()
-  let idx = sshRecord.findIndex(item => item._id === id)
-  if (sshRecord.some(item => item.name === name && item.date !== date)) return res.fail({ data: false, msg: '已存在同名凭证' })
-  if (idx === -1) res.fail({ data: false, msg: '请输入凭据名称' })
-  const oldRecord = sshRecord[idx]
+  let oldRecord = await credentialsDB.findOneAsync({ _id: id })
+  if (!oldRecord) return res.fail({ data: false, msg: '凭证不存在' })
   // 判断原记录是否存在当前更新记录的认证方式
   if (!oldRecord[authType] && !record[authType]) return res.fail({ data: false, msg: `请输入${ authType === 'password' ? '密码' : '密钥' }` })
   if (!record[authType] && oldRecord[authType]) {
@@ -55,31 +50,30 @@ const updateSSH = async ({ res, request }) => {
     record[authType] = await AESEncryptAsync(clearSSHKey)
     // console.log(`${ authType }__commonKey加密存储: `, record[authType])
   }
-  record._id = sshRecord[idx]._id
-  sshRecord.splice(idx, 1, record)
-  await writeSSHRecord(sshRecord)
+  await credentialsDB.updateAsync({ _id: id }, record)
   consola.info('修改凭证：', name)
   res.success({ data: '保存成功' })
 }
 
 const removeSSH = async ({ res, request }) => {
   let { params: { id } } = request
-  let sshRecord = await readSSHRecord()
-  let idx = sshRecord.findIndex(item => item._id === id)
-  if (idx === -1) return res.fail({ msg: '凭证不存在' })
-  sshRecord.splice(idx, 1)
+  let count = await credentialsDB.countAsync({ _id: id })
+  if (count === 0) return res.fail({ msg: '凭证不存在' })
   // 将删除的凭证id从host中删除
   let hostList = await hostListDB.findAsync({})
   if (Array.isArray(hostList) && hostList.length > 0) {
-    for (let item of hostList) {
-      if (item.credential === id) {
-        item.credential = ''
-        await hostListDB.updateAsync({ _id: item._id }, item)
+    for (let host of hostList) {
+      let { credential } = host
+      credential = await AESDecryptAsync(credential)
+      if (credential === id) {
+        host.credential = ''
+        await hostListDB.updateAsync({ _id: host._id }, host)
       }
     }
   }
+  await hostListDB.compactDatafileAsync()
   consola.info('移除凭证：', id)
-  await writeSSHRecord(sshRecord)
+  await credentialsDB.removeAsync({ _id: id })
   res.success({ data: '移除成功' })
 }
 

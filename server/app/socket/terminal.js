@@ -2,11 +2,11 @@ const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { AESDecryptAsync } = require('../utils/encrypt')
-const { readSSHRecord } = require('../utils/storage')
 const { sendNoticeAsync } = require('../utils/notify')
 const { isAllowedIp, ping } = require('../utils/tools')
-const { HostListDB } = require('../utils/db-class')
+const { HostListDB, CredentialsDB } = require('../utils/db-class')
 const hostListDB = new HostListDB().getInstance()
+const credentialsDB = new CredentialsDB().getInstance()
 
 function createInteractiveShell(socket, sshClient) {
   return new Promise((resolve) => {
@@ -63,8 +63,7 @@ async function createTerminal(hostId, socket, sshClient) {
     // 解密放到try里面，防止报错【commonKey必须配对, 否则需要重新添加服务器密钥】
       if (authType === 'credential') {
         let credentialId = await AESDecryptAsync(targetHostInfo[authType])
-        const sshRecordList = await readSSHRecord()
-        const sshRecord = sshRecordList.find(item => item._id === credentialId)
+        const sshRecord = await credentialsDB.findOneAsync({ _id: credentialId })
         authInfo.authType = sshRecord.authType
         authInfo[authInfo.authType] = await AESDecryptAsync(sshRecord[authInfo.authType])
       } else {

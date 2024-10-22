@@ -6,10 +6,10 @@ const { Server } = require('socket.io')
 const { sftpCacheDir } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { AESDecryptAsync } = require('../utils/encrypt')
-const { readSSHRecord } = require('../utils/storage')
 const { isAllowedIp } = require('../utils/tools')
-const { HostListDB } = require('../utils/db-class')
+const { HostListDB, CredentialsDB } = require('../utils/db-class')
 const hostListDB = new HostListDB().getInstance()
+const credentialsDB = new CredentialsDB().getInstance()
 
 // 读取切片
 const pipeStream = (path, writeStream) => {
@@ -241,7 +241,7 @@ module.exports = (httpServer) => {
       // 解密放到try里面，防止报错【commonKey必须配对, 否则需要重新添加服务器密钥】
       if (authType === 'credential') {
         let credentialId = await AESDecryptAsync(targetHostInfo[authType])
-        const sshRecordList = await readSSHRecord()
+        const sshRecordList = await credentialsDB.findAsync({})
         const sshRecord = sshRecordList.find(item => item._id === credentialId)
         authInfo.authType = sshRecord.authType
         authInfo[authInfo.authType] = await AESDecryptAsync(sshRecord[authInfo.authType])

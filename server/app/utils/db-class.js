@@ -35,15 +35,15 @@ module.exports.HostListDB = class HostListDB {
   }
 }
 
-module.exports.SshRecordDB = class SshRecordDB {
+module.exports.CredentialsDB = class CredentialsDB {
   constructor() {
-    if (!SshRecordDB.instance) {
-      SshRecordDB.instance = new Datastore({ filename: credentialsDBPath, autoload: true })
-      // SshRecordDB.instance.setAutocompactionInterval(5000)
+    if (!CredentialsDB.instance) {
+      CredentialsDB.instance = new Datastore({ filename: credentialsDBPath, autoload: true })
+      // CredentialsDB.instance.setAutocompactionInterval(5000)
     }
   }
   getInstance() {
-    return SshRecordDB.instance
+    return CredentialsDB.instance
   }
 }
 
