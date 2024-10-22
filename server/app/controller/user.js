@@ -1,9 +1,11 @@
 const jwt = require('jsonwebtoken')
 const axios = require('axios')
 const { asyncSendNotice } = require('../utils/notify')
-const { readKey, writeKey, writeLog } = require('../utils/storage')
+const { readKey, writeKey } = require('../utils/storage')
 const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt } = require('../utils/encrypt')
 const { getNetIPInfo } = require('../utils/tools')
+const { LogDB } = require('../utils/db-class')
+const logDB = new LogDB().getInstance()
 
 const getpublicKey = async ({ res }) => {
   let { publicKey: data } = await readKey()
@@ -86,7 +88,7 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
   // 邮件登录通知
   asyncSendNotice('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }`)
 
-  await writeLog({ ip, country, city, date: Date.now(), type: 'login' })
+  await logDB.insertAsync({ ip, country, city, date: Date.now(), type: 'login' })
   return token
 }
 

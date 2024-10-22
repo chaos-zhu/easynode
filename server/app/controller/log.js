@@ -1,9 +1,10 @@
-const { readLog } = require('../utils/storage')
+const { LogDB } = require('../utils/db-class')
+const logDB = new LogDB().getInstance()
 
 let whiteList = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : []
 
 async function getLog({ res }) {
-  let list = await readLog()
+  let list = await logDB.findAsync({})
   list = list.map(item => {
     return { ...item, id: item._id }
   })

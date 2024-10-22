@@ -1,4 +1,4 @@
-const { KeyDB, HostListDB, SshRecordDB, NotifyDB, NotifyConfigDB, ScriptsDB, GroupDB, OnekeyDB, LogDB } = require('./db-class')
+const { KeyDB, SshRecordDB, NotifyDB, NotifyConfigDB, ScriptsDB, OnekeyDB } = require('./db-class')
 
 const readKey = async () => {
   return new Promise((resolve, reject) => {
@@ -63,44 +63,6 @@ const writeSSHRecord = async (record = []) => {
     })
   })
 }
-
-// const readHostList = async () => {
-//   return new Promise((resolve, reject) => {
-//     const hostListDB = new HostListDB().getInstance()
-//     hostListDB.find({}, (err, docs) => {
-//       if (err) {
-//         consola.error('读取host-list-db错误:', err)
-//         reject(err)
-//       } else {
-//         resolve(docs)
-//       }
-//     })
-//   })
-// }
-
-// const writeHostList = async (record = []) => {
-//   return new Promise((resolve, reject) => {
-//     const hostListDB = new HostListDB().getInstance()
-//     hostListDB.remove({}, { multi: true }, (err) => {
-//       if (err) {
-//         consola.error('清空HostList出错:', err)
-//         reject(err)
-//       } else {
-//         hostListDB.compactDatafile()
-//         // 插入新的数据列表
-//         hostListDB.insert(record, (err, newDocs) => {
-//           if (err) {
-//             consola.error('写入新的HostList出错:', err)
-//             reject(err)
-//           } else {
-//             hostListDB.compactDatafile()
-//             resolve(newDocs)
-//           }
-//         })
-//       }
-//     })
-//   })
-// }
 
 const readNotifyConfig = async () => {
   return new Promise((resolve, reject) => {
@@ -177,43 +139,6 @@ const writeNotifyList = async (notifyList) => {
     })
   })
 }
-
-// const readGroupList = async () => {
-//   return new Promise((resolve, reject) => {
-//     const groupDB = new GroupDB().getInstance()
-//     groupDB.find({}, (err, docs) => {
-//       if (err) {
-//         consola.error('读取group list错误: ', err)
-//         reject(err)
-//       } else {
-//         resolve(docs)
-//       }
-//     })
-//   })
-// }
-
-// const writeGroupList = async (list = []) => {
-//   return new Promise((resolve, reject) => {
-//     const groupDB = new GroupDB().getInstance()
-//     groupDB.remove({}, { multi: true }, (err) => {
-//       if (err) {
-//         consola.error('清空group list出错:', err)
-//         reject(err)
-//       } else {
-//         groupDB.compactDatafile()
-//         groupDB.insert(list, (err, newDocs) => {
-//           if (err) {
-//             consola.error('写入新的group list出错:', err)
-//             reject(err)
-//           } else {
-//             groupDB.compactDatafile()
-//             resolve(newDocs)
-//           }
-//         })
-//       }
-//     })
-//   })
-// }
 
 const readScriptList = async () => {
   return new Promise((resolve, reject) => {
@@ -297,44 +222,11 @@ const deleteOneKeyRecord = async (ids =[]) => {
   })
 }
 
-const readLog = async () => {
-  return new Promise((resolve, reject) => {
-    const logDB = new LogDB().getInstance()
-    logDB.find({}, (err, docs) => {
-      if (err) {
-        consola.error('读取log DB错误: ', err)
-        reject(err)
-      } else {
-        logDB.compactDatafile()
-        resolve(docs)
-      }
-    })
-  })
-}
-
-const writeLog = async (records = {}) => {
-  return new Promise((resolve, reject) => {
-    const logDB = new LogDB().getInstance()
-    logDB.insert(records, (err, newDocs) => {
-      if (err) {
-        consola.error('写入新的onekey记录出错:', err)
-        reject(err)
-      } else {
-        logDB.compactDatafile()
-        resolve(newDocs)
-      }
-    })
-  })
-}
-
 module.exports = {
   readSSHRecord, writeSSHRecord,
-  // readHostList, writeHostList,
   readKey, writeKey,
   readNotifyList, writeNotifyList,
   readNotifyConfig, writeNotifyConfig, getNotifySwByType,
-  // readGroupList, writeGroupList,
   readScriptList, writeScriptList,
-  readOneKeyRecord, writeOneKeyRecord, deleteOneKeyRecord,
-  readLog, writeLog
+  readOneKeyRecord, writeOneKeyRecord, deleteOneKeyRecord
 }
