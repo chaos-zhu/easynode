@@ -158,6 +158,12 @@
               @ping-data="getPingData"
               @reset-long-press="resetLongPress"
             />
+            <FloatMenu
+              v-if="isMobileScreen"
+              :long-press-ctrl="longPressCtrl"
+              :long-press-alt="longPressAlt"
+              @click-key="handleClickVirtualKeyboard"
+            />
             <Sftp
               v-if="showSftp"
               ref="sftpRefs"
@@ -179,14 +185,6 @@
     />
 
     <TerminalSetting v-model:show="showSetting" />
-
-    <FloatMenu
-      v-if="isMobileScreen"
-      v-model:show="showFloatMenu"
-      :long-press-ctrl="longPressCtrl"
-      :long-press-alt="longPressAlt"
-      @click-key="handleClickVirtualKeyboard"
-    />
   </div>
 </template>
 
@@ -228,7 +226,6 @@ const hostFormVisible = ref(false)
 const updateHostData = ref(null)
 const showSetting = ref(false)
 const showMobileInfoSideDialog = ref(false)
-const showFloatMenu = ref(false)
 const longPressCtrl = ref(false)
 const longPressAlt = ref(false)
 
