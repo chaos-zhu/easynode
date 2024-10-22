@@ -1,7 +1,8 @@
 
 const { AESDecryptAsync } = require('./encrypt')
-const { readKey } = require('./storage')
 const jwt = require('jsonwebtoken')
+const { KeyDB } = require('./db-class')
+const keyDB = new KeyDB().getInstance()
 
 const enumLoginCode = {
   SUCCESS: 1,
@@ -14,7 +15,7 @@ const verifyAuthSync = async (token, clientIp) => {
   consola.info('verifyAuthSync IP：', clientIp)
   try {
     token = await AESDecryptAsync(token) // 先aes解密
-    const { commonKey } = await readKey()
+    const { commonKey } = await keyDB.findOneAsync({})
     const { exp } = jwt.verify(token, commonKey)
     if (Date.now() > (exp * 1000)) return { code: -1, msg: 'token expires' } // 过期
     return { code: enumLoginCode.SUCCESS, msg: 'success' } // 验证成功

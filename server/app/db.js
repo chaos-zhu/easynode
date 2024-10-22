@@ -1,29 +1,28 @@
-const { writeKey } = require('./utils/storage')
+const NodeRSA = require('node-rsa')
+const { randomStr } = require('./utils/tools')
+const { AESEncryptAsync } = require('./utils/encrypt')
 const { KeyDB, GroupDB, NotifyDB, NotifyConfigDB } = require('./utils/db-class')
 
-function initKeyDB() {
-  return new Promise((resolve, reject) => {
-    const keyDB = new KeyDB().getInstance()
-    keyDB.count({}, async (err, count) => {
-      if (err) {
-        consola.log('初始化keyDB错误:', err)
-        reject(err)
-      } else {
-        if (count === 0) {
-          consola.log('初始化keyDB✔')
-          const defaultData = {
-            user: 'admin',
-            pwd: 'admin',
-            commonKey: '',
-            publicKey: '',
-            privateKey: ''
-          }
-          await writeKey(defaultData)
-        }
-      }
-      resolve()
-    })
-  })
+async function initKeyDB() {
+  const keyDB = new KeyDB().getInstance()
+  let count = await keyDB.countAsync({})
+  if (count !== 0) return consola.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
+  let newConfig = {
+    user: 'admin',
+    pwd: 'admin',
+    commonKey: randomStr(16),
+    publicKey: '',
+    privateKey: ''
+  }
+  await keyDB.insertAsync(newConfig)
+  let key = new NodeRSA({ b: 1024 })
+  key.setOptions({ encryptionScheme: 'pkcs1', environment: 'browser' })
+  let privateKey = key.exportKey('pkcs1-private-pem')
+  let publicKey = key.exportKey('pkcs8-public-pem')
+  newConfig.privateKey = await AESEncryptAsync(privateKey, newConfig.commonKey) // 加密私钥
+  newConfig.publicKey = publicKey // 公开公钥
+  await keyDB.updateAsync({}, { $set: newConfig }, { upsert: true })
+  consola.info('Task: 已生成新的非对称加密公私钥')
 }
 
 async function initGroupDB() {

@@ -56,7 +56,7 @@ function sendEmail({ service, user, pass }, title, content) {
 }
 
 // 异步发送通知
-async function asyncSendNotice(noticeAction, title, content) {
+async function sendNoticeAsync(noticeAction, title, content) {
   try {
     let notifyList = await notifyDB.findAsync({})
     let { sw } = notifyList.find((item) => item.type === noticeAction) // 获取对应动作的通知开关
@@ -87,7 +87,7 @@ async function asyncSendNotice(noticeAction, title, content) {
 }
 
 module.exports = {
-  asyncSendNotice,
+  sendNoticeAsync,
   sendServerChan,
   sendEmail
 }

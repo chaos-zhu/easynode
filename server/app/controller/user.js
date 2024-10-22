@@ -1,14 +1,14 @@
 const jwt = require('jsonwebtoken')
 const axios = require('axios')
-const { asyncSendNotice } = require('../utils/notify')
-const { readKey, writeKey } = require('../utils/storage')
+const { sendNoticeAsync } = require('../utils/notify')
 const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt } = require('../utils/encrypt')
 const { getNetIPInfo } = require('../utils/tools')
-const { LogDB } = require('../utils/db-class')
+const { KeyDB, LogDB } = require('../utils/db-class')
+const keyDB = new KeyDB().getInstance()
 const logDB = new LogDB().getInstance()
 
 const getpublicKey = async ({ res }) => {
-  let { publicKey: data } = await readKey()
+  let { publicKey: data } = await keyDB.findOneAsync({})
   if (!data) return res.fail({ msg: 'publicKey not found, Try to restart the server', status: 500 })
   res.success({ data })
 }
@@ -30,7 +30,7 @@ const login = async ({ res, request }) => {
   if (loginErrCount >= allowErrCount) {
     const { ip, country, city } = await getNetIPInfo(clientIp)
     // 异步发送通知&禁止登录
-    asyncSendNotice('err_login', '登录错误提醒', `错误登录次数: ${ loginErrTotal }\n地点：${ country + city }\nIP: ${ ip }`)
+    sendNoticeAsync('err_login', '登录错误提醒', `错误登录次数: ${ loginErrTotal }\n地点：${ country + city }\nIP: ${ ip }`)
     forbidLogin = true
     loginErrCount = 0
 
@@ -56,7 +56,7 @@ const login = async ({ res, request }) => {
     // console.log('ciphertext', ciphertext)
     let loginPwd = await RSADecryptAsync(ciphertext)
     // console.log('Decrypt解密password:', loginPwd)
-    let { user, pwd } = await readKey()
+    let { user, pwd } = await keyDB.findOneAsync({})
     if (loginName === user && loginPwd === 'admin' && pwd === 'admin') {
       const token = await beforeLoginHandler(clientIp, jwtExpires)
       return res.success({ data: { token, jwtExpires }, msg: '登录成功，请及时修改默认用户名和密码' })
@@ -76,7 +76,7 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
 
   // consola.success('登录成功, 准备生成token', new Date())
   // 生产token
-  let { commonKey } = await readKey()
+  let { commonKey } = await keyDB.findOneAsync({})
   let token = jwt.sign({ date: Date.now() }, commonKey, { expiresIn: jwtExpires }) // 生成token
   token = await AESEncryptAsync(token) // 对称加密token后再传输给前端
 
@@ -86,7 +86,7 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
   consola.info('登录成功:', new Date(), { ip, country, city })
 
   // 邮件登录通知
-  asyncSendNotice('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }`)
+  sendNoticeAsync('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }`)
 
   await logDB.insertAsync({ ip, country, city, date: Date.now(), type: 'login' })
   return token
@@ -96,17 +96,15 @@ const updatePwd = async ({ res, request }) => {
   let { body: { oldLoginName, oldPwd, newLoginName, newPwd } } = request
   let rsaOldPwd = await RSADecryptAsync(oldPwd)
   oldPwd = rsaOldPwd === 'admin' ? 'admin' : SHA1Encrypt(rsaOldPwd)
-  let keyObj = await readKey()
+  let keyObj = await keyDB.findOneAsync({})
   let { user, pwd } = keyObj
   if (oldLoginName !== user || oldPwd !== pwd) return res.fail({ data: false, msg: '原用户名或密码校验失败' })
   // 旧密钥校验通过，加密保存新密码
   newPwd = await RSADecryptAsync(newPwd) === 'admin' ? 'admin' : SHA1Encrypt(await RSADecryptAsync(newPwd))
   keyObj.user = newLoginName
   keyObj.pwd = newPwd
-  await writeKey(keyObj)
-
-  asyncSendNotice('updatePwd', '用户密码修改提醒', `原用户名：${ user }\n更新用户名: ${ newLoginName }`)
-
+  await keyDB.updateAsync({}, keyObj)
+  sendNoticeAsync('updatePwd', '用户密码修改提醒', `原用户名：${ user }\n更新用户名: ${ newLoginName }`)
   res.success({ data: true, msg: 'success' })
 }
 

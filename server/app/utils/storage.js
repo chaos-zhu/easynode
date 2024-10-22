@@ -1,31 +1,4 @@
-const { KeyDB, SshRecordDB, OnekeyDB } = require('./db-class')
-
-const readKey = async () => {
-  return new Promise((resolve, reject) => {
-    const keyDB = new KeyDB().getInstance()
-    keyDB.findOne({}, (err, doc) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve(doc)
-      }
-    })
-  })
-}
-
-const writeKey = async (keyObj = {}) => {
-  const keyDB = new KeyDB().getInstance()
-  return new Promise((resolve, reject) => {
-    keyDB.update({}, { $set: keyObj }, { upsert: true }, (err, numReplaced) => {
-      if (err) {
-        reject(err)
-      } else {
-        keyDB.compactDatafile()
-        resolve(numReplaced)
-      }
-    })
-  })
-}
+const { SshRecordDB } = require('./db-class')
 
 const readSSHRecord = async () => {
   const sshRecordDB = new SshRecordDB().getInstance()
@@ -65,6 +38,5 @@ const writeSSHRecord = async (record = []) => {
 }
 
 module.exports = {
-  readSSHRecord, writeSSHRecord,
-  readKey, writeKey
+  readSSHRecord, writeSSHRecord
 }

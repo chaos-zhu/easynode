@@ -3,7 +3,7 @@ const { Client: SSHClient } = require('ssh2')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { AESDecryptAsync } = require('../utils/encrypt')
 const { readSSHRecord } = require('../utils/storage')
-const { asyncSendNotice } = require('../utils/notify')
+const { sendNoticeAsync } = require('../utils/notify')
 const { isAllowedIp, ping } = require('../utils/tools')
 const { HostListDB } = require('../utils/db-class')
 const hostListDB = new HostListDB().getInstance()
@@ -75,7 +75,7 @@ async function createTerminal(hostId, socket, sshClient) {
       consola.log('连接信息', { username, port, authType })
       sshClient
         .on('ready', async() => {
-          asyncSendNotice('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录成功`)
+          sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录成功`)
           consola.success('终端连接成功：', host)
           socket.emit('connect_terminal_success', `终端连接成功：${ host }`)
           let stream = await createInteractiveShell(socket, sshClient)
@@ -92,7 +92,7 @@ async function createTerminal(hostId, socket, sshClient) {
         })
         .on('error', (err) => {
           consola.log(err)
-          asyncSendNotice('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录失败`)
+          sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录失败`)
           consola.error('连接终端失败:', host, err.message)
           socket.emit('connect_fail', err.message)
         })

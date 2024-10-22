@@ -1,6 +1,6 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const { asyncSendNotice } = require('../utils/notify')
+const { sendNoticeAsync } = require('../utils/notify')
 const { readSSHRecord } = require('../utils/storage')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { shellThrottle } = require('../utils/tools')
@@ -124,7 +124,7 @@ module.exports = (httpServer) => {
           }
         })
         let reason = `执行超时,已强制终止执行 - 超时时间${ timeout }秒`
-        asyncSendNotice('onekey_complete', '批量指令执行超时', reason)
+        sendNoticeAsync('onekey_complete', '批量指令执行超时', reason)
         socket.emit('timeout', { reason, result: execResult })
         socket.disconnect()
         disconnectAllExecClient()
@@ -191,7 +191,7 @@ module.exports = (httpServer) => {
         await Promise.all(execPromise)
         consola.success('onekey执行完成')
         socket.emit('exec_complete')
-        asyncSendNotice('onekey_complete', '批量指令执行完成', '请登录面板查看执行结果')
+        sendNoticeAsync('onekey_complete', '批量指令执行完成', '请登录面板查看执行结果')
         socket.disconnect()
       } catch (error) {
         consola.error('onekey执行失败', error)
