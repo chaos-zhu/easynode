@@ -178,42 +178,42 @@ const writeNotifyList = async (notifyList) => {
   })
 }
 
-const readGroupList = async () => {
-  return new Promise((resolve, reject) => {
-    const groupDB = new GroupDB().getInstance()
-    groupDB.find({}, (err, docs) => {
-      if (err) {
-        consola.error('读取group list错误: ', err)
-        reject(err)
-      } else {
-        resolve(docs)
-      }
-    })
-  })
-}
+// const readGroupList = async () => {
+//   return new Promise((resolve, reject) => {
+//     const groupDB = new GroupDB().getInstance()
+//     groupDB.find({}, (err, docs) => {
+//       if (err) {
+//         consola.error('读取group list错误: ', err)
+//         reject(err)
+//       } else {
+//         resolve(docs)
+//       }
+//     })
+//   })
+// }
 
-const writeGroupList = async (list = []) => {
-  return new Promise((resolve, reject) => {
-    const groupDB = new GroupDB().getInstance()
-    groupDB.remove({}, { multi: true }, (err) => {
-      if (err) {
-        consola.error('清空group list出错:', err)
-        reject(err)
-      } else {
-        groupDB.compactDatafile()
-        groupDB.insert(list, (err, newDocs) => {
-          if (err) {
-            consola.error('写入新的group list出错:', err)
-            reject(err)
-          } else {
-            groupDB.compactDatafile()
-            resolve(newDocs)
-          }
-        })
-      }
-    })
-  })
-}
+// const writeGroupList = async (list = []) => {
+//   return new Promise((resolve, reject) => {
+//     const groupDB = new GroupDB().getInstance()
+//     groupDB.remove({}, { multi: true }, (err) => {
+//       if (err) {
+//         consola.error('清空group list出错:', err)
+//         reject(err)
+//       } else {
+//         groupDB.compactDatafile()
+//         groupDB.insert(list, (err, newDocs) => {
+//           if (err) {
+//             consola.error('写入新的group list出错:', err)
+//             reject(err)
+//           } else {
+//             groupDB.compactDatafile()
+//             resolve(newDocs)
+//           }
+//         })
+//       }
+//     })
+//   })
+// }
 
 const readScriptList = async () => {
   return new Promise((resolve, reject) => {
@@ -333,7 +333,7 @@ module.exports = {
   readKey, writeKey,
   readNotifyList, writeNotifyList,
   readNotifyConfig, writeNotifyConfig, getNotifySwByType,
-  readGroupList, writeGroupList,
+  // readGroupList, writeGroupList,
   readScriptList, writeScriptList,
   readOneKeyRecord, writeOneKeyRecord, deleteOneKeyRecord,
   readLog, writeLog

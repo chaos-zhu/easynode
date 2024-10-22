@@ -1,4 +1,4 @@
-const { writeKey, writeGroupList, writeNotifyList, writeNotifyConfig } = require('./utils/storage')
+const { writeKey, writeNotifyList, writeNotifyConfig } = require('./utils/storage')
 const { KeyDB, GroupDB, NotifyDB, NotifyConfigDB } = require('./utils/db-class')
 
 function initKeyDB() {
@@ -26,23 +26,15 @@ function initKeyDB() {
   })
 }
 
-function initGroupDB() {
-  return new Promise((resolve, reject) => {
-    const groupDB = new GroupDB().getInstance()
-    groupDB.count({}, async (err, count) => {
-      if (err) {
-        consola.log('初始化groupDB错误:', err)
-        reject(err)
-      } else {
-        if (count === 0) {
-          consola.log('初始化groupDB✔')
-          const defaultData = [{ '_id': 'default', 'name': '默认分组', 'index': 0 }]
-          await writeGroupList(defaultData)
-        }
-      }
-      resolve()
-    })
-  })
+async function initGroupDB() {
+  const groupDB = new GroupDB().getInstance()
+  let count = await groupDB.countAsync({})
+  if (count === 0) {
+    consola.log('初始化groupDB✔')
+    const defaultData = [{ '_id': 'default', 'name': '默认分组', 'index': 0 }]
+    return groupDB.insertAsync(defaultData)
+  }
+  return Promise.resolve()
 }
 
 function initNotifyDB() {
