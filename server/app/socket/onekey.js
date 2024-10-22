@@ -1,13 +1,14 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
 const { asyncSendNotice } = require('../utils/notify')
-const { readSSHRecord, writeOneKeyRecord } = require('../utils/storage')
+const { readSSHRecord } = require('../utils/storage')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { shellThrottle } = require('../utils/tools')
 const { AESDecryptAsync } = require('../utils/encrypt')
 const { isAllowedIp } = require('../utils/tools')
-const { HostListDB } = require('../utils/db-class')
+const { HostListDB, OnekeyDB } = require('../utils/db-class')
 const hostListDB = new HostListDB().getInstance()
+const onekeyDB = new OnekeyDB().getInstance()
 
 const execStatusEnum = {
   connecting: '连接中',
@@ -207,7 +208,7 @@ module.exports = (httpServer) => {
           item.status = execStatusEnum.socketInterrupt
         }
       })
-      await writeOneKeyRecord(execResult)
+      await onekeyDB.insertAsync(execResult)
       isExecuting = false
       execResult = []
       execClient = []
