@@ -1,9 +1,11 @@
-const { readNotifyConfig, writeNotifyConfig, readNotifyList, writeNotifyList } = require('../utils/storage')
 const { sendServerChan, sendEmail } = require('../utils/notify')
-// const commonTemp = require('../template/commonTemp')
+const { NotifyConfigDB, NotifyDB } = require('../utils/db-class')
+const notifyDB = new NotifyDB().getInstance()
+const notifyConfigDB = new NotifyConfigDB().getInstance()
 
 async function getNotifyConfig({ res }) {
-  const data = await readNotifyConfig()
+  const data = await notifyConfigDB.findOneAsync({})
+  console.log(data)
   return res.success({ data })
 }
 
@@ -11,7 +13,7 @@ async function updateNotifyConfig({ res, request }) {
   let { body: { noticeConfig } } = request
   let { type } = noticeConfig
   try {
-    switch(type) {
+    switch (type) {
       case 'sct':
         await sendServerChan(noticeConfig[type]['sendKey'], 'EasyNode通知测试', '这是一条测试通知')
         break
@@ -19,7 +21,7 @@ async function updateNotifyConfig({ res, request }) {
         await sendEmail(noticeConfig[type], 'EasyNode通知测试', '这是一条测试通知')
         break
     }
-    await writeNotifyConfig(noticeConfig)
+    await notifyConfigDB.update({}, { $set: noticeConfig }, { upsert: true })
     return res.success({ msg: '测试通过 | 保存成功' })
   } catch (error) {
     return res.fail({ msg: error.message })
@@ -27,18 +29,14 @@ async function updateNotifyConfig({ res, request }) {
 }
 
 async function getNotifyList({ res }) {
-  const data = await readNotifyList()
+  const data = await notifyDB.findAsync({})
   res.success({ data })
 }
 
 async function updateNotifyList({ res, request }) {
   let { body: { type, sw } } = request
   if (!([true, false].includes(sw))) return res.fail({ msg: `Error type for sw：${ sw }, must be Boolean` })
-  const notifyList = await readNotifyList()
-  let target = notifyList.find((item) => item.type === type)
-  if (!target) return res.fail({ msg: `更新失败, 不存在该通知类型：${ type }` })
-  target.sw = sw
-  await writeNotifyList(notifyList)
+  await notifyDB.updateAsync({ type }, { $set: { sw } })
   res.success()
 }
 

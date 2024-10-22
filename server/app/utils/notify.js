@@ -1,7 +1,9 @@
 const nodemailer = require('nodemailer')
 const axios = require('axios')
-const { getNotifySwByType, readNotifyConfig } = require('../utils/storage')
 const commonTemp = require('../template/commonTemp')
+const { NotifyDB, NotifyConfigDB } = require('./db-class')
+const notifyConfigDB = new NotifyConfigDB().getInstance()
+const notifyDB = new NotifyDB().getInstance()
 
 function sendServerChan(sendKey, title, content) {
   if (!sendKey) return consola.error('发送server酱通知失败, sendKey 为空')
@@ -56,10 +58,11 @@ function sendEmail({ service, user, pass }, title, content) {
 // 异步发送通知
 async function asyncSendNotice(noticeAction, title, content) {
   try {
-    let sw = await getNotifySwByType(noticeAction) // 获取对应动作的通知开关
+    let notifyList = await notifyDB.findAsync({})
+    let { sw } = notifyList.find((item) => item.type === noticeAction) // 获取对应动作的通知开关
     console.log('notify swtich: ', noticeAction, sw)
     if (!sw) return
-    let notifyConfig = await readNotifyConfig()
+    let notifyConfig = await notifyConfigDB.findOneAsync({})
     let { type } = notifyConfig
     if (!type) return consola.error('通知类型不存在: ', type)
     title = `EasyNode-${ title }`

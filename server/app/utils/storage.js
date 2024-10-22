@@ -64,81 +64,17 @@ const writeSSHRecord = async (record = []) => {
   })
 }
 
-const readNotifyConfig = async () => {
-  return new Promise((resolve, reject) => {
-    const notifyConfigDB = new NotifyConfigDB().getInstance()
-    notifyConfigDB.findOne({}, (err, doc) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve(doc)
-      }
-    })
-  })
-}
-
-const writeNotifyConfig = async (keyObj = {}) => {
-  const notifyConfigDB = new NotifyConfigDB().getInstance()
-  return new Promise((resolve, reject) => {
-    notifyConfigDB.update({}, { $set: keyObj }, { upsert: true }, (err, numReplaced) => {
-      if (err) {
-        reject(err)
-      } else {
-        notifyConfigDB.compactDatafile()
-        resolve(numReplaced)
-      }
-    })
-  })
-}
-
-const getNotifySwByType = async (type) => {
-  if (!type) throw Error('missing params: type')
-  try {
-    let notifyList = await readNotifyList()
-    let { sw } = notifyList.find((item) => item.type === type)
-    return sw
-  } catch (error) {
-    consola.error(`通知类型[${ type }]不存在`)
-    return false
-  }
-}
-
-const readNotifyList = async () => {
-  return new Promise((resolve, reject) => {
-    const notifyDB = new NotifyDB().getInstance()
-    notifyDB.find({}, (err, docs) => {
-      if (err) {
-        consola.error('读取notify list错误: ', err)
-        reject(err)
-      } else {
-        resolve(docs)
-      }
-    })
-  })
-}
-
-const writeNotifyList = async (notifyList) => {
-  return new Promise((resolve, reject) => {
-    const notifyDB = new NotifyDB().getInstance()
-    notifyDB.remove({}, { multi: true }, (err) => {
-      if (err) {
-        consola.error('清空notify list出错:', err)
-        reject(err)
-      } else {
-        notifyDB.compactDatafile()
-        notifyDB.insert(notifyList, (err, newDocs) => {
-          if (err) {
-            consola.error('写入新的notify list出错:', err)
-            reject(err)
-          } else {
-            notifyDB.compactDatafile()
-            resolve(newDocs)
-          }
-        })
-      }
-    })
-  })
-}
+// const getNotifySwByType = async (type) => {
+//   if (!type) throw Error('missing params: type')
+//   try {
+//     let notifyList = await readNotifyList()
+//     let { sw } = notifyList.find((item) => item.type === type)
+//     return sw
+//   } catch (error) {
+//     consola.error(`通知类型[${ type }]不存在`)
+//     return false
+//   }
+// }
 
 const readScriptList = async () => {
   return new Promise((resolve, reject) => {
@@ -225,8 +161,6 @@ const deleteOneKeyRecord = async (ids =[]) => {
 module.exports = {
   readSSHRecord, writeSSHRecord,
   readKey, writeKey,
-  readNotifyList, writeNotifyList,
-  readNotifyConfig, writeNotifyConfig, getNotifySwByType,
   readScriptList, writeScriptList,
   readOneKeyRecord, writeOneKeyRecord, deleteOneKeyRecord
 }

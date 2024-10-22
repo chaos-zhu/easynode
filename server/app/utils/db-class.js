@@ -52,7 +52,6 @@ module.exports.NotifyDB = class NotifyDB {
     if (!NotifyDB.instance) {
       NotifyDB.instance = new Datastore({ filename: notifyDBPath, autoload: true })
       // NotifyDB.instance.setAutocompactionInterval(5000)
-
     }
   }
   getInstance() {
