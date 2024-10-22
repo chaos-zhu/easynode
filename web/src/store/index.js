@@ -18,7 +18,7 @@ const useStore = defineStore({
     localScriptList: [],
     HostStatusSocket: null,
     user: localStorage.getItem('user') || null,
-    token: sessionStorage.getItem('token') || localStorage.getItem('token') || null,
+    token: localStorage.getItem('token') || sessionStorage.getItem('token') || null,
     title: '',
     isDark: false,
     menuCollapse: localStorage.getItem('menuCollapse') === 'true',

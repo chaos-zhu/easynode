@@ -1,4 +1,4 @@
-const { KeyDB, SshRecordDB, NotifyDB, NotifyConfigDB, ScriptsDB, OnekeyDB } = require('./db-class')
+const { KeyDB, SshRecordDB, ScriptsDB, OnekeyDB } = require('./db-class')
 
 const readKey = async () => {
   return new Promise((resolve, reject) => {
@@ -64,55 +64,6 @@ const writeSSHRecord = async (record = []) => {
   })
 }
 
-// const getNotifySwByType = async (type) => {
-//   if (!type) throw Error('missing params: type')
-//   try {
-//     let notifyList = await readNotifyList()
-//     let { sw } = notifyList.find((item) => item.type === type)
-//     return sw
-//   } catch (error) {
-//     consola.error(`通知类型[${ type }]不存在`)
-//     return false
-//   }
-// }
-
-const readScriptList = async () => {
-  return new Promise((resolve, reject) => {
-    const scriptsDB = new ScriptsDB().getInstance()
-    scriptsDB.find({}, (err, docs) => {
-      if (err) {
-        consola.error('读取scripts list错误: ', err)
-        reject(err)
-      } else {
-        resolve(docs)
-      }
-    })
-  })
-}
-
-const writeScriptList = async (list = []) => {
-  return new Promise((resolve, reject) => {
-    const scriptsDB = new ScriptsDB().getInstance()
-    scriptsDB.remove({}, { multi: true }, (err) => {
-      if (err) {
-        consola.error('清空scripts list出错:', err)
-        reject(err)
-      } else {
-        scriptsDB.compactDatafile()
-        scriptsDB.insert(list, (err, newDocs) => {
-          if (err) {
-            consola.error('写入新的group list出错:', err)
-            reject(err)
-          } else {
-            scriptsDB.compactDatafile()
-            resolve(newDocs)
-          }
-        })
-      }
-    })
-  })
-}
-
 const readOneKeyRecord = async () => {
   return new Promise((resolve, reject) => {
     const onekeyDB = new OnekeyDB().getInstance()
@@ -161,6 +112,5 @@ const deleteOneKeyRecord = async (ids =[]) => {
 module.exports = {
   readSSHRecord, writeSSHRecord,
   readKey, writeKey,
-  readScriptList, writeScriptList,
   readOneKeyRecord, writeOneKeyRecord, deleteOneKeyRecord
 }

@@ -142,6 +142,7 @@ onMounted(async () => {
   const { data } = await $api.getPubPem()
   if (!data) return (notKey.value = true)
   localStorage.setItem('publicKey', data)
+  $store.removeJwtToken()
 })
 </script>
 
