@@ -52,24 +52,18 @@ export default {
   updatePwd(data) {
     return axios({ url: '/pwd', method: 'put', data })
   },
-  // updateHostSort(data) {
-  //   return axios({ url: '/host-sort', method: 'put', data })
-  // },
-  // getUserEmailList() {
-  //   return axios({ url: '/user-email', method: 'get' })
-  // },
-  // getSupportEmailList() {
-  //   return axios({ url: '/support-email', method: 'get' })
-  // },
-  // updateUserEmailList(data) {
-  //   return axios({ url: '/user-email', method: 'post', data })
-  // },
-  // deleteUserEmail(email) {
-  //   return axios({ url: `/user-email/${ email }`, method: 'delete' })
-  // },
-  // pushTestEmail(data) {
-  //   return axios({ url: '/push-email', method: 'post', data })
-  // },
+  getMFA2QR() {
+    return axios({ url: '/mfa2-code', method: 'post' })
+  },
+  getMFA2Status() {
+    return axios({ url: '/mfa2-status', method: 'get' })
+  },
+  enableMFA2(data) {
+    return axios({ url: '/mfa2-enable', method: 'post', data })
+  },
+  disableMFA2() {
+    return axios({ url: '/mfa2-disable', method: 'post' })
+  },
   getNotifyConfig() {
     return axios({ url: '/notify-config', method: 'get' })
   },

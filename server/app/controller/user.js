@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken')
 const axios = require('axios')
+const speakeasy = require('speakeasy')
+const QRCode = require('qrcode')
 const { sendNoticeAsync } = require('../utils/notify')
 const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt } = require('../utils/encrypt')
 const { getNetIPInfo } = require('../utils/tools')
@@ -112,7 +114,6 @@ const getEasynodeVersion = async ({ res }) => {
   try {
     // const { data } = await axios.get('https://api.github.com/repos/chaos-zhu/easynode/releases/latest')
     const { data } = await axios.get('https://get-easynode-latest-version.chaoszhu.workers.dev/version')
-    console.log(data)
     res.success({ data, msg: 'success' })
   } catch (error) {
     consola.error('Failed to fetch Easynode latest version:', error)
@@ -120,9 +121,58 @@ const getEasynodeVersion = async ({ res }) => {
   }
 }
 
+let tempSecret = null
+const getMFA2Status = async ({ res }) => {
+  const { enableMFA2 = false } = await keyDB.findOneAsync({})
+  res.success({ data: enableMFA2, msg: 'success' })
+}
+const getMFA2Code = async ({ res }) => {
+  const { user } = await keyDB.findOneAsync({})
+  let { otpauth_url, base32 } = speakeasy.generateSecret({ name: `EasyNode-${ user }`, length: 20 })
+  tempSecret = base32
+  const qrImage = await QRCode.toDataURL(otpauth_url)
+  const data = { qrImage, secret: tempSecret }
+  res.success({ data, msg: 'success' })
+}
+
+const enableMFA2 = async ({ res, request }) => {
+  const { body: { token } } = request
+  if (!token) return res.fail({ data: false, msg: '参数错误' })
+  try {
+    // const isValid = authenticator.verify({ token, secret: tempSecret })
+    const isValid = speakeasy.totp.verify({
+      secret: tempSecret,
+      encoding: 'base32',
+      token,
+      window: 1
+    })
+    if (!isValid) return res.fail({ msg: '验证失败' })
+    const keyConfig = await keyDB.findOneAsync({})
+    keyConfig.enableMFA2 = true
+    keyConfig.secret = tempSecret
+    tempSecret = null
+    await keyDB.updateAsync({}, keyConfig)
+    res.success({ msg: '验证成功' })
+  } catch (error) {
+    res.fail({ msg: `验证失败: ${ error.message }` })
+  }
+}
+
+const disableMFA2 = async ({ res }) => {
+  const keyConfig = await keyDB.findOneAsync({})
+  keyConfig.enableMFA2 = false
+  keyConfig.secret = null
+  await keyDB.updateAsync({}, keyConfig)
+  res.success({ msg: 'success' })
+}
+
 module.exports = {
   login,
   getpublicKey,
   updatePwd,
-  getEasynodeVersion
+  getEasynodeVersion,
+  getMFA2Status,
+  getMFA2Code,
+  enableMFA2,
+  disableMFA2
 }

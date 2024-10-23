@@ -1,6 +1,6 @@
 const { getSSHList, addSSH, updateSSH, removeSSH, getCommand } = require('../controller/ssh')
 const { getHostList, addHost, updateHost, removeHost, importHost } = require('../controller/host')
-const { login, getpublicKey, updatePwd, getEasynodeVersion } = require('../controller/user')
+const { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2 } = require('../controller/user')
 const { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
 const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript } = require('../controller/scripts')
@@ -81,6 +81,26 @@ const user = [
     method: 'get',
     path: '/version',
     controller: getEasynodeVersion
+  },
+  {
+    method: 'get',
+    path: '/mfa2-status',
+    controller: getMFA2Status
+  },
+  {
+    method: 'post',
+    path: '/mfa2-code',
+    controller: getMFA2Code
+  },
+  {
+    method: 'post',
+    path: '/mfa2-enable',
+    controller: enableMFA2
+  },
+  {
+    method: 'post',
+    path: '/mfa2-disable',
+    controller: disableMFA2
   }
 ]
 const notify = [
