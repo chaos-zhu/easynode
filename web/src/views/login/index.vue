@@ -44,6 +44,17 @@
           <el-form-item v-show="false" prop="pwd" label="密码">
             <el-input v-model.trim="loginForm.pwd" />
           </el-form-item>
+          <el-form-item prop="mfa2Token" label="MFA2验证码">
+            <el-input
+              v-model.trim.number="loginForm.mfa2Token"
+              type="text"
+              placeholder="MFA2应用上的6位数字(未设置可忽略)"
+              autocomplete="off"
+              :trigger-on-focus="false"
+              clearable
+              autofocus
+            />
+          </el-form-item>
           <el-form-item prop="jwtExpires" label="有效期">
             <el-radio-group v-model="expireTime" class="login-indate">
               <el-radio :value="expireEnum.ONE_SESSION">一次性会话</el-radio>
@@ -70,10 +81,7 @@
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { RSAEncrypt } from '@utils/index.js'
-// import { useRouter } from 'vue-router'
-// import useStore from '@store/index'
 
-// const router = useRouter()
 const { proxy: { $store, $api, $message, $messageBox, $router } } = getCurrentInstance()
 
 const expireEnum = reactive({
@@ -88,16 +96,18 @@ const loading = ref(false)
 const loginForm = reactive({
   loginName: '',
   pwd: '',
-  jwtExpires: 1
+  jwtExpires: 1,
+  mfa2Token: ''
 })
 const rules = reactive({
   loginName: { required: true, message: '需输入用户名', trigger: 'change' },
-  pwd: { required: true, message: '需输入密码', trigger: 'change' }
+  pwd: { required: true, message: '需输入密码', trigger: 'change' },
+  mfa2Token: { required: false, message: '需输入密码', trigger: 'change' }
 })
 
 const handleLogin = () => {
-  loginFormRefs.value.validate().then(() => {
-    let { jwtExpires, loginName, pwd } = loginForm
+  loginFormRefs.value.validate().then(async () => {
+    let { jwtExpires, loginName, pwd, mfa2Token } = loginForm
     switch (expireTime.value) {
       case expireEnum.ONE_SESSION:
         jwtExpires = '1h' // 会话登录token1小时有效期，浏览器窗口关闭则立即失效
@@ -112,29 +122,33 @@ const handleLogin = () => {
     const ciphertext = RSAEncrypt(pwd)
     if (ciphertext === -1) return $message.error({ message: '公钥加载失败', center: true })
     loading.value = true
-    $api.login({ loginName, ciphertext, jwtExpires })
-      .then(({ data, msg }) => {
-        const { token } = data
-        $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
-        $store.setUser(loginName)
-        $message.success({ message: msg || 'success', center: true })
-        if (loginName === 'admin' && pwd === 'admin') {
-          $messageBox.confirm('请立即修改初始用户名及密码！防止恶意扫描！', '警告', {
-            confirmButtonText: '确定',
-            showCancelButton: false,
-            type: 'warning'
-          })
-            .then(async () => {
-              $router.push('/setting')
-            })
-        } else {
-          $router.push('/')
-        }
-      })
-      .finally(() => {
-        loading.value = false
-      })
+    try {
+      let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, mfa2Token })
+      const { token } = data
+      $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
+      $store.setUser(loginName)
+      $message.success({ message: msg || 'success', center: true })
+      loginSuccess()
+    } finally {
+      loading.value = false
+    }
   })
+}
+
+const loginSuccess = () => {
+  let { loginName, pwd } = loginForm
+  if (loginName === 'admin' && pwd === 'admin') {
+    $messageBox.confirm('请立即修改初始用户名及密码！防止恶意扫描！', 'Warning', {
+      confirmButtonText: '确定',
+      showCancelButton: false,
+      type: 'warning'
+    })
+      .then(async () => {
+        $router.push('/setting')
+      })
+  } else {
+    $router.push('/')
+  }
 }
 
 onMounted(async () => {

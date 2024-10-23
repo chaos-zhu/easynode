@@ -10,7 +10,7 @@ const enumLoginCode = {
   ERROR_TOKEN: -2
 }
 
-// 校验token与登录IP
+// 校验token
 const verifyAuthSync = async (token, clientIp) => {
   consola.info('verifyAuthSync IP：', clientIp)
   try {

@@ -1,7 +1,7 @@
-## [2.3.0](https://github.com/chaos-zhu/easynode/releases) (2024-10-xx)
+## [2.3.0](https://github.com/chaos-zhu/easynode/releases) (2024-10-24)
 
 * 重构本地数据库存储方式(性能提升一个level~)
-* 支持MFA2二次验证
+* 支持MFA2二次登录验证
 * 优化了一些页面在移动端的展示
 * 修复偶现刷新页面需重新登录的bug
 

@@ -68,6 +68,7 @@
           class="mfa2_input"
           clearable
           placeholder=""
+          autofocus
           @keyup.enter="handleEnableMFA2"
         />
         <el-button type="primary" @click="handleEnableMFA2">保存</el-button>
@@ -130,7 +131,6 @@ const handleMFA2 = async () => {
   startEnableMFA2.value = false
   let { data } = await $api.getMFA2QR()
   MFA2Data.value = data
-  console.log(data)
 }
 
 const handleEnableMFA2 = async () => {

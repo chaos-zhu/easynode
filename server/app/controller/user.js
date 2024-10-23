@@ -24,7 +24,7 @@ let loginCountDown = forbidTimer
 let forbidLogin = false
 
 const login = async ({ res, request }) => {
-  let { body: { loginName, ciphertext, jwtExpires }, ip: clientIp } = request
+  let { body: { loginName, ciphertext, jwtExpires, mfa2Token }, ip: clientIp } = request
   if (!loginName && !ciphertext) return res.fail({ msg: '请求非法!' })
   if (forbidLogin) return res.fail({ msg: `禁止登录! 倒计时[${ loginCountDown }s]后尝试登录或重启面板服务` })
   loginErrCount++
@@ -55,10 +55,13 @@ const login = async ({ res, request }) => {
 
   // 登录流程
   try {
-    // console.log('ciphertext', ciphertext)
     let loginPwd = await RSADecryptAsync(ciphertext)
-    // console.log('Decrypt解密password:', loginPwd)
-    let { user, pwd } = await keyDB.findOneAsync({})
+    let { user, pwd, enableMFA2, secret } = await keyDB.findOneAsync({})
+    if (enableMFA2) {
+      const isValid = speakeasy.totp.verify({ secret, encoding: 'base32', token: mfa2Token, window: 1 })
+      console.log('MFA2 verfify:', isValid)
+      if (!isValid) return res.fail({ msg: '验证失败' })
+    }
     if (loginName === user && loginPwd === 'admin' && pwd === 'admin') {
       const token = await beforeLoginHandler(clientIp, jwtExpires)
       return res.success({ data: { token, jwtExpires }, msg: '登录成功，请及时修改默认用户名和密码' })
@@ -68,8 +71,8 @@ const login = async ({ res, request }) => {
     const token = await beforeLoginHandler(clientIp, jwtExpires)
     return res.success({ data: { token, jwtExpires }, msg: '登录成功' })
   } catch (error) {
-    console.log('解密失败：', error)
-    res.fail({ msg: '解密失败, 请查看服务端日志' })
+    console.log('登录失败：', error.message)
+    res.fail({ msg: '登录失败, 请查看服务端日志' })
   }
 }
 
@@ -87,7 +90,7 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
   const { ip, country, city } = clientIPInfo || {}
   consola.info('登录成功:', new Date(), { ip, country, city })
 
-  // 邮件登录通知
+  // 登录通知
   sendNoticeAsync('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }`)
 
   await logDB.insertAsync({ ip, country, city, date: Date.now(), type: 'login' })
@@ -140,12 +143,7 @@ const enableMFA2 = async ({ res, request }) => {
   if (!token) return res.fail({ data: false, msg: '参数错误' })
   try {
     // const isValid = authenticator.verify({ token, secret: tempSecret })
-    const isValid = speakeasy.totp.verify({
-      secret: tempSecret,
-      encoding: 'base32',
-      token,
-      window: 1
-    })
+    const isValid = speakeasy.totp.verify({ secret: tempSecret, encoding: 'base32', token, window: 1 })
     if (!isValid) return res.fail({ msg: '验证失败' })
     const keyConfig = await keyDB.findOneAsync({})
     keyConfig.enableMFA2 = true
