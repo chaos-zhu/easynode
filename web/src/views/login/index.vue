@@ -53,6 +53,7 @@
               :trigger-on-focus="false"
               clearable
               autofocus
+              @keyup.enter="handleLogin"
             />
           </el-form-item>
           <el-form-item prop="jwtExpires" label="有效期">
@@ -89,7 +90,7 @@ const expireEnum = reactive({
   CURRENT_DAY: 'current_day',
   THREE_DAY: 'three_day'
 })
-const expireTime = ref(expireEnum.ONE_SESSION)
+const expireTime = ref(expireEnum.CURRENT_DAY)
 const loginFormRefs = ref(null)
 const notKey = ref(false)
 const loading = ref(false)

@@ -1,29 +1,43 @@
+<div align="center">
+
 # EasyNode
 
-  <!-- - [功能](#功能)
-  - [安装](#安装)
-  - [监控服务安装](#监控服务安装)
-  - [版本日志](#版本日志)
-  - [开发](#开发)
-  - [QA](#QA)
-  - [安全与建议](#安全与建议)
-  - [捐赠](#捐赠)
-  - [License](#license) -->
+_✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
+
+</div>
+
+<p align="center">
+  <a href="#功能">功能</a>
+  ·
+  <a href="#动图展示">动图展示</a>
+  ·
+  <a href="#项目部署">项目部署</a>
+  ·
+  <a href="#监控服务安装">监控服务安装</a>
+  ·
+  <a href="#安全与建议">安全与建议</a>
+  ·
+  <a href="#常见问题">常见问题</a>
+  <!-- ·
+  <a href="#Plus功能">Plus版功能</a> -->
+</p>
 
 ## 功能
 
-- [x] 功能完善的**SSH终端**&**SFTP**
-- [x] 批量**导入导出**实例(Xshell&FinalShell&EasyNode)
-- [x] **实例分组**
-- [x] **凭据托管**
-- [x] **多渠道通知**
-- [x] **脚本库**
-- [x] **批量指令**
-- [x] **终端主题背景自定义**
++ [x] 功能完善的**SSH终端**&**SFTP**
++ [x] 批量导入、导出、编辑服务器配置、脚本等
++ [x] 脚本库
++ [x] 实例分组
++ [x] 凭据托管
++ [x] 多渠道通知
++ [x] 批量下发指令
++ [x] 自定义终端主题
+
+## 动图展示
 
 ![实例面板](./doc_images/merge.gif)
 
-## 安装
+## 项目部署
 
 - 默认账户密码 `admin/admin`
 - web端口：8082
@@ -31,34 +45,17 @@
 ### docker镜像
 
 ```shell
-docker run -d -p 8082:8082 --name=easynode --restart=always -v /root/easynode/db:/easynode/app/db chaoszhu/easynode
+docker run -d -p 8082:8082 --restart=always -v /root/easynode/db:/easynode/app/db chaoszhu/easynode
 ```
 环境变量：
+- `PLUS_KEY`: 激活PLUS功能的授权码
 - `DEBUG`: 启动debug日志 0：关闭 1：开启, 默认关闭
 - `ALLOWED_IPS`: 可以访问服务的IP白名单, 多个使用逗号分隔, 支持填写部分ip前缀, 例如: `-e ALLOWED_IPS=127.0.0.1,196.168`
 
-### 手动部署
-
-依赖Nodejs版本 > 20+
-
-```shell
-git clone https://github.com/chaos-zhu/easynode
-cd easynode
-yarn
-cd web
-yarn build
-mv dist/* ../server/app/static
-cd ../server
-yarn start
-# 后台运行需安装pm2
-pm2 start index.js --name easynode-server
-```
-
----
 
 ## 监控服务安装
 
-- 监控服务用于实时向服务端推送**系统、公网IP、CPU、内存、硬盘、网卡**等基础信息，不安装不影响使用面板，但是无法实时同步cpu占用、实时网速、硬盘容量等实用信息。
+- 监控服务用于实时向服务端&web端推送**系统、公网IP、CPU、内存、硬盘、网卡**等基础信息
 
 - 默认端口：**22022**
 
@@ -86,20 +83,6 @@ curl -o- https://ghp.ci/https://raw.githubusercontent.com/chaos-zhu/easynode/mai
 
 ---
 
-## 开发
-
-1. 拉取代码，环境 `nodejs>=20`
-2. cd到项目根目录，`yarn install` 执行安装依赖
-3. `yarn dev`启动项目
-4. web: `http://localhost:18090/`
-
-## 版本日志
-
-- [CHANGELOG](./CHANGELOG.md)
-
-## QA
-
-- [QA](./Q%26A.md)
 
 ## 安全与建议
 
@@ -110,12 +93,17 @@ curl -o- https://ghp.ci/https://raw.githubusercontent.com/chaos-zhu/easynode/mai
 
 webssh与监控服务都将以`该服务器作为中转`。中国大陆用户建议使用香港、新加坡、日本、韩国等地区的低延迟服务器来安装服务端面板
 
-## 捐赠
+## 常见问题
 
-如果您认为此项目帮到了您, 您可以请我喝杯阔乐~
+- [QA](./Q%26A.md)
 
-![wx](./doc_images/wx.jpg)
+![3.0.0访问数](https://profile-counter.glitch.me/easynode/3.0.0.count.svg)
 
-## License
+<!-- ## Plus版功能
 
-[MIT](LICENSE). Copyright (c).
+- 跳板机功能,拯救被墙实例与龟速终端输入
+- 本地socket断开自动重连,无需手动重新连接
+- 批量修改实例配置(优化版)
+- 脚本库批量导出导入
+- 凭据管理支持解密带密码保护的密钥
+- 提出的功能需求享有更高的开发优先级 -->

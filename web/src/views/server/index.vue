@@ -3,10 +3,6 @@
     <div class="server_group_header">
       <!-- <el-button v-show="selectHosts.length" type="primary" @click="hostFormVisible = true">批量操作</el-button> -->
       <el-button type="primary" class="add_host_btn" @click="hostFormVisible = true">添加实例</el-button>
-      <!-- <el-button type="primary" @click="handleHiddenIP">
-        {{ hiddenIp ? '显示IP' : '隐藏IP' }}
-      </el-button> -->
-      <!-- <el-button type="primary" @click="importVisible = true">导入实例</el-button> -->
       <el-dropdown trigger="click">
         <el-button type="primary" class="group_action_btn">
           导入导出<el-icon class="el-icon--right"><arrow-down /></el-icon>
@@ -44,17 +40,9 @@
         <el-collapse-item v-for="(hosts, groupName) in groupHostList" :key="groupName" :name="groupName">
           <template #title>
             <div class="group_title">
-              {{ groupName }}
+              {{ `${groupName}`+`${hosts.length ? `(${hosts.length})` : ''}` }}
             </div>
           </template>
-          <!-- <HostCard
-              v-for="(item, index) in hosts"
-              :key="index"
-              :host-info="item"
-              :hidden-ip="hiddenIp"
-              @update-host="handleUpdateHost"
-              @update-list="handleUpdateList"
-            /> -->
           <HostTable
             ref="hostTableRefs"
             :hosts="hosts"
@@ -90,17 +78,15 @@ import { exportFile } from '@/utils'
 
 const { proxy: { $api, $store, $router, $message, $messageBox, $tools } } = getCurrentInstance()
 
-let updateHostData = ref(null)
-let hostFormVisible = ref(false)
-let importVisible = ref(false)
-let selectHosts = ref([])
-let isBatchModify = ref(false)
+const updateHostData = ref(null)
+const hostFormVisible = ref(false)
+const importVisible = ref(false)
+const selectHosts = ref([])
+const isBatchModify = ref(false)
 const hostTableRefs = ref([])
+const activeGroup = ref([])
 
-let hiddenIp = ref(Number(localStorage.getItem('hiddenIp') || 0))
-let activeGroup = ref([])
-
-let handleUpdateList = async () => {
+const handleUpdateList = async () => {
   try {
     await $store.getHostList()
   } catch (err) {
@@ -176,11 +162,6 @@ let handleBatchExport = () => {
   const fileName = `easynode-${ $tools.formatTimestamp(Date.now(), 'time', '.') }.json`
   exportFile(exportData, fileName, 'application/json')
   hostTableRefs.value.forEach(item => item.clearSelection())
-}
-
-let handleHiddenIP = () => {
-  hiddenIp.value = hiddenIp.value ? 0 : 1
-  localStorage.setItem('hiddenIp', String(hiddenIp.value))
 }
 
 let hostList = computed(() => $store.hostList)

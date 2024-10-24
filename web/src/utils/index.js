@@ -128,7 +128,7 @@ export const getSuffix = (name = '') => {
 }
 
 export const exportFile = (data, filename, mimeType = 'application/json') =>{
-  const blob = new Blob([JSON.stringify(data),], { type: mimeType })
+  const blob = new Blob([JSON.stringify(data, null, 2),], { type: mimeType })
   const url = window.URL.createObjectURL(blob)
 
   const link = document.createElement('a')

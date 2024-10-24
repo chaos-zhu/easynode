@@ -1,17 +1,17 @@
+const path = require('path')
+const decryptAndExecuteAsync = require('../utils/decrypt-file')
 const { RSADecryptAsync, AESEncryptAsync, AESDecryptAsync } = require('../utils/encrypt')
 const { HostListDB } = require('../utils/db-class')
 const hostListDB = new HostListDB().getInstance()
 
 async function getHostList({ res }) {
-  // console.log('get-host-list')
   let data = await hostListDB.findAsync({})
   data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
   for (const item of data) {
     try {
-      let { username, port, authType, _id: id, credential } = item
-      // console.log('解密凭证title: ', credential)
+      let { authType, _id: id, credential } = item
       if (credential) credential = await AESDecryptAsync(credential)
-      const isConfig = Boolean(username && port && (item[authType]))
+      const isConfig = Boolean(authType && item[authType])
       Object.assign(item, { id, isConfig, password: '', privateKey: '', credential })
     } catch (error) {
       consola.error('getHostList error: ', error.message)
@@ -21,94 +21,55 @@ async function getHostList({ res }) {
 }
 
 async function addHost({ res, request }) {
-  let {
-    body: {
-      name, host, index, expired, expiredNotify, group, consoleUrl, remark,
-      port: newPort, clientPort, username, authType, password, privateKey, credential, command, tempKey
-    }
-  } = request
-  // console.log(request)
-  if (!host || !name) return res.fail({ msg: 'missing params: name or host' })
-  let record = {
-    name, host, index, expired, expiredNotify, group, consoleUrl, remark,
-    port: newPort, clientPort, username, authType, password, privateKey, credential, command
-  }
-  if (record[authType]) {
+  let { body } = request
+  if (!body.name || !body.host) return res.fail({ msg: 'missing params: name or host' })
+  let newRecord = { ...body }
+  const { authType, tempKey } = newRecord
+  if (newRecord[authType] && tempKey) {
     const clearTempKey = await RSADecryptAsync(tempKey)
-    console.log('clearTempKey:', clearTempKey)
-    const clearSSHKey = await AESDecryptAsync(record[authType], clearTempKey)
-    console.log(`${ authType }原密文: `, clearSSHKey)
-    record[authType] = await AESEncryptAsync(clearSSHKey)
-    // console.log(`${ authType }__commonKey加密存储: `, record[authType])
+    const clearSSHKey = await AESDecryptAsync(newRecord[authType], clearTempKey)
+    newRecord[authType] = await AESEncryptAsync(clearSSHKey)
   }
-  await hostListDB.insertAsync(record)
+  await hostListDB.insertAsync(newRecord)
   res.success()
 }
 
 async function updateHost({ res, request }) {
   let {
-    body: {
-      hosts,
-      id,
-      host: newHost, name: newName, index, oldHost, expired, expiredNotify, group, consoleUrl, remark,
-      port, clientPort, username, authType, password, privateKey, credential, command, tempKey
-    }
+    body
   } = request
-  let isBatch = Array.isArray(hosts)
-  if (isBatch) {
-    if (!hosts.length) return res.fail({ msg: 'hosts为空' })
-    let hostList = await hostListDB.findAsync({})
-    for (let oldRecord of hostList) {
-      let target = hosts.find(item => item.id === oldRecord._id)
-      if (!target) continue
-      let { authType } = target
-      // 如果存在原认证方式则保存下来
-      if (!target[authType]) {
-        target[authType] = oldRecord[authType]
-      } else {
-        const clearTempKey = await RSADecryptAsync(target.tempKey)
-        // console.log('批量解密tempKey:', clearTempKey)
-        const clearSSHKey = await AESDecryptAsync(target[authType], clearTempKey)
-        // console.log(`${ authType }原密文: `, clearSSHKey)
-        target[authType] = await AESEncryptAsync(clearSSHKey)
-        // console.log(`${ authType }__commonKey加密存储: `, target[authType])
-      }
-      delete target._id
-      delete target.monitorData
-      delete target.tempKey
-      Object.assign(oldRecord, target)
-      await hostListDB.updateAsync({ _id: oldRecord._id }, oldRecord)
-    }
-    return res.success({ msg: '批量修改成功' })
-  }
-  if (!newHost || !newName || !oldHost) return res.fail({ msg: '参数错误' })
-
-  let updateRecord = {
-    name: newName, host: newHost, index, expired, expiredNotify, group, consoleUrl, remark,
-    port, clientPort, username, authType, password, privateKey, credential, command
-  }
-
-  let oldRecord = await hostListDB.findOneAsync({ _id: id })
-  // 如果存在原认证方式则保存下来
-  if (!updateRecord[authType] && oldRecord[authType]) {
-    updateRecord[authType] = oldRecord[authType]
-  } else {
+  if (typeof body !== 'object') return res.fail({ msg: '参数错误' })
+  const updateFiled = { ...body }
+  const { id, authType, tempKey } = updateFiled
+  if (authType && updateFiled[authType]) {
     const clearTempKey = await RSADecryptAsync(tempKey)
-    // console.log('clearTempKey:', clearTempKey)
-    const clearSSHKey = await AESDecryptAsync(updateRecord[authType], clearTempKey)
-    // console.log(`${ authType }原密文: `, clearSSHKey)
-    updateRecord[authType] = await AESEncryptAsync(clearSSHKey)
-    // console.log(`${ authType }__commonKey加密存储: `, updateRecord[authType])
+    const clearSSHKey = await AESDecryptAsync(updateFiled[authType], clearTempKey)
+    updateFiled[authType] = await AESEncryptAsync(clearSSHKey)
+    delete updateFiled.tempKey
+  } else {
+    delete updateFiled.authType
+    delete updateFiled.password
+    delete updateFiled.privateKey
+    delete updateFiled.credential
   }
-  await hostListDB.updateAsync({ _id: oldRecord._id }, updateRecord)
+  console.log('updateFiled: ', updateFiled)
+  await hostListDB.updateAsync({ _id: id }, { $set: { ...updateFiled } })
   res.success({ msg: '修改成功' })
+}
+
+async function batchUpdateHost({ res, request }) {
+  let { updateHosts } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  if (updateHosts) {
+    await updateHosts({ res, request })
+  } else {
+    return res.fail({ data: false, msg: 'Plus专属功能!' })
+  }
 }
 
 async function removeHost({ res, request }) {
   let { body: { ids } } = request
   if (!Array.isArray(ids)) return res.fail({ msg: '参数错误' })
   const numRemoved = await hostListDB.removeAsync({ _id: { $in: ids } }, { multi: true })
-  // console.log('numRemoved: ', numRemoved)
   res.success({ data: `已移除,数量: ${ numRemoved }` })
 }
 
@@ -150,5 +111,6 @@ module.exports = {
   addHost,
   updateHost,
   removeHost,
-  importHost
+  importHost,
+  batchUpdateHost
 }

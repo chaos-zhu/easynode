@@ -73,7 +73,7 @@
           <el-tooltip
             effect="dark"
             content="开启后同步键盘输入到所有会话"
-            placement="top"
+            placement="bottom"
           >
             <el-switch
               v-model="isSyncAllSession"
@@ -89,7 +89,7 @@
           <el-tooltip
             effect="dark"
             content="SFTP文件传输"
-            placement="top"
+            placement="bottom"
           >
             <el-switch
               v-model="showSftp"

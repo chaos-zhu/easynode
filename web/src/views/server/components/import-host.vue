@@ -133,7 +133,7 @@ const handleCsvFile = (event) => {
 
 const handleJsonFile = (event) => {
   let files = event.target.files
-  let jsonFiles = Array.from(files).filter(file => file.type === 'application/json')
+  let jsonFiles = Array.from(files).filter(file => file.name.endsWith('.json'))
   if (jsonFiles.length === 0) return $message.warning('未选择有效的JSON文件')
 
   let readerPromises = jsonFiles.map(file => {

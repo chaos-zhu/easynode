@@ -10,7 +10,7 @@
             }}</span>
           </template>
         </el-table-column>
-        <el-table-column v-show="!isAllConfssh" fixed="right" width="80px">
+        <el-table-column fixed="right" width="80px">
           <template #default="{ row }">
             <div class="actios_btns">
               <el-button
@@ -71,9 +71,6 @@ const route = useRoute()
 
 let showLinkTips = computed(() => !Boolean(terminalTabs.length))
 let hostList = computed(() => $store.hostList)
-let isAllConfssh = computed(() => {
-  return hostList.value?.every(item => item.isConfig)
-})
 
 function linkTerminal(hostInfo) {
   let targetHost = hostList.value.find(item => item.id === hostInfo.id)

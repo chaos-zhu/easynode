@@ -89,6 +89,35 @@ const getNetIPInfo = async (searchIp = '') => {
   }
 }
 
+const getLocalNetIP = async () => {
+  try {
+    let ipUrls = [
+      'http://whois.pconline.com.cn/ipJson.jsp?json=true',
+      'https://www.ip.cn/api/index?ip=&type=0',
+      'https://freeipapi.com/api/json'
+    ]
+    let result = await Promise.allSettled(ipUrls.map(url => axios.get(url)))
+    let [pconline, ipCN, freeipapi] = result
+    if (pconline.status === 'fulfilled') {
+      let ip = pconline.value?.data?.ip
+      if (ip) return ip
+    }
+    if (ipCN.status === 'fulfilled') {
+      let ip = ipCN.value?.data?.ip
+      consola.log('ipCN:', ip)
+      if (ip) return ip
+    }
+    if (freeipapi.status === 'fulfilled') {
+      let ip = pconline.value?.data?.ipAddress
+      if (ip) return ip
+    }
+    return null
+  } catch (error) {
+    console.error('getIpInfo Error: ', error?.message || error)
+    return null
+  }
+}
+
 function isLocalIP(ip) {
   // Check if IPv4 or IPv6 address
   const isIPv4 = net.isIPv4(ip)
@@ -159,7 +188,7 @@ const isIP = (ip = '') => {
   return isIPv4.test(ip) || isIPv6.test(ip)
 }
 
-const randomStr = (len) =>{
+const randomStr = (len) => {
   len = len || 16
   let str = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678',
     a = str.length,
@@ -178,7 +207,7 @@ const getUTCDate = (num = 8) => {
 }
 
 const formatTimestamp = (timestamp = Date.now(), format = 'time') => {
-  if (typeof(timestamp) !== 'number') return '--'
+  if (typeof (timestamp) !== 'number') return '--'
   let date = new Date(timestamp)
   let padZero = (num) => String(num).padStart(2, '0')
   let year = date.getFullYear()
@@ -187,7 +216,7 @@ const formatTimestamp = (timestamp = Date.now(), format = 'time') => {
   let hours = padZero(date.getHours())
   let minute = padZero(date.getMinutes())
   let second = padZero(date.getSeconds())
-  let weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六' ]
+  let weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   let week = weekday[date.getDay()]
   switch (format) {
     case 'date':
@@ -284,6 +313,7 @@ const ping = (ip, timeout = 5000) => {
 
 module.exports = {
   getNetIPInfo,
+  getLocalNetIP,
   throwError,
   isIP,
   randomStr,

@@ -15,9 +15,11 @@
         </template>
         <span style="margin-right: 10px;">{{ host }}</span>
         <template v-if="pingMs">
-          <span class="host-ping" :style="{backgroundColor: handlePingColor(pingMs)}">{{ pingMs }}ms</span>
+          <el-tooltip effect="dark" content="该值为EasyNode服务端主机到目标主机的ping值" placement="bottom">
+            <span class="host-ping" :style="{backgroundColor: handlePingColor(pingMs)}">{{ pingMs }}ms</span>
+          </el-tooltip>
         </template>
-        <el-tag size="small" style="cursor: pointer;margin-left: 15px;" @click="handleCopy">复制</el-tag>
+        <el-tag size="small" style="cursor: pointer;margin-left: 10px;" @click="handleCopy">复制</el-tag>
       </el-descriptions-item>
       <el-descriptions-item>
         <template #label>

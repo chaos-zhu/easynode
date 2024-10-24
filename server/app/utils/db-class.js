@@ -8,7 +8,8 @@ const {
   groupConfDBPath,
   scriptsDBPath,
   onekeyDBPath,
-  logDBPath
+  logDBPath,
+  plusDBPath
 } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
@@ -116,5 +117,16 @@ module.exports.LogDB = class LogDB {
   }
   getInstance() {
     return LogDB.instance
+  }
+}
+
+module.exports.PlusDB = class PlusDB {
+  constructor() {
+    if (!PlusDB.instance) {
+      PlusDB.instance = new Datastore({ filename: plusDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return PlusDB.instance
   }
 }

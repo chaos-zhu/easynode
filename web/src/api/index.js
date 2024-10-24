@@ -19,11 +19,14 @@ export default {
   removeSSH(id) {
     return axios({ url: `/remove-ssh/${ id }`, method: 'delete' })
   },
-  // existSSH(host) {
-  //   return axios({ url: '/exist-ssh', method: 'post', data: { host } })
-  // },
+  getPlusInfo() {
+    return axios({ url: '/plus-info', method: 'get' })
+  },
   getCommand(hostId) {
     return axios({ url: '/command', method: 'get', params: { hostId } })
+  },
+  decryptPrivateKey(data) {
+    return axios({ url: '/decrypt-private-key', method: 'post', data })
   },
   getHostList() {
     return axios({ url: '/host-list', method: 'get' })
@@ -33,6 +36,9 @@ export default {
   },
   updateHost(data) {
     return axios({ url: '/host-save', method: 'put', data })
+  },
+  batchUpdateHost(data) {
+    return axios({ url: '/batch-update-host', method: 'put', data })
   },
   removeHost(data) {
     return axios({ url: '/host-remove', method: 'post', data })
@@ -88,8 +94,11 @@ export default {
   deleteGroup(id) {
     return axios({ url: `/group/${ id }`, method: 'delete' })
   },
-  getScriptList() {
-    return axios({ url: '/script', method: 'get' })
+  getScriptList(params = {}) {
+    return axios({ url: '/script', method: 'get', params })
+  },
+  importScript(data) {
+    return axios({ url: '/import-script', method: 'post', data })
   },
   getLocalScriptList() {
     return axios({ url: '/local-script', method: 'get' })
@@ -102,6 +111,9 @@ export default {
   },
   deleteScript(id) {
     return axios({ url: `/script/${ id }`, method: 'delete' })
+  },
+  batchRemoveScript(data) {
+    return axios({ url: '/batch-remove-script', method: 'post', data })
   },
   getOnekeyRecord() {
     return axios({ url: '/onekey', method: 'get' })

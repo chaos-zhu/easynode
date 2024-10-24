@@ -3,27 +3,28 @@ const { outDir, recordLog } = require('../config').logConfig
 
 log4js.configure({
   appenders: {
-    // 控制台输出
-    out: {
+    console: {
       type: 'stdout',
       layout: {
-        type: 'colored'
+        type: 'pattern',
+        pattern: '%[%d{yyyy-MM-dd hh:mm:ss.SSS} [%p] -%] %m'
       }
     },
-    // 保存日志文件
     cheese: {
       type: 'file',
-      maxLogSize: 512*1024, // unit: bytes     1KB = 1024bytes
-      filename: `${ outDir }/receive.log`
+      maxLogSize: 10 * 1024 * 1024, // unit: bytes     1KB = 1024bytes
+      filename: `${ outDir }/receive.log`,
+      backups: 10,
+      compress: true,
+      keepFileExt: true
     }
   },
   categories: {
     default: {
-      appenders: [ 'out', 'cheese' ], // 配置
-      level: 'info' // 只输出info以上级别的日志
+      appenders: ['console', 'cheese'],
+      level: 'debug'
     }
   }
-  // pm2: true
 })
 
 const logger = log4js.getLogger()
@@ -56,3 +57,6 @@ const useLog = () => {
 }
 
 module.exports = useLog()
+
+// 可以先测试一下日志是否正常工作
+logger.info('日志系统启动')

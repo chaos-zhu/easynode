@@ -40,10 +40,13 @@ const useStore = defineStore({
         background: 'linear-gradient(-225deg, #CBBACC 0%, #2580B3 100%)',
         quickCopy: isHttps(),
         quickPaste: isHttps(),
+        autoReconnect: true,
         autoExecuteScript: false
       },
       ...(localStorage.getItem('terminalConfig') ? JSON.parse(localStorage.getItem('terminalConfig')) : {})
-    }
+    },
+    plusInfo: {},
+    isPlusActive: false
   }),
   actions: {
     async setJwtToken(token, isSession = true) {
@@ -68,6 +71,7 @@ const useStore = defineStore({
       await this.getHostList()
       await this.getSSHList()
       await this.getScriptList()
+      await this.getPlusInfo()
       this.wsClientsStatus()
     },
     async getHostList() {
@@ -95,6 +99,20 @@ const useStore = defineStore({
     async getLocalScriptList() {
       const { data: localScriptList } = await $api.getLocalScriptList()
       this.$patch({ localScriptList })
+    },
+    async getPlusInfo() {
+      const { data: plusInfo } = await $api.getPlusInfo()
+      if (plusInfo?.expiryDate) {
+        const isPlusActive = new Date(plusInfo.expiryDate) > new Date()
+        this.$patch({ isPlusActive })
+        if (!isPlusActive) {
+          this.setTerminalSetting({ autoReconnect: false })
+          return
+        }
+        plusInfo.expiryDate = dayjs(plusInfo.expiryDate).format('YYYY-MM-DD')
+        plusInfo.expiryDate?.startsWith('9999') && (plusInfo.expiryDate = '永久授权')
+      }
+      this.$patch({ plusInfo })
     },
     setTerminalSetting(setTarget = {}) {
       let newConfig = { ...this.terminalConfig, ...setTarget }

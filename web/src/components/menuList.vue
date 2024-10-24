@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { reactive, markRaw, getCurrentInstance, computed, watchEffect, defineEmits } from 'vue'
+import { reactive, markRaw, getCurrentInstance, computed, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   Menu as IconMenu,
