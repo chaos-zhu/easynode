@@ -18,7 +18,7 @@ export default {
   },
   // format: time OR date
   formatTimestamp: (timestamp, format = 'time', afterSeparator = ':') => {
-    if(typeof(timestamp) !== 'number') return '--'
+    if (typeof(timestamp) !== 'number') return '--'
     let date = new Date(timestamp)
     let padZero = (num) => String(num).padStart(2, '0')
     let year = date.getFullYear()

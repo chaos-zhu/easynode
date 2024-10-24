@@ -1,9 +1,9 @@
-const { getSSHList, addSSH, updateSSH, removeSSH, getCommand } = require('../controller/ssh')
+const { getSSHList, addSSH, updateSSH, removeSSH, getCommand, decryptPrivateKey } = require('../controller/ssh')
 const { getHostList, addHost, updateHost, removeHost, importHost } = require('../controller/host')
-const { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2 } = require('../controller/user')
+const { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2, getPlusInfo } = require('../controller/user')
 const { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
-const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript } = require('../controller/scripts')
+const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript, batchRemoveScript, importScript } = require('../controller/scripts')
 const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
 const { getLog } = require('../controller/log')
 
@@ -32,6 +32,11 @@ const ssh = [
     method: 'get',
     path: '/command',
     controller: getCommand
+  },
+  {
+    method: 'post',
+    path: '/decrypt-private-key',
+    controller: decryptPrivateKey
   }
 ]
 const host = [
@@ -101,6 +106,11 @@ const user = [
     method: 'post',
     path: '/mfa2-disable',
     controller: disableMFA2
+  },
+  {
+    method: 'get',
+    path: '/plus-info',
+    controller: getPlusInfo
   }
 ]
 const notify = [
@@ -171,9 +181,19 @@ const scripts = [
     controller: removeScript
   },
   {
+    method: 'post',
+    path: '/batch-remove-script',
+    controller: batchRemoveScript
+  },
+  {
     method: 'put',
     path: '/script/:id',
     controller: updateScriptList
+  },
+  {
+    method: 'post',
+    path: '/import-script',
+    controller: importScript
   }
 ]
 

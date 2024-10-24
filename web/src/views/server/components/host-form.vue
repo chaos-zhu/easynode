@@ -155,9 +155,9 @@
           prop="credential"
           label="凭据"
         >
-          <el-select v-model="hostForm.credential" class="credential_select" placeholder="">
+          <el-select v-model="hostForm.credential" placeholder="">
             <template #empty>
-              <div class="empty_credential">
+              <div class="empty_text">
                 <span>无凭据数据,</span>
                 <el-button type="primary" link @click="toCredentials">
                   去添加
@@ -170,7 +170,7 @@
               :label="item.name"
               :value="item.id"
             >
-              <div class="auth_type_wrap">
+              <div class="select_warp">
                 <span>{{ item.name }}</span>
                 <span class="auth_type_text">
                   {{ item.authType === 'privateKey' ? '密钥' : '密码' }}
@@ -179,7 +179,37 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item key="command" prop="command" label="执行指令">
+        <el-form-item
+          key="jumpHosts"
+          prop="jumpHosts"
+          label="跳板机"
+        >
+          <PlusSupportTip>
+            <el-select
+              v-model="hostForm.jumpHosts"
+              placeholder="支持多选,跳板机连接顺序从前到后"
+              multiple
+              :disabled="!isPlusActive"
+            >
+              <template #empty>
+                <div class="empty_text">
+                  <span>无可用跳板机器</span>
+                </div>
+              </template>
+              <el-option
+                v-for="item in confHostList"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              >
+                <div class="select_wrap">
+                  <span>{{ item.name }}</span>
+                </div>
+              </el-option>
+            </el-select>
+          </PlusSupportTip>
+        </el-form-item>
+        <el-form-item key="command" prop="command" label="登录指令">
           <el-input
             v-model="hostForm.command"
             type="textarea"
@@ -263,6 +293,7 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance, nextTick } from 'vue'
+import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 import { RSAEncrypt, AESEncrypt, randomStr } from '@utils/index.js'
 
 const { proxy: { $api, $router, $message, $store } } = getCurrentInstance()
@@ -306,7 +337,8 @@ const formField = {
   expiredNotify: false,
   consoleUrl: '',
   remark: '',
-  command: ''
+  command: '',
+  jumpHosts: []
 }
 
 let hostForm = ref({ ...formField })
@@ -323,7 +355,8 @@ const rules = computed(() => {
     name: { required: !isBatchModify.value, message: '输入实例别名', trigger: 'change' },
     host: { required: !isBatchModify.value, message: '输入IP/域名', trigger: 'change' },
     port: { required: !isBatchModify.value, type: 'number', message: '输入ssh端口', trigger: 'change' },
-    clientPort: { required: false, type: 'number', message: '输入ssh端口', trigger: 'change' },
+    clientPort: { required: false, type: 'number' },
+    jumpHosts: { required: false, type: 'array' },
     index: { required: !isBatchModify.value, type: 'number', message: '输入数字', trigger: 'change' },
     // password: [{ required: hostForm.authType === 'password', trigger: 'change' },],
     // privateKey: [{ required: hostForm.authType === 'privateKey', trigger: 'change' },],
@@ -333,6 +366,7 @@ const rules = computed(() => {
     remark: { required: false }
   }
 })
+const isPlusActive = computed(() => $store.isPlusActive)
 
 const visible = computed({
   get: () => props.show,
@@ -345,6 +379,10 @@ const title = computed(() => {
 
 let groupList = computed(() => $store.groupList)
 let sshList = computed(() => $store.sshList)
+let hostList = computed(() => $store.hostList)
+let confHostList = computed(() => {
+  return hostList.value?.filter(item => item.isConfig)
+})
 
 const setDefaultData = () => {
   if (!defaultData.value) return
@@ -356,7 +394,7 @@ const setDefaultData = () => {
 
 const setBatchDefaultData = () => {
   if (!isBatchModify.value) return
-  Object.assign(hostForm.value, { ...formField }, { group: '', port: '', username: '', authType: '', clientPort: '' })
+  Object.assign(hostForm.value, { ...formField }, { group: '', port: '', username: '', authType: '', clientPort: '', jumpHosts: [] })
 }
 const handleOpen = async () => {
   setDefaultData()
@@ -472,13 +510,13 @@ const handleSave = () => {
   }
 }
 
-.empty_credential {
+.empty_text {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.auth_type_wrap {
+.select_warp {
   height: 100%;
   display: flex;
   align-items: center;

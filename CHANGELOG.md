@@ -1,3 +1,14 @@
+## [3.0.0](https://github.com/chaos-zhu/easynode/releases) (2024-11-09)
+
+* 新增跳板机功能,支持选择多台机器跳转
+* 脚本库批量导出导入
+* 本地socket断开自动重连,无需手动重新连接
+* 支持脚本库模糊搜索功能
+* 分组添加实例数量标识
+* 优化登录逻辑
+* 默认登录有效期更改为当天有效
+* 修复一些小bug
+
 ## [2.3.0](https://github.com/chaos-zhu/easynode/releases) (2024-10-24)
 
 * 重构本地数据库存储方式(性能提升一个level~)

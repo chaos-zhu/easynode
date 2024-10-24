@@ -1,10 +1,11 @@
+const path = require('path')
 const { RSADecryptAsync, AESEncryptAsync, AESDecryptAsync } = require('../utils/encrypt')
 const { HostListDB, CredentialsDB } = require('../utils/db-class')
+const decryptAndExecuteAsync = require('../utils/decrypt-file')
 const hostListDB = new HostListDB().getInstance()
 const credentialsDB = new CredentialsDB().getInstance()
 
 async function getSSHList({ res }) {
-  // console.log('get-host-list')
   let data = await credentialsDB.findAsync({})
   data = data?.map(item => {
     const { name, authType, _id: id, date } = item
@@ -83,10 +84,19 @@ const getCommand = async ({ res, request }) => {
   let hostInfo = await hostListDB.findAsync({})
   let record = hostInfo?.find(item => item._id === hostId)
   consola.info('查询登录后执行的指令：', hostId)
-  if (!record) return res.fail({ data: false, msg: 'host not found' }) // host不存在
+  if (!record) return res.fail({ data: false, msg: 'host not found' })
   const { command } = record
-  if (!command) return res.success({ data: false }) // command不存在
-  res.success({ data: command }) // 存在
+  if (!command) return res.success({ data: false })
+  res.success({ data: command })
+}
+
+const decryptPrivateKey = async ({ res, request }) => {
+  let { dePrivateKey } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  if (dePrivateKey) {
+    await dePrivateKey({ res, request })
+  } else {
+    return res.fail({ data: false, msg: 'Plus专属功能，无法解密私钥!' })
+  }
 }
 
 module.exports = {
@@ -94,5 +104,6 @@ module.exports = {
   addSSH,
   updateSSH,
   removeSSH,
-  getCommand
+  getCommand,
+  decryptPrivateKey
 }

@@ -1,6 +1,8 @@
+const path = require('path')
 const localShellJson = require('../config/shell.json')
 const { randomStr } = require('../utils/tools')
 const { ScriptsDB } = require('../utils/db-class')
+const decryptAndExecuteAsync = require('../utils/decrypt-file')
 const scriptsDB = new ScriptsDB().getInstance()
 
 let localShell = JSON.parse(JSON.stringify(localShellJson)).map((item) => {
@@ -44,10 +46,28 @@ const removeScript = async ({ res, request }) => {
   res.success({ data: '移除成功' })
 }
 
+const batchRemoveScript = async ({ res, request }) => {
+  let { body: { ids } } = request
+  if (!Array.isArray(ids)) return res.fail({ msg: '参数错误' })
+  const numRemoved = await scriptsDB.removeAsync({ _id: { $in: ids } }, { multi: true })
+  res.success({ data: `批量移除成功,数量: ${ numRemoved }` })
+}
+
+const importScript = async ({ res, request }) => {
+  let { impScript } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  if (impScript) {
+    await impScript({ res, request })
+  } else {
+    return res.fail({ data: false, msg: 'Plus专属功能，无法导入脚本!' })
+  }
+}
+
 module.exports = {
   addScript,
   getScriptList,
   getLocalScriptList,
   updateScriptList,
-  removeScript
+  removeScript,
+  batchRemoveScript,
+  importScript
 }

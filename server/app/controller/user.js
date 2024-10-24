@@ -5,9 +5,10 @@ const QRCode = require('qrcode')
 const { sendNoticeAsync } = require('../utils/notify')
 const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt } = require('../utils/encrypt')
 const { getNetIPInfo } = require('../utils/tools')
-const { KeyDB, LogDB } = require('../utils/db-class')
+const { KeyDB, LogDB, PlusDB } = require('../utils/db-class')
 const keyDB = new KeyDB().getInstance()
 const logDB = new LogDB().getInstance()
+const plusDB = new PlusDB().getInstance()
 
 const getpublicKey = async ({ res }) => {
   let { publicKey: data } = await keyDB.findOneAsync({})
@@ -164,6 +165,13 @@ const disableMFA2 = async ({ res }) => {
   res.success({ msg: 'success' })
 }
 
+const getPlusInfo = async ({ res }) => {
+  let data = await plusDB.findOneAsync({})
+  delete data?._id
+  delete data?.decryptKey
+  res.success({ data, msg: 'success' })
+}
+
 module.exports = {
   login,
   getpublicKey,
@@ -172,5 +180,6 @@ module.exports = {
   getMFA2Status,
   getMFA2Code,
   enableMFA2,
-  disableMFA2
+  disableMFA2,
+  getPlusInfo
 }

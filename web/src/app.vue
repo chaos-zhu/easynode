@@ -5,8 +5,8 @@
 </template>
 
 <script setup>
-import { ref, getCurrentInstance } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { ref, getCurrentInstance } from 'vue'
 const { proxy: { $store } } = getCurrentInstance()
 
 const locale = ref(zhCn)

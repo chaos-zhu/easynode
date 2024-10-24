@@ -84,12 +84,41 @@
         </span>
       </template>
     </el-dialog>
+    <el-dialog
+      v-model="keyPasswordVisible"
+      title="输入密钥密码"
+      width="400px"
+      :close-on-click-modal="false"
+    >
+      <el-form @submit.prevent>
+        <el-form-item label="密码">
+          <el-input
+            v-model="keyPassword"
+            type="password"
+            placeholder="请输入密钥密码"
+            show-password
+            autocomplete="off"
+            clearable
+            @keyup.enter="handleDecryptKey"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span>
+          <el-button @click="keyPasswordVisible = false">取消</el-button>
+          <PlusSupportTip>
+            <el-button type="primary" :disabled="!isPlusActive" @click="handleDecryptKey">确认</el-button>
+          </PlusSupportTip>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, nextTick, getCurrentInstance } from 'vue'
 import { randomStr, AESEncrypt, RSAEncrypt } from '@utils/index.js'
+import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 
 const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
 
@@ -115,6 +144,7 @@ const updateFormRef = ref(null)
 const privateKeyRef = ref(null)
 
 let sshList = computed(() => $store.sshList)
+let isPlusActive = computed(() => $store.isPlusActive)
 
 let addCredentials = () => {
   sshForm.id = null
@@ -159,9 +189,9 @@ const removeSSH = ({ id, name }) => {
     type: 'warning'
   })
     .then(async () => {
-      await $api.removeSSH(id) // 后台会同步删除关联此凭证的credential字段
+      await $api.removeSSH(id)
       await $store.getSSHList()
-      await $store.getHostList() // 刷新主机字段 isConfig
+      await $store.getHostList()
       $message.success('success')
     })
 }
@@ -170,14 +200,38 @@ const handleClickUploadBtn = () => {
   privateKeyRef.value.click()
 }
 
+const keyPasswordVisible = ref(false)
+const keyPassword = ref('')
+const tempPrivateKey = ref('')
+
 const handleSelectPrivateKeyFile = (event) => {
   let file = event.target.files[0]
   let reader = new FileReader()
-  reader.onload = (e) => {
-    sshForm.privateKey = e.target.result
+  reader.onload = async (e) => {
+    const content = e.target.result
+    // 检查是否是加密的私钥
+    if (content.includes('ENCRYPTED')) {
+      tempPrivateKey.value = content
+      keyPasswordVisible.value = true
+    } else {
+      sshForm.privateKey = content
+    }
     privateKeyRef.value.value = ''
   }
   reader.readAsText(file)
+}
+
+const handleDecryptKey = async () => {
+  if (!keyPassword.value) return $message.error('请输入密钥密码')
+  const { data } = await $api.decryptPrivateKey({
+    privateKey: tempPrivateKey.value,
+    password: keyPassword.value
+  })
+  sshForm.privateKey = data
+  keyPasswordVisible.value = false
+  keyPassword.value = ''
+  tempPrivateKey.value = ''
+  $message.success('密钥解密成功')
 }
 
 </script>

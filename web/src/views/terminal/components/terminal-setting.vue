@@ -66,6 +66,22 @@
           label-width="100px"
           :show-message="false"
         >
+          <el-form-item label="自动重连" prop="autoReconnect">
+            <PlusSupportTip>
+              <span>
+                <el-switch
+                  v-model="autoReconnect"
+                  class="swtich"
+                  inline-prompt
+                  :disabled="!isPlusActive"
+                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                  active-text="开启"
+                  inactive-text="关闭"
+                />
+                <span class="plus_support_tip_text">(Plus专属功能)</span>
+              </span>
+            </PlusSupportTip>
+          </el-form-item>
           <el-form-item label="选中复制" prop="quickCopy">
             <el-tooltip
               effect="dark"
@@ -129,6 +145,7 @@
 import { computed, getCurrentInstance } from 'vue'
 import themeList from 'xterm-theme'
 import useMobileWidth from '@/composables/useMobileWidth'
+import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 const { proxy: { $store } } = getCurrentInstance()
 
 const props = defineProps({
@@ -162,6 +179,10 @@ const quickCopy = computed({
   get: () => $store.terminalConfig.quickCopy,
   set: (newVal) => $store.setTerminalSetting({ quickCopy: newVal })
 })
+const autoReconnect = computed({
+  get: () => $store.terminalConfig.autoReconnect,
+  set: (newVal) => $store.setTerminalSetting({ autoReconnect: newVal })
+})
 const quickPaste = computed({
   get: () => $store.terminalConfig.quickPaste,
   set: (newVal) => $store.setTerminalSetting({ quickPaste: newVal })
@@ -170,6 +191,7 @@ const autoExecuteScript = computed({
   get: () => $store.terminalConfig.autoExecuteScript,
   set: (newVal) => $store.setTerminalSetting({ autoExecuteScript: newVal })
 })
+const isPlusActive = computed(() => $store.isPlusActive)
 
 const changeBackground = (item) => {
   background.value = item || ''
@@ -225,5 +247,8 @@ const changeBackground = (item) => {
     margin-bottom: 0 !important;
   }
 }
-
+.plus_support_tip_text {
+  margin-left: 5px;
+  color: var(--el-text-color-placeholder);
+}
 </style>

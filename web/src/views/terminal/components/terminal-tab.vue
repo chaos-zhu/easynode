@@ -24,7 +24,7 @@ import socketIo from 'socket.io-client'
 import themeList from 'xterm-theme'
 import { terminalStatus } from '@/utils/enum'
 
-const { CONNECTING, RECONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
+const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
 
 const { io } = socketIo
 const { proxy: { $api, $store, $serviceURI, $notification, $router, $message } } = getCurrentInstance()
@@ -49,12 +49,11 @@ const emit = defineEmits(['inputCommand', 'cdCommand', 'ping-data', 'reset-long-
 const socket = ref(null)
 // const commandHistoryList = ref([])
 const term = ref(null)
-const command = ref('')
+const initCommand = ref('')
 const timer = ref(null)
 const pingTimer = ref(null)
 const fitAddon = ref(null)
 // const searchBar = ref(null)
-const hasRegisterEvent = ref(false)
 
 const socketConnected = ref(false)
 const curStatus = ref(CONNECTING)
@@ -72,6 +71,8 @@ const menuCollapse = computed(() => $store.menuCollapse)
 const quickCopy = computed(() => $store.terminalConfig.quickCopy)
 const quickPaste = computed(() => $store.terminalConfig.quickPaste)
 const autoExecuteScript = computed(() => $store.terminalConfig.autoExecuteScript)
+const autoReconnect = computed(() => $store.terminalConfig.autoReconnect)
+const isPlusActive = computed(() => $store.isPlusActive)
 const isLongPressCtrl = computed(() => props.longPressCtrl)
 const isLongPressAlt = computed(() => props.longPressAlt)
 
@@ -91,7 +92,6 @@ watch(theme, () => {
 watch(fontSize, () => {
   nextTick(() => {
     terminal.value.options.fontSize = fontSize.value
-    // fitAddon.value.fit()
     handleResize()
   })
 })
@@ -116,14 +116,16 @@ watch(curStatus, () => {
 
 const getCommand = async () => {
   let { data } = await $api.getCommand(hostId.value)
-  if (data) command.value = data
+  if (data) initCommand.value = data
 }
 
 const connectIO = () => {
+  curStatus.value = CONNECTING
   socket.value = io($serviceURI, {
     path: '/terminal',
     forceNew: false,
-    reconnectionAttempts: 1
+    reconnection: false,
+    reconnectionAttempts: 0
   })
   socket.value.on('connect', () => {
     console.log('/terminal socket已连接：', hostId.value)
@@ -131,20 +133,14 @@ const connectIO = () => {
     socketConnected.value = true
     socket.value.emit('create', { hostId: hostId.value, token: token.value })
     socket.value.on('connect_terminal_success', () => {
-      if (hasRegisterEvent.value) return // 以下事件连接成功后仅可注册一次, 否则会多次触发. 除非socket重连
-      hasRegisterEvent.value = true
-
       socket.value.on('output', (str) => {
         term.value.write(str)
         terminalText.value += str
       })
-
       socket.value.on('connect_shell_success', () => {
         curStatus.value = CONNECT_SUCCESS
-        onResize()
-        onFindText()
-        onWebLinks()
-        if (command.value) socket.value.emit('input', command.value + '\n')
+        shellResize()
+        if (initCommand.value) socket.value.emit('input', initCommand.value + '\n')
       })
 
       // socket.value.on('terminal_command_history', (data) => {
@@ -155,7 +151,7 @@ const connectIO = () => {
 
     if (pingTimer.value) clearInterval(pingTimer.value)
     pingTimer.value = setInterval(() => {
-      socket.value.emit('get_ping', host.value)
+      socket.value?.emit('get_ping', host.value)
     }, 3000)
     socket.value.emit('get_ping', host.value) // 获取服务端到客户端的ping值
     socket.value.on('ping_data', (pingMs) => {
@@ -167,48 +163,77 @@ const connectIO = () => {
       $router.push('/login')
     })
 
+    socket.value.on('terminal_print_info', (msg) => {
+      term.value.write(`${ msg }\r\n`)
+    })
+
     socket.value.on('connect_close', () => {
-      if (curStatus.value === CONNECT_FAIL) return // 连接失败不需要自动重连
-      curStatus.value = RECONNECTING
-      console.warn('连接断开,3秒后自动重连: ', hostId.value)
-      term.value.write('\r\n连接断开,3秒后自动重连...\r\n')
-      socket.value.emit('reconnect_terminal')
-    })
-
-    socket.value.on('reconnect_terminal_success', () => {
-      curStatus.value = CONNECT_SUCCESS
-    })
-
-    socket.value.on('create_fail', (message) => {
       curStatus.value = CONNECT_FAIL
-      console.error('n创建失败:', hostId.value, message)
-      term.value.write(`\r\n创建失败: ${ message }\r\n`)
+      term.value.write('\r\n\x1b[91m终端主动断开连接, 回车重新发起连接\x1b[0m')
     })
 
-    socket.value.on('connect_fail', (message) => {
+    socket.value.on('connect_terminal_fail', (message) => {
       curStatus.value = CONNECT_FAIL
-      console.error('连接失败:', hostId.value, message)
-      term.value.write(`\r\n连接失败: ${ message }\r\n`)
+      term.value.write(`\r\n\x1b[91m连接终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
     })
+
+    socket.value.on('create_terminal_fail', (message) => {
+      curStatus.value = CONNECT_FAIL
+      term.value.write(`\r\n\x1b[91m创建终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
+    })
+
   })
 
-  socket.value.on('disconnect', () => {
-    console.warn('terminal websocket 连接断开')
-    socket.value.removeAllListeners() // 取消所有监听
-    // socket.value.off('output') // 取消output监听,取消onData输入监听，重新注册
-    curStatus.value = CONNECT_FAIL
-    socketConnected.value = false
-    term.value.write('\r\nError: 与面板socket连接断开。请关闭此tab，并检查本地与面板连接是否稳定\r\n')
+  socket.value.on('disconnect', (reason) => {
+    console.warn('terminal websocket 连接断开:', reason)
+    switch (reason) {
+      case 'io server disconnect':
+        reconnectTerminal(true, '服务端主动断开连接')
+        break
+      // case 'io client disconnect': // 客户端主动断开连接
+      //   break
+      case 'transport close':
+        reconnectTerminal(true, '本地网络连接异常')
+        break
+      case 'transport error':
+        reconnectTerminal(true, '建立连接错误')
+        break
+      case 'parse error':
+        reconnectTerminal(true, '数据解析错误')
+        break
+      default:
+        reconnectTerminal(true, '连接意外断开')
+    }
   })
 
   socket.value.on('connect_error', (err) => {
-    console.error('terminal websocket 连接错误：', err)
+    console.error('EasyNode服务端连接错误：', err)
+    term.value.write('\r\n\x1b[91mError: 连接失败,请检查EasyNode服务端是否正常\x1b[0m \r\n')
     $notification({
-      title: '终端连接失败',
-      message: '请检查socket服务是否正常',
+      title: '连接失败',
+      message: '请检查EasyNode服务端是否正常',
       type: 'error'
     })
   })
+}
+
+const reconnectTerminal = (isCommonTips = false, tips) => {
+  socket.value.removeAllListeners()
+  socket.value.close()
+  socket.value = null
+  curStatus.value = CONNECT_FAIL
+  socketConnected.value = false
+  if (isCommonTips) {
+    if (isPlusActive.value && autoReconnect.value) {
+      term.value.write(`\r\n\x1b[91m${ tips },自动重连中...\x1b[0m \r\n`)
+      connectIO()
+    } else {
+      term.value.write(`\r\n\x1b[91mError: ${ tips },请重新连接。([功能项->本地设置->快捷操作]中开启自动重连)\x1b[0m \r\n`)
+    }
+  } else {
+    term.value.write(`\n${ tips } \n`)
+    connectIO()
+  }
 }
 
 const createLocalTerminal = () => {
@@ -223,13 +248,6 @@ const createLocalTerminal = () => {
     fontFamily: 'Cascadia Code, Menlo, monospace',
     fontSize: fontSize.value,
     theme: theme.value
-    // {
-    //   foreground: '#ECECEC',
-    //   background: '#000000', // 'transparent',
-    //   // cursor: 'help',
-    //   selection: '#ff9900',
-    //   lineHeight: 20
-    // }
   })
   term.value = terminalInstance
   terminalInstance.open(terminalRef.value)
@@ -237,15 +255,20 @@ const createLocalTerminal = () => {
   terminalInstance.writeln('\x1b[1;32mAn experimental Web-SSH Terminal\x1b[0m.')
   terminalInstance.focus()
   onSelectionChange()
+  onFindText()
+  onWebLinks()
+  onResize()
   terminal.value = terminalInstance
 }
 
+const shellResize = () => {
+  fitAddon.value.fit()
+  let { rows, cols } = term.value
+  socket.value?.emit('resize', { rows, cols })
+}
 const onResize = () => {
   fitAddon.value = new FitAddon()
   term.value.loadAddon(fitAddon.value)
-  fitAddon.value.fit()
-  let { rows, cols } = term.value
-  socket.value.emit('resize', { rows, cols })
   window.addEventListener('resize', handleResize)
 }
 
@@ -259,10 +282,7 @@ const handleResize = () => {
       temp[index] = item.style.display
       item.style.display = 'block'
     })
-    fitAddon.value?.fit()
-    let { rows, cols } = term.value
-    socket.value?.emit('resize', { rows, cols })
-
+    shellResize()
     panes.forEach((item, index) => {
       item.style.display = temp[index]
     })
@@ -333,7 +353,13 @@ function extractLastCdPath(text) {
 
 const onData = () => {
   term.value.onData((key) => {
-    if (socketConnected.value === false) return
+    if (!socket.value || !socketConnected.value) return
+
+    if ('\r' === key && curStatus.value === CONNECT_FAIL) {
+      reconnectTerminal(false, '重新连接中...')
+      return
+    }
+
     if (isLongPressCtrl.value || isLongPressAlt.value) {
       const keyCode = key.toUpperCase().charCodeAt(0)
       console.log('keyCode: ', keyCode)
@@ -354,12 +380,6 @@ const onData = () => {
     enterTimer.value = setTimeout(() => {
       if (enterTimer.value) clearTimeout(enterTimer.value)
       if (key === '\r') { // Enter
-        if (curStatus.value === CONNECT_FAIL) { // 连接失败&&未正在连接，按回车可触发重连
-          curStatus.value = CONNECTING
-          term.value.write('\r\n连接中...\r\n')
-          socket.value.emit('reconnect_terminal')
-          return
-        }
         if (curStatus.value === CONNECT_SUCCESS) {
           let cleanText = applyBackspace(filterAnsiSequences(terminalText.value))
           const lines = cleanText.split('\n')
@@ -369,7 +389,6 @@ const onData = () => {
           // 截取最后一个提示符后的内容（'$'或'#'后的内容）
           const commandStartIndex = lastLine.lastIndexOf('#') + 1
           const commandText = lastLine.substring(commandStartIndex).trim()
-          // console.log('Processed command: ', commandText)
           // eslint-disable-next-line
           const cdPath = extractLastCdPath(commandText)
 
