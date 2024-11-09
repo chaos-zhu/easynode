@@ -196,6 +196,7 @@ const isPlusActive = computed(() => $store.isPlusActive)
 
 let addScript = () => {
   formData.id = null
+  formData.index = scriptList.value.reduce((acc, cur) => Math.max(acc, Number(cur.index) || 0), 0) + 1
   isModify.value = false
   formVisible.value = true
 }
