@@ -8,7 +8,10 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 
 <p align="center">
   <a href="https://github.com/chaos-zhu/easynode/releases/latest">
-    <img src="https://img.shields.io/github/v/release/chaos-zhu/easynode?color=brightgreen&include_prereleases" alt="release">
+    <img src="https://img.shields.io/github/v/release/chaos-zhu/easynode?color=brightgreen" alt="release">
+  </a>
+  <a href="https://github.com/chaos-zhu/easynode/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/chaos-zhu/easynode/docker-builder.yml?branch=main" alt="deployment status">
   </a>
   <a href="https://hub.docker.com/repository/docker/chaoszhu/easynode">
     <img src="https://img.shields.io/docker/pulls/chaoszhu/easynode?color=brightgreen" alt="docker pull">
