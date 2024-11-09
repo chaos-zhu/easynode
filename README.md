@@ -7,9 +7,24 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 </div>
 
 <p align="center">
+  <a href="https://github.com/chaos-zhu/easynode/releases/latest">
+    <img src="https://img.shields.io/github/v/release/chaos-zhu/easynode?color=brightgreen&include_prereleases" alt="release">
+  </a>
+  <a href="https://hub.docker.com/repository/docker/chaoszhu/easynode">
+    <img src="https://img.shields.io/docker/pulls/chaoszhu/easynode?color=brightgreen" alt="docker pull">
+  </a>
+  <a href="https://github.com/chaos-zhu/easynode/releases/latest">
+    <img src="https://img.shields.io/github/downloads/chaos-zhu/easynode/total?color=brightgreen&include_prereleases" alt="release">
+  </a>
+  <a href="https://raw.githubusercontent.com/chaos-zhu/easynode/main/LICENSE">
+    <img src="https://img.shields.io/github/license/chaos-zhu/easynode?color=brightgreen" alt="license">
+  </a>
+</p>
+
+<p align="center">
   <a href="#功能">功能</a>
   ·
-  <a href="#动图展示">动图展示</a>
+  <a href="#面板展示">面板展示</a>
   ·
   <a href="#项目部署">项目部署</a>
   ·
@@ -33,9 +48,9 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 + [x] 批量下发指令
 + [x] 自定义终端主题
 
-## 动图展示
+## 面板展示
 
-![实例面板](./doc_images/merge.gif)
+![面板展示](./doc_images/merge.gif)
 
 ## 项目部署
 
@@ -96,8 +111,6 @@ webssh与监控服务都将以`该服务器作为中转`。中国大陆用户建
 ## 常见问题
 
 - [QA](./Q%26A.md)
-
-![3.0.0访问数](https://profile-counter.glitch.me/easynode/3.0.0.count.svg)
 
 <!-- ## Plus版功能
 
