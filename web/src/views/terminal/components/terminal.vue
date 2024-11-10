@@ -167,7 +167,7 @@
             <Sftp
               v-if="showSftp"
               ref="sftpRefs"
-              :host="item.host"
+              :host-id="item.id"
               @resize="resizeTerminal"
             />
           </div>

@@ -1,3 +1,9 @@
+## [3.0.1](https://github.com/chaos-zhu/easynode/releases) (2024-11-18)
+
+* 修复同IP实例SFTP连接到其他的实例的bug
+* 修复一些UI问题
+
+
 ## [3.0.0](https://github.com/chaos-zhu/easynode/releases) (2024-11-09)
 
 * 新增跳板机功能,支持选择多台机器跳转

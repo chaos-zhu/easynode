@@ -66,10 +66,8 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 docker run -d -p 8082:8082 --restart=always -v /root/easynode/db:/easynode/app/db chaoszhu/easynode
 ```
 环境变量：
-- `PLUS_KEY`: 激活PLUS功能的授权码
 - `DEBUG`: 启动debug日志 0：关闭 1：开启, 默认关闭
 - `ALLOWED_IPS`: 可以访问服务的IP白名单, 多个使用逗号分隔, 支持填写部分ip前缀, 例如: `-e ALLOWED_IPS=127.0.0.1,196.168`
-
 
 ## 监控服务安装
 

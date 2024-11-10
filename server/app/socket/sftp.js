@@ -224,18 +224,18 @@ module.exports = (httpServer) => {
     let sftpClient = new SFTPClient()
     consola.success('terminal websocket 已连接')
 
-    socket.on('create', async ({ host: ip, token }) => {
+    socket.on('create', async ({ hostId, token }) => {
       const { code } = await verifyAuthSync(token, requestIP)
+      consola.log('code:', code)
       if (code !== 1) {
         socket.emit('token_verify_fail')
         socket.disconnect()
         return
       }
-
-      const hostList = await hostListDB.findAsync({})
-      const targetHostInfo = hostList.find(item => item.host === ip) || {}
+      const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
+      if (!targetHostInfo) throw new Error(`Host with ID ${ hostId } not found`)
       let { authType, host, port, username } = targetHostInfo
-      if (!host) return socket.emit('create_fail', `查找【${ ip }】凭证信息失败`)
+      if (!host) return socket.emit('create_fail', `查找id【${ hostId }】凭证信息失败`)
       let authInfo = { host, port, username }
 
       // 解密放到try里面，防止报错【commonKey必须配对, 否则需要重新添加服务器密钥】

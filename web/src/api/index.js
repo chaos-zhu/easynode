@@ -22,6 +22,9 @@ export default {
   getPlusInfo() {
     return axios({ url: '/plus-info', method: 'get' })
   },
+  getPlusDiscount() {
+    return axios({ url: '/plus-discount', method: 'get' })
+  },
   getCommand(hostId) {
     return axios({ url: '/command', method: 'get', params: { hostId } })
   },

@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken')
 const axios = require('axios')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
+const version = require('../../package.json').version
+const { plusServer1, plusServer2 } = require('../utils/plus-server')
 const { sendNoticeAsync } = require('../utils/notify')
 const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt } = require('../utils/encrypt')
 const { getNetIPInfo } = require('../utils/tools')
@@ -86,7 +88,7 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
   let token = jwt.sign({ date: Date.now() }, commonKey, { expiresIn: jwtExpires }) // 生成token
   token = await AESEncryptAsync(token) // 对称加密token后再传输给前端
 
-  // 记录客户端登录IP(用于判断是否异地且只保留最近10条)
+  // 记录客户端登录IP(用于判断是否异地且只保留最近10��)
   const clientIPInfo = await getNetIPInfo(clientIp)
   const { ip, country, city } = clientIPInfo || {}
   consola.info('登录成功:', new Date(), { ip, country, city })
@@ -172,6 +174,27 @@ const getPlusInfo = async ({ res }) => {
   res.success({ data, msg: 'success' })
 }
 
+const getPlusDiscount = async ({ res } = {}) => {
+  const servers = [plusServer1, plusServer2]
+  for (const server of servers) {
+    try {
+      const url = `${ server }/api/announcement/public?version=${ version }`
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${ response.status }`)
+      }
+      const data = await response.json()
+      return res.success({ data, msg: 'success' })
+    } catch (error) {
+      if (server === servers[servers.length - 1]) {
+        consola.error('All servers failed:', error.message)
+        return res.success({ discount: false })
+      }
+      continue
+    }
+  }
+}
+
 module.exports = {
   login,
   getpublicKey,
@@ -181,5 +204,6 @@ module.exports = {
   getMFA2Code,
   enableMFA2,
   disableMFA2,
-  getPlusInfo
+  getPlusInfo,
+  getPlusDiscount
 }
