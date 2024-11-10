@@ -20,7 +20,7 @@
         link
         @click="visible = true"
       >
-        关于 <span class="new_version">{{ isNew ? `(新版本可用)` : '' }}</span>
+        版本更新 <span class="new_version">{{ isNew ? `(新版本可用)` : '' }}</span>
       </el-button>
       <el-dropdown trigger="click">
         <span class="username_wrap">
@@ -40,12 +40,20 @@
 
       <el-popover placement="left" :width="320" trigger="hover">
         <template #reference>
-          <img
-            class="plus_icon"
-            src="@/assets/plus.png"
-            alt="PLUS"
-            :style="{ filter: isPlusActive ? 'grayscale(0%)' : 'grayscale(100%)' }"
-          >
+          <div class="plus_icon_wrapper">
+            <img
+              class="plus_icon"
+              src="@/assets/plus.png"
+              alt="PLUS"
+              :style="{ filter: isPlusActive ? 'grayscale(0%)' : 'grayscale(100%)' }"
+            >
+            <img
+              v-if="!isPlusActive && discount"
+              class="discount_badge"
+              src="@/assets/discount.png"
+              alt="Discount"
+            >
+          </div>
         </template>
         <template #default>
           <div class="plus_content_wrap">
@@ -87,10 +95,16 @@
             </div>
 
             <div class="plus_benefits" :class="{ active: isPlusActive }" @click="handlePlus">
-              <span v-if="!isPlusActive" class="support_btn" @click="handlePlusSupport">去支持</span>
+              <span v-if="!isPlusActive" class="support_btn" @click="handlePlusSupport">激活PLUS</span>
+              <div v-if="!isPlusActive && discount" class="discount_content" @click="handlePlusSupport">
+                <el-tag type="warning" effect="dark">
+                  <el-icon><Promotion /></el-icon>
+                  <span>{{ discountContent || '限时优惠活动' }}</span>
+                </el-tag>
+              </div>
               <div class="benefits_header">
                 <el-icon>
-                  <el-icon><StarFilled /></el-icon>
+                  <StarFilled />
                 </el-icon>
                 <span>Plus功能介绍</span>
               </div>
@@ -103,7 +117,7 @@
                 </div>
               </div>
 
-              <div class="coming_soon">
+              <!-- <div class="coming_soon">
                 <div class="soon_header">开发中的PLUS功能</div>
                 <div class="current_benefits">
                   <div v-for="soonFeature in soonFeatures" :key="soonFeature" class="benefit_item">
@@ -113,7 +127,7 @@
                     <span>{{ soonFeature }}</span>
                   </div>
                 </div>
-              </div>
+              </div> -->
             </div>
           </div>
         </template>
@@ -122,15 +136,16 @@
 
     <el-dialog
       v-model="visible"
-      title="关于"
+      title="版本更新"
       top="10vh"
       width="30%"
       :append-to-body="false"
+      :close-on-click-modal="false"
     >
       <div class="about_content">
-        <h1>EasyNode</h1>
+        <!-- <h1>EasyNode</h1> -->
         <p>当前版本: {{ currentVersion }} <span v-show="!isNew">(最新)</span> </p>
-        <p v-if="checkVersionErr" class="conspicuous">Error：版本更新检测失败(版本检测API需要外网环境)</p>
+        <p v-if="checkVersionErr" class="conspicuous">Error：版本更新检测失败(版本检测API需要外网环境),请手动访问GitHub查看</p>
         <p v-if="isNew" class="conspicuous">
           新版本可用: {{ latestVersion }} -> <a
             class="link"
@@ -139,14 +154,14 @@
           >https://github.com/chaos-zhu/easynode/releases</a>
         </p>
         <p>
-          更新日志：<a
+          功能更新日志：<a
             class="link"
             href="https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md"
             target="_blank"
           >https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md</a>
         </p>
         <p>
-          tg更新通知：<a class="link" href="https://t.me/easynode_notify" target="_blank">https://t.me/easynode_notify</a>
+          TG更新通知频道：<a class="link" href="https://t.me/easynode_notify" target="_blank">https://t.me/easynode_notify</a>
         </p>
         <p style="line-height: 2;letter-spacing: 1px;">
           <strong style="color: #F56C6C;font-weight: 600;">PLUS说明:</strong><br>
@@ -156,11 +171,12 @@
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;为了项目的可持续发展，从<strong>3.0.0</strong>版本开始推出了<strong>PLUS</strong>版本，具体特性鼠标悬浮右上角PLUS图标查看，后续特性功能开发也会优先在<strong>PLUS</strong>版本中实现，但即使不升级到<strong>PLUS</strong>，也不会影响到<strong>EasyNode</strong>的基础功能使用【注意: 暂不支持纯内网用户激活PLUS功能】。
           <br>
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;">
-            为了感谢前期赞赏过的用户, 在<strong>PLUS</strong>功能正式发布前，所有进行过赞赏的用户，无论金额大小，均可联系作者TG: <a class="link" href="https://t.me/chaoszhu" target="_blank">@chaoszhu</a> 凭打赏记录获取永久<strong>PLUS</strong>授权码。
+            为了感谢前期赞赏过的用户, 在<strong>PLUS</strong>功能正式发布前，所有进行过赞赏的用户，无论金额大小，均可联系作者TG: <a class="link" href="https://t.me/chaoszhu" target="_blank">@chaoszhu</a> 凭打赏记录免费获取永久<strong>PLUS</strong>授权码。
           </span>
         </p>
-        <div v-if="!isPlusActive" class="about_footer">
-          <el-button type="primary" @click="handlePlusSupport">去支持</el-button>
+        <div class="about_footer">
+          <el-button type="info" @click="visible = false">关闭</el-button>
+          <el-button v-if="!isPlusActive" type="primary" @click="handlePlusSupport">激活PLUS</el-button>
         </div>
       </div>
     </el-dialog>
@@ -181,18 +197,20 @@
 </template>
 
 <script setup>
-import { ref, getCurrentInstance, computed } from 'vue'
-import { User, Sunny, Moon, Fold, CircleCheckFilled, Star, StarFilled } from '@element-plus/icons-vue'
+import { ref, getCurrentInstance, computed, onMounted, onBeforeUnmount } from 'vue'
+import { User, Sunny, Moon, Fold, CircleCheckFilled, Star, StarFilled, Promotion } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 import MenuList from './menuList.vue'
 
-const { proxy: { $router, $store, $message } } = getCurrentInstance()
+const { proxy: { $router, $store, $api, $message } } = getCurrentInstance()
 
 const visible = ref(false)
 const checkVersionErr = ref(false)
 const currentVersion = ref(`v${ packageJson.version }`)
 const latestVersion = ref(null)
 const menuCollapse = ref(false)
+const discount = ref(false)
+const discountContent = ref('')
 
 const plusFeatures = [
   '跳板机功能,拯救被墙实例与龟速终端输入',
@@ -202,11 +220,11 @@ const plusFeatures = [
   '凭据管理支持解密带密码保护的密钥',
   '提出的功能需求享有更高的开发优先级',
 ]
-const soonFeatures = [
-  '终端脚本变量及终端脚本输入优化',
-  '终端分屏功能',
-  '系统操作日志审计',
-]
+// const soonFeatures = [
+//   '终端脚本变量及终端脚本输入优化',
+//   '终端分屏功能',
+//   '系统操作日志审计',
+// ]
 
 const isNew = computed(() => latestVersion.value && latestVersion.value !== currentVersion.value)
 const user = computed(() => $store.user)
@@ -268,6 +286,33 @@ async function checkLatestVersion() {
 
 checkLatestVersion()
 
+let timer = null
+const checkFirstVisit = () => {
+  timer = setTimeout(() => {
+    const visitedVersion = localStorage.getItem('visitedVersion')
+    if (!visitedVersion || visitedVersion !== currentVersion.value) {
+      visible.value = true
+      localStorage.setItem('visitedVersion', currentVersion.value)
+    }
+  }, 1500)
+}
+
+const getPlusDiscount = async () => {
+  const { data } = await $api.getPlusDiscount()
+  if (data?.discount) {
+    discount.value = data.discount
+    discountContent.value = data.content
+  }
+}
+
+onMounted(() => {
+  checkFirstVisit()
+  getPlusDiscount()
+})
+
+onBeforeUnmount(() => {
+  clearTimeout(timer)
+})
 </script>
 
 <style lang="scss" scoped>
@@ -314,10 +359,26 @@ checkLatestVersion()
       }
     }
 
-    .plus_icon {
+    .plus_icon_wrapper {
       margin-left: 15px;
-      width: 35px;
+      display: flex;
+      align-items: center;
       cursor: pointer;
+
+      .plus_icon {
+        width: 35px;
+        margin-right: 5px;
+      }
+
+      .discount_badge {
+        width: 22px;
+        color: white;
+        font-size: 12px;
+        transform: rotate(25deg);
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        animation: pulse 2s infinite;
+      }
     }
   }
 
@@ -352,6 +413,18 @@ checkLatestVersion()
   .about_footer {
     margin-top: 20px;
     text-align: center;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: rotate(25deg) scale(1);
+  }
+  50% {
+    transform: rotate(25deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(25deg) scale(1);
   }
 }
 </style>
@@ -457,6 +530,20 @@ checkLatestVersion()
         font-size: 13px;
         color: #909399;
         margin-bottom: 8px;
+      }
+    }
+  }
+
+  .discount_content {
+    margin: 8px 0;
+
+    .el-tag {
+      display: flex;
+      align-items: center;
+      padding: 6px 12px;
+
+      .el-icon {
+        margin-right: 4px;
       }
     }
   }

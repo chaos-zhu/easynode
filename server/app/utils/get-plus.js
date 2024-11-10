@@ -2,6 +2,7 @@ const schedule = require('node-schedule')
 const { getLocalNetIP } = require('./tools')
 const { AESEncryptAsync } = require('./encrypt')
 const version = require('../../package.json').version
+const { plusServer1, plusServer2 } = require('./plus-server')
 
 async function getLicenseInfo() {
   let key = process.env.PLUS_KEY
@@ -28,7 +29,7 @@ async function getLicenseInfo() {
     let headers = { 'Content-Type': 'application/json' }
     let timeout = 10000
     try {
-      response = await fetch('https://en1.221022.xyz/api/licenses/activate', {
+      response = await fetch(plusServer1 + '/api/licenses/activate', {
         method,
         headers,
         body,
@@ -41,7 +42,7 @@ async function getLicenseInfo() {
 
     } catch (error) {
       consola.log('retry to activate plus by backup server')
-      response = await fetch('https://en2.221022.xyz/api/licenses/activate', {
+      response = await fetch(plusServer2 + '/api/licenses/activate', {
         method,
         headers,
         body,
