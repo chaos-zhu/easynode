@@ -1,3 +1,8 @@
+## [3.0.2](https://github.com/chaos-zhu/easynode/releases) (2024-11-20)
+
+* 修复添加实例错误禁用的bug
+
+
 ## [3.0.1](https://github.com/chaos-zhu/easynode/releases) (2024-11-18)
 
 * 修复同IP实例SFTP连接到其他的实例的bug
