@@ -281,7 +281,8 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="visible = false">关闭</el-button>
-        <PlusSupportTip>
+        <el-button v-if="!isBatchModify" type="primary" @click="handleSave">确认</el-button>
+        <PlusSupportTip v-else>
           <el-button type="primary" :disabled="!isPlusActive" @click="handleSave">确认</el-button>
         </PlusSupportTip>
       </span>
