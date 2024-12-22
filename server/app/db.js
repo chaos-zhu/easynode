@@ -71,8 +71,7 @@ async function initNotifyDB() {
 
 async function initNotifyConfigDB() {
   const notifyConfigDB = new NotifyConfigDB().getInstance()
-  let count = await notifyConfigDB.countAsync({})
-  if (count !== 0) return
+  let notifyConfig = await notifyConfigDB.findOneAsync({})
   consola.log('初始化NotifyConfigDB✔')
   const defaultData = {
     type: 'sct',
@@ -83,7 +82,16 @@ async function initNotifyConfigDB() {
       service: 'QQ',
       user: '',
       pass: ''
+    },
+    tg: {
+      token: '',
+      chatId: ''
     }
+  }
+  if (notifyConfig) {
+    await notifyConfigDB.removeAsync({ _id: notifyConfig._id })
+    delete notifyConfig._id
+    return notifyConfigDB.insertAsync(Object.assign({}, defaultData, notifyConfig))
   }
   return notifyConfigDB.insertAsync(defaultData)
 }

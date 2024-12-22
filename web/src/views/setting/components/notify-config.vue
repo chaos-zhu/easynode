@@ -69,20 +69,56 @@
         />
       </el-form-item>
     </template>
+    <!-- Telegram -->
+    <template v-if="noticeConfig.type === 'tg'">
+      <el-form-item label="Token" prop="tg.token" class="form_item">
+        <el-input
+          v-model.trim="noticeConfig.tg.token"
+          clearable
+          placeholder="Telegram Token"
+          autocomplete="off"
+          class="input"
+        />
+      </el-form-item>
+      <el-form-item label="ChatId" prop="tg.chatId" class="form_item">
+        <el-input
+          v-model="noticeConfig.tg.chatId"
+          clearable
+          placeholder="Telegram ChatId"
+          autocomplete="off"
+          class="input"
+        />
+        <span class="tips">Telegram Token/ChatId 获取: <a class="link" href="https://easynode.chaoszhu.com/zh/guide/get-tg-token" target="_blank">查看教程</a> </span>
+      </el-form-item>
+    </template>
     <el-form-item label="" class="form_item">
-      <el-button type="primary" :loading="loading" @click="handleSave">
+      <el-button
+        v-if="noticeConfig.type !== 'tg'"
+        type="primary"
+        :loading="loading"
+        @click="handleSave"
+      >
         测试并保存
       </el-button>
-      <!-- <el-tooltip effect="dark" content="重复添加的邮箱将会被覆盖" placement="right">
-        </el-tooltip> -->
+      <PlusSupportTip>
+        <el-button
+          type="primary"
+          :disabled="!isPlusActive"
+          :loading="loading"
+          @click="handleSave"
+        >
+          测试并保存
+        </el-button>
+      </PlusSupportTip>
     </el-form-item>
   </el-form>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
+import { ref, reactive, onMounted, getCurrentInstance, computed } from 'vue'
+import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 
-const { proxy: { $api, $notification } } = getCurrentInstance()
+const { proxy: { $api, $notification, $store } } = getCurrentInstance()
 
 const loading = ref(false)
 const noticeConfig = ref({})
@@ -95,14 +131,28 @@ const noticeTypeList = ref([
     type: 'sct',
     desc: 'Server酱'
   },
+  {
+    type: 'tg',
+    desc: 'Telegram'
+  },
 ])
 const formRef = ref(null)
+const isPlusActive = computed(() => $store.isPlusActive)
 
 const rules = reactive({
   'sct.sendKey': { required: true, message: '需输入sendKey', trigger: 'change' },
   'email.service': { required: true, message: '需输入邮箱提供商', trigger: 'change' },
   'email.user': { required: true, type: 'email', message: '需输入邮箱', trigger: 'change' },
-  'email.pass': { required: true, message: '需输入邮箱SMTP授权码', trigger: 'change' }
+  'email.pass': { required: true, message: '需输入邮箱SMTP授权码', trigger: 'change' },
+  'tg.token': { required: true, message: '需输入Telegram Token', trigger: 'change' },
+  'tg.chatId': [
+    { required: true, message: '需输入Telegram ChatId', trigger: 'change' },
+    {
+      pattern: /^-?\d+$/,
+      message: 'ChatId必须为数字',
+      trigger: ['blur', 'change',]
+    },
+  ]
 })
 
 const handleSave = () => {
