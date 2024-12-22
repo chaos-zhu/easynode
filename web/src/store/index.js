@@ -101,7 +101,7 @@ const useStore = defineStore({
       this.$patch({ localScriptList })
     },
     async getPlusInfo() {
-      const { data: plusInfo } = await $api.getPlusInfo()
+      const { data: plusInfo = {} } = await $api.getPlusInfo()
       if (plusInfo?.expiryDate) {
         const isPlusActive = new Date(plusInfo.expiryDate) > new Date()
         this.$patch({ isPlusActive })
@@ -111,6 +111,9 @@ const useStore = defineStore({
         }
         plusInfo.expiryDate = dayjs(plusInfo.expiryDate).format('YYYY-MM-DD')
         plusInfo.expiryDate?.startsWith('9999') && (plusInfo.expiryDate = '永久授权')
+        this.$patch({ plusInfo })
+      } else {
+        this.$patch({ isPlusActive: false })
       }
       this.$patch({ plusInfo })
     },

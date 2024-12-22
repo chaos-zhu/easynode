@@ -3,11 +3,13 @@ const axios = require('axios')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
 const version = require('../../package.json').version
+const getLicenseInfo = require('../utils/get-plus')
 const { plusServer1, plusServer2 } = require('../utils/plus-server')
 const { sendNoticeAsync } = require('../utils/notify')
 const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt } = require('../utils/encrypt')
 const { getNetIPInfo } = require('../utils/tools')
 const { KeyDB, LogDB, PlusDB } = require('../utils/db-class')
+
 const keyDB = new KeyDB().getInstance()
 const logDB = new LogDB().getInstance()
 const plusDB = new PlusDB().getInstance()
@@ -175,6 +177,7 @@ const getPlusInfo = async ({ res }) => {
 }
 
 const getPlusDiscount = async ({ res } = {}) => {
+  if (process.env.EXEC_ENV === 'local') return res.success({ discount: false })
   const servers = [plusServer1, plusServer2]
   for (const server of servers) {
     try {
@@ -195,6 +198,18 @@ const getPlusDiscount = async ({ res } = {}) => {
   }
 }
 
+const getPlusConf = async ({ res }) => {
+  const { key } = await plusDB.findOneAsync({}) || {}
+  res.success({ data: key || '', msg: 'success' })
+}
+
+const updatePlusKey = async ({ res, request }) => {
+  const { body: { key } } = request
+  const { success, msg } = await getLicenseInfo(key)
+  if (!success) return res.fail({ msg })
+  res.success({ msg: 'success' })
+}
+
 module.exports = {
   login,
   getpublicKey,
@@ -205,5 +220,7 @@ module.exports = {
   enableMFA2,
   disableMFA2,
   getPlusInfo,
-  getPlusDiscount
+  getPlusDiscount,
+  getPlusConf,
+  updatePlusKey
 }

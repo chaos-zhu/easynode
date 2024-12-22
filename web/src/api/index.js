@@ -126,5 +126,11 @@ export default {
   },
   getEasynodeVersion() {
     return axios({ url: '/version', method: 'get' })
+  },
+  getPlusConf() {
+    return axios({ url: '/plus-conf', method: 'get' })
+  },
+  updatePlusKey(data) {
+    return axios({ url: '/plus-conf', method: 'post', data })
   }
 }

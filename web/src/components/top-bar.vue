@@ -37,107 +37,26 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-
-      <el-popover placement="left" :width="320" trigger="hover">
-        <template #reference>
-          <div class="plus_icon_wrapper">
-            <img
-              class="plus_icon"
-              src="@/assets/plus.png"
-              alt="PLUS"
-              :style="{ filter: isPlusActive ? 'grayscale(0%)' : 'grayscale(100%)' }"
-            >
-            <img
-              v-if="!isPlusActive && discount"
-              class="discount_badge"
-              src="@/assets/discount.png"
-              alt="Discount"
-            >
-          </div>
-        </template>
-        <template #default>
-          <div class="plus_content_wrap">
-            <!-- Plus 激活状态信息 -->
-            <div v-if="isPlusActive" class="plus_status">
-              <div class="status_header">
-                <el-icon>
-                  <CircleCheckFilled />
-                </el-icon>
-                <span>Plus专属功能已激活</span>
-              </div>
-              <div class="status_info">
-                <div class="info_item">
-                  <span class="label">到期时间:</span>
-                  <span class="value holder">{{ plusInfo.expiryDate }}</span>
-                </div>
-                <div class="info_item">
-                  <span class="label">授权IP数:</span>
-                  <span class="value">{{ plusInfo.maxIPs }}</span>
-                </div>
-                <div class="info_item">
-                  <span class="label">已授权IP数:</span>
-                  <span class="value">{{ plusInfo.usedIPCount }}</span>
-                </div>
-                <div class="info_item ip_list">
-                  <span class="label">已授权IP:</span>
-                  <div class="ip_tags">
-                    <el-tag
-                      v-for="ip in plusInfo.usedIPs"
-                      :key="ip"
-                      size="small"
-                      class="ip_tag"
-                    >
-                      {{ ip }}
-                    </el-tag>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="plus_benefits" :class="{ active: isPlusActive }" @click="handlePlus">
-              <span v-if="!isPlusActive" class="support_btn" @click="handlePlusSupport">激活PLUS</span>
-              <div v-if="!isPlusActive && discount" class="discount_content" @click="handlePlusSupport">
-                <el-tag type="warning" effect="dark">
-                  <el-icon><Promotion /></el-icon>
-                  <span>{{ discountContent || '限时优惠活动' }}</span>
-                </el-tag>
-              </div>
-              <div class="benefits_header">
-                <el-icon>
-                  <StarFilled />
-                </el-icon>
-                <span>Plus功能介绍</span>
-              </div>
-              <div class="current_benefits">
-                <div v-for="plusFeature in plusFeatures" :key="plusFeature" class="benefit_item">
-                  <el-icon>
-                    <Star />
-                  </el-icon>
-                  <span>{{ plusFeature }}</span>
-                </div>
-              </div>
-
-              <!-- <div class="coming_soon">
-                <div class="soon_header">开发中的PLUS功能</div>
-                <div class="current_benefits">
-                  <div v-for="soonFeature in soonFeatures" :key="soonFeature" class="benefit_item">
-                    <el-icon>
-                      <Star />
-                    </el-icon>
-                    <span>{{ soonFeature }}</span>
-                  </div>
-                </div>
-              </div> -->
-            </div>
-          </div>
-        </template>
-      </el-popover>
+      <div class="plus_icon_wrapper" @click="gotoPlusPage">
+        <img
+          class="plus_icon"
+          src="@/assets/plus.png"
+          alt="PLUS"
+          :style="{ filter: isPlusActive ? 'grayscale(0%)' : 'grayscale(100%)' }"
+        >
+        <img
+          v-if="!isPlusActive && discount"
+          class="discount_badge"
+          src="@/assets/discount.png"
+          alt="Discount"
+        >
+      </div>
     </div>
 
     <el-dialog
       v-model="visible"
       title="版本更新"
-      top="10vh"
+      top="20vh"
       width="30%"
       :append-to-body="false"
       :close-on-click-modal="false"
@@ -163,20 +82,8 @@
         <p>
           TG更新通知频道：<a class="link" href="https://t.me/easynode_notify" target="_blank">https://t.me/easynode_notify</a>
         </p>
-        <p style="line-height: 2;letter-spacing: 1px;">
-          <strong style="color: #F56C6C;font-weight: 600;">PLUS说明:</strong><br>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>EasyNode</strong>最初是一个简单的Web终端工具，随着用户群的不断扩大，功能需求也日益增长，为了实现大家的功能需求，我投入了大量的业余时间进行开发和维护。
-          一直在为爱发电，渐渐的也没了开发的动力。
-          <br>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;为了项目的可持续发展，从<strong>3.0.0</strong>版本开始推出了<strong>PLUS</strong>版本，具体特性鼠标悬浮右上角PLUS图标查看，后续特性功能开发也会优先在<strong>PLUS</strong>版本中实现，但即使不升级到<strong>PLUS</strong>，也不会影响到<strong>EasyNode</strong>的基础功能使用【注意: 暂不支持纯内网用户激活PLUS功能】。
-          <br>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;">
-            为了感谢前期赞赏过的用户, 在<strong>PLUS</strong>功能正式发布前，所有进行过赞赏的用户，无论金额大小，均可联系作者TG: <a class="link" href="https://t.me/chaoszhu" target="_blank">@chaoszhu</a> 凭打赏记录免费获取永久<strong>PLUS</strong>授权码。
-          </span>
-        </p>
         <div class="about_footer">
           <el-button type="info" @click="visible = false">关闭</el-button>
-          <el-button v-if="!isPlusActive" type="primary" @click="handlePlusSupport">激活PLUS</el-button>
         </div>
       </div>
     </el-dialog>
@@ -198,12 +105,14 @@
 
 <script setup>
 import { ref, getCurrentInstance, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import { User, Sunny, Moon, Fold, CircleCheckFilled, Star, StarFilled, Promotion } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 import MenuList from './menuList.vue'
+import { handlePlusSupport } from '@/utils'
 
 const { proxy: { $router, $store, $api, $message } } = getCurrentInstance()
-
+const router = useRouter()
 const visible = ref(false)
 const checkVersionErr = ref(false)
 const currentVersion = ref(`v${ packageJson.version }`)
@@ -211,20 +120,6 @@ const latestVersion = ref(null)
 const menuCollapse = ref(false)
 const discount = ref(false)
 const discountContent = ref('')
-
-const plusFeatures = [
-  '跳板机功能,拯救被墙实例与龟速终端输入',
-  '本地socket断开自动重连,无需手动重新连接',
-  '批量修改实例配置(优化版)',
-  '脚本库批量导出导入',
-  '凭据管理支持解密带密码保护的密钥',
-  '提出的功能需求享有更高的开发优先级',
-]
-// const soonFeatures = [
-//   '终端脚本变量及终端脚本输入优化',
-//   '终端分屏功能',
-//   '系统操作日志审计',
-// ]
 
 const isNew = computed(() => latestVersion.value && latestVersion.value !== currentVersion.value)
 const user = computed(() => $store.user)
@@ -249,8 +144,8 @@ const handleLogout = () => {
   $router.push('/login')
 }
 
-const handlePlusSupport = () => {
-  window.open('https://en.221022.xyz/buy-plus', '_blank')
+const gotoPlusPage = () => {
+  router.push('/setting?tabKey=plus')
 }
 
 async function checkLatestVersion() {

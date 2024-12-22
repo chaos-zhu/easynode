@@ -149,3 +149,7 @@ export const isMobile = () => {
   let userAgent = navigator.userAgent || navigator.vendor || window.opera
   return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
 }
+
+export const handlePlusSupport = () => {
+  window.open('https://en.221022.xyz/buy-plus', '_blank')
+}

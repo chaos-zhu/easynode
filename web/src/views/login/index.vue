@@ -46,7 +46,7 @@
           </el-form-item>
           <el-form-item prop="mfa2Token" label="MFA2验证码">
             <el-input
-              v-model.trim.number="loginForm.mfa2Token"
+              v-model="loginForm.mfa2Token"
               type="text"
               placeholder="MFA2应用上的6位数字(未设置可忽略)"
               autocomplete="off"
@@ -103,7 +103,7 @@ const loginForm = reactive({
 const rules = reactive({
   loginName: { required: true, message: '需输入用户名', trigger: 'change' },
   pwd: { required: true, message: '需输入密码', trigger: 'change' },
-  mfa2Token: { required: false, message: '需输入密码', trigger: 'change' }
+  mfa2Token: { required: false, message: '需输入MFA2验证码', trigger: 'change' }
 })
 
 const handleLogin = () => {
@@ -124,7 +124,7 @@ const handleLogin = () => {
     if (ciphertext === -1) return $message.error({ message: '公钥加载失败', center: true })
     loading.value = true
     try {
-      let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, mfa2Token })
+      let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, mfa2Token: Number(mfa2Token) })
       const { token } = data
       $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
       $store.setUser(loginName)
