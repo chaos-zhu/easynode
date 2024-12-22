@@ -106,10 +106,9 @@
 <script setup>
 import { ref, getCurrentInstance, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Sunny, Moon, Fold, CircleCheckFilled, Star, StarFilled, Promotion } from '@element-plus/icons-vue'
+import { User, Sunny, Moon, Fold } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 import MenuList from './menuList.vue'
-import { handlePlusSupport } from '@/utils'
 
 const { proxy: { $router, $store, $api, $message } } = getCurrentInstance()
 const router = useRouter()
@@ -119,12 +118,10 @@ const currentVersion = ref(`v${ packageJson.version }`)
 const latestVersion = ref(null)
 const menuCollapse = ref(false)
 const discount = ref(false)
-const discountContent = ref('')
 
 const isNew = computed(() => latestVersion.value && latestVersion.value !== currentVersion.value)
 const user = computed(() => $store.user)
 const title = computed(() => $store.title)
-const plusInfo = computed(() => $store.plusInfo)
 const isPlusActive = computed(() => $store.isPlusActive)
 
 const isDark = computed({
@@ -196,7 +193,6 @@ const getPlusDiscount = async () => {
   const { data } = await $api.getPlusDiscount()
   if (data?.discount) {
     discount.value = data.discount
-    discountContent.value = data.content
   }
 }
 

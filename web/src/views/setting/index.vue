@@ -24,13 +24,11 @@
 import { watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GlobalNotify from './components/global-notify.vue'
-// import EmailList from './components/email-list.vue'
 import Record from './components/record.vue'
 import User from './components/user.vue'
 import NotifyConfig from './components/notify-config.vue'
 import UserPlus from './components/user-plus.vue'
 
-// tabkey
 const route = useRoute()
 const router = useRouter()
 
@@ -47,9 +45,6 @@ watch(() => tabKey.value, (newVal) => {
   router.push({ query: { tabKey: newVal } })
 })
 
-const handleTabClick = (tab) => {
-  router.push({ query: { tabKey: tab.props.name } })
-}
 </script>
 
 <style lang="scss" scoped>

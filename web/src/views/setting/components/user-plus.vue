@@ -20,11 +20,23 @@
       />
     </el-form-item>
     <el-form-item>
-      <el-button type="primary" :loading="loading" @click="handleUpdate">立即激活</el-button>
-      <el-button type="success" @click="handlePlusSupport">购买Plus</el-button>
+      <div class="form_footer">
+        <el-button type="primary" :loading="loading" @click="handleUpdate">立即激活</el-button>
+        <el-button type="success" @click="handlePlusSupport">
+          购买Plus
+          <el-icon class="el-icon--right"><TopRight /></el-icon>
+        </el-button>
+        <span v-if="!isPlusActive && discount" class="discount_wrapper" @click="handlePlusSupport">
+          <img
+            class="discount_badge"
+            src="@/assets/discount.png"
+            alt="Discount"
+          >
+          <span class="discount_content">{{ discountContent }}</span>
+        </span>
+      </div>
     </el-form-item>
   </el-form>
-
   <!-- Plus 激活状态信息 -->
   <div v-if="isPlusActive" class="plus_status">
     <div class="status_header">
@@ -64,6 +76,7 @@
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
+import { TopRight } from '@element-plus/icons-vue'
 import { handlePlusSupport } from '@/utils'
 import PlusTable from '@/components/plus-table.vue'
 
@@ -78,6 +91,8 @@ const formData = reactive({
 const rules = reactive({
   key: { required: true, message: '输入Plus Key', trigger: 'change' }
 })
+const discount = ref(false)
+const discountContent = ref('')
 
 const plusInfo = computed(() => $store.plusInfo)
 const isPlusActive = computed(() => $store.isPlusActive)
@@ -124,14 +139,49 @@ const getPlusConf = async () => {
   }
 }
 
+const getPlusDiscount = async () => {
+  const { data } = await $api.getPlusDiscount()
+  if (data?.discount) {
+    discount.value = data.discount
+    discountContent.value = data.content
+  }
+}
+
 onMounted(() => {
   getPlusConf()
+  getPlusDiscount()
 })
 </script>
 
 <style lang="scss" scoped>
 .plus-form {
   width: 500px;
+}
+
+.form_footer {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  margin-bottom: 15px;
+  .discount_wrapper {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    .discount_badge {
+      margin: 0 5px 0 10px;
+      width: 22px;
+      color: white;
+      font-size: 12px;
+    }
+    .discount_content {
+      font-size: 12px;
+      line-height: 1.3;
+      color: #ff4806;
+      text-decoration: underline;
+    }
+  }
 }
 
 .plus_status {
