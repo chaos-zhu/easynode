@@ -88,11 +88,14 @@ async function createTerminal(hostId, socket, targetSSHClient) {
           consola.error('连接终端失败:', host, err.message)
           socket.emit('connect_terminal_fail', err.message)
         })
+        .on('keyboard-interactive', function (name, instructions, instructionsLang, prompts, finish) {
+          finish([targetConnectionOptions[authType]])
+        })
         .connect({
+          tryKeyboard: true,
           ...targetConnectionOptions
           // debug: (info) => console.log(info)
         })
-
     } catch (err) {
       consola.error('创建终端失败: ', host, err.message)
       socket.emit('create_terminal_fail', err.message)
