@@ -10,12 +10,13 @@
     :show-message="false"
     @submit.prevent
   >
-    <el-form-item label="Plus Key" prop="key">
+    <el-form-item label="Plus Key" prop="key" class="form_item">
       <el-input
         v-model.trim="formData.key"
         clearable
         placeholder=""
         autocomplete="off"
+        class="input"
         @keyup.enter.prevent="handleUpdate"
       />
     </el-form-item>
@@ -154,8 +155,10 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.plus-form {
-  width: 500px;
+.form_item {
+  .input {
+    width: 450px;
+  }
 }
 
 .form_footer {

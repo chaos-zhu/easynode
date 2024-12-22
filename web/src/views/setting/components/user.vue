@@ -9,15 +9,16 @@
     label-width="86px"
     :show-message="false"
   >
-    <el-form-item label="原用户名" prop="oldLoginName">
+    <el-form-item label="原用户名" prop="oldLoginName" class="form_item">
       <el-input
         v-model.trim="formData.oldLoginName"
         clearable
         placeholder=""
         autocomplete="off"
+        class="input"
       />
     </el-form-item>
-    <el-form-item label="原密码" prop="oldPwd">
+    <el-form-item label="原密码" prop="oldPwd" class="form_item">
       <el-input
         v-model.trim="formData.oldPwd"
         type="password"
@@ -25,17 +26,19 @@
         show-password
         placeholder=""
         autocomplete="off"
+        class="input"
       />
     </el-form-item>
-    <el-form-item label="新用户名" prop="newLoginName">
+    <el-form-item label="新用户名" prop="newLoginName" class="form_item">
       <el-input
         v-model.trim="formData.newLoginName"
         clearable
         placeholder=""
         autocomplete="off"
+        class="input"
       />
     </el-form-item>
-    <el-form-item label="新密码" prop="newPwd">
+    <el-form-item label="新密码" prop="newPwd" class="form_item">
       <el-input
         v-model.trim="formData.newPwd"
         type="password"
@@ -43,6 +46,7 @@
         clearable
         placeholder=""
         autocomplete="off"
+        class="input"
         @keyup.enter="handleUpdate"
       />
     </el-form-item>
@@ -159,7 +163,11 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .password-form {
-  width: 500px;
+  .form_item {
+    .input {
+      width: 450px;
+    }
+  }
 }
 .mfa2_title {
   font-size: 18px;
