@@ -10,7 +10,7 @@
           size="small"
           type="primary"
           link
-          @click="handlePlusSupport"
+          @click="gotoPlusPage"
         >
           去激活
         </el-button>
@@ -22,13 +22,15 @@
 
 <script setup>
 import { computed, getCurrentInstance } from 'vue'
+import { useRouter } from 'vue-router'
 
 const { proxy: { $store } } = getCurrentInstance()
+const router = useRouter()
 
 const isPlusActive = computed(() => $store.isPlusActive)
 
-const handlePlusSupport = () => {
-  window.open('https://en.221022.xyz/buy-plus', '_blank')
+const gotoPlusPage = () => {
+  router.push('/setting?tabKey=plus')
 }
 </script>
 

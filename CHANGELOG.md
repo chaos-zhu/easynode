@@ -1,3 +1,11 @@
+## [3.0.3](https://github.com/chaos-zhu/easynode/releases) (2024-12-22)
+
+* 支持keyboard-interactive服务器验证(serv00验证通过)
+* 支持TG Bot通知方式
+* 添加web端Plus授权功能
+* 修复一些UI问题
+* 修复MFA2登录验证码为0开头无法输入的bug
+
 ## [3.0.2](https://github.com/chaos-zhu/easynode/releases) (2024-11-20)
 
 * 修复添加实例错误禁用的bug
