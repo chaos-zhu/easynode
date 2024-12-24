@@ -211,7 +211,7 @@ const connectIO = () => {
     curStatus.value = CONNECT_FAIL
     term.value.write('\r\n\x1b[91mError: 连接失败,请检查EasyNode服务端是否正常, 回车重新发起连接\x1b[0m \r\n')
     $notification({
-      title: '连接失败',
+      title: '服务端连接失败',
       message: '请检查EasyNode服务端是否正常',
       type: 'error'
     })
@@ -222,7 +222,6 @@ const reconnectTerminal = (isCommonTips = false, tips) => {
   socket.value.removeAllListeners()
   socket.value.close()
   socket.value = null
-  curStatus.value = CONNECT_FAIL
   socketConnected.value = false
   if (isCommonTips) {
     if (isPlusActive.value && autoReconnect.value) {
@@ -354,12 +353,11 @@ function extractLastCdPath(text) {
 
 const onData = () => {
   term.value.onData((key) => {
-    if (!socket.value || !socketConnected.value) return
-
     if ('\r' === key && curStatus.value === CONNECT_FAIL) {
       reconnectTerminal(false, '重新连接中...')
       return
     }
+    if (!socket.value || !socketConnected.value) return
 
     if (isLongPressCtrl.value || isLongPressAlt.value) {
       const keyCode = key.toUpperCase().charCodeAt(0)

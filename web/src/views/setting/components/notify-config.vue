@@ -93,30 +93,19 @@
     </template>
     <el-form-item label="" class="form_item">
       <el-button
-        v-if="noticeConfig.type !== 'tg'"
         type="primary"
         :loading="loading"
         @click="handleSave"
       >
         测试并保存
       </el-button>
-      <PlusSupportTip>
-        <el-button
-          type="primary"
-          :disabled="!isPlusActive"
-          :loading="loading"
-          @click="handleSave"
-        >
-          测试并保存
-        </el-button>
-      </PlusSupportTip>
     </el-form-item>
   </el-form>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance, computed } from 'vue'
-import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
+// import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 
 const { proxy: { $api, $notification, $store } } = getCurrentInstance()
 
