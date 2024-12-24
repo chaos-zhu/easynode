@@ -52,7 +52,7 @@
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>EasyNode</strong>最初是一个简单的Web终端工具，随着用户群的不断扩大，功能需求也日益增长，为了实现大家的功能需求，我投入了大量的业余时间进行开发和维护。
           一直在为爱发电，渐渐的也没了开发的动力。
           <br>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;为了项目的可持续发展，<strong>后续</strong>版本开始推出<strong>PLUS</strong>版本，具体特性鼠标悬浮右上角PLUS图标查看，后续特性功能开发也会优先在<strong>PLUS</strong>版本中实现，但即使不升级到<strong>PLUS</strong>，也不会影响到<strong>EasyNode</strong>的基础功能使用【注意:
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;为了项目的可持续发展，<strong>后续</strong>版本开始推出<strong>PLUS</strong>版本，后续特性功能开发也会优先在<strong>PLUS</strong>版本中实现，但即使不升级到<strong>PLUS</strong>，也不会影响到<strong>EasyNode</strong>的基础功能使用【注意:
           暂不支持纯内网用户激活PLUS功能】。
           <br>
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;">
