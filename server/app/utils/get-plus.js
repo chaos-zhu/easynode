@@ -1,4 +1,3 @@
-const schedule = require('node-schedule')
 const { getLocalNetIP } = require('./tools')
 const { AESEncryptAsync } = require('./encrypt')
 const version = require('../../package.json').version
@@ -90,11 +89,5 @@ async function getLicenseInfo(key = '') {
     return { success: false, msg: error.message || error.errMsg?.message }
   }
 }
-
-const randomHour = Math.floor(Math.random() * 24)
-const randomMinute = Math.floor(Math.random() * 60)
-const randomDay = Math.floor(Math.random() * 7)
-const cronExpression = `${ randomMinute } ${ randomHour } * * ${ randomDay }`
-schedule.scheduleJob(cronExpression, getLicenseInfo)
 
 module.exports = getLicenseInfo
