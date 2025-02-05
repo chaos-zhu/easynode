@@ -426,7 +426,7 @@ onActivated(async () => {
   const { hostIds, execClientInstallScript } = route.query
   if (!hostIds) return
   if (execClientInstallScript === 'true') {
-    let clientInstallScript = 'curl -o- https://ghp.ci/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash\n'
+    let clientInstallScript = 'curl -o- https://ghfast.top/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash\n'
     console.log(hostIds.split(','))
     createExecShell(hostIds.split(','), clientInstallScript, 300)
     // $messageBox.confirm(`准备安装客户端服务监控应用：${ host }`, 'Warning', {
@@ -435,7 +435,7 @@ onActivated(async () => {
     //   type: 'warning'
     // })
     //   .then(async () => {
-    //     let clientInstallScript = 'curl -o- https://ghp.ci/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash\n'
+    //     let clientInstallScript = 'curl -o- https://ghfast.top/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash\n'
     //     createExecShell([host,], clientInstallScript, 300)
     //   })
   }

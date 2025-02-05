@@ -79,16 +79,16 @@ docker run -d -p 8082:8082 --restart=always -v /root/easynode/db:/easynode/app/d
 
 ```shell
 # 使用默认端口22022安装
-curl -o- https://ghp.ci/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash
+curl -o- https://ghfast.top/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash
 
 # 使用自定义端口安装, 例如54321
-curl -o- https://ghp.ci/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash -s -- 54321
+curl -o- https://ghfast.top/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash -s -- 54321
 ```
 
 > 卸载
 
 ```shell
-curl -o- https://ghp.ci/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash
+curl -o- https://ghfast.top/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash
 ```
 
 > 查看监控服务状态：`systemctl status easynode-client`
