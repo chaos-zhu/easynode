@@ -15,6 +15,7 @@ const useStore = defineStore({
     groupList: [],
     sshList: [],
     scriptList: [],
+    scriptGroupList: [],
     localScriptList: [],
     HostStatusSocket: null,
     user: localStorage.getItem('user') || null,
@@ -71,6 +72,7 @@ const useStore = defineStore({
       await this.getHostList()
       await this.getSSHList()
       await this.getScriptList()
+      await this.getScriptGroupList()
       await this.getPlusInfo()
       this.wsClientsStatus()
     },
@@ -95,6 +97,10 @@ const useStore = defineStore({
     async getScriptList() {
       const { data: scriptList } = await $api.getScriptList()
       this.$patch({ scriptList })
+    },
+    async getScriptGroupList() {
+      const { data: scriptGroupList } = await $api.getScriptGroupList()
+      this.$patch({ scriptGroupList })
     },
     async getLocalScriptList() {
       const { data: localScriptList } = await $api.getLocalScriptList()

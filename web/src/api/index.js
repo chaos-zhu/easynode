@@ -118,6 +118,18 @@ export default {
   batchRemoveScript(data) {
     return axios({ url: '/batch-remove-script', method: 'post', data })
   },
+  getScriptGroupList() {
+    return axios({ url: '/script-group', method: 'get' })
+  },
+  addScriptGroup(data) {
+    return axios({ url: '/script-group', method: 'post', data })
+  },
+  updateScriptGroup(id, data) {
+    return axios({ url: `/script-group/${ id }`, method: 'put', data })
+  },
+  deleteScriptGroup(id) {
+    return axios({ url: `/script-group/${ id }`, method: 'delete' })
+  },
   getOnekeyRecord() {
     return axios({ url: '/onekey', method: 'get' })
   },

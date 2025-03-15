@@ -13,6 +13,7 @@ module.exports = {
   hostListDBPath: path.join(process.cwd(),'app/db/host.db'),
   groupConfDBPath: path.join(process.cwd(),'app/db/group.db'),
   scriptsDBPath: path.join(process.cwd(),'app/db/scripts.db'),
+  scriptGroupDBPath: path.join(process.cwd(),'app/db/script-group.db'),
   notifyDBPath: path.join(process.cwd(),'app/db/notify.db'),
   notifyConfigDBPath: path.join(process.cwd(),'app/db/notify-config.db'),
   onekeyDBPath: path.join(process.cwd(),'app/db/onekey.db'),

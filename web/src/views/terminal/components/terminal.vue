@@ -16,6 +16,7 @@
           </template>
         </el-dropdown>
         <el-dropdown
+          v-if="!isPlusActive"
           trigger="click"
           max-height="50vh"
           :teleported="false"
@@ -50,9 +51,9 @@
           <span class="link_text">功能项<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="showInputCommand = true">
+              <!-- <el-dropdown-item @click="showInputCommand = true">
                 <span>长指令输入</span>
-              </el-dropdown-item>
+              </el-dropdown-item> -->
               <el-dropdown-item @click="handleFullScreen">
                 <span>启用全屏</span>
               </el-dropdown-item>
@@ -72,7 +73,7 @@
         <div class="switch_wrap">
           <el-tooltip
             effect="dark"
-            content="开启后同步键盘输入到所有会话"
+            content="同步键盘输入到所有会话"
             placement="bottom"
           >
             <el-switch
@@ -88,16 +89,16 @@
         <div class="switch_wrap">
           <el-tooltip
             effect="dark"
-            content="SFTP文件传输"
+            content="包含SFTP文件传输、脚本库等功能"
             placement="bottom"
           >
             <el-switch
-              v-model="showSftp"
+              v-model="showFooterBar"
               class="swtich"
               inline-prompt
               style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-              active-text="SFTP"
-              inactive-text="SFTP"
+              active-text="工具栏"
+              inactive-text="工具栏"
             />
           </el-tooltip>
         </div>
@@ -148,13 +149,13 @@
             </div>
           </template>
           <div class="tab_content_wrap" :style="{ height: mainHeight + 'px' }">
+            <!-- @cd-command="cdCommand" -->
             <TerminalTab
               ref="terminalRefs"
               :host-obj="item"
               :long-press-ctrl="longPressCtrl"
               :long-press-alt="longPressAlt"
               @input-command="terminalInput"
-              @cd-command="cdCommand"
               @ping-data="getPingData"
               @reset-long-press="resetLongPress"
             />
@@ -164,11 +165,11 @@
               :long-press-alt="longPressAlt"
               @click-key="handleClickVirtualKeyboard"
             />
-            <Sftp
-              v-if="showSftp"
-              ref="sftpRefs"
+            <FooterBar
+              v-if="showFooterBar"
               :host-id="item.id"
               @resize="resizeTerminal"
+              @exec-command="handleInputCommand"
             />
           </div>
         </el-tab-pane>
@@ -197,9 +198,9 @@ import FloatMenu from '@/components/float-menu/index.vue'
 import { terminalStatusList, virtualKeyType } from '@/utils/enum'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
-import Sftp from './sftp.vue'
 import HostForm from '../../server/components/host-form.vue'
 import TerminalSetting from './terminal-setting.vue'
+import FooterBar from './footer-bar.vue'
 
 const { proxy: { $nextTick, $store, $message } } = getCurrentInstance()
 
@@ -216,12 +217,12 @@ const showInputCommand = ref(false)
 const infoSideRef = ref(null)
 const pingData = ref({})
 const terminalRefs = ref([])
-const sftpRefs = ref([])
+// const sftpRefs = ref([])
 const activeTabIndex = ref(0)
 const visible = ref(true)
-const showSftp = ref(localStorage.getItem('showSftp') === 'true')
-const mainHeight = ref('')
+const showFooterBar = ref(localStorage.getItem('showFooterBar') === 'true')
 const isSyncAllSession = ref(false)
+const mainHeight = ref('')
 const hostFormVisible = ref(false)
 const updateHostData = ref(null)
 const showSetting = ref(false)
@@ -229,6 +230,7 @@ const showMobileInfoSideDialog = ref(false)
 const longPressCtrl = ref(false)
 const longPressAlt = ref(false)
 
+const isPlusActive = computed(() => $store.isPlusActive)
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
 const hostList = computed(() => $store.hostList)
@@ -328,21 +330,22 @@ const terminalInput = (command) => {
     return index !== activeTabIndex.value
   })
   filterTerminalRefs.forEach(hostRef => {
-    hostRef.inputCommand(command)
+    hostRef.inputCommand(command, true)
   })
 }
 
-const cdCommand = (path) => {
-  // console.log('cdCommand:', path)
-  if (!showSftp.value) return
-  if (isSyncAllSession.value) {
-    sftpRefs.value.forEach(sftpRef => {
-      sftpRef.openDir(path)
-    })
-  } else {
-    sftpRefs.value[activeTabIndex.value].openDir(path, false)
-  }
-}
+// 识别命令动态切换目录功能暂时取消
+// const cdCommand = (path) => {
+//   // console.log('cdCommand:', path)
+//   if (!showSftp.value) return
+//   if (isSyncAllSession.value) {
+//     sftpRefs.value.forEach(sftpRef => {
+//       sftpRef.openDir(path)
+//     })
+//   } else {
+//     sftpRefs.value[activeTabIndex.value].openDir(path, false)
+//   }
+// }
 
 const getPingData = (data) => {
   pingData.value[data.ip] = data
@@ -367,18 +370,14 @@ watch(terminalTabsLen, () => {
   deep: false
 })
 
-watch(showSftp, () => {
-  localStorage.setItem('showSftp', showSftp.value)
-  nextTick(() => {
-    resizeTerminal()
-  })
+watch(showFooterBar, async () => {
+  localStorage.setItem('showFooterBar', showFooterBar.value)
+  await $nextTick()
+  resizeTerminal()
+}, {
+  immediate: true,
+  deep: false
 })
-
-// const windowBeforeUnload = () => {
-//   window.onbeforeunload = () => {
-//     return ''
-//   }
-// }
 
 const removeTab = (index) => {
   emit('removeTab', index)
@@ -541,10 +540,6 @@ const handleInputCommand = async (command) => {
 
       :deep(.terminal_tab_container) {
         flex: 1;
-      }
-
-      :deep(.sftp_tab_container) {
-        height: 300px;
       }
     }
 

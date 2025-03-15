@@ -1,3 +1,20 @@
+## [3.0.5](https://github.com/chaos-zhu/easynode/releases) (2025-03-18)
+
+* 新增AI问答&集成脚本生成功能（TODO
+* 新增服务器定时任务功能（TODO
+* 连接服务器下拉菜单分组展示（TODO
+* 增加升级更新内容展示（TODO
+
+## [3.0.4](https://github.com/chaos-zhu/easynode/releases) (2025-03-15)
+
+* 新增脚本库分组功能
+* 终端页新增脚本库布局
+* 优化多行命令编辑器
+* 优化终端工具栏布局
+* 优化多项新增序号自动累加
+* 修复前端连接断开但未释放服务端ssh连接的bug
+* 修复终端页面同步会话在自动执行脚本开关为true时自动添加回车的bug
+
 ## [3.0.3](https://github.com/chaos-zhu/easynode/releases) (2024-12-22)
 
 * 支持keyboard-interactive服务器验证(serv00验证通过)

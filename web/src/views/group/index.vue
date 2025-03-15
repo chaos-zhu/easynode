@@ -120,6 +120,8 @@ const list = computed(() => {
 
 let addGroup = () => {
   groupForm.id = null
+  const maxIndex = Math.max(...groupList.value.map(item => item.index), 0)
+  groupForm.index = maxIndex + 1
   groupFormVisible.value = true
   isModify.value = false
 }
@@ -167,10 +169,9 @@ const deleteGroup = ({ id, name }) => {
 
 <style lang="scss" scoped>
 .group_container {
-  padding: 20px;
+  padding:0 20px 20px 20px;
 
   .header {
-    padding: 15px;
     display: flex;
     align-items: center;
     justify-content: end;

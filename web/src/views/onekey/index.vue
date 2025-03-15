@@ -444,7 +444,7 @@ onActivated(async () => {
 
 <style lang="scss" scoped>
 .onekey_container {
-  padding: 20px;
+  padding: 0 20px 20px 20px;
   .header {
     padding: 15px;
     display: flex;

@@ -108,7 +108,7 @@ const getLocalNetIP = async () => {
       if (ip) return ip
     }
     if (freeipapi.status === 'fulfilled') {
-      let ip = pconline.value?.data?.ipAddress
+      let ip = freeipapi.value?.data?.ipAddress
       if (ip) return ip
     }
     return null

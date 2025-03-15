@@ -444,8 +444,8 @@ const focusTab = () => {
   }, 200)
 }
 
-const inputCommand = (command) => {
-  command = command + (autoExecuteScript.value ? '\n' : '')
+const inputCommand = (command, isSyncAllSession = false) => {
+  command = command + (isSyncAllSession ? '' : (autoExecuteScript.value ? '\n' : ''))
   socket.value.emit('input', command)
 }
 

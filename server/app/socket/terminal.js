@@ -57,8 +57,10 @@ async function createTerminal(hostId, socket, targetSSHClient) {
     try {
       let { authInfo: targetConnectionOptions } = await getConnectionOptions(hostId)
       let jumpHostResult = connectByJumpHosts && (await connectByJumpHosts(jumpHosts, targetConnectionOptions.host, targetConnectionOptions.port, socket))
+      let jumpSshClients = []
       if (jumpHostResult) {
         targetConnectionOptions.sock = jumpHostResult.sock
+        jumpSshClients = jumpHostResult.sshClients
       }
 
       socket.emit('terminal_print_info', `准备连接目标终端: ${ name } - ${ host }`)
@@ -74,7 +76,7 @@ async function createTerminal(hostId, socket, targetSSHClient) {
           consola.success('终端连接成功：', host)
           socket.emit('connect_terminal_success', `终端连接成功：${ host }`)
           let stream = await createInteractiveShell(socket, targetSSHClient)
-          resolve(stream)
+          resolve({ stream, jumpSshClients })
         })
         .on('close', (err) => {
           if (closeNoticeFlag) return closeNoticeFlag = false
@@ -124,6 +126,7 @@ module.exports = (httpServer) => {
     }
     consola.success('terminal websocket 已连接')
     let targetSSHClient = null
+    let jumpSshClients = []
     socket.on('create', async ({ hostId, token }) => {
       const { code } = await verifyAuthSync(token, requestIP)
       if (code !== 1) {
@@ -132,7 +135,8 @@ module.exports = (httpServer) => {
         return
       }
       targetSSHClient = new SSHClient()
-      let stream = null
+      let { stream = null, jumpSshClients: jumpSshClientsFromCreate } = await createTerminal(hostId, socket, targetSSHClient)
+      jumpSshClients = jumpSshClientsFromCreate
       function listenerInput(key) {
         if (targetSSHClient._sock.writable === false) return consola.info('终端连接已关闭,禁止输入')
         stream && stream.write(key)
@@ -142,7 +146,6 @@ module.exports = (httpServer) => {
       }
       socket.on('input', listenerInput)
       socket.on('resize', resizeShell)
-      stream = await createTerminal(hostId, socket, targetSSHClient)
     })
 
     socket.on('get_ping', async (ip) => {
@@ -155,6 +158,10 @@ module.exports = (httpServer) => {
 
     socket.on('disconnect', (reason) => {
       connectionCount--
+      targetSSHClient && targetSSHClient.end()
+      jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
+      targetSSHClient = null
+      jumpSshClients = null
       consola.info(`终端socket连接断开: ${ reason } - 当前连接数: ${ connectionCount }`)
     })
   })

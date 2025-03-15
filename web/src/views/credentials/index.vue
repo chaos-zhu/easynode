@@ -238,7 +238,7 @@ const handleDecryptKey = async () => {
 
 <style lang="scss" scoped>
 .credentials_container {
-  padding: 20px;
+  padding: 0 20px 20px 20px;
   .header {
     padding: 15px;
     display: flex;

@@ -382,7 +382,12 @@ let confHostList = computed(() => {
 })
 
 const setDefaultData = () => {
-  if (!defaultData.value) return
+  if (!defaultData.value) {
+    // 添加新实例时，设置index为当前最大index + 1
+    const maxIndex = Math.max(...hostList.value.map(host => host.index || 0), 0)
+    hostForm.value.index = maxIndex + 1
+    return
+  }
   // eslint-disable-next-line no-unused-vars
   let { id, ...rest } = defaultData.value
   for (let [key,] of Object.entries(hostForm.value)) {

@@ -68,19 +68,30 @@
         <p v-if="isNew" class="conspicuous">
           新版本可用: {{ latestVersion }} -> <a
             class="link"
-            href="https://github.com/chaos-zhu/easynode/releases"
+            href="https://github.com/chaos-zhu/easynode?tab=readme-ov-file#%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2"
             target="_blank"
-          >https://github.com/chaos-zhu/easynode/releases</a>
+          >https://github.com/chaos-zhu/easynode</a>
         </p>
-        <p>
-          功能更新日志：<a
-            class="link"
-            href="https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md"
-            target="_blank"
-          >https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md</a>
-        </p>
+        <template v-if="features.length > 0 && isNew">
+          <div class="version_features_title">
+            <el-icon><Document /></el-icon>
+            新版本更新了以下内容:
+          </div>
+          <ul class="conspicuous feature_list">
+            <li v-for="feature in features" :key="feature">
+              {{ feature }}
+            </li>
+          </ul>
+        </template>
         <p>
           TG更新通知频道：<a class="link" href="https://t.me/easynode_notify" target="_blank">https://t.me/easynode_notify</a>
+        </p>
+        <p>
+          项目地址：<a
+            class="link"
+            href="https://github.com/chaos-zhu/easynode"
+            target="_blank"
+          >https://github.com/chaos-zhu/easynode</a>
         </p>
         <div class="about_footer">
           <el-button type="info" @click="visible = false">关闭</el-button>
@@ -106,7 +117,7 @@
 <script setup>
 import { ref, getCurrentInstance, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Sunny, Moon, Fold } from '@element-plus/icons-vue'
+import { User, Sunny, Moon, Fold, Document } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 import MenuList from './menuList.vue'
 
@@ -116,6 +127,7 @@ const visible = ref(false)
 const checkVersionErr = ref(false)
 const currentVersion = ref(`v${ packageJson.version }`)
 const latestVersion = ref(null)
+const features = ref([])
 const menuCollapse = ref(false)
 const discount = ref(false)
 
@@ -145,25 +157,22 @@ const gotoPlusPage = () => {
   router.push('/setting?tabKey=plus')
 }
 
-async function checkLatestVersion() {
-  const timeout = 3000
+async function checkLatestVersionByGitRelease() {
+  const timeout = 5000
   try {
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('请求超时')), timeout)
     )
-
     const url = `https://api.github.com/repos/chaos-zhu/easynode/releases?ts=${ new Date().getTime() }`
     const fetchPromise = fetch(url, {
       headers: {
         'Accept': 'application/vnd.github.v3+json'
       }
     })
-
     const response = await Promise.race([fetchPromise, timeoutPromise,])
     if (!response.ok) {
       throw new Error('版本信息请求失败: ' + response.statusText)
     }
-
     const releases = await response.json()
     // console.log('releases:', releases)
     const filteredReleases = releases.filter(release => !release.tag_name.startsWith('client'))
@@ -176,7 +185,48 @@ async function checkLatestVersion() {
   }
 }
 
-checkLatestVersion()
+async function checkLatestVersionByJson() {
+  const timeout = 5000
+  try {
+    let date = new Date()
+    let lastGetVersionTime = localStorage.getItem('lastGetVersionTime')
+    // 10分钟内不重复请求
+    if (lastGetVersionTime && (date.getTime() - Number(lastGetVersionTime) < 1000 * 60 * 10)) {
+      let latestVersionFromLocal = localStorage.getItem('latestVersion')
+      let featuresFromLocal = localStorage.getItem('features')
+      if (latestVersionFromLocal && featuresFromLocal) {
+        latestVersion.value = latestVersionFromLocal
+        features.value = JSON.parse(featuresFromLocal)
+        return
+      }
+    }
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('请求超时')), timeout)
+    )
+    const url = `https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/refs/heads/main/server/version.json?ts=${ new Date().getTime() }`
+    const fetchPromise = fetch(url)
+    const response = await Promise.race([fetchPromise, timeoutPromise,])
+    if (!response.ok) {
+      throw new Error('版本信息请求失败: ' + response.statusText)
+    }
+    const releases = await response.json()
+    // console.log('releases:', releases)
+    if (Array.isArray(releases) && releases.length > 0) {
+      latestVersion.value = releases[0].version
+      features.value = releases[0].features
+      localStorage.setItem('lastGetVersionTime', date.getTime())
+      localStorage.setItem('latestVersion', latestVersion.value)
+      localStorage.setItem('features', JSON.stringify(features.value))
+    }
+  } catch (error) {
+    checkVersionErr.value = true
+    console.error('版本信息请求失败:', error.message)
+    checkLatestVersionByGitRelease()
+  }
+}
+
+checkLatestVersionByJson()
 
 let timer = null
 const checkFirstVisit = () => {
@@ -237,6 +287,7 @@ onBeforeUnmount(() => {
 
       .new_version {
         color: red;
+        text-decoration: underline;
       }
     }
 
@@ -298,6 +349,52 @@ onBeforeUnmount(() => {
     .conspicuous {
       color: #F56C6C;
       font-weight: 500;
+    }
+    .feature_list {
+      li {
+        list-style: none;
+        margin-left: 20px;
+        padding: 6px 0;
+        line-height: 1.5;
+        position: relative;
+        counter-increment: feature-counter;
+
+        &::before {
+          content: counter(feature-counter);
+          position: absolute;
+          left: -25px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 18px;
+          height: 18px;
+          background: #F56C6C;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+        }
+
+        &:not(:last-child) {
+          border-bottom: 1px dashed rgba(245, 108, 108, 0.2);
+        }
+      }
+    }
+
+    .version_features_title {
+      display: flex;
+      align-items: center;
+      color: #F56C6C;
+      font-weight: 500;
+      margin: 15px 0 10px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid rgba(245, 108, 108, 0.2);
+
+      .el-icon {
+        margin-right: 6px;
+        font-size: 16px;
+      }
     }
   }
 

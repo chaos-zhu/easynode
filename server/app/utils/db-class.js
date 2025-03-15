@@ -7,6 +7,7 @@ const {
   notifyConfigDBPath,
   groupConfDBPath,
   scriptsDBPath,
+  scriptGroupDBPath,
   onekeyDBPath,
   logDBPath,
   plusDBPath
@@ -93,6 +94,17 @@ module.exports.ScriptsDB = class ScriptsDB {
   }
   getInstance() {
     return ScriptsDB.instance
+  }
+}
+
+module.exports.ScriptGroupDB = class ScriptGroupDB {
+  constructor() {
+    if (!ScriptGroupDB.instance) {
+      ScriptGroupDB.instance = new Datastore({ filename: scriptGroupDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return ScriptGroupDB.instance
   }
 }
 

@@ -4,6 +4,7 @@ const { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMF
 const { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
 const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript, batchRemoveScript, importScript } = require('../controller/scripts')
+const { getScriptGroupList, addScriptGroup, removeScriptGroup, updateScriptGroup } = require('../controller/script-group')
 const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
 const { getLog } = require('../controller/log')
 
@@ -217,6 +218,29 @@ const scripts = [
   }
 ]
 
+const scriptGroup = [
+  {
+    method: 'get',
+    path: '/script-group',
+    controller: getScriptGroupList
+  },
+  {
+    method: 'post',
+    path: '/script-group',
+    controller: addScriptGroup
+  },
+  {
+    method: 'delete',
+    path: '/script-group/:id',
+    controller: removeScriptGroup
+  },
+  {
+    method: 'put',
+    path: '/script-group/:id',
+    controller: updateScriptGroup
+  }
+]
+
 const onekey = [
   {
     method: 'get',
@@ -237,4 +261,4 @@ const log = [
     controller: getLog
   }
 ]
-module.exports = [].concat(ssh, host, user, notify, group, scripts, onekey, log)
+module.exports = [].concat(ssh, host, user, notify, group, scripts, scriptGroup, onekey, log)

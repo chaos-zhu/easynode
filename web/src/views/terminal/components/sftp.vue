@@ -1,6 +1,5 @@
 <template>
-  <div ref="sftpTabContainerRef" class="sftp_tab_container">
-    <div ref="adjustRef" class="adjust" />
+  <div class="sftp_tab_container">
     <section>
       <div class="left box">
         <div class="header">
@@ -159,7 +158,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 import socketIo from 'socket.io-client'
 import CodeEdit from '@/components/code-edit/index.vue'
-import { EventBus, isDir, isFile, sortDirTree, downloadFile, isMobile } from '@/utils'
+import { isDir, isFile, sortDirTree, downloadFile, isMobile } from '@/utils'
 import dirIcon from '@/assets/image/system/dir.png'
 import linkIcon from '@/assets/image/system/link.png'
 import fileIcon from '@/assets/image/system/file.png'
@@ -173,8 +172,6 @@ const props = defineProps({
     type: String
   }
 })
-
-const emit = defineEmits(['resize',])
 
 const { proxy: { $store, $notification, $message, $messageBox, $serviceURI, $nextTick } } = getCurrentInstance()
 
@@ -204,8 +201,6 @@ const curUploadFileName = ref('')
 const showDirProgress = ref(false)
 const curUploadDirName = ref(0)
 
-const adjustRef = ref(null)
-const sftpTabContainerRef = ref(null)
 const childDirRef = ref(null)
 const uploadFileRef = ref(null)
 const uploadDirRef = ref(null)
@@ -221,45 +216,11 @@ const fileList = computed(() => childDir.value.filter(({ name }) => name.include
 
 onMounted(() => {
   connectSftp()
-  adjustHeight()
-  EventBus.$on('update-sftp-tab-height', () => {
-    adjustHeight()
-  })
 })
 
 onBeforeUnmount(() => {
   if (socket.value) socket.value.close()
 })
-
-const adjustHeight = async () => {
-  let startAdjust = false
-  let timer = null
-  await $nextTick()
-  try {
-    let sftpHeight = localStorage.getItem('sftpHeight')
-    if (sftpHeight) sftpTabContainerRef.value.style.height = sftpHeight
-    adjustRef.value.addEventListener('mousedown', () => {
-      startAdjust = true
-    })
-    document.addEventListener('mousemove', (e) => {
-      if (!startAdjust) return
-      if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
-        sftpHeight = `calc(100vh - ${ e.pageY }px - 20px)`
-        sftpTabContainerRef.value.style.height = sftpHeight
-        emit('resize')
-      })
-    })
-    document.addEventListener('mouseup', () => {
-      if (!startAdjust) return
-      startAdjust = false
-      localStorage.setItem('sftpHeight', sftpHeight)
-      EventBus.$emit('update-sftp-tab-height')
-    })
-  } catch (error) {
-    console.warn(error.message)
-  }
-}
 
 const connectSftp = () => {
   socket.value = io($serviceURI, {
@@ -653,23 +614,10 @@ defineExpose({
 
 <style lang="scss" scoped>
 .sftp_tab_container {
-  position: relative;
-  background: #ffffff;
-  border: 1px solid var(--el-border-color);
-  .adjust {
-    user-select: none;
-    position: absolute;
-    top: -3px;
-    width: 100%;
-    height: 5px;
-    background: var(--el-color-primary);
-    opacity: 0.3;
-    cursor: ns-resize;
-  }
+  height: 100%;
   section {
     height: 100%;
     display: flex;
-    // common
     .box {
       $header_height: 30px;
       .header {
@@ -726,6 +674,7 @@ defineExpose({
         user-select: none;
         display: flex;
         flex-direction: column;
+        padding-bottom: 30px;
         .active {
           background: #e9e9e9;
         }

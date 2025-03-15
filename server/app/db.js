@@ -1,7 +1,7 @@
 const NodeRSA = require('node-rsa')
 const { randomStr } = require('./utils/tools')
 const { AESEncryptAsync } = require('./utils/encrypt')
-const { KeyDB, GroupDB, NotifyDB, NotifyConfigDB } = require('./utils/db-class')
+const { KeyDB, GroupDB, NotifyDB, NotifyConfigDB, ScriptGroupDB } = require('./utils/db-class')
 
 async function initKeyDB() {
   const keyDB = new KeyDB().getInstance()
@@ -96,9 +96,24 @@ async function initNotifyConfigDB() {
   return notifyConfigDB.insertAsync(defaultData)
 }
 
+async function initScriptGroupDB() {
+  const scriptGroupDB = new ScriptGroupDB().getInstance()
+  let count = await scriptGroupDB.countAsync({})
+  if (count === 0) {
+    consola.log('初始化ScriptGroupDB✔')
+    const defaultData = [
+      { '_id': 'default', 'name': '默认分组', 'index': 0 },
+      { '_id': 'builtin', 'name': '内置脚本', 'index': -1 }
+    ]
+    return scriptGroupDB.insertAsync(defaultData)
+  }
+  return Promise.resolve()
+}
+
 module.exports = async () => {
   await initKeyDB()
   await initNotifyDB()
   await initGroupDB()
+  await initScriptGroupDB()
   await initNotifyConfigDB()
 }
