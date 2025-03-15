@@ -1,7 +1,6 @@
 <template>
   <div class="server_group_container">
     <div class="server_group_header">
-      <!-- <el-button v-show="selectHosts.length" type="primary" @click="hostFormVisible = true">批量操作</el-button> -->
       <el-button type="primary" class="add_host_btn" @click="hostFormVisible = true">添加实例</el-button>
       <el-dropdown trigger="click">
         <el-button type="primary" class="group_action_btn">
@@ -27,6 +26,7 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
+      <el-button type="primary" @click="groupDialogVisible = true">分组管理</el-button>
     </div>
     <div class="server_group_collapse">
       <div v-if="isNoHost">
@@ -64,6 +64,7 @@
       v-model:show="importVisible"
       @update-list="handleUpdateList"
     />
+    <GroupDialog v-model:show="groupDialogVisible" />
   </div>
 </template>
 
@@ -73,6 +74,7 @@ import { h, ref, getCurrentInstance, computed, watch } from 'vue'
 import HostTable from './components/host-table.vue'
 import HostForm from './components/host-form.vue'
 import ImportHost from './components/import-host.vue'
+import GroupDialog from './components/group.vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { exportFile } from '@/utils'
 
@@ -85,6 +87,7 @@ const selectHosts = ref([])
 const isBatchModify = ref(false)
 const hostTableRefs = ref([])
 const activeGroup = ref([])
+const groupDialogVisible = ref(false)
 
 const handleUpdateList = async () => {
   try {
@@ -210,12 +213,30 @@ let hostFormClosed = () => {
     padding: 15px;
     display: flex;
     align-items: center;
-    justify-content: end;
-    .add_host_btn {
-      margin-right: 12px;
+    gap: 12px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-end;
+
+    @media screen and (max-width: 768px) {
+      justify-content: flex-start;
     }
-    .group_action_btn {
-      margin-right: 12px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .add_host_btn,
+    .group_action_btn,
+    .el-button {
+      flex-shrink: 0;
+      min-width: fit-content;
+    }
+
+    > :last-child {
+      margin-right: 0;
     }
   }
 

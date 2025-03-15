@@ -3,7 +3,6 @@
     v-model="visible"
     width="600px"
     top="45px"
-    modal-class="host_form_dialog"
     :append-to-body="false"
     :title="title"
     :close-on-click-modal="false"

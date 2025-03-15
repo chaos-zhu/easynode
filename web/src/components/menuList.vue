@@ -26,8 +26,8 @@ import {
   Setting,
   ScaleToOriginal,
   ArrowRight,
-  Pointer,
-  FolderOpened
+  Pointer
+  // FolderOpened
 } from '@element-plus/icons-vue'
 const { proxy: { $router, $store } } = getCurrentInstance()
 
@@ -51,11 +51,11 @@ const list = reactive([
     icon: markRaw(Key),
     index: '/credentials'
   },
-  {
-    name: '分组管理',
-    icon: markRaw(FolderOpened),
-    index: '/group'
-  },
+  // {
+  //   name: '分组管理',
+  //   icon: markRaw(FolderOpened),
+  //   index: '/group'
+  // },
   {
     name: '脚本库',
     icon: markRaw(ArrowRight),
