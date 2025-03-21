@@ -25,7 +25,7 @@ async function updateNotifyConfig({ res, request }) {
       case 'tg':
         let { sendTg } = await decryptAndExecuteAsync(path.join(__dirname, '../utils/plus.js')) || {}
         console.log('sendTg: ', sendTg)
-        if (!sendTg) return res.fail({ msg: 'Plus专属功能点，请激活Plus' })
+        if (!sendTg) return res.fail({ msg: 'Plus专属功能，请激活Plus' })
         await sendTg(noticeConfig[type], 'EasyNode通知测试', '这是一条测试通知')
         break
     }
