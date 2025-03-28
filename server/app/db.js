@@ -5,8 +5,18 @@ const { KeyDB, GroupDB, NotifyDB, NotifyConfigDB, ScriptGroupDB } = require('./u
 
 async function initKeyDB() {
   const keyDB = new KeyDB().getInstance()
-  let count = await keyDB.countAsync({})
-  if (count !== 0) return consola.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
+  let keyData = await keyDB.findOneAsync({})
+  if (keyData?.user) {
+    const { _id, ipWhiteList } = keyData
+    let allowedIPs = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : []
+    if (allowedIPs.length > 0) {
+      consola.info('[存在白名单IP环境变量,合并到本地数据库中]')
+      allowedIPs = [...new Set([...ipWhiteList, ...allowedIPs])].filter(item => item)
+      await keyDB.updateAsync({ _id }, { $set: { ipWhiteList: allowedIPs } })
+    }
+    consola.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
+    return
+  }
   let newConfig = {
     user: 'admin',
     pwd: 'admin',

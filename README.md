@@ -67,7 +67,7 @@ docker run -d -p 8082:8082 --restart=always -v /root/easynode/db:/easynode/app/d
 ```
 环境变量：
 - `DEBUG`: 启动debug日志 0：关闭 1：开启, 默认关闭
-- `ALLOWED_IPS`: 可以访问服务的IP白名单, 多个使用逗号分隔, 支持填写部分ip前缀, 例如: `-e ALLOWED_IPS=127.0.0.1,196.168`
+- `ALLOWED_IPS`: 可以访问服务的IP白名单, 多个使用逗号分隔, 支持填写部分ip前缀,支持在面板设置。例如: `-e ALLOWED_IPS=127.0.0.1,196.168`
 
 ## 监控服务安装
 

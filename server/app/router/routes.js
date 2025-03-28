@@ -6,7 +6,7 @@ const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('..
 const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript, batchRemoveScript, importScript } = require('../controller/scripts')
 const { getScriptGroupList, addScriptGroup, removeScriptGroup, updateScriptGroup } = require('../controller/script-group')
 const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
-const { getLog } = require('../controller/log')
+const { getLog, saveIpWhiteList } = require('../controller/log')
 
 const ssh = [
   {
@@ -259,6 +259,11 @@ const log = [
     method: 'get',
     path: '/log',
     controller: getLog
+  },
+  {
+    method: 'post',
+    path: '/ip-white-list',
+    controller: saveIpWhiteList
   }
 ]
 module.exports = [].concat(ssh, host, user, notify, group, scripts, scriptGroup, onekey, log)

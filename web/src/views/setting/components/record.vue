@@ -1,15 +1,21 @@
 <template>
-  <el-alert v-if="allowedIPs" type="success" :closable="false">
+  <el-alert type="success" :closable="false">
     <template #title>
-      <span style="letter-spacing: 2px;"> 登录白名单IP: </span>
-      <el-tag
-        v-for="(item, index) in allowedIPs"
-        :key="index"
-        class="allowed_ip_tag"
-        type="warning"
-      >
-        {{ item }}
-      </el-tag>
+      <span style="letter-spacing: 2px;"> 登录白名单IP设置: </span>
+      <el-tooltip placement="top">
+        <template #content>
+          <div class="ip_tips">
+            IP地址为包含匹配, 如输入: 192.168则匹配IP地址包含192.168的所有IP
+          </div>
+        </template>
+        <el-icon >
+          <InfoFilled />
+        </el-icon>
+      </el-tooltip>
+      <el-input-tag v-model="allowedIPs" tag-type="success" tag-effect="plain">
+      </el-input-tag>
+      <el-button style="margin-top: 6px;" type="success" :loading="btnLoading"
+        @click="handleSaveAllowedIPs">保存</el-button>
     </template>
   </el-alert>
   <el-table v-loading="loading" :data="loginRecordList">
@@ -25,21 +31,23 @@
 
 <script setup>
 import { ref, onMounted, getCurrentInstance } from 'vue'
+import { InfoFilled } from '@element-plus/icons-vue'
 
-const { proxy: { $api, $tools } } = getCurrentInstance()
+const { proxy: { $api, $tools, $message } } = getCurrentInstance()
 
 const loginRecordList = ref([])
 const loading = ref(false)
+const btnLoading = ref(false)
 const total = ref('')
-const allowedIPs = ref('')
+const allowedIPs = ref([])
 
 const handleLookupLoginRecord = () => {
   loading.value = true
   $api.getLoginRecord()
     .then(({ data }) => {
-      const { list, whiteList } = data
+      const { list, ipWhiteList } = data
       total.value = list.length
-      allowedIPs.value = whiteList || []
+      allowedIPs.value = ipWhiteList || []
       loginRecordList.value = list.map((item) => {
         item.date = $tools.formatTimestamp(item.date)
         return item
@@ -48,6 +56,18 @@ const handleLookupLoginRecord = () => {
     .finally(() => {
       loading.value = false
     })
+}
+
+const handleSaveAllowedIPs = async () => {
+  btnLoading.value = true
+  const ipWhiteList = [...new Set(allowedIPs.value)].filter(item => item)
+  try {
+    await $api.saveIpWhiteList({ ipWhiteList })
+    handleLookupLoginRecord()
+    $message.success('success')
+  } finally {
+    btnLoading.value = false
+  }
 }
 
 onMounted(() => {
