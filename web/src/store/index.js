@@ -7,8 +7,7 @@ import { isHttps } from '@/utils'
 
 const { defaultClientPort } = config
 
-const useStore = defineStore({
-  id: 'global',
+const useStore = defineStore('global', {
   state: () => ({
     serviceURI: null,
     hostList: [],
