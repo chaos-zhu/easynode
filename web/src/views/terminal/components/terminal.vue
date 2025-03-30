@@ -3,29 +3,54 @@
     <div class="terminal_top">
       <div class="left_menu">
         <el-dropdown trigger="click">
-          <span class="link_text">连接<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text"
+            >连接<el-icon><arrow-down /></el-icon
+          ></span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item class="link_close_all" @click="handleCloseAllTab">
+              <el-dropdown-item
+                class="link_close_all"
+                @click="handleCloseAllTab"
+              >
                 <span>关闭所有连接</span>
               </el-dropdown-item>
-              <el-dropdown-item v-for="(item, index) in hostList" :key="index" @click="handleLinkHost(item)">
+              <el-dropdown-item
+                v-for="(item, index) in hostList"
+                :key="index"
+                @click="handleLinkHost(item)"
+              >
                 {{ item.name }} {{ item.host }}
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
         <el-dropdown
-          v-if="!isPlusActive"
+          v-if="scriptLibrary"
           trigger="click"
           max-height="50vh"
           :teleported="false"
           class="scripts_menu"
         >
-          <span class="link_text">脚本库<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text"
+            >脚本库<el-icon><arrow-down /></el-icon
+          ></span>
           <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item v-for="item in scriptList" :key="item.id" @click="handleExecScript(item)">
+            <el-cascader-panel
+              v-if="scriptLibraryCascader"
+              v-model="scriptIdsPath"
+              style="width: fit-content"
+              :props="{
+                expandTrigger: 'hover',
+              }"
+              :options="formatScriptList"
+              @change="handleExecScript"
+            />
+            <el-dropdown-menu v-else>
+              <el-dropdown-item
+                v-for="item in scriptList"
+                :key="item.id"
+                @click="handleExecScript(item)"
+              >
                 <span>{{ item.name }}</span>
               </el-dropdown-item>
             </el-dropdown-menu>
@@ -48,7 +73,9 @@
           </template>
         </el-dropdown> -->
         <el-dropdown trigger="click">
-          <span class="link_text">功能项<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text"
+            >功能项<el-icon><arrow-down /></el-icon
+          ></span>
           <template #dropdown>
             <el-dropdown-menu>
               <!-- <el-dropdown-item @click="showInputCommand = true">
@@ -66,7 +93,11 @@
       </div>
       <div class="right_overview">
         <div v-if="isMobileScreen" class="switch_wrap">
-          <el-button :type="curHost?.monitorData?.connect ? 'success' : 'danger'" text @click="() => showMobileInfoSideDialog = true">
+          <el-button
+            :type="curHost?.monitorData?.connect ? 'success' : 'danger'"
+            text
+            @click="() => (showMobileInfoSideDialog = true)"
+          >
             状态
           </el-button>
         </div>
@@ -80,7 +111,10 @@
               v-model="isSyncAllSession"
               class="swtich"
               inline-prompt
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              style="
+                --el-switch-on-color: #13ce66;
+                --el-switch-off-color: #ff4949;
+              "
               active-text="同步"
               inactive-text="同步"
             />
@@ -96,7 +130,10 @@
               v-model="showFooterBar"
               class="swtich"
               inline-prompt
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              style="
+                --el-switch-on-color: #13ce66;
+                --el-switch-off-color: #ff4949;
+              "
               active-text="工具栏"
               inactive-text="工具栏"
             />
@@ -144,7 +181,10 @@
         >
           <template #label>
             <div class="tab_label">
-              <span class="tab_status" :style="{ background: getStatusColor(item.status) }" />
+              <span
+                class="tab_status"
+                :style="{ background: getStatusColor(item.status) }"
+              />
               <span>{{ item.name }}</span>
             </div>
           </template>
@@ -176,7 +216,10 @@
       </el-tabs>
     </div>
 
-    <InputCommand v-model:show="showInputCommand" @input-command="handleInputCommand" />
+    <InputCommand
+      v-model:show="showInputCommand"
+      @input-command="handleInputCommand"
+    />
 
     <HostForm
       v-model:show="hostFormVisible"
@@ -190,149 +233,200 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { ArrowDown } from '@element-plus/icons-vue'
-import useMobileWidth from '@/composables/useMobileWidth'
-import InputCommand from '@/components/input-command/index.vue'
-import FloatMenu from '@/components/float-menu/index.vue'
-import { terminalStatusList, virtualKeyType } from '@/utils/enum'
-import TerminalTab from './terminal-tab.vue'
-import InfoSide from './info-side.vue'
-import HostForm from '../../server/components/host-form.vue'
-import TerminalSetting from './terminal-setting.vue'
-import FooterBar from './footer-bar.vue'
+import {
+  ref,
+  computed,
+  getCurrentInstance,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+} from "vue";
+import { ArrowDown } from "@element-plus/icons-vue";
+import useMobileWidth from "@/composables/useMobileWidth";
+import InputCommand from "@/components/input-command/index.vue";
+import FloatMenu from "@/components/float-menu/index.vue";
+import { terminalStatusList, virtualKeyType } from "@/utils/enum";
+import TerminalTab from "./terminal-tab.vue";
+import InfoSide from "./info-side.vue";
+import HostForm from "../../server/components/host-form.vue";
+import TerminalSetting from "./terminal-setting.vue";
+import FooterBar from "./footer-bar.vue";
 
-const { proxy: { $nextTick, $store, $message } } = getCurrentInstance()
+const {
+  proxy: { $nextTick, $store, $message },
+} = getCurrentInstance();
 
 const props = defineProps({
   terminalTabs: {
     type: Array,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
-const emit = defineEmits(['closed', 'close-all-tab', 'removeTab', 'add-host',])
-const { isMobileScreen } = useMobileWidth()
-const showInputCommand = ref(false)
-const infoSideRef = ref(null)
-const pingData = ref({})
-const terminalRefs = ref([])
+const emit = defineEmits(["closed", "close-all-tab", "removeTab", "add-host"]);
+const { isMobileScreen } = useMobileWidth();
+const showInputCommand = ref(false);
+const infoSideRef = ref(null);
+const pingData = ref({});
+const terminalRefs = ref([]);
 // const sftpRefs = ref([])
-const activeTabIndex = ref(0)
-const visible = ref(true)
-const showFooterBar = ref(localStorage.getItem('showFooterBar') === 'true')
-const isSyncAllSession = ref(false)
-const mainHeight = ref('')
-const hostFormVisible = ref(false)
-const updateHostData = ref(null)
-const showSetting = ref(false)
-const showMobileInfoSideDialog = ref(false)
-const longPressCtrl = ref(false)
-const longPressAlt = ref(false)
+const activeTabIndex = ref(0);
+const visible = ref(true);
+const showFooterBar = ref(localStorage.getItem("showFooterBar") === "true");
+const isSyncAllSession = ref(false);
+const mainHeight = ref("");
+const hostFormVisible = ref(false);
+const updateHostData = ref(null);
+const showSetting = ref(false);
+const showMobileInfoSideDialog = ref(false);
+const longPressCtrl = ref(false);
+const longPressAlt = ref(false);
+const scriptIdsPath = ref([]);
 
-const isPlusActive = computed(() => $store.isPlusActive)
-const terminalTabs = computed(() => props.terminalTabs)
-const terminalTabsLen = computed(() => props.terminalTabs.length)
-const hostList = computed(() => $store.hostList)
-const curHost = computed(() => hostList.value.find(item => item.host === terminalTabs.value[activeTabIndex.value]?.host))
-const scriptList = computed(() => $store.scriptList)
+const isPlusActive = computed(() => $store.isPlusActive);
+const terminalTabs = computed(() => props.terminalTabs);
+const terminalTabsLen = computed(() => props.terminalTabs.length);
+const hostList = computed(() => $store.hostList);
+const curHost = computed(() =>
+  hostList.value.find(
+    (item) => item.host === terminalTabs.value[activeTabIndex.value]?.host
+  )
+);
+const scriptGroupList = computed(() => $store.scriptGroupList);
+const scriptList = computed(() => $store.scriptList);
+const scriptLibrary = computed(() => $store.menuSetting.scriptLibrary);
+const scriptLibraryCascader = computed(
+  () => $store.menuSetting.scriptLibraryCascader
+);
+const formatScriptList = computed(() => {
+  // 首先创建一个以分组id为key的脚本映射
+  const scriptsByGroup = scriptList.value.reduce((acc, script) => {
+    const groupId = script.group || "default";
+    if (!acc[groupId]) {
+      acc[groupId] = [];
+    }
+    acc[groupId].push({
+      value: script.id,
+      label: script.name,
+      command: script.command, // 保存command用于执行脚本
+    });
+    return acc;
+  }, {});
+
+  // 将分组转换为级联面板所需的格式
+  return scriptGroupList.value.map((group) => ({
+    value: group.id,
+    label: group.name,
+    children: scriptsByGroup[group.id] || [],
+  }));
+});
 
 onMounted(() => {
-  handleResizeTerminalSftp()
-  window.addEventListener('resize', handleResizeTerminalSftp)
-})
+  handleResizeTerminalSftp();
+  window.addEventListener("resize", handleResizeTerminalSftp);
+});
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResizeTerminalSftp)
-})
+  window.removeEventListener("resize", handleResizeTerminalSftp);
+});
 
 const getStatusColor = (status) => {
-  return terminalStatusList.find(item => item.value === status)?.color || 'gray'
-}
+  return (
+    terminalStatusList.find((item) => item.value === status)?.color || "gray"
+  );
+};
 
 const handleUpdateList = async ({ host }) => {
   try {
-    await $store.getHostList()
-    let targetHost = hostList.value.find(item => item.host === host)
-    if (targetHost) emit('add-host', targetHost)
+    await $store.getHostList();
+    let targetHost = hostList.value.find((item) => item.host === host);
+    if (targetHost) emit("add-host", targetHost);
   } catch (err) {
-    $message.error('获取实例列表失败')
-    console.error('获取实例列表失败: ', err)
+    $message.error("获取实例列表失败");
+    console.error("获取实例列表失败: ", err);
   }
-}
+};
 
 const handleResizeTerminalSftp = () => {
   $nextTick(() => {
-    mainHeight.value = document.querySelector('.terminal_and_sftp_wrap')?.offsetHeight - 45 // 45 is tab-header height+15
-  })
-}
+    mainHeight.value =
+      document.querySelector(".terminal_and_sftp_wrap")?.offsetHeight - 45; // 45 is tab-header height+15
+  });
+};
 
 const handleLinkHost = (host) => {
   if (!host.isConfig) {
-    $message.warning('请先配置SSH连接信息')
-    hostFormVisible.value = true
-    updateHostData.value = { ...host }
-    return
+    $message.warning("请先配置SSH连接信息");
+    hostFormVisible.value = true;
+    updateHostData.value = { ...host };
+    return;
   }
-  emit('add-host', host)
-}
+  emit("add-host", host);
+};
 
 const handleCloseAllTab = () => {
-  emit('close-all-tab')
-}
+  emit("close-all-tab");
+};
 
-const { LONG_PRESS, SINGLE_PRESS } = virtualKeyType
+const { LONG_PRESS, SINGLE_PRESS } = virtualKeyType;
 const handleClickVirtualKeyboard = async (virtualKey) => {
-  const { key, ansi ,type } = virtualKey
+  const { key, ansi, type } = virtualKey;
   // console.log(key, ascii, ansi, type)
   switch (type) {
     case LONG_PRESS:
       // console.log('待组合键')
-      if (key === 'Ctrl') {
-        longPressCtrl.value = true
-        longPressAlt.value = false
+      if (key === "Ctrl") {
+        longPressCtrl.value = true;
+        longPressAlt.value = false;
       }
-      if (key === 'Alt') {
-        longPressAlt.value = true
-        longPressCtrl.value = false
+      if (key === "Alt") {
+        longPressAlt.value = true;
+        longPressCtrl.value = false;
       }
       // eslint-disable-next-line no-case-declarations
-      const curTerminalRef = terminalRefs.value[activeTabIndex.value]
-      await $nextTick()
-      curTerminalRef?.focusTab()
-      break
+      const curTerminalRef = terminalRefs.value[activeTabIndex.value];
+      await $nextTick();
+      curTerminalRef?.focusTab();
+      break;
     case SINGLE_PRESS:
-      longPressCtrl.value = false
-      longPressAlt.value = false
-      handleExecScript({ command: ansi })
-      break
+      longPressCtrl.value = false;
+      longPressAlt.value = false;
+      handleExecScript({ command: ansi });
+      break;
     default:
-      break
+      break;
   }
-}
+};
 
 const resetLongPress = () => {
-  longPressCtrl.value = false
-  longPressAlt.value = false
-}
+  longPressCtrl.value = false;
+  longPressAlt.value = false;
+};
 
-const handleExecScript = (scriptObj) => {
-  let { command } = scriptObj
-  if (!isSyncAllSession.value) return handleInputCommand(command)
-  terminalRefs.value.forEach(terminalRef => {
-    terminalRef.inputCommand(command)
-  })
-}
+const handleExecScript = ({ id: scriptId }) => {
+  const id = scriptLibraryCascader.value
+    ? scriptIdsPath.value.pop()
+    : scriptId;
+  const script = scriptList.value.find((item) => item.id === id);
+  if (!script) return $message.warning("未找到对应的脚本");
+
+  const command = script.command;
+  if (!isSyncAllSession.value) return handleInputCommand(command);
+  terminalRefs.value.forEach((terminalRef) => {
+    terminalRef.inputCommand(command);
+  });
+};
 
 const terminalInput = (command) => {
-  if (!isSyncAllSession.value) return
+  if (!isSyncAllSession.value) return;
   let filterTerminalRefs = terminalRefs.value.filter((host, index) => {
-    return index !== activeTabIndex.value
-  })
-  filterTerminalRefs.forEach(hostRef => {
-    hostRef.inputCommand(command, true)
-  })
-}
+    return index !== activeTabIndex.value;
+  });
+  filterTerminalRefs.forEach((hostRef) => {
+    hostRef.inputCommand(command, true);
+  });
+};
 
 // 识别命令动态切换目录功能暂时取消
 // const cdCommand = (path) => {
@@ -348,49 +442,59 @@ const terminalInput = (command) => {
 // }
 
 const getPingData = (data) => {
-  pingData.value[data.ip] = data
-}
+  pingData.value[data.ip] = data;
+};
 
 const tabChange = async (index) => {
-  await $nextTick()
-  const curTerminalRef = terminalRefs.value[index]
-  curTerminalRef?.focusTab()
-}
+  await $nextTick();
+  const curTerminalRef = terminalRefs.value[index];
+  curTerminalRef?.focusTab();
+};
 
-watch(terminalTabsLen, () => {
-  let len = terminalTabsLen.value
-  // console.log('add tab:', len)
-  if (len > 0) {
-    activeTabIndex.value = len - 1
-    // registryDbClick()
-    tabChange(activeTabIndex.value)
+watch(
+  terminalTabsLen,
+  () => {
+    let len = terminalTabsLen.value;
+    // console.log('add tab:', len)
+    if (len > 0) {
+      activeTabIndex.value = len - 1;
+      // registryDbClick()
+      tabChange(activeTabIndex.value);
+    }
+  },
+  {
+    immediate: true,
+    deep: false,
   }
-}, {
-  immediate: true,
-  deep: false
-})
+);
 
-watch(showFooterBar, async () => {
-  localStorage.setItem('showFooterBar', showFooterBar.value)
-  await $nextTick()
-  resizeTerminal()
-}, {
-  immediate: true,
-  deep: false
-})
+watch(
+  showFooterBar,
+  async () => {
+    localStorage.setItem("showFooterBar", showFooterBar.value);
+    await $nextTick();
+    resizeTerminal();
+  },
+  {
+    immediate: true,
+    deep: false,
+  }
+);
 
 const removeTab = (index) => {
-  emit('removeTab', index)
+  emit("removeTab", index);
   if (index === activeTabIndex.value) {
     nextTick(() => {
-      activeTabIndex.value = 0
-    })
+      activeTabIndex.value = 0;
+    });
   }
-}
+};
 
 const handleFullScreen = () => {
-  document.getElementsByClassName('terminal_and_sftp_wrap')[0].requestFullscreen()
-}
+  document
+    .getElementsByClassName("terminal_and_sftp_wrap")[0]
+    .requestFullscreen();
+};
 
 // const registryDbClick = () => {
 //   $nextTick(() => {
@@ -409,18 +513,18 @@ const handleFullScreen = () => {
 
 const resizeTerminal = () => {
   for (let terminalTabRef of terminalRefs.value) {
-    const { handleResize } = terminalTabRef || {}
-    handleResize && handleResize()
+    const { handleResize } = terminalTabRef || {};
+    handleResize && handleResize();
   }
-}
+};
 
 const handleInputCommand = async (command) => {
-  const curTerminalRef = terminalRefs.value[activeTabIndex.value]
-  await $nextTick()
-  curTerminalRef?.focusTab()
-  curTerminalRef.inputCommand(`${ command }`)
-  showInputCommand.value = false
-}
+  const curTerminalRef = terminalRefs.value[activeTabIndex.value];
+  await $nextTick();
+  curTerminalRef?.focusTab();
+  curTerminalRef.inputCommand(`${command}`);
+  showInputCommand.value = false;
+};
 </script>
 
 <style lang="scss" scoped>
@@ -489,11 +593,13 @@ const handleInputCommand = async (command) => {
     .right_overview {
       display: flex;
       align-items: center;
+
       .switch_wrap {
         display: flex;
         align-items: center;
         margin-right: 5px;
       }
+
       .full_icon {
         cursor: pointer;
 
@@ -519,10 +625,12 @@ const handleInputCommand = async (command) => {
     display: flex;
     flex-direction: column;
     position: relative;
+
     .tab_label {
       display: flex;
       align-items: center;
       justify-content: center;
+
       .tab_status {
         display: inline-block;
         width: 8px;
@@ -533,6 +641,7 @@ const handleInputCommand = async (command) => {
         // background-color: var(--el-color-primary);
       }
     }
+
     .tab_content_wrap {
       display: flex;
       flex-direction: column;
@@ -570,7 +679,8 @@ const handleInputCommand = async (command) => {
 .action_icon {
   color: var(--el-color-primary);
 }
+
 .link_close_all:hover {
-  color: #ff4949!important;
+  color: #ff4949 !important;
 }
 </style>

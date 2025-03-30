@@ -1,10 +1,12 @@
-## [3.0.5](https://github.com/chaos-zhu/easynode/releases) (2025-03-18)
+## [3.0.5](https://github.com/chaos-zhu/easynode/releases) (2025-04-xx)
 
 * 新增AI问答&集成脚本生成功能（TODO
 * 新增服务器定时任务功能（TODO
 * 连接服务器下拉菜单分组展示（TODO
-* 增加升级更新内容展示（TODO
-* 面板支持灵活配置IP白名单
+* serv00 SFTP修复（TODO
+* 脚本库菜单自定义展示(可在本地设置中配置)
+* 字体优化
+* 支持在面板配置IP白名单
 
 ## [3.0.4](https://github.com/chaos-zhu/easynode/releases) (2025-03-15)
 

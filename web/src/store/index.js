@@ -45,6 +45,13 @@ const useStore = defineStore('global', {
       },
       ...(localStorage.getItem('terminalConfig') ? JSON.parse(localStorage.getItem('terminalConfig')) : {})
     },
+    menuSetting: {
+      ...{
+        scriptLibrary: false,
+        scriptLibraryCascader: true
+      },
+      ...(localStorage.getItem('menuSetting') ? JSON.parse(localStorage.getItem('menuSetting')) : {})
+    },
     plusInfo: {},
     isPlusActive: false
   }),
@@ -126,6 +133,11 @@ const useStore = defineStore('global', {
       let newConfig = { ...this.terminalConfig, ...setTarget }
       localStorage.setItem('terminalConfig', JSON.stringify(newConfig))
       this.$patch({ terminalConfig: newConfig })
+    },
+    setMenuSetting(setTarget = {}) {
+      let newConfig = { ...this.menuSetting, ...setTarget }
+      localStorage.setItem('menuSetting', JSON.stringify(newConfig))
+      this.$patch({ menuSetting: newConfig })
     },
     async wsClientsStatus() {
       // if (this.HostStatusSocket) this.HostStatusSocket.close()

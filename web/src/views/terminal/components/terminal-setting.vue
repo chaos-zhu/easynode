@@ -132,6 +132,31 @@
           </el-form-item>
         </el-form>
       </el-tab-pane>
+      <el-tab-pane label="菜单选项">
+        <el-form
+          ref="formRef"
+          label-suffix="："
+          label-width="100px"
+          :show-message="false"
+        >
+          <el-form-item label="脚本库" prop="scriptLibrary">
+            <span class="script_library_switch">
+              <el-switch
+                v-model="scriptLibrary"
+                class="swtich"
+                inline-prompt
+                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                active-text="开启"
+                inactive-text="关闭"
+              />
+            </span>
+            <el-radio-group v-model="scriptLibraryCascader" size="small" text-color="#fff" fill="#13ce66">
+              <el-radio-button :value="true">分组级联展示</el-radio-button>
+              <el-radio-button :value="false">不分组单列展示</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+        </el-form>
+      </el-tab-pane>
     </el-tabs>
     <template #footer>
       <span class="dialog_footer">
@@ -191,6 +216,14 @@ const autoExecuteScript = computed({
   get: () => $store.terminalConfig.autoExecuteScript,
   set: (newVal) => $store.setTerminalSetting({ autoExecuteScript: newVal })
 })
+const scriptLibrary = computed({
+  get: () => $store.menuSetting.scriptLibrary,
+  set: (newVal) => $store.setMenuSetting({ scriptLibrary: newVal })
+})
+const scriptLibraryCascader = computed({
+  get: () => $store.menuSetting.scriptLibraryCascader,
+  set: (newVal) => $store.setMenuSetting({ scriptLibraryCascader: newVal })
+})
 const isPlusActive = computed(() => $store.isPlusActive)
 
 const changeBackground = (item) => {
@@ -238,6 +271,9 @@ const changeBackground = (item) => {
 .dialog_footer {
   display: flex;
   justify-content: center;
+}
+.script_library_switch {
+  margin-right: 20px;
 }
 </style>
 
