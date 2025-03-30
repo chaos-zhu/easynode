@@ -7,6 +7,9 @@
         </el-icon>
       </div>
       <h2>{{ title }}</h2>
+
+      <AiButton @click="handleAiClick" />
+
       <el-button
         type="info"
         class="about_btn"
@@ -113,6 +116,7 @@ import { useRouter } from 'vue-router'
 import { User, Fold, Document } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 import MenuList from './menuList.vue'
+import AiButton from './common/ai-button.vue'
 
 const { proxy: { $router, $store, $api, $message } } = getCurrentInstance()
 const router = useRouter()
@@ -232,6 +236,10 @@ const getPlusDiscount = async () => {
   }
 }
 
+const handleAiClick = () => {
+  $message({ type: 'success', message: 'AI Helper 功能开发中...', center: true })
+}
+
 onMounted(() => {
   checkFirstVisit()
   getPlusDiscount()
@@ -264,6 +272,7 @@ onBeforeUnmount(() => {
     }
 
     .about_btn {
+      margin-left: 15px;
       margin-right: 15px;
       font-size: 14px;
 
