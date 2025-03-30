@@ -2,7 +2,7 @@
   <div ref="footerBarContainerRef" class="footer_bar_container">
     <div ref="adjustRef" class="adjust" />
     <div class="footer_bar_content">
-      <el-tabs v-model="activeTab" type="border-card">
+      <el-tabs v-model="activeTab" type="border-card" class="footer_bar_tabs">
         <el-tab-pane label="文件传输" name="sftp">
           <Sftp :host-id="hostId" />
         </el-tab-pane>
@@ -95,6 +95,9 @@ onMounted(() => {
     width: 100%;
     height: 100%;
     background-color: var(--el-fill-color-light);
+  }
+  .footer_bar_tabs {
+    height: 100%;
   }
 }
 </style>
