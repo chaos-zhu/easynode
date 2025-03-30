@@ -186,7 +186,7 @@ const useStore = defineStore('global', {
         })
         transition.ready.then(() => {
           const centerX = 0
-          const centerY = 0
+          const centerY = window.innerHeight
           const radius = Math.hypot(
             Math.max(centerX, window.innerWidth - centerX),
             Math.max(centerY, window.innerHeight - centerY)

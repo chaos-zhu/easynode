@@ -7,24 +7,39 @@
       </Transition>
     </div>
     <MenuList />
+
+    <div class="aside_footer">
+    <div class="theme_switch">
+      <el-switch
+          v-model="isDark"
+          inline-prompt
+          :active-icon="Moon"
+          :inactive-icon="Sunny"
+          class="dark_switch"
+        />
+    </div>
     <div class="collapse" @click="handleCollapse">
       <el-icon v-if="menuCollapse"><Expand /></el-icon>
       <el-icon v-else><Fold /></el-icon>
     </div>
   </div>
+  </div>
 </template>
 
 <script setup>
 import { getCurrentInstance, computed } from 'vue'
-import {
-  Expand,
-  Fold
-} from '@element-plus/icons-vue'
+import { Expand, Fold, Moon, Sunny } from '@element-plus/icons-vue'
 import MenuList from './menuList.vue'
 
 const { proxy: { $store } } = getCurrentInstance()
 
 let menuCollapse = computed(() => $store.menuCollapse)
+const isDark = computed({
+  get: () => $store.isDark,
+  set: (isDark) => {
+    $store.setTheme(isDark)
+  }
+})
 
 const handleCollapse = () => {
   $store.setMenuCollapse(!menuCollapse.value)
@@ -57,14 +72,25 @@ const handleCollapse = () => {
       font-weight: 600;
     }
   }
-  .collapse {
+  .aside_footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-top: auto;
-    margin-left: auto;
-    margin-bottom: 10px;
-    margin-right: 10px;
-    cursor: pointer;
-    &:hover {
-      color: #1890ff;
+    .theme_switch {
+      margin-top: auto;
+      margin-left: auto;
+      margin-bottom: 10px;
+      margin-right: 10px;
+    }
+    .collapse {
+      margin-left: auto;
+      margin-bottom: 10px;
+      margin-right: 10px;
+      cursor: pointer;
+      &:hover {
+        color: #1890ff;
+      }
     }
   }
   .logout_wrap {

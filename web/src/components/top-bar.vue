@@ -7,13 +7,6 @@
         </el-icon>
       </div>
       <h2>{{ title }}</h2>
-      <el-switch
-        v-model="isDark"
-        inline-prompt
-        :active-icon="Moon"
-        :inactive-icon="Sunny"
-        class="dark_switch"
-      />
       <el-button
         type="info"
         class="about_btn"
@@ -117,7 +110,7 @@
 <script setup>
 import { ref, getCurrentInstance, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Sunny, Moon, Fold, Document } from '@element-plus/icons-vue'
+import { User, Fold, Document } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 import MenuList from './menuList.vue'
 
@@ -135,13 +128,6 @@ const isNew = computed(() => latestVersion.value && latestVersion.value !== curr
 const user = computed(() => $store.user)
 const title = computed(() => $store.title)
 const isPlusActive = computed(() => $store.isPlusActive)
-
-const isDark = computed({
-  get: () => $store.isDark,
-  set: (isDark) => {
-    $store.setTheme(isDark)
-  }
-})
 
 const handleCollapse = () => {
   menuCollapse.value = !menuCollapse.value
@@ -275,10 +261,6 @@ onBeforeUnmount(() => {
     h2 {
       font-size: 18px;
       margin-right: auto;
-    }
-
-    .dark_switch {
-      margin-right: 15px;
     }
 
     .about_btn {
