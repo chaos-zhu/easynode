@@ -8,14 +8,19 @@
             IP地址为包含匹配, 如输入: 192.168则匹配IP地址包含192.168的所有IP
           </div>
         </template>
-        <el-icon >
+        <el-icon>
           <InfoFilled />
         </el-icon>
       </el-tooltip>
-      <el-input-tag v-model="allowedIPs" tag-type="success" tag-effect="plain">
-      </el-input-tag>
-      <el-button style="margin-top: 6px;" type="success" :loading="btnLoading"
-        @click="handleSaveAllowedIPs">保存</el-button>
+      <el-input-tag v-model="allowedIPs" tag-type="success" tag-effect="plain" />
+      <el-button
+        style="margin-top: 6px;"
+        type="success"
+        :loading="btnLoading"
+        @click="handleSaveAllowedIPs"
+      >
+        保存
+      </el-button>
     </template>
   </el-alert>
   <el-table v-loading="loading" :data="loginRecordList">
@@ -60,7 +65,7 @@ const handleLookupLoginRecord = () => {
 
 const handleSaveAllowedIPs = async () => {
   btnLoading.value = true
-  const ipWhiteList = [...new Set(allowedIPs.value)].filter(item => item)
+  const ipWhiteList = [...new Set(allowedIPs.value),].filter(item => item)
   try {
     await $api.saveIpWhiteList({ ipWhiteList })
     handleLookupLoginRecord()

@@ -10,7 +10,8 @@ const {
   scriptGroupDBPath,
   onekeyDBPath,
   logDBPath,
-  plusDBPath
+  plusDBPath,
+  aiConfigDBPath
 } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
@@ -140,5 +141,16 @@ module.exports.PlusDB = class PlusDB {
   }
   getInstance() {
     return PlusDB.instance
+  }
+}
+
+module.exports.AIConfigDB = class AIConfigDB {
+  constructor() {
+    if (!AIConfigDB.instance) {
+      AIConfigDB.instance = new Datastore({ filename: aiConfigDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return AIConfigDB.instance
   }
 }

@@ -92,7 +92,7 @@ export default {
   computed: {
     extensions() {
       let res = []
-      if(this.curLang) res.push(languages[this.curLang]())
+      if (this.curLang) res.push(languages[this.curLang]())
       res.push(oneDark)
       return res
     },
@@ -113,7 +113,7 @@ export default {
       try {
         let name = String(newVal).toLowerCase()
         let suffix = getSuffix(name)
-        switch(suffix) {
+        switch (suffix) {
           case 'js': return this.curLang = 'javascript'
           case 'ts': return this.curLang = 'typescript'
           case 'jsx': return this.curLang = 'jsx'
@@ -153,8 +153,8 @@ export default {
   },
   methods: {
     handleSave() {
-      if(this.isTips) {
-        this.$messageBox.confirm( '文件已变更, 确认保存?', 'Warning', {
+      if (this.isTips) {
+        this.$messageBox.confirm('文件已变更, 确认保存?', 'Warning', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
           type: 'warning'
@@ -172,8 +172,8 @@ export default {
       this.$emit('closed')
     },
     handleClose() {
-      if(this.isTips) {
-        this.$messageBox.confirm( '文件已变更, 确认丢弃?', 'Warning', {
+      if (this.isTips) {
+        this.$messageBox.confirm('文件已变更, 确认丢弃?', 'Warning', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
           type: 'warning'

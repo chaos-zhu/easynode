@@ -7,7 +7,7 @@ async function initKeyDB() {
   const keyDB = new KeyDB().getInstance()
   let keyData = await keyDB.findOneAsync({})
   if (keyData?.user) {
-    const { _id, ipWhiteList } = keyData
+    const { _id, ipWhiteList = [] } = keyData
     let allowedIPs = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : []
     if (allowedIPs.length > 0) {
       consola.info('[存在白名单IP环境变量,合并到本地数据库中]')

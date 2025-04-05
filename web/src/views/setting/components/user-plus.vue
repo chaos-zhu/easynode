@@ -104,6 +104,10 @@ const handleUpdate = () => {
       try {
         loading.value = true
         let { key } = formData
+        if (key.length < 15) {
+          $message({ type: 'warning', center: true, message: '请输入正确的Plus Key' })
+          return
+        }
         await $api.updatePlusKey({ key })
         $message({ type: 'success', center: true, message: '激活成功，感谢支持' })
         localStorage.setItem('plusErrCount', 0)
@@ -111,7 +115,7 @@ const handleUpdate = () => {
         localStorage.setItem('plusErrCount', ++errCount.value)
         if (errCount.value > 3) {
           ElMessageBox.confirm(
-            '激活失败，请确认key正确(20位不规则字符串)，有疑问请tg联系@chaoszhu。',
+            '激活失败，请确认key正确，有疑问请tg联系作者@chaoszhu',
             'Warning',
             {
               showCancelButton : false,

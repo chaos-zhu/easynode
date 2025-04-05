@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "easynode-web",
   "private": true,
   "scripts": {
@@ -29,13 +29,16 @@
     "@xterm/addon-search": "^0.15.0",
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/xterm": "^5.5.0",
+    "ant-design-x-vue": "^1.0.7",
     "axios": "^1.8.4",
     "codemirror": "^6.0.1",
     "crypto-js": "^4.2.0",
     "csv-parse": "^5.6.0",
     "dayjs": "^1.11.13",
     "element-plus": "^2.9.7",
+    "highlight.js": "^11.11.1",
     "jsencrypt": "^3.3.2",
+    "markdown-it": "^14.1.0",
     "pinia": "^3.0.1",
     "socket.io-client": "^4.8.1",
     "vue": "^3.5.13",
@@ -47,13 +50,13 @@
     "@vitejs/plugin-vue": "^5.2.3",
     "@vitejs/plugin-vue-jsx": "^4.1.2",
     "code-inspector-plugin": "^0.20.7",
-    "eslint": "^9.23.0",
-    "eslint-plugin-vue": "^10.0.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-vue": "^9.27.0",
     "sass": "^1.86.0",
     "unplugin-auto-import": "^19.1.2",
     "unplugin-vue-components": "^28.4.1",
     "vite": "^6.2.3",
     "vite-plugin-compression": "^0.5.1",
-    "vue-eslint-parser": "^10.1.1"
+    "vue-eslint-parser": "^9.4.3"
   }
 }

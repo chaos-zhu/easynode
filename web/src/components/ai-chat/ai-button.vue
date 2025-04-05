@@ -1,18 +1,29 @@
 <template>
-  <div class="ai_button" @click="handleClick">
-    <img src="@/assets/image/coding32.png"  alt="AIHelper" />
-    AI Helper
+  <div>
+    <PlusSupportTip>
+      <div class="ai_button" @click="handleClick">
+        <img src="@/assets/image/coding32.png" alt="AIHelper">
+        AI Chat
+      </div>
+    </PlusSupportTip>
+    <AiChat v-model:visible="visible" />
   </div>
 </template>
 
 <script setup>
-const emit = defineEmits(['click']);
+import { ref } from 'vue'
+import AiChat from '@/components/ai-chat/index.vue'
+import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
+
+const visible = ref(false)
+// const emit = defineEmits(['click']);
 const handleClick = () => {
-  emit('click');
-};
+  // emit('click');
+  visible.value = true
+}
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .ai_button {
   cursor: pointer;
   min-width: 100px;
@@ -35,7 +46,6 @@ const handleClick = () => {
     border-radius: 10%;
   }
 }
-
 
 .ai_button:hover {
   filter: brightness(1.2);

@@ -147,5 +147,14 @@ export default {
   },
   updatePlusKey(data) {
     return axios({ url: '/plus-conf', method: 'post', data })
+  },
+  getAIConfig() {
+    return axios({ url: '/ai-config', method: 'get' })
+  },
+  saveAIConfig(data) {
+    return axios({ url: '/ai-config', method: 'post', data })
+  },
+  getAIModels(data) {
+    return axios({ url: '/ai-models', method: 'post', data })
   }
 }

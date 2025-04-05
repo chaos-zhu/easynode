@@ -69,6 +69,8 @@ docker run -d -p 8082:8082 --restart=always -v /root/easynode/db:/easynode/app/d
 - `DEBUG`: 启动debug日志 0：关闭 1：开启, 默认关闭
 - `ALLOWED_IPS`: 可以访问服务的IP白名单, 多个使用逗号分隔, 支持填写部分ip前缀,支持在面板设置。例如: `-e ALLOWED_IPS=127.0.0.1,196.168`
 
+注意: docker默认不启用ipv6，请自行配置或者使用支持ipv6的跳板机中转.
+
 ## 监控服务安装
 
 - 监控服务用于实时向服务端&web端推送**系统、公网IP、CPU、内存、硬盘、网卡**等基础信息

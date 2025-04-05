@@ -8,7 +8,7 @@
       </div>
       <h2>{{ title }}</h2>
 
-      <AiButton @click="handleAiClick" />
+      <AiButton />
 
       <el-button
         type="info"
@@ -71,7 +71,7 @@
         <template v-if="features.length > 0 && isNew">
           <div class="version_features_title">
             <el-icon><Document /></el-icon>
-            新版本更新了以下内容:
+            最新版本更新了以下内容(<a href="https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md" target="_blank">更新日志</a>):
           </div>
           <ul class="conspicuous feature_list">
             <li v-for="feature in features" :key="feature">
@@ -116,7 +116,7 @@ import { useRouter } from 'vue-router'
 import { User, Fold, Document } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 import MenuList from './menuList.vue'
-import AiButton from './common/ai-button.vue'
+import AiButton from './ai-chat/ai-button.vue'
 
 const { proxy: { $router, $store, $api, $message } } = getCurrentInstance()
 const router = useRouter()
@@ -236,10 +236,6 @@ const getPlusDiscount = async () => {
   }
 }
 
-const handleAiClick = () => {
-  $message({ type: 'success', message: 'AI Helper 功能开发中...', center: true })
-}
-
 onMounted(() => {
   checkFirstVisit()
   getPlusDiscount()
@@ -338,7 +334,7 @@ onBeforeUnmount(() => {
     }
 
     .conspicuous {
-      color: #F56C6C;
+      color: #67c23a;
       font-weight: 500;
     }
     .feature_list {
@@ -358,7 +354,7 @@ onBeforeUnmount(() => {
           transform: translateY(-50%);
           width: 18px;
           height: 18px;
-          background: #F56C6C;
+          background: #67c23a;
           color: white;
           border-radius: 50%;
           display: flex;
@@ -376,7 +372,7 @@ onBeforeUnmount(() => {
     .version_features_title {
       display: flex;
       align-items: center;
-      color: #F56C6C;
+      color: #67c23a;
       font-weight: 500;
       margin: 15px 0 10px;
       padding-bottom: 10px;
