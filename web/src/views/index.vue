@@ -50,6 +50,7 @@ onBeforeMount(async () => {
     overflow: auto;
     .router_box {
       height: calc(100% - 60px - 20px);
+      overflow-y: auto;
       background-color: #fff;
       border-radius: 6px;
       margin: 10px;

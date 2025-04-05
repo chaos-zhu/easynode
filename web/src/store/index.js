@@ -53,7 +53,8 @@ const useStore = defineStore('global', {
       ...(localStorage.getItem('menuSetting') ? JSON.parse(localStorage.getItem('menuSetting')) : {})
     },
     plusInfo: {},
-    isPlusActive: false
+    isPlusActive: false,
+    aiConfig: {}
   }),
   actions: {
     async setJwtToken(token, isSession = true) {
@@ -80,6 +81,7 @@ const useStore = defineStore('global', {
       await this.getScriptList()
       await this.getScriptGroupList()
       await this.getPlusInfo()
+      await this.getAIConfig()
       this.wsClientsStatus()
     },
     async getHostList() {
@@ -91,6 +93,10 @@ const useStore = defineStore('global', {
       })
       this.$patch({ hostList: newHostList })
       this.HostStatusSocket?.emit('refresh_clients_data')
+    },
+    async getAIConfig() {
+      const { data: aiConfig } = await $api.getAIConfig()
+      this.$patch({ aiConfig })
     },
     async getGroupList() {
       const { data: groupList } = await $api.getGroupList()

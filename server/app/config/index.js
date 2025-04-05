@@ -19,6 +19,7 @@ module.exports = {
   onekeyDBPath: path.join(process.cwd(),'app/db/onekey.db'),
   logDBPath: path.join(process.cwd(),'app/db/log.db'),
   plusDBPath: path.join(process.cwd(),'app/db/plus.db'),
+  aiConfigDBPath: path.join(process.cwd(),'app/db/ai-config.db'),
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/logs'),

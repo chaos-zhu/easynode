@@ -93,7 +93,7 @@ const basicFeatures = [
 
 // Plus版专属功能列表
 const plusFeatures = [
-  '包含基础版全部功能',
+  'AI Chat对话组件',
   '服务器跳板机功能,支持任意数量服务器的连续跳板',
   '批量修改实例配置(优化版)',
   '脚本库批量导出导入',
@@ -102,6 +102,7 @@ const plusFeatures = [
   '通知方式无限制',
   '本地socket断开自动重连',
   '功能需求更高开发优先级',
+  '后续功能优先享用',
 ]
 </script>
 

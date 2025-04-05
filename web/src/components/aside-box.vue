@@ -9,20 +9,20 @@
     <MenuList />
 
     <div class="aside_footer">
-    <div class="theme_switch">
-      <el-switch
+      <div class="theme_switch">
+        <el-switch
           v-model="isDark"
           inline-prompt
           :active-icon="Moon"
           :inactive-icon="Sunny"
           class="dark_switch"
         />
+      </div>
+      <div class="collapse" @click="handleCollapse">
+        <el-icon v-if="menuCollapse"><Expand /></el-icon>
+        <el-icon v-else><Fold /></el-icon>
+      </div>
     </div>
-    <div class="collapse" @click="handleCollapse">
-      <el-icon v-if="menuCollapse"><Expand /></el-icon>
-      <el-icon v-else><Fold /></el-icon>
-    </div>
-  </div>
   </div>
 </template>
 
@@ -48,6 +48,7 @@ const handleCollapse = () => {
 
 <style lang="scss" scoped>
 .aside_container {
+  overflow-x: auto;
   background-color: #fff;
   // width: 180px;
   display: flex;

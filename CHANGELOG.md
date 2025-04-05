@@ -1,13 +1,20 @@
-## [3.0.5](https://github.com/chaos-zhu/easynode/releases) (2025-04-xx)
+## TODO
 
-* 新增AI问答&集成脚本生成功能（TODO
-* 新增服务器定时任务功能（TODO
-* 连接服务器下拉菜单分组展示（TODO
-* serv00 SFTP修复（TODO
+* 新增MCP server功能
+* AI问答集成终端、脚本一键执行等便捷功能
+* serv00 SFTP修复
+* 连接服务器下拉菜单分组展示
+* 新增终端链接跳转需按住ctrl键(防止误触)
+* 新增服务器定时任务功能
+
+## [3.0.5](https://github.com/chaos-zhu/easynode/releases) (2025-04-04)
+
+* 新增AI问答组件及相关配置项,支持deepseekR1、qwq思维链
 * 脚本库菜单自定义展示(可在本地设置中配置)
-* 字体优化
-* 支持在面板配置IP白名单
+* 支持在面板配置全局API-IP白名单
 * 修复终端工具栏高度塌陷
+* 修复多页面在内容数量超出视窗时溢出样式问题
+* 全局字体优化统一
 
 ## [3.0.4](https://github.com/chaos-zhu/easynode/releases) (2025-03-15)
 
