@@ -150,6 +150,13 @@ const md = new MarkdownIt({
   }
 })
 
+md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+  const token = tokens[idx]
+  token.attrSet('target', '_blank')
+  token.attrSet('rel', 'noopener noreferrer')
+  return self.renderToken(tokens, idx, options)
+}
+
 const { proxy: { $message, $store } } = getCurrentInstance()
 
 const props = defineProps({
