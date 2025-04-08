@@ -13,7 +13,7 @@ log4js.configure({
     cheese: {
       type: 'file',
       maxLogSize: 10 * 1024 * 1024, // unit: bytes     1KB = 1024bytes
-      filename: `${ outDir }/receive.log`,
+      filename: `${ outDir }/debug.log`,
       backups: 10,
       compress: true,
       keepFileExt: true

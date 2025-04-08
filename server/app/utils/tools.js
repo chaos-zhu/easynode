@@ -263,12 +263,11 @@ const isProd = () => {
   return EXEC_ENV === 'production'
 }
 
-let allowedIPs = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : ''
-if (allowedIPs) consola.warn('allowedIPs:', allowedIPs)
 const isAllowedIp = (requestIP) => {
+  let allowedIPs = Array.isArray(global.ALLOWED_IPS) ? global.ALLOWED_IPS : []
   if (allowedIPs.length === 0) return true
   let flag = allowedIPs.some(item => requestIP.includes(item))
-  if (!flag) consola.warn('requestIP:', requestIP, '不在允许的IP列表中')
+  if (!flag) consola.warn(`requestIP:${ requestIP } 不在允许的IP列表中. 允许的IP列表:${ allowedIPs.join(',') }`)
   return flag
 }
 

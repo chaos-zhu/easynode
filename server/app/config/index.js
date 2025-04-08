@@ -22,7 +22,7 @@ module.exports = {
   aiConfigDBPath: path.join(process.cwd(),'app/db/ai-config.db'),
   apiPrefix: '/api/v1',
   logConfig: {
-    outDir: path.join(process.cwd(),'./app/logs'),
+    outDir: path.join(process.cwd(),'./app/db/logs'),
     recordLog: process.env.DEBUG === '1' // 是否记录日志
   }
 }

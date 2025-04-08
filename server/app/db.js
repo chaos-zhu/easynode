@@ -14,6 +14,12 @@ async function initKeyDB() {
       allowedIPs = [...new Set([...ipWhiteList, ...allowedIPs])].filter(item => item)
       await keyDB.updateAsync({ _id }, { $set: { ipWhiteList: allowedIPs } })
     }
+    try {
+      let { ipWhiteList = [] } = await keyDB.findOneAsync({})
+      if (ipWhiteList.length > 0) global.ALLOWED_IPS = ipWhiteList
+    } catch (error) {
+      consola.error('设置全局IP白名单失败:', error)
+    }
     consola.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
     return
   }

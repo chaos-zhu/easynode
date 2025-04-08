@@ -14,10 +14,10 @@ async function getLog({ res }) {
 
 const saveIpWhiteList = async ({ res, request }) => {
   const { body: { ipWhiteList } } = request
-  console.log('ipWhiteList:', ipWhiteList)
   if (!Array.isArray(ipWhiteList)) return res.fail({ msg: 'ip list输入非法' })
   let { _id } = await keyDB.findOneAsync({})
   await keyDB.updateAsync({ _id }, { $set: { ipWhiteList } })
+  global.ALLOWED_IPS = ipWhiteList
   res.success({ msg: 'success' })
 }
 
