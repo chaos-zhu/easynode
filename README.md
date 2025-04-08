@@ -65,10 +65,13 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 ### docker-compose部署-自动更新（推荐）
 
 ```shell
-# 下载docker-compose.yml文件
-curl -o- https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/docker-compose.yml | bash
+# 1. 创建easynode目录
+mkdir -p /root/easynode && cd /root/easynode
 
-# 启动服务
+# 2. 下载docker-compose.yml文件
+wget https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/docker-compose.yml
+
+# 3. 启动服务
 docker-compose up -d
 ```
 
