@@ -10,9 +10,24 @@
     "description": "easynode-监控服务-卸载脚本"
   },
   {
-    "name": "查询本机公网IP",
-    "command": "curl ifconfig.me",
-    "description": "查询本机公网IP"
+    "name": "swap管理",
+    "command": "curl -o- https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/server/scripts/swap.sh | bash",
+    "description": "swap管理(原脚本作者: https://www.moerats.com)"
+  },
+  {
+    "name": "vps回程测试",
+    "command": "curl https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/backtrace/main/install.sh -sSf | sh",
+    "description": "vps回程测试(原脚本作者: https://github.com/zhanghanyun)"
+  },
+  {
+    "name": "docker安装(需外网环境)",
+    "command": "curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh",
+    "description": "docker安装(原脚本作者: https://github.com/docker/docker-install)"
+  },
+  {
+    "name": "docker-compose安装(需外网环境)",
+    "command": "curl -L https://github.com/docker/compose/releases/download/v2.29.3/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose &&  chmod +x /usr/local/bin/docker-compose && docker-compose --version",
+    "description": "docker-compose安装(原脚本作者: https://github.com/docker/docker-install)"
   },
   {
     "name": "生成ssh密钥对",
