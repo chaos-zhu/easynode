@@ -217,12 +217,12 @@ watch(() => visible.value, (newValue) => {
   if (!newValue) return
   nextTick(() => {
     inputFocus()
-    // if (chatListBox.value) {
-    //   chatListBox.value.scrollTo({
-    //     top: chatListBox.value?.scrollHeight,
-    //     behavior: 'smooth'
-    //   })
-    // }
+    if (chatListBox.value) {
+      chatListBox.value.scrollTo({
+        top: chatListBox.value?.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
   })
 })
 
