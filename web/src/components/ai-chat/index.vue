@@ -11,7 +11,6 @@
   >
     <template #header>
       <div class="ai_header_wrap">
-        <span class="title">AI Chat</span>
         <el-dropdown v-if="hasMoreModels" trigger="click" class="model_dropdown">
           <span class="model_dropdown_link">
             {{ activeModel }}
@@ -32,7 +31,30 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-icon :size="20" class="setting_icon" @click="handleSetting"><Setting /></el-icon>
+        <div class="right_wrap">
+          <el-dropdown
+            v-if="hasMoreModels"
+            trigger="click"
+            class="chat_list_dropdown"
+          >
+            <el-icon class="el-icon--right right_wrap_icon">
+              <ChatDotRound />
+            </el-icon>
+            <template #dropdown>
+              <el-dropdown-menu class="model_dropdown_menu">
+                <el-dropdown-item
+                  v-for="model in models"
+                  :key="model"
+                  :class="{ 'active': activeModel === model }"
+                  @click="handleModelChange(model)"
+                >
+                  {{ model }}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-icon :size="18" class="right_wrap_icon" @click="handleSetting"><Setting /></el-icon>
+        </div>
       </div>
     </template>
     <div class="chat_box">
@@ -131,7 +153,7 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { ref, computed, h, nextTick, watch, getCurrentInstance } from 'vue'
 import { Bubble, Sender } from 'ant-design-x-vue'
-import { Avatar, Refresh, CopyDocument, Delete, EditPen, CircleCheck, Loading, Setting, ArrowDown } from '@element-plus/icons-vue'
+import { Avatar, Refresh, CopyDocument, Delete, EditPen, CircleCheck, Loading, Setting, ArrowDown, ChatDotRound } from '@element-plus/icons-vue'
 import { useAIChat } from '@/composables/useAIChat'
 import { loadMarkdownCSS } from '@/utils/markdown'
 import AiApiConfig from './ai-api-config.vue'
@@ -290,35 +312,25 @@ const handleSetting = () => {
 
 </script>
 <style scoped lang="scss">
-// ::-webkit-scrollbar-thumb {
-//   background-color: var(--td-scrollbar-color);
-// }
-
-// ::-webkit-scrollbar-thumb:horizontal:hover {
-//   background-color: var(--td-scrollbar-hover-color);
-// }
-
-// ::-webkit-scrollbar-track {
-//   background-color: var(--td-scroll-track-color);
-// }
-
 .ai_header_wrap {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  .title {
-    margin-left: 16px;
-    font-size: 20px;
-    color: var(--td-text-color-primary);
-    font-weight: 600;
-    line-height: 28px;
-  }
-  .setting_icon {
-    cursor: pointer;
-    color: var(--td-text-color-primary);
-    &:hover {
-      color: var(--el-color-primary);
+  .right_wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    .right_wrap_icon {
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--el-text-color-regular);
+      &:hover {
+        color: var(--el-color-primary);
+      }
     }
+  }
+  .chat_list_dropdown {
+    cursor: pointer;
   }
   .model_dropdown {
     cursor: pointer;
