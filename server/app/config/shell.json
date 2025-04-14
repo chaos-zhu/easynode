@@ -33,5 +33,10 @@
     "name": "生成ssh密钥对",
     "command": "ssh-keygen -t rsa -b 2048",
     "description": "生成ssh密钥对"
+  },
+  {
+    "name": "一键查询linux信息",
+    "command": "echo -e \"\\n\\n------ 操作系统类型 ------\" && uname -a || echo \"无法获取操作系统信息\"; echo -e \"\\n------ 发行版本信息 ------\" && command -v lsb_release >/dev/null 2>&1 && lsb_release -a || echo \"无法获取发行版本信息\"; echo -e \"\\n------ 系统详细版本 ------\" && [ -f /etc/os-release ] && cat /etc/os-release || echo \"无法读取 /etc/os-release 文件\"; echo -e \"\\n------ 系统初始进程 ------\" && ps -p 1 -o comm= || echo \"无法获取系统初始进程\"; echo -e \"\\n-------- 内核版本 --------\" && uname -r || echo \"无法获取内核版本\"; echo -e \"\\n-------- CPU 信息 --------\" && command -v lscpu >/dev/null 2>&1 && lscpu || echo \"无法获取CPU信息\"; echo -e \"\\n-------- 内存信息 --------\" && free -h || echo \"无法获取内存信息\"; echo -e \"\\n-------- 磁盘信息 --------\" && lsblk || echo \"无法获取磁盘信息\"; echo -e \"\\n-------- 磁盘空间 --------\" && df -h || echo \"无法获取磁盘空间信息\"; echo -e \"\\n-------- 网络信息 --------\" && ip a || echo \"无法获取网络信息\"; echo -e \"\\n-------- 系统负载 --------\" && uptime || echo \"无法获取系统负载\"; echo -e \"\\n------ 网络连通测试 ------\" && ping -c 3 baidu.com || echo \"无法连接到 baidu.com\"",
+    "description": "一键查询linux系统的信息"
   }
 ]
