@@ -208,7 +208,12 @@ export function useAIChat() {
   const removeChat = async (id) => {
     await $api.removeChatHistory(id)
     ElMessage.success('删除成功')
-    $store.getChatHistory()
+    await $store.getChatHistory()
+    if (chatHistory.value.length > 0) {
+      changeChat(chatHistory.value[0].id)
+    } else {
+      addChat()
+    }
   }
 
   const changeChat = (id) => {
@@ -217,8 +222,11 @@ export function useAIChat() {
     curChat.value = chatItem
   }
 
-  const saveChat = () => {
-    $api.saveChatHistory(curChat.value)
+  const saveChat = async () => {
+    await $api.saveChatHistory(curChat.value)
+    setTimeout(() => {
+      $store.getChatHistory()
+    }, 1000)
   }
 
   onUnmounted(() => {

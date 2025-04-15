@@ -60,9 +60,8 @@ async function saveChatHistory({ res, request }) {
 
 async function removeChatHistory({ res, request }) {
   let { params: { id } } = request
-  console.log(id)
   if (!id) return res.fail({ data: false, msg: '参数错误' })
-  await chatHistoryDB.removeAsync({ id })
+  await chatHistoryDB.removeAsync({ _id: id })
   res.success({ data: true })
 }
 

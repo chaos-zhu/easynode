@@ -32,15 +32,22 @@
           </template>
         </el-dropdown>
         <div class="right_wrap">
-          <el-icon class="right_wrap_icon" title="新建对话" @click="addChat">
+          <el-icon
+            class="right_wrap_icon"
+            title="新建对话"
+            @click="addChat"
+          >
             <Plus />
           </el-icon>
           <el-dropdown
-            v-if="hasChatHistory"
+            :disabled="!hasChatHistory"
             trigger="click"
             class="chat_list_dropdown"
           >
-            <el-icon class="right_wrap_icon" title="历史记录" @click="handleChatListDropdown">
+            <el-icon
+              class="right_wrap_icon"
+              title="历史记录"
+            >
               <ChatDotRound />
             </el-icon>
             <template #dropdown>
@@ -55,7 +62,7 @@
                     <div class="chat_item_info">
                       <span>{{ new Date(chatItem.createdAt).toLocaleString() }}</span>
                     </div>
-                    <el-icon class="chat_item_icon" @click.stop="removeChat(chatItem.id)">
+                    <el-icon class="chat_item_icon" @click.stop="removeChat(chatItem._id)">
                       <Delete />
                     </el-icon>
                   </div>
@@ -331,10 +338,6 @@ const handleSetting = () => {
     return
   }
   aiApiConfigVisible.value = true
-}
-
-const handleChatListDropdown = () => {
-  $store.getChatHistory()
 }
 
 </script>
