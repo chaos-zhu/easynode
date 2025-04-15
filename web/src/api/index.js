@@ -156,5 +156,14 @@ export default {
   },
   getAIModels(data) {
     return axios({ url: '/ai-models', method: 'post', data })
+  },
+  getChatHistory() {
+    return axios({ url: '/chat-history', method: 'get' })
+  },
+  saveChatHistory(data) {
+    return axios({ url: '/chat-history', method: 'post', data })
+  },
+  removeChatHistory(chatId) {
+    return axios({ url: `/chat-history/${ chatId }`, method: 'delete' })
   }
 }

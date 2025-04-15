@@ -7,7 +7,7 @@ const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeSc
 const { getScriptGroupList, addScriptGroup, removeScriptGroup, updateScriptGroup } = require('../controller/script-group')
 const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
 const { getLog, saveIpWhiteList } = require('../controller/log')
-const { getAIConfig, saveAIConfig, getAIModels } = require('../controller/chat')
+const { getAIConfig, saveAIConfig, getAIModels, getChatHistory, saveChatHistory, removeChatHistory } = require('../controller/chat')
 
 const ssh = [
   {
@@ -283,6 +283,21 @@ const aiConfig = [
     method: 'post',
     path: '/ai-models',
     controller: getAIModels
+  },
+  {
+    method: 'get',
+    path: '/chat-history',
+    controller: getChatHistory
+  },
+  {
+    method: 'post',
+    path: '/chat-history',
+    controller: saveChatHistory
+  },
+  {
+    method: 'delete',
+    path: '/chat-history/:id',
+    controller: removeChatHistory
   }
 ]
 module.exports = [].concat(ssh, host, user, notify, group, scripts, scriptGroup, onekey, log, aiConfig)

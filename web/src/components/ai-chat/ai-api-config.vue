@@ -44,6 +44,9 @@
           <el-button type="primary" :loading="fetchingModels" @click="handleFetchModels">获取模型</el-button>
         </div>
       </el-form-item>
+      <el-form-item label="标题生成" prop="titlePrompt">
+        <el-input v-model="AIconfigFormData.titlePrompt" clearable placeholder="例如: 使用四到五个字直接返回这句话的简要主题，不要解释、不要标点、不要语气词、不要多余文本，不要加粗，如果没有主题，请直接返回“闲聊”" />
+      </el-form-item>
     </el-form>
     <el-alert title="提示:" type="warning" :closable="false">
       <div class="ai_config_alert_content">
@@ -100,7 +103,8 @@ const fetchingModels = ref(false)
 const AIconfigFormData = ref({
   apiUrl: '',
   apiKey: '',
-  models: []
+  models: [],
+  titlePrompt: '使用四到五个字直接返回这句话的简要主题，不要解释、不要标点、不要语气词、不要多余文本，不要加粗，如果没有主题，请直接返回“闲聊”'
 })
 
 watch(props.aiConfig, (newVal) => {
@@ -119,7 +123,8 @@ const rules = {
     },
   ],
   apiKey: [{ required: true, message: '请输入API KEY', trigger: 'change' },],
-  models: [{ required: true, message: '请输入或获取模型列表', trigger: 'change' },]
+  models: [{ required: true, message: '请输入或获取模型列表', trigger: 'change' },],
+  titlePrompt: [{ required: false, message: '请输入标题生成提示', trigger: 'change' },]
 }
 
 const handleFetchModels = async () => {

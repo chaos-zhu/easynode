@@ -14,7 +14,7 @@
         <el-dropdown v-if="hasMoreModels" trigger="click" class="model_dropdown">
           <span class="model_dropdown_link">
             {{ activeModel }}
-            <el-icon class="el-icon--right">
+            <el-icon>
               <ArrowDown />
             </el-icon>
           </span>
@@ -32,28 +32,45 @@
           </template>
         </el-dropdown>
         <div class="right_wrap">
+          <el-icon class="right_wrap_icon" title="新建对话" @click="addChat">
+            <Plus />
+          </el-icon>
           <el-dropdown
-            v-if="hasMoreModels"
+            v-if="hasChatHistory"
             trigger="click"
             class="chat_list_dropdown"
           >
-            <el-icon class="el-icon--right right_wrap_icon">
+            <el-icon class="right_wrap_icon" title="历史记录" @click="handleChatListDropdown">
               <ChatDotRound />
             </el-icon>
             <template #dropdown>
-              <el-dropdown-menu class="model_dropdown_menu">
+              <el-dropdown-menu class="chat_list_dropdown_menu">
                 <el-dropdown-item
-                  v-for="model in models"
-                  :key="model"
-                  :class="{ 'active': activeModel === model }"
-                  @click="handleModelChange(model)"
+                  v-for="chatItem in chatHistory"
+                  :key="chatItem.id"
+                  :class="{ 'active': chatId === chatItem.id }"
+                  @click="changeChat(chatItem.id)"
                 >
-                  {{ model }}
+                  <div class="chat_item">
+                    <div class="chat_item_info">
+                      <span>{{ new Date(chatItem.createdAt).toLocaleString() }}</span>
+                    </div>
+                    <el-icon class="chat_item_icon" @click.stop="removeChat(chatItem.id)">
+                      <Delete />
+                    </el-icon>
+                  </div>
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <el-icon :size="18" class="right_wrap_icon" @click="handleSetting"><Setting /></el-icon>
+          <el-icon
+            :size="18"
+            class="right_wrap_icon"
+            title="设置"
+            @click="handleSetting"
+          >
+            <Setting />
+          </el-icon>
         </div>
       </div>
     </template>
@@ -153,7 +170,7 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { ref, computed, h, nextTick, watch, getCurrentInstance } from 'vue'
 import { Bubble, Sender } from 'ant-design-x-vue'
-import { Avatar, Refresh, CopyDocument, Delete, EditPen, CircleCheck, Loading, Setting, ArrowDown, ChatDotRound } from '@element-plus/icons-vue'
+import { Avatar, Refresh, CopyDocument, Delete, EditPen, CircleCheck, Loading, Setting, ArrowDown, ChatDotRound, Plus } from '@element-plus/icons-vue'
 import { useAIChat } from '@/composables/useAIChat'
 import { loadMarkdownCSS } from '@/utils/markdown'
 import AiApiConfig from './ai-api-config.vue'
@@ -191,6 +208,7 @@ const props = defineProps({
 const emit = defineEmits(['update:visible',])
 
 const {
+  chatId,
   chatList,
   loading,
   isConnecting,
@@ -200,17 +218,22 @@ const {
   clearChat,
   stopGeneration,
   deleteMessage,
-  regenerateMessage
+  regenerateMessage,
+  changeChat,
+  removeChat,
+  addChat
 } = useAIChat()
 
 const aiApiConfigVisible = ref(false)
 const activeModel = ref(localStorage.getItem('activeModel') || '')
 const question = ref('') // debian设置swap为2gb的步骤
 const isDark = computed(() => $store.isDark)
+const isPlusActive = computed(() => $store.isPlusActive)
 const aiConfig = computed(() => $store.aiConfig)
 const models = computed(() => aiConfig.value?.models || [])
+const chatHistory = computed(() => $store.chatHistory)
 const hasMoreModels = computed(() => Array.isArray(models.value) && models.value.length > 1)
-const isPlusActive = computed(() => $store.isPlusActive)
+const hasChatHistory = computed(() => chatHistory.value.length > 0)
 const visible = computed({
   get() {
     return props.visible
@@ -308,6 +331,10 @@ const handleSetting = () => {
     return
   }
   aiApiConfigVisible.value = true
+}
+
+const handleChatListDropdown = () => {
+  $store.getChatHistory()
 }
 
 </script>
@@ -451,6 +478,41 @@ const handleSetting = () => {
     }
   }
 
+}
+
+.chat_list_dropdown_menu {
+  max-height: 70vh;
+  width: 175px;
+  max-width: 375px;
+  overflow: auto;
+  .el-dropdown-menu__item {
+    padding: 5px 8px;
+  }
+  .chat_item {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    .chat_item_info {
+      flex: 1;
+    }
+    &:hover .chat_item_icon {
+      display: inline-block;
+    }
+    .chat_item_icon {
+      cursor: pointer;
+      color: var(--el-text-color-regular);
+      display: none;
+      &:hover {
+        color: var(--el-color-primary);
+      }
+    }
+  }
+  .active {
+    background-color: var(--el-dropdown-menuItem-hover-fill);
+    color: var(--el-dropdown-menuItem-hover-color);
+  }
 }
 
 .model_dropdown_menu {

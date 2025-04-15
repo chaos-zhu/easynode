@@ -2,17 +2,41 @@ import { ref, onUnmounted, computed, watch } from 'vue'
 import { AIChatService } from '@/utils/aiChatService'
 import { ElMessage } from 'element-plus'
 import useStore from '@/store'
+import $api from '@/api'
+import { randomStr } from '@/utils'
+
+// const titlePrompt = '使用四到五个字直接返回这句话的简要主题，不要解释、不要标点、不要语气词、不要多余文本，不要加粗，如果没有主题，请直接返回“闲聊”'
+
+const defaultChatList = () => {
+  return [{
+    id: 1,
+    content: '您好，我是小助手，有什么可以帮您的吗？',
+    role: 'assistant',
+    timestamp: new Date(),
+    isStreaming: false,
+    error: false
+  },]
+}
+
+const defaultCurChat = () => {
+  return {
+    id: randomStr(16),
+    describe: Date.now(),
+    chatList: defaultChatList()
+  }
+}
 
 export function useAIChat() {
-  const store = useStore()
+  const $store = useStore()
   const aiService = ref(null)
+  const curChat = ref(defaultCurChat())
 
-  // 从store获取配置
-  const aiConfig = computed(() => store.aiConfig)
+  const chatId = computed(() => curChat.value.id)
+  const chatList = computed(() => curChat.value.chatList)
+  const aiConfig = computed(() => $store.aiConfig)
+  const chatHistory = computed(() => $store.chatHistory)
 
-  // 修改watch的判断逻辑
   watch(() => aiConfig.value, (newConfig) => {
-    // 使用可选链操作符，确保即使是Proxy对象也能正确访问属性
     if (newConfig && typeof newConfig === 'object') {
       const { apiUrl, apiKey } = newConfig
       if (apiUrl && apiKey) {
@@ -20,29 +44,12 @@ export function useAIChat() {
         console.log('aiService created:', apiUrl)
       }
     }
-  }, { immediate: true, deep: true }) // 添加deep: true以确保深层监听
+  }, { immediate: true, deep: true })
 
-  const loadSavedChat = () => {
-    const savedChat = localStorage.getItem('aiChatHistory')
-    return savedChat ? JSON.parse(savedChat) : [{
-      id: 1,
-      content: '您好，我是小助手，有什么可以帮您的吗？',
-      role: 'assistant',
-      timestamp: new Date(),
-      isStreaming: false,
-      error: false
-    },]
-  }
-
-  const chatList = ref(loadSavedChat())
   const isConnecting = ref(false)
   const loading = ref(false)
   const error = ref(null)
   const isReasoning = ref(false)
-
-  const saveChat = () => {
-    localStorage.setItem('aiChatHistory', JSON.stringify(chatList.value))
-  }
 
   const sendMessage = async (messageContent, model, options = {}) => {
     if (!aiService.value) {
@@ -64,7 +71,7 @@ export function useAIChat() {
     }
     chatList.value.push(userMessage)
 
-    const aiMessageId = Date.now() + 1
+    const aiMessageId = Date.now() + 1 // 确保AI消息ID与用户消息ID不会重复
     const aiMessage = {
       id: aiMessageId,
       content: '',
@@ -194,11 +201,32 @@ export function useAIChat() {
     }
   }
 
+  const addChat = async () => {
+    curChat.value = defaultCurChat()
+  }
+
+  const removeChat = async (id) => {
+    await $api.removeChatHistory(id)
+    ElMessage.success('删除成功')
+    $store.getChatHistory()
+  }
+
+  const changeChat = (id) => {
+    const chatItem = chatHistory.value.find(item => item.id === id)
+    if (!chatItem) return ElMessage.error('对话id不存在')
+    curChat.value = chatItem
+  }
+
+  const saveChat = () => {
+    $api.saveChatHistory(curChat.value)
+  }
+
   onUnmounted(() => {
     aiService.value?.closeConnection()
   })
 
   return {
+    chatId,
     chatList,
     isConnecting,
     isReasoning,
@@ -208,6 +236,9 @@ export function useAIChat() {
     clearChat,
     stopGeneration,
     deleteMessage,
-    regenerateMessage
+    regenerateMessage,
+    changeChat,
+    removeChat,
+    addChat
   }
 }

@@ -20,6 +20,7 @@ module.exports = {
   logDBPath: path.join(process.cwd(),'app/db/log.db'),
   plusDBPath: path.join(process.cwd(),'app/db/plus.db'),
   aiConfigDBPath: path.join(process.cwd(),'app/db/ai-config.db'),
+  chatHistoryDBPath: path.join(process.cwd(),'app/db/chat-history.db'),
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/db/logs'),

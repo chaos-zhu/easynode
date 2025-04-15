@@ -11,7 +11,8 @@ const {
   onekeyDBPath,
   logDBPath,
   plusDBPath,
-  aiConfigDBPath
+  aiConfigDBPath,
+  chatHistoryDBPath
 } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
@@ -152,5 +153,16 @@ module.exports.AIConfigDB = class AIConfigDB {
   }
   getInstance() {
     return AIConfigDB.instance
+  }
+}
+
+module.exports.ChatHistoryDB = class ChatHistoryDB {
+  constructor() {
+    if (!ChatHistoryDB.instance) {
+      ChatHistoryDB.instance = new Datastore({ filename: chatHistoryDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return ChatHistoryDB.instance
   }
 }

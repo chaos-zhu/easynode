@@ -54,7 +54,8 @@ const useStore = defineStore('global', {
     },
     plusInfo: {},
     isPlusActive: false,
-    aiConfig: {}
+    aiConfig: {},
+    chatHistory: []
   }),
   actions: {
     async setJwtToken(token, isSession = true) {
@@ -81,7 +82,8 @@ const useStore = defineStore('global', {
       await this.getScriptList()
       await this.getScriptGroupList()
       await this.getPlusInfo()
-      await this.getAIConfig()
+      this.getAIConfig()
+      this.getChatHistory()
       this.wsClientsStatus()
     },
     async getHostList() {
@@ -97,6 +99,10 @@ const useStore = defineStore('global', {
     async getAIConfig() {
       const { data: aiConfig } = await $api.getAIConfig()
       this.$patch({ aiConfig })
+    },
+    async getChatHistory() {
+      const { data: chatHistory } = await $api.getChatHistory()
+      this.$patch({ chatHistory })
     },
     async getGroupList() {
       const { data: groupList } = await $api.getGroupList()
