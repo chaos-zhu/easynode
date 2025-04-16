@@ -37,25 +37,33 @@ async function saveAIConfig({ res, request }) {
 
 async function getChatHistory({ res }) {
   const chatHistory = await chatHistoryDB.findAsync({})
-  chatHistory.sort((a, b) => b.createdAt - a.createdAt)
-  res.success({ data: chatHistory || [] })
+  const newChatHistory = chatHistory.map(item => {
+    item.id = item._id
+    delete item._id
+    return item
+  }).sort((a, b) => b.createdAt - a.createdAt)
+  res.success({ data: newChatHistory || [] })
 }
 
 async function saveChatHistory({ res, request }) {
   const chatRecord = request.body
-  const { id, _id } = chatRecord
-  if (!id) return res.fail({ data: false, msg: '参数错误' })
-
-  if (!_id) {
-    console.log('不存在-创建')
-    chatRecord.createdAt = Date.now()
-    await chatHistoryDB.insertAsync(chatRecord)
-  } else {
+  const { id = '', chatList } = chatRecord
+  if (!chatList) return res.fail({ data: false, msg: '参数错误' })
+  let updateChat = chatRecord
+  if (id) {
     console.log('存在-更新')
     chatRecord.updatedAt = Date.now()
-    await chatHistoryDB.updateAsync({ _id }, chatRecord)
+    await chatHistoryDB.updateAsync({ _id: id }, chatRecord)
+  } else {
+    console.log('不存在-创建')
+    chatRecord.createdAt = Date.now()
+    delete chatRecord.id
+    const result = await chatHistoryDB.insertAsync(chatRecord)
+    updateChat = result
+    updateChat.id = result._id
+    delete updateChat._id
   }
-  res.success({ data: true })
+  res.success({ data: { updateChat } })
 }
 
 async function removeChatHistory({ res, request }) {

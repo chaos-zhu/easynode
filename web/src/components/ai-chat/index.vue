@@ -35,7 +35,7 @@
           <el-icon
             class="right_wrap_icon"
             title="新建对话"
-            @click="addChat"
+            @click="handleNewChat"
           >
             <Plus />
           </el-icon>
@@ -56,13 +56,14 @@
                   v-for="chatItem in chatHistory"
                   :key="chatItem.id"
                   :class="{ 'active': chatId === chatItem.id }"
-                  @click="changeChat(chatItem.id)"
+                  @click="handleChangeChat(chatItem.id)"
                 >
                   <div class="chat_item">
                     <div class="chat_item_info">
-                      <span>{{ new Date(chatItem.createdAt).toLocaleString() }}</span>
+                      <span class="descript">{{ chatItem.describe }}</span>
+                      <span class="created">{{ new Date(chatItem.createdAt).toLocaleString() }}</span>
                     </div>
-                    <el-icon class="chat_item_icon" @click.stop="removeChat(chatItem._id)">
+                    <el-icon class="chat_item_icon" @click.stop="handleDeleteChat(chatItem.id)">
                       <Delete />
                     </el-icon>
                   </div>
@@ -340,6 +341,30 @@ const handleSetting = () => {
   aiApiConfigVisible.value = true
 }
 
+const isLoadingTips = () => {
+  if (loading.value) {
+    $message.warning('请等待当前对话响应完成')
+    return true
+  }
+  return false
+}
+const handleNewChat = () => {
+  if (isLoadingTips()) return
+  addChat()
+  inputFocus()
+}
+
+const handleDeleteChat = async (id) => {
+  if (isLoadingTips()) return
+  await removeChat(id)
+  inputFocus()
+}
+
+const handleChangeChat = (id) => {
+  if (isLoadingTips()) return
+  changeChat(id)
+  inputFocus()
+}
 </script>
 <style scoped lang="scss">
 .ai_header_wrap {
@@ -480,12 +505,11 @@ const handleSetting = () => {
       }
     }
   }
-
 }
 
 .chat_list_dropdown_menu {
   max-height: 70vh;
-  width: 175px;
+  width: 310px;
   max-width: 375px;
   overflow: auto;
   .el-dropdown-menu__item {
@@ -499,14 +523,30 @@ const handleSetting = () => {
     justify-content: space-between;
     .chat_item_info {
       flex: 1;
+      display: flex;
+      align-content: center;
+      justify-content: space-between;
+      .descript {
+        width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .created {
+        flex: 1;
+        padding: 0 10px;
+        opacity: 0.6;
+        font-size: 12px;
+      }
     }
     &:hover .chat_item_icon {
-      display: inline-block;
+      opacity: 1;
     }
     .chat_item_icon {
+      opacity: 0;
+      flex-shrink: 0;
       cursor: pointer;
       color: var(--el-text-color-regular);
-      display: none;
       &:hover {
         color: var(--el-color-primary);
       }

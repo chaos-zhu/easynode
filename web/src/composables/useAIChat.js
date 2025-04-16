@@ -20,8 +20,8 @@ const defaultChatList = () => {
 
 const defaultCurChat = () => {
   return {
-    id: randomStr(16),
-    describe: Date.now(),
+    id: '',
+    describe: '新对话',
     chatList: defaultChatList()
   }
 }
@@ -34,6 +34,7 @@ export function useAIChat() {
   const chatId = computed(() => curChat.value.id)
   const chatList = computed(() => curChat.value.chatList)
   const aiConfig = computed(() => $store.aiConfig)
+  const titleGenMedel = computed(() => aiConfig.value.titleGenMedel)
   const chatHistory = computed(() => $store.chatHistory)
 
   watch(() => aiConfig.value, (newConfig) => {
@@ -223,10 +224,22 @@ export function useAIChat() {
   }
 
   const saveChat = async () => {
-    await $api.saveChatHistory(curChat.value)
-    setTimeout(() => {
-      $store.getChatHistory()
-    }, 1000)
+    if (curChat.value.chatList.length === 3) {
+      const title = await aiService.value.generateTitle(curChat.value.chatList, titleGenMedel.value)
+      curChat.value.describe = title
+    }
+    const { data } = await $api.saveChatHistory(curChat.value)
+    if (!data.updateChat) ElMessage.error('对话保存失败')
+    else {
+      curChat.value.id = data.updateChat.id
+      curChat.value.createdAt = data.updateChat.createdAt
+      curChat.value.updatedAt = data.updateChat.updatedAt
+      // curChat.value = {
+      //   id: data.updateChat._id,
+      //   ...data.updateChat
+      // }
+    }
+    $store.getChatHistory()
   }
 
   onUnmounted(() => {

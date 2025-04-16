@@ -151,6 +151,67 @@ export class AIChatService {
     }
   }
 
+  async generateTitle(messages, model, options = {}) {
+    if (!messages || messages.length === 0) {
+      return '闲聊'
+    }
+
+    const titleMessages = JSON.parse(JSON.stringify(messages)).splice(1) // 移除打招呼的内容
+    titleMessages.push({
+      role: 'user',
+      content: '使用四到五个字直接返回这句话的简要主题，不要解释、不要标点、不要语气词、不要多余文本，不要加粗，如果没有主题，请直接返回"闲聊"'
+    })
+
+    const defaultOptions = {
+      stream: false,
+      temperature: 0.5,
+      top_p: 1,
+      max_tokens: 4000,
+      presence_penalty: 0,
+      frequency_penalty: 0
+    }
+
+    // 合并参数
+    const requestBody = {
+      ...defaultOptions,
+      ...options,
+      messages: titleMessages,
+      model
+    }
+
+    try {
+      const response = await fetch(this.baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${ this.apiKey }`
+        },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${ response.status }`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error?.message || errorMessage
+        } catch (e) {
+          // 如果无法解析错误响应，使用默认错误信息
+        }
+        console.error('生成标题失败:', errorMessage)
+        return '闲聊'
+      }
+
+      const data = await response.json()
+      if (data.choices && data.choices[0] && data.choices[0].message) {
+        return data.choices[0].message.content.trim() || '闲聊'
+      }
+      return '闲聊'
+    } catch (error) {
+      console.error('生成标题错误:', error)
+      return '闲聊'
+    }
+  }
+
   closeConnection() {
     if (this.controller) {
       this.controller.abort()

@@ -40,12 +40,20 @@
             tag-type="success"
             tag-effect="plain"
             clearable
+            @change="handleModelsChange"
           />
           <el-button type="primary" :loading="fetchingModels" @click="handleFetchModels">获取模型</el-button>
         </div>
       </el-form-item>
-      <el-form-item label="标题生成" prop="titlePrompt">
-        <el-input v-model="AIconfigFormData.titlePrompt" clearable placeholder="例如: 使用四到五个字直接返回这句话的简要主题，不要解释、不要标点、不要语气词、不要多余文本，不要加粗，如果没有主题，请直接返回“闲聊”" />
+      <el-form-item label="标题生成" prop="titleGenMedel">
+        <el-select v-model="AIconfigFormData.titleGenMedel" clearable placeholder="请选择标题生成模型">
+          <el-option
+            v-for="(item, index) in AIconfigFormData.models"
+            :key="index"
+            :label="item"
+            :value="item"
+          />
+        </el-select>
       </el-form-item>
     </el-form>
     <el-alert title="提示:" type="warning" :closable="false">
@@ -104,7 +112,7 @@ const AIconfigFormData = ref({
   apiUrl: '',
   apiKey: '',
   models: [],
-  titlePrompt: '使用四到五个字直接返回这句话的简要主题，不要解释、不要标点、不要语气词、不要多余文本，不要加粗，如果没有主题，请直接返回“闲聊”'
+  titleGenMedel: ''
 })
 
 watch(props.aiConfig, (newVal) => {
@@ -124,7 +132,7 @@ const rules = {
   ],
   apiKey: [{ required: true, message: '请输入API KEY', trigger: 'change' },],
   models: [{ required: true, message: '请输入或获取模型列表', trigger: 'change' },],
-  titlePrompt: [{ required: false, message: '请输入标题生成提示', trigger: 'change' },]
+  titleGenMedel: [{ required: true, message: '请选择标题生成模型', trigger: 'change' },]
 }
 
 const handleFetchModels = async () => {
@@ -176,6 +184,12 @@ const inputApiUrlSuggestion = (query, cb) => {
   if (!AIconfigFormData.value.apiUrl) return cb([{ value: 'https://api.openai.com/v1/chat/completions' },])
   const origin = new URL(AIconfigFormData.value.apiUrl).origin
   cb([{ value: `${ origin }/v1/chat/completions` },])
+}
+
+const handleModelsChange = (newVal) => {
+  if (!newVal?.includes(AIconfigFormData.value.titleGenMedel)) {
+    AIconfigFormData.value.titleGenMedel = ''
+  }
 }
 </script>
 
