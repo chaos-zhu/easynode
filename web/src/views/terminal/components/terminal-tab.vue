@@ -290,7 +290,9 @@ const handleResize = () => {
 }
 
 const onWebLinks = () => {
-  term.value.loadAddon(new WebLinksAddon())
+  term.value.loadAddon(new WebLinksAddon((event, uri) => {
+    if (event.ctrlKey || event.altKey) window.open(uri, '_blank')
+  }))
 }
 
 // :TODO: 重写终端搜索功能

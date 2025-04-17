@@ -158,11 +158,11 @@ export function useAIChat() {
     }
   }
 
-  const clearChat = () => {
+  const clearChat = async () => {
     if (loading.value) return
     chatList.value.length = 1
     error.value = null
-    saveChat() // 保存清空后的状态
+    await saveChat() // 保存清空后的状态
     ElMessage.success('清除成功')
   }
 

@@ -51,11 +51,9 @@ async function saveChatHistory({ res, request }) {
   if (!chatList) return res.fail({ data: false, msg: '参数错误' })
   let updateChat = chatRecord
   if (id) {
-    console.log('存在-更新')
     chatRecord.updatedAt = Date.now()
     await chatHistoryDB.updateAsync({ _id: id }, chatRecord)
   } else {
-    console.log('不存在-创建')
     chatRecord.createdAt = Date.now()
     delete chatRecord.id
     const result = await chatHistoryDB.insertAsync(chatRecord)
