@@ -7,6 +7,12 @@
 * 新增终端链接跳转需按住ctrl键(防止误触)
 * 新增服务器定时任务功能
 
+## [3.0.6](https://github.com/chaos-zhu/easynode/releases) (2025-04-04)
+
+* AI问答支持历史记录&标题生成
+* 添加一些新的内置脚本
+* 修复跳板机提示多余空格
+
 ## [3.0.5](https://github.com/chaos-zhu/easynode/releases) (2025-04-04)
 
 * 新增AI问答组件及相关配置项,支持deepseekR1、qwq思维链
