@@ -182,6 +182,7 @@ import { Avatar, Refresh, CopyDocument, Delete, EditPen, CircleCheck, Loading, S
 import { useAIChat } from '@/composables/useAIChat'
 import { loadMarkdownCSS } from '@/utils/markdown'
 import AiApiConfig from './ai-api-config.vue'
+import { EventBus } from '@/utils'
 
 const md = new MarkdownIt({
   html: false,
@@ -234,7 +235,7 @@ const {
 
 const aiApiConfigVisible = ref(false)
 const activeModel = ref(localStorage.getItem('activeModel') || '')
-const question = ref('') // debian设置swap为2gb的步骤
+const question = ref('')
 const isDark = computed(() => $store.isDark)
 const isPlusActive = computed(() => $store.isPlusActive)
 const aiConfig = computed(() => $store.aiConfig)
@@ -282,8 +283,8 @@ watch(() => visible.value, (newValue) => {
 const inputFocus = () => {
   let input = document.querySelector('.ant-sender-input')
   setTimeout(() => {
-    input.focus()
-  }, 100)
+    input?.focus()
+  }, 300)
 }
 
 const handleModelChange = (model) => {
@@ -316,6 +317,12 @@ const scrollToBottom = () => {
 const editMessage = (content) => {
   question.value = content
 }
+
+EventBus.$on('sendToAIInput', (text) => {
+  question.value = text
+  visible.value = true
+  inputFocus()
+})
 
 const submit = async function (questionStr) {
   if (!questionStr || loading.value) return

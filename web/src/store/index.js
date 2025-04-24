@@ -38,8 +38,6 @@ const useStore = defineStore('global', {
         fontSize: 16,
         themeName: 'Afterglow',
         background: 'linear-gradient(-225deg, #CBBACC 0%, #2580B3 100%)',
-        quickCopy: isHttps(),
-        quickPaste: isHttps(),
         autoReconnect: true,
         autoExecuteScript: false
       },

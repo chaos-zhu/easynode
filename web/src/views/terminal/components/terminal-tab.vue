@@ -4,6 +4,7 @@
       ref="terminalRef"
       class="terminal_container"
       @contextmenu="handleRightClick"
+      @mouseup="handleMouseUp"
     />
     <!-- <div class="terminal_command_history">
       <CommandHistory :list="commandHistoryList" />
@@ -23,6 +24,8 @@ import { WebLinksAddon } from '@xterm/addon-web-links'
 import socketIo from 'socket.io-client'
 import themeList from 'xterm-theme'
 import { terminalStatus } from '@/utils/enum'
+import { useContextMenu } from '@/composables/useContextMenu'
+import { EventBus } from '@/utils'
 
 const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
 
@@ -54,11 +57,12 @@ const timer = ref(null)
 const pingTimer = ref(null)
 const fitAddon = ref(null)
 // const searchBar = ref(null)
-
+const showContextMenu = ref(false)
 const socketConnected = ref(false)
 const curStatus = ref(CONNECTING)
 const terminal = ref(null)
 const terminalRef = ref(null)
+const { showMenu, closeMenu } = useContextMenu()
 
 const token = computed(() => $store.token)
 const theme = computed(() => themeList[$store.terminalConfig.themeName])
@@ -68,8 +72,6 @@ const hostObj = computed(() => props.hostObj)
 const hostId = computed(() => hostObj.value.id)
 const host = computed(() => hostObj.value.host)
 const menuCollapse = computed(() => $store.menuCollapse)
-const quickCopy = computed(() => $store.terminalConfig.quickCopy)
-const quickPaste = computed(() => $store.terminalConfig.quickPaste)
 const autoExecuteScript = computed(() => $store.terminalConfig.autoExecuteScript)
 const autoReconnect = computed(() => $store.terminalConfig.autoReconnect)
 const isPlusActive = computed(() => $store.isPlusActive)
@@ -254,7 +256,6 @@ const createLocalTerminal = () => {
   terminalInstance.writeln('\x1b[1;32mWelcome to EasyNode terminal\x1b[0m.')
   terminalInstance.writeln('\x1b[1;32mAn experimental Web-SSH Terminal\x1b[0m.')
   terminalInstance.focus()
-  onSelectionChange()
   onFindText()
   onWebLinks()
   onResize()
@@ -301,19 +302,6 @@ const onFindText = () => {
   // searchBar.value = new SearchBarAddon({ searchAddon })
   term.value.loadAddon(searchAddon)
   // term.value.loadAddon(searchBar.value)
-}
-
-const onSelectionChange = () => {
-  term.value.onSelectionChange(() => {
-    if (!quickCopy.value) return
-    let str = term.value.getSelection()
-    if (!str) return
-    const text = new Blob([str,], { type: 'text/plain' })
-    const item = new ClipboardItem({
-      'text/plain': text
-    })
-    navigator.clipboard.write([item,])
-  })
 }
 
 const terminalText = ref(null)
@@ -408,34 +396,85 @@ const onData = () => {
   })
 }
 
-const handleRightClick = async (e) => {
-  if (!quickPaste.value) return
-  e.preventDefault()
-  try {
-    const clipboardText = await navigator.clipboard.readText()
-    if (!clipboardText) return
-    // 移除多余空格与换行符
-    const formattedText = clipboardText.trim().replace(/\s+/g, ' ')
-    // console.log(formattedText)
-    if (formattedText.includes('rm -rf /')) return $message.warning(`高危指令,禁止粘贴: ${ formattedText }`)
-    const safeText = formattedText.replace(/\r?\n|\r/g, '')
-    // console.log(safeText)
-    socket.value.emit('input', safeText)
-  } catch (error) {
-    $message.warning('右键默认粘贴行为,需要https支持')
+const handleCopySelection = async () => {
+  let str = term.value.getSelection().trim()
+  if (!str) return
+  const text = new Blob([str,], { type: 'text/plain' })
+  const item = new ClipboardItem({
+    'text/plain': text
+  })
+  await navigator.clipboard.write([item,])
+  term.value.clearSelection()
+}
+
+const handleMouseUp = async (e) => {
+  if (e.button === 1) return handlePaste() // 鼠标中键粘贴
+  if (e.button === 0) {
+    let str = term.value.getSelection().trim()
+    if (!str) return closeMenu()
+    handleRightClick(e)
   }
 }
 
+const handleRightClick = async (e) => {
+  let str = term.value.getSelection().trim()
+  const sendToAI = str ? {
+    label: '发送到AI会话',
+    onClick: () => {
+      EventBus.$emit('sendToAIInput', `\`\`\`shell\n${ str }\n\`\`\`\n`)
+      term.value.clearSelection()
+    }
+  } : null
+  const paste = {
+    label: '粘贴',
+    onClick: () => {
+      handlePaste()
+      term.value.clearSelection()
+    }
+  }
+  const copySelection = str ? {
+    label: '复制',
+    onClick: async () => await handleCopySelection()
+  } : null
+  const pasteSelection = str ? {
+    label: '粘贴选中内容',
+    onClick: async () => {
+      await handleCopySelection()
+      handlePaste()
+    }
+  } : null
+  const clear = {
+    label: '清屏',
+    onClick: () => {
+      handleClear()
+    }
+  }
+  const menu = [
+    sendToAI,
+    copySelection,
+    paste,
+    pasteSelection,
+    clear,
+  ].filter(Boolean)
+  showMenu(e, menu)
+}
+
 const handleClear = () => {
+  term.value.clearSelection()
   term.value.clear()
+  term.value.focus()
 }
 
 const handlePaste = async () => {
-  if (!quickPaste.value) return
   let key = await navigator.clipboard.readText()
+  // 如果粘贴的内容以换行符结尾则去掉换行符(防止自动执行)
+  while (key.endsWith('\n')) {
+    key = key.slice(0, -1)
+  }
   emit('inputCommand', key)
   socket.value.emit('input', key)
   term.value.focus()
+  term.value.clearSelection()
 }
 
 const focusTab = () => {

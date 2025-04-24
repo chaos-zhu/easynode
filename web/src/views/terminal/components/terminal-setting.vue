@@ -82,38 +82,6 @@
               </span>
             </PlusSupportTip>
           </el-form-item>
-          <el-form-item label="选中复制" prop="quickCopy">
-            <el-tooltip
-              effect="dark"
-              content="启用后选中文本自动复制到剪贴板(需https支持)"
-              placement="right"
-            >
-              <el-switch
-                v-model="quickCopy"
-                class="swtich"
-                inline-prompt
-                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                active-text="开启"
-                inactive-text="关闭"
-              />
-            </el-tooltip>
-          </el-form-item>
-          <el-form-item label="快捷粘贴" prop="quickPaste">
-            <el-tooltip
-              effect="dark"
-              content="启用后右键粘贴剪贴板内容(需https支持)"
-              placement="right"
-            >
-              <el-switch
-                v-model="quickPaste"
-                class="swtich"
-                inline-prompt
-                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                active-text="开启"
-                inactive-text="关闭"
-              />
-            </el-tooltip>
-          </el-form-item>
           <el-form-item label="脚本执行" prop="autoExecuteScript">
             <el-tooltip
               effect="dark"
@@ -150,7 +118,12 @@
                 inactive-text="关闭"
               />
             </span>
-            <el-radio-group v-model="scriptLibraryCascader" size="small" text-color="#fff" fill="#13ce66">
+            <el-radio-group
+              v-model="scriptLibraryCascader"
+              size="small"
+              text-color="#fff"
+              fill="#13ce66"
+            >
               <el-radio-button :value="true">分组级联展示</el-radio-button>
               <el-radio-button :value="false">不分组单列展示</el-radio-button>
             </el-radio-group>
@@ -200,17 +173,9 @@ const fontSize = computed({
   get: () => $store.terminalConfig.fontSize,
   set: (newVal) => $store.setTerminalSetting({ fontSize: newVal })
 })
-const quickCopy = computed({
-  get: () => $store.terminalConfig.quickCopy,
-  set: (newVal) => $store.setTerminalSetting({ quickCopy: newVal })
-})
 const autoReconnect = computed({
   get: () => $store.terminalConfig.autoReconnect,
   set: (newVal) => $store.setTerminalSetting({ autoReconnect: newVal })
-})
-const quickPaste = computed({
-  get: () => $store.terminalConfig.quickPaste,
-  set: (newVal) => $store.setTerminalSetting({ quickPaste: newVal })
 })
 const autoExecuteScript = computed({
   get: () => $store.terminalConfig.autoExecuteScript,
