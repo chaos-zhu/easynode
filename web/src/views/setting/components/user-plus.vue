@@ -22,9 +22,9 @@
     </el-form-item>
     <el-form-item>
       <div class="form_footer">
-        <el-button type="primary" :loading="loading" @click="handleUpdate">立即激活</el-button>
-        <el-button type="success" @click="handlePlusSupport">
-          购买Plus
+        <el-button type="success" :loading="loading" @click="handleUpdate">立即激活</el-button>
+        <el-button type="primary" @click="handlePlusSupport">
+          获取 Plus Key
           <el-icon class="el-icon--right"><TopRight /></el-icon>
         </el-button>
         <span v-if="!isPlusActive && discount" class="discount_wrapper" @click="handlePlusSupport">

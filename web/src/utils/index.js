@@ -153,3 +153,12 @@ export const isMobile = () => {
 export const handlePlusSupport = () => {
   window.open('https://en.221022.xyz/buy-plus', '_blank')
 }
+
+export const isDockerId = (id) => {
+  return /^[a-f0-9]{12}|[a-f0-9]{64}$/.test(id)
+}
+
+export const isDockerComposeYml = (str) => {
+  return /^docker-compose\.yml$/.test(str)
+}
+

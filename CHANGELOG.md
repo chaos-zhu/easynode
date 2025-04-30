@@ -4,16 +4,16 @@
 * serv00 SFTP修复
 * 连接服务器下拉菜单分组展示
 * 新增服务器定时任务功能
+* AI对话生成脚本支持一键发送到终端(TODO
 
-## [3.0.6](https://github.com/chaos-zhu/easynode/releases) (2025-04-xx)
+## [3.0.6](https://github.com/chaos-zhu/easynode/releases) (2025-05-05)
 
 * AI问答支持历史记录&标题生成
-* AI对话生成脚本支持一键发送到终端(TODO
-* 新增终端选中多功能菜单(一键询问AI、docker容器ID识别快捷操作. 欢迎issue反馈更多快捷功能)(TODO
+* 新增终端选中多功能菜单(一键询问AI、docker容器ID识别快捷操作. 欢迎issue反馈更多快捷功能)
 * 添加一些新的内置脚本
 * 新增终端链接跳转需按住ctrl|alt键(防止误触)
+* 修复粘贴情景下多终端tab同步会话无效bug
 * 修复跳板机提示多余空格
-* 修复xx情景下多终端tab同步会话bug(TODO
 
 ## [3.0.5](https://github.com/chaos-zhu/easynode/releases) (2025-04-04)
 

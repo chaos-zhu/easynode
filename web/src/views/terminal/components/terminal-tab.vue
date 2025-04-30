@@ -25,12 +25,12 @@ import socketIo from 'socket.io-client'
 import themeList from 'xterm-theme'
 import { terminalStatus } from '@/utils/enum'
 import { useContextMenu } from '@/composables/useContextMenu'
-import { EventBus } from '@/utils'
+import { EventBus, isDockerId, isDockerComposeYml } from '@/utils'
 
 const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
 
 const { io } = socketIo
-const { proxy: { $api, $store, $serviceURI, $notification, $router, $message } } = getCurrentInstance()
+const { proxy: { $api, $store, $serviceURI, $notification, $router, $message, $messageBox } } = getCurrentInstance()
 
 const props = defineProps({
   hostObj: {
@@ -57,7 +57,6 @@ const timer = ref(null)
 const pingTimer = ref(null)
 const fitAddon = ref(null)
 // const searchBar = ref(null)
-const showContextMenu = ref(false)
 const socketConnected = ref(false)
 const curStatus = ref(CONNECTING)
 const terminal = ref(null)
@@ -267,6 +266,7 @@ const shellResize = () => {
   let { rows, cols } = term.value
   socket.value?.emit('resize', { rows, cols })
 }
+
 const onResize = () => {
   fitAddon.value = new FitAddon()
   term.value.loadAddon(fitAddon.value)
@@ -416,6 +416,22 @@ const handleMouseUp = async (e) => {
   }
 }
 
+const plusTips = () => {
+  if (!isPlusActive.value) {
+    // $message.warning('Plus功能未激活')
+    $messageBox.confirm('Plus功能未激活', 'Warning', {
+      confirmButtonText: '前往设置',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+      .then(async () => {
+        $router.push('/setting?tabKey=plus')
+      })
+    return false
+  }
+  return true
+}
+
 const handleRightClick = async (e) => {
   let str = term.value.getSelection().trim()
   const sendToAI = str ? {
@@ -449,12 +465,121 @@ const handleRightClick = async (e) => {
       handleClear()
     }
   }
+  const dockerId = isDockerId(str) ? {
+    label: 'docker容器ID',
+    children: [
+      {
+        label: '[plus]检测选中内容可能为docker容器ID',
+        disabled: true
+      },
+      {
+        label: `登录: docker exec -it ${ str } bash`,
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand(`docker exec -it ${ str } bash`)
+        }
+      },
+      {
+        label: `日志: docker logs -f ${ str }`,
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand(`docker logs -f ${ str }`)
+        }
+      },
+      {
+        label: `重启: docker restart ${ str }`,
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand(`docker restart ${ str }`)
+        }
+      },
+      {
+        label: `删除: docker rm -f ${ str }`,
+        onClick: () => {
+          if (!plusTips()) return
+          $messageBox.confirm(`确认删除该容器：${ str }`, 'Warning', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          })
+            .then(async () => {
+              focusTab()
+              inputCommand(`docker rm -f ${ str }`)
+            })
+        }
+      },
+    ]
+  } : null
+
+  const dockerComposeYml = isDockerComposeYml(str) ? {
+    label: 'docker-compose文件',
+    children: [
+      {
+        label: '[plus]检测选中内容可能为docker-compose文件',
+        disabled: true
+      },
+      {
+        label: '启动: docker-compose up -d',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose up -d')
+        }
+      },
+      {
+        label: '停止并删除: docker-compose down',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose down')
+        }
+      },
+      {
+        label: '重启: docker-compose restart',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose restart')
+        }
+      },
+      {
+        label: '查看日志: docker-compose logs -f',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose logs -f')
+        }
+      },
+      {
+        label: '拉取新镜像: docker-compose pull',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose pull')
+        }
+      },
+      {
+        label: '重建: docker-compose up -d --force-recreate',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose up -d --force-recreate')
+        }
+      },
+    ]
+  } : null
+
   const menu = [
     sendToAI,
     copySelection,
     paste,
     pasteSelection,
     clear,
+    dockerId,
+    dockerComposeYml,
   ].filter(Boolean)
   showMenu(e, menu)
 }
