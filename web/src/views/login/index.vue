@@ -56,11 +56,12 @@
               @keyup.enter="handleLogin"
             />
           </el-form-item>
-          <el-form-item prop="jwtExpires" label="有效期">
+          <el-form-item prop="jwtExpires" label="登录有效期">
             <el-radio-group v-model="expireTime" class="login-indate">
-              <el-radio :value="expireEnum.ONE_SESSION">一次性会话</el-radio>
-              <el-radio :value="expireEnum.CURRENT_DAY">当天有效</el-radio>
-              <el-radio :value="expireEnum.THREE_DAY">三天有效</el-radio>
+              <el-radio :value="expireEnum.ONE_SESSION">临时</el-radio>
+              <el-radio :value="expireEnum.CURRENT_DAY">当天</el-radio>
+              <el-radio :value="expireEnum.THREE_DAY">三天</el-radio>
+              <el-radio :value="expireEnum.SEVEN_DAY">七天</el-radio>
             </el-radio-group>
           </el-form-item>
         </el-form>
@@ -88,7 +89,8 @@ const { proxy: { $store, $api, $message, $messageBox, $router } } = getCurrentIn
 const expireEnum = reactive({
   ONE_SESSION: 'one_session',
   CURRENT_DAY: 'current_day',
-  THREE_DAY: 'three_day'
+  THREE_DAY: 'three_day',
+  SEVEN_DAY: 'seven_day'
 })
 const expireTime = ref(expireEnum.CURRENT_DAY)
 const loginFormRefs = ref(null)
@@ -118,6 +120,9 @@ const handleLogin = () => {
         break
       case expireEnum.THREE_DAY:
         jwtExpires = '3d'
+        break
+      case expireEnum.SEVEN_DAY:
+        jwtExpires = '7d'
         break
     }
     const ciphertext = RSAEncrypt(pwd)
