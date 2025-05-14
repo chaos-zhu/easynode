@@ -63,7 +63,7 @@ const login = async ({ res, request }) => {
     let loginPwd = await RSADecryptAsync(ciphertext)
     let { user, pwd, enableMFA2, secret } = await keyDB.findOneAsync({})
     if (enableMFA2) {
-      const isValid = speakeasy.totp.verify({ secret, encoding: 'base32', token: mfa2Token, window: 1 })
+      const isValid = speakeasy.totp.verify({ secret, encoding: 'base32', token: String(mfa2Token), window: 1 })
       console.log('MFA2 verfify:', isValid)
       if (!isValid) return res.fail({ msg: '验证失败' })
     }

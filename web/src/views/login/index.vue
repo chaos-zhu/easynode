@@ -124,7 +124,7 @@ const handleLogin = () => {
     if (ciphertext === -1) return $message.error({ message: '公钥加载失败', center: true })
     loading.value = true
     try {
-      let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, mfa2Token: Number(mfa2Token) })
+      let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, mfa2Token })
       const { token } = data
       $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
       $store.setUser(loginName)
