@@ -8,6 +8,8 @@
 * 新增docker容器功能
 * 新增AI对话生成指令支持一键发送到终端
 * 新增登录有效期选择
+* 新增Sftp支持跳板机连接
+* 修复serv00 SFTP无法连接的问题
 * 修复MFA验证以0开头无法校验的bug
 
 ## [3.0.6](https://github.com/chaos-zhu/easynode/releases) (2025-05-05)

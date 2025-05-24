@@ -5,11 +5,12 @@ const CryptoJS = require('crypto-js')
 const { Server } = require('socket.io')
 const { sftpCacheDir } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
-const { AESDecryptAsync } = require('../utils/encrypt')
 const { isAllowedIp } = require('../utils/tools')
-const { HostListDB, CredentialsDB } = require('../utils/db-class')
+const { HostListDB } = require('../utils/db-class')
+const { getConnectionOptions } = require('./terminal')
+const decryptAndExecuteAsync = require('../utils/decrypt-file')
 const hostListDB = new HostListDB().getInstance()
-const credentialsDB = new CredentialsDB().getInstance()
+const { Client: SSHClient } = require('ssh2')
 
 // 读取切片
 const pipeStream = (path, writeStream) => {
@@ -23,8 +24,13 @@ const pipeStream = (path, writeStream) => {
   })
 }
 
-function listenInput(sftpClient, socket) {
+function getBasePath(path) {
+  return '.' + path
+}
+
+function listenInput(sftpClient, socket, isRootUser = true) {
   socket.on('open_dir', async (path, tips = true) => {
+    path = isRootUser ? path : getBasePath(path)
     const exists = await sftpClient.exists(path)
     if (!exists) return socket.emit('not_exists_dir', tips ? '目录不存在或当前不可访问' : '')
     try {
@@ -36,6 +42,7 @@ function listenInput(sftpClient, socket) {
     }
   })
   socket.on('rm_dir', async (path) => {
+    path = isRootUser ? path : getBasePath(path)
     const exists = await sftpClient.exists(path)
     if (!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
     consola.info('rm_dir: ', path)
@@ -48,6 +55,7 @@ function listenInput(sftpClient, socket) {
     }
   })
   socket.on('rm_file', async (path) => {
+    path = isRootUser ? path : getBasePath(path)
     const exists = await sftpClient.exists(path)
     if (!exists) return socket.emit('not_exists_dir', '文件不存在或当前不可访问')
     try {
@@ -68,6 +76,7 @@ function listenInput(sftpClient, socket) {
   // 下载
   socket.on('down_file', async ({ path, name, size, target = 'down' }) => {
     // target: down or preview
+    path = isRootUser ? path : getBasePath(path)
     const exists = await sftpClient.exists(path)
     if (!exists) return socket.emit('not_exists_dir', '文件不存在或当前不可访问')
     try {
@@ -103,7 +112,9 @@ function listenInput(sftpClient, socket) {
   })
 
   // 上传
-  socket.on('up_file', async ({ targetPath, fullPath, name, file }) => {
+  socket.on('file_save_edit', async ({ targetPath, fullPath, name, file }) => {
+    targetPath = isRootUser ? targetPath : getBasePath(targetPath)
+    fullPath = isRootUser ? fullPath : getBasePath(fullPath)
     // console.log({ targetPath, fullPath, name, file })
     const exists = await sftpClient.exists(targetPath)
     if (!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
@@ -114,13 +125,14 @@ function listenInput(sftpClient, socket) {
       consola.success('sftp上传成功: ', res)
       socket.emit('up_file_success', res)
     } catch (error) {
-      consola.error('up_file Error', error.message)
+      consola.error('file_save_edit Error', error.message)
       socket.emit('sftp_error', error.message)
     }
   })
 
   // 上传目录先在目标sftp服务器创建目录
   socket.on('create_remote_dir', async ({ targetDirPath, foldersName }) => {
+    targetDirPath = isRootUser ? targetDirPath : getBasePath(targetDirPath)
     let baseFolderPath = rawPath.posix.join(targetDirPath, foldersName[0].split('/')[0])
     let baseFolderPathExists = await sftpClient.exists(baseFolderPath)
     if (baseFolderPathExists) return socket.emit('create_remote_dir_exists', `远程目录已存在: ${ baseFolderPath }`)
@@ -140,7 +152,7 @@ function listenInput(sftpClient, socket) {
   // 1. 创建本地缓存目录
   let md5List = []
   socket.on('create_cache_dir', async ({ targetDirPath, name }) => {
-    // console.log({ targetDirPath, name })
+    targetDirPath = isRootUser ? targetDirPath : getBasePath(targetDirPath)
     const exists = await sftpClient.exists(targetDirPath)
     if (!exists) return socket.emit('not_exists_dir', '目录不存在或当前不可访问')
     md5List = []
@@ -164,6 +176,7 @@ function listenInput(sftpClient, socket) {
   })
   // 3. 合并分片上传到服务器
   socket.on('up_file_slice_over', async ({ name, targetFilePath, range, size }) => {
+    targetFilePath = isRootUser ? targetFilePath : getBasePath(targetFilePath)
     const md5CacheDirPath = rawPath.join(sftpCacheDir, name)
     const resultFilePath = rawPath.join(sftpCacheDir, name, name)
     fs.ensureDirSync(md5CacheDirPath)
@@ -223,6 +236,7 @@ module.exports = (httpServer) => {
     }
     let sftpClient = new SFTPClient()
     consola.success('terminal websocket 已连接')
+    let jumpSshClients = []
 
     socket.on('ws_sftp', async ({ hostId, token }) => {
       const { code } = await verifyAuthSync(token, requestIP)
@@ -234,35 +248,55 @@ module.exports = (httpServer) => {
       }
       const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
       if (!targetHostInfo) throw new Error(`Host with ID ${ hostId } not found`)
-      let { authType, host, port, username } = targetHostInfo
-      if (!host) return socket.emit('create_fail', `查找id【${ hostId }】凭证信息失败`)
-      let authInfo = { host, port, username }
 
-      // 解密放到try里面，防止报错【commonKey必须配对, 否则需要重新添加服务器密钥】
-      if (authType === 'credential') {
-        let credentialId = await AESDecryptAsync(targetHostInfo[authType])
-        const sshRecordList = await credentialsDB.findAsync({})
-        const sshRecord = sshRecordList.find(item => item._id === credentialId)
-        authInfo.authType = sshRecord.authType
-        authInfo[authInfo.authType] = await AESDecryptAsync(sshRecord[authInfo.authType])
-      } else {
-        authInfo[authType] = await AESDecryptAsync(targetHostInfo[authType])
+      let { connectByJumpHosts = null } = (await decryptAndExecuteAsync(rawPath.join(__dirname, 'plus.js'))) || {}
+      let { authType, host, port, username, jumpHosts } = targetHostInfo
+
+      let { authInfo: targetConnectionOptions } = await getConnectionOptions(hostId)
+      let jumpHostResult = connectByJumpHosts && (await connectByJumpHosts(jumpHosts, targetConnectionOptions.host, targetConnectionOptions.port, socket))
+      if (jumpHostResult) {
+        targetConnectionOptions.sock = jumpHostResult.sock
+        jumpSshClients = jumpHostResult.sshClients
+        consola.success('Sftp跳板机连接成功')
       }
-      consola.info('准备连接Sftp面板：', host)
-      targetHostInfo[targetHostInfo.authType] = await AESDecryptAsync(targetHostInfo[targetHostInfo.authType])
 
+      consola.info('准备连接Sftp面板：', host)
       consola.log('连接信息', { username, port, authType })
+
+      sftpClient.client = new SSHClient()
+      sftpClient.client.on('keyboard-interactive', function (name, instructions, instructionsLang, prompts, finish) {
+        finish([targetConnectionOptions[authType]])
+      })
+
       sftpClient
-        .connect(authInfo)
-        .then(() => {
+        .connect({
+          tryKeyboard: true,
+          ...targetConnectionOptions
+        })
+        // .on('keyboard-interactive', function (name, instructions, instructionsLang, prompts, finish) {
+        //   finish([targetConnectionOptions[authType]])
+        // })
+        .then(async () => {
           consola.success('连接Sftp成功：', host)
           fs.ensureDirSync(sftpCacheDir)
-          return sftpClient.list('/')
+          let rootList = []
+          let isRootUser = true
+          try {
+            rootList = await sftpClient.list('/')
+            consola.success('获取根目录成功')
+          } catch (error) {
+            consola.error('获取根目录失败:', error.message)
+            consola.info('尝试获取当前目录')
+            isRootUser = false
+            rootList = await sftpClient.list('./')
+            consola.success('获取当前目录成功')
+          }
+          return { rootList, isRootUser }
         })
-        .then((rootLs) => {
+        .then(({ rootList, isRootUser }) => {
           // 普通文件-、目录文件d、链接文件l
-          socket.emit('root_ls', rootLs) // 先返回根目录
-          listenInput(sftpClient, socket) // 监听前端请求
+          socket.emit('root_ls', rootList) // 先返回根目录
+          listenInput(sftpClient, socket, isRootUser) // 监听前端请求
         })
         .catch((err) => {
           consola.error('创建Sftp失败:', err.message)
@@ -285,6 +319,8 @@ module.exports = (httpServer) => {
               consola.success('clean sftpCacheDir: ', sftpCacheDir)
             })
         })
+      jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
+      jumpSshClients = null
     })
   })
 }

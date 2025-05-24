@@ -360,7 +360,7 @@ const handleSaveCode = (code) => {
   let name = filename.value
   const fullPath = getPath(name)
   const targetPath = curPath.value
-  socket.value.emit('up_file', { targetPath, fullPath, name, file })
+  socket.value.emit('file_save_edit', { targetPath, fullPath, name, file })
 }
 
 const handleClosedCode = () => {
