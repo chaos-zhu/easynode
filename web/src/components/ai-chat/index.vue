@@ -294,7 +294,81 @@ const handleModelChange = (model) => {
 }
 
 const renderMarkdown = (content) => {
-  return h('div', { class: 'markdown-body', innerHTML: md.render(content) })
+  const renderedContent = md.render(content)
+
+  const processCodeBlocks = () => {
+    nextTick(() => {
+      const codeBlocks = document.querySelectorAll('.markdown-body pre')
+
+      codeBlocks.forEach(pre => {
+        if (pre.classList.contains('code-block-processed')) return
+        pre.classList.add('code-block-processed')
+        pre.style.position = 'relative'
+        if (!pre.querySelector('.code_copy_btn')) {
+          const copyBtn = document.createElement('div')
+          copyBtn.classList.add('code_btn')
+          copyBtn.classList.add('code_copy_btn')
+          copyBtn.innerHTML = '复制'
+          copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation()
+            const codeElement = pre.querySelector('code')
+            if (codeElement) {
+              const codeText = codeElement.textContent || ''
+              copyContent(codeText)
+            }
+          })
+          pre.appendChild(copyBtn)
+        }
+        if (!pre.querySelector('.code_exec_btn')) {
+          const execBtn = document.createElement('div')
+          execBtn.classList.add('code_btn')
+          execBtn.classList.add('code_exec_btn')
+          execBtn.innerHTML = '执行'
+          execBtn.addEventListener('click', (e) => {
+            e.stopPropagation()
+            const codeElement = pre.querySelector('code')
+            if (codeElement) {
+              const codeText = codeElement.textContent?.trim() || ''
+              // console.log(codeText)
+              EventBus.$emit('exec_external_command', codeText)
+            }
+          })
+          pre.appendChild(execBtn)
+        }
+
+        pre.addEventListener('mouseenter', () => {
+          const copyBtn = pre.querySelector('.code_copy_btn')
+          if (copyBtn) {
+            copyBtn.style.opacity = '1'
+          }
+          const execBtn = pre.querySelector('.code_exec_btn')
+          if (execBtn) {
+            execBtn.style.opacity = '1'
+          }
+        })
+
+        pre.addEventListener('mouseleave', () => {
+          const copyBtn = pre.querySelector('.code_copy_btn')
+          if (copyBtn) {
+            copyBtn.style.opacity = '0'
+          }
+          const execBtn = pre.querySelector('.code_exec_btn')
+          if (execBtn) {
+            execBtn.style.opacity = '0'
+          }
+        })
+      })
+    })
+  }
+
+  // 每次渲染后处理代码块
+  processCodeBlocks()
+
+  return h('div', {
+    class: 'markdown-body',
+    innerHTML: renderedContent,
+    onMounted: processCodeBlocks
+  })
 }
 
 const chatListBox = ref(null)
@@ -575,4 +649,34 @@ const handleChangeChat = (id) => {
   }
 }
 
+.code_btn {
+  position: absolute;
+  top: 5px;
+  opacity: 0;
+  color: var(--el-color-primary);
+  padding: 0 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  font-size: 12px;
+  transition: all 0.5s;
+  &:hover {
+    opacity: 1;
+    color: var(--el-color-success);
+  }
+}
+
+.code_copy_btn {
+  right: 35px;
+}
+
+.code_exec_btn {
+  right: 0px;
+}
+
+.markdown-body pre {
+  position: relative;
+}
 </style>

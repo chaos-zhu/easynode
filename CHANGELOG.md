@@ -1,10 +1,14 @@
 ## TODO
 
-* 新增MCP server功能
 * serv00 SFTP修复
-* 连接服务器下拉菜单分组展示
 * 新增服务器定时任务功能
-* AI对话生成脚本支持一键发送到终端(TODO
+
+## [3.0.7](https://github.com/chaos-zhu/easynode/releases) (2025-05-24)
+
+* 新增docker容器功能
+* 新增AI对话生成指令支持一键发送到终端
+* 新增登录有效期选择
+* 修复MFA验证以0开头无法校验的bug
 
 ## [3.0.6](https://github.com/chaos-zhu/easynode/releases) (2025-05-05)
 
