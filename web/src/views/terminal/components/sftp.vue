@@ -231,7 +231,7 @@ const connectSftp = () => {
   socket.value.on('connect', () => {
     console.log('/sftp socket已连接：', socket.value.id)
     listenSftp()
-    socket.value.emit('create', { hostId: props.hostId, token: token.value })
+    socket.value.emit('ws_sftp', { hostId: props.hostId, token: token.value })
     socket.value.on('root_ls', (tree) => {
       let temp = sortDirTree(tree).filter((item) => isDir(item.type))
       temp.unshift({ name: '/', type: 'd' })

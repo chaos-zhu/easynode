@@ -19,7 +19,8 @@
     <codemirror
       v-model="code"
       placeholder="Code goes here..."
-      :style="{ height: '79vh', minHeight: '500px' }"
+      :style="{ height: '80vh', minHeight: '500px' }"
+      :disabled="disabled"
       :autofocus="true"
       :indent-with-tab="true"
       :tab-size="4"
@@ -31,7 +32,7 @@
     />
     <template #footer>
       <footer>
-        <div class="select_wrap">
+        <div v-if="!disabled" class="select_wrap">
           <el-select v-model="curLang" placeholder="Select language">
             <el-option
               v-for="item in languageKey"
@@ -42,7 +43,14 @@
           </el-select>
         </div>
         <div class="footer_btns">
-          <el-button type="primary" :loading="loading" @click="handleSave">保存</el-button>
+          <el-button
+            v-if="!disabled"
+            type="primary"
+            :loading="loading"
+            @click="handleSave"
+          >
+            保存
+          </el-button>
           <el-button type="info" @click="handleClose">关闭</el-button>
         </div>
       </footer>
@@ -76,6 +84,10 @@ export default {
     filename: {
       required: true,
       type: String
+    },
+    disabled: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:show', 'save', 'closed',],
@@ -86,7 +98,7 @@ export default {
       status: '准备中',
       loading: false,
       isTips: false,
-      code: 'hello world'
+      code: 'loading...'
     }
   },
   computed: {
@@ -139,6 +151,7 @@ export default {
           case 'sql': return this.curLang = 'sql'
           case 'md': return this.curLang = 'markdown'
           case 'py': return this.curLang = 'python'
+          case 'log': return this.curLang = 'json'
           default:
             // console.log('不支持的文件类型: ', newVal)
             // console.log('默认: ', 'shell')
@@ -172,7 +185,7 @@ export default {
       this.$emit('closed')
     },
     handleClose() {
-      if (this.isTips) {
+      if (this.isTips && !this.disabled) {
         this.$messageBox.confirm('文件已变更, 确认丢弃?', 'Warning', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
@@ -235,8 +248,5 @@ export default {
 .select_wrap {
   width: 150px;
   margin-right: 15px;
-}
-.footer_btns {
-  margin-top: 15px;
 }
 </style>

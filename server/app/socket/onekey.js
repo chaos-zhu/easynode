@@ -107,7 +107,7 @@ module.exports = (httpServer) => {
       return
     }
     isExecuting = true
-    socket.on('create', async ({ hostIds, token, command, timeout }) => {
+    socket.on('ws_onekey', async ({ hostIds, token, command, timeout }) => {
       const { code } = await verifyAuthSync(token, requestIP)
       if (code !== 1) {
         socket.emit('token_verify_fail')

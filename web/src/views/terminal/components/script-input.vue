@@ -1,12 +1,6 @@
 <template>
   <div class="script_input_container">
-    <div v-show="!isPlusActive" class="plus_tips">
-      <div class="plus_tips_content">
-        <el-icon class="lock-icon"><Lock /></el-icon>
-        <div class="plus_label">PLUS</div>
-        <p>此功能仅限PLUS版使用, <span class="to_active" @click="gotoPlusPage">去激活</span></p>
-      </div>
-    </div>
+    <PlusLimitTip />
     <div class="left_box">
       <div class="group_list">
         <div
@@ -133,9 +127,10 @@
 <script setup>
 import { ref, computed, getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
-import { VideoPlay, Edit, Setting, Plus, ArrowRightBold, Lock } from '@element-plus/icons-vue'
+import { VideoPlay, Edit, Setting, Plus, ArrowRightBold } from '@element-plus/icons-vue'
 import ScriptEdit from '@/views/scripts/components/script-edit.vue'
 import ScriptGroup from '@/views/scripts/components/script-group.vue'
+import PlusLimitTip from '@/components/common/PlusLimitTip.vue'
 
 defineProps({
   hostId: {
@@ -242,46 +237,6 @@ if (scriptGroupList.value.length) {
   padding: 10px;
   min-width: 0;
   position: relative;
-  .plus_tips {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    .plus_tips_content {
-      text-align: center;
-      color: #fff;
-
-      .lock-icon {
-        font-size: 32px;
-        margin-bottom: 12px;
-      }
-
-      .plus_label {
-        font-size: 20px;
-        font-weight: bold;
-        color: #ffd700;
-        margin-bottom: 8px;
-      }
-
-      p {
-        font-size: 14px;
-        margin: 0;
-        opacity: 0.9;
-        .to_active {
-          color: #ffd700;
-          text-decoration: underline;
-          cursor: pointer;
-        }
-      }
-    }
-  }
   .left_box {
     width: 50%;
     min-width: 50%;

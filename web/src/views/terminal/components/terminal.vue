@@ -128,8 +128,8 @@
                 --el-switch-on-color: #13ce66;
                 --el-switch-off-color: #ff4949;
               "
-              active-text="工具栏"
-              inactive-text="工具栏"
+              active-text="功能栏"
+              inactive-text="功能栏"
             />
           </el-tooltip>
         </div>

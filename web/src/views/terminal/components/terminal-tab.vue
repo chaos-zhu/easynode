@@ -132,13 +132,13 @@ const connectIO = () => {
     console.log('/terminal socket已连接：', hostId.value)
 
     socketConnected.value = true
-    socket.value.emit('create', { hostId: hostId.value, token: token.value })
-    socket.value.on('connect_terminal_success', () => {
+    socket.value.emit('ws_terminal', { hostId: hostId.value, token: token.value })
+    socket.value.on('terminal_connect_success', () => {
       socket.value.on('output', (str) => {
         term.value.write(str)
         terminalText.value += str
       })
-      socket.value.on('connect_shell_success', () => {
+      socket.value.on('terminal_connect_shell_success', () => {
         curStatus.value = CONNECT_SUCCESS
         shellResize()
         if (initCommand.value) socket.value.emit('input', initCommand.value + '\n')
@@ -168,17 +168,17 @@ const connectIO = () => {
       term.value.write(`${ msg }\r\n`)
     })
 
-    socket.value.on('connect_close', () => {
+    socket.value.on('terminal_connect_close', () => {
       curStatus.value = CONNECT_FAIL
       term.value.write('\r\n\x1b[91m终端主动断开连接, 回车重新发起连接\x1b[0m')
     })
 
-    socket.value.on('connect_terminal_fail', (message) => {
+    socket.value.on('terminal_connect_fail', (message) => {
       curStatus.value = CONNECT_FAIL
       term.value.write(`\r\n\x1b[91m连接终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
     })
 
-    socket.value.on('create_terminal_fail', (message) => {
+    socket.value.on('terminal_create_fail', (message) => {
       curStatus.value = CONNECT_FAIL
       term.value.write(`\r\n\x1b[91m创建终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
     })
@@ -481,11 +481,11 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: `日志: docker logs -f ${ str }`,
+        label: `停止: docker stop ${ str }`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand(`docker logs -f ${ str }`)
+          inputCommand(`docker stop ${ str }`)
         }
       },
       {
@@ -509,6 +509,14 @@ const handleRightClick = async (e) => {
               focusTab()
               inputCommand(`docker rm -f ${ str }`)
             })
+        }
+      },
+      {
+        label: `日志: docker logs -f ${ str }`,
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand(`docker logs -f ${ str }`)
         }
       },
     ]
@@ -613,6 +621,15 @@ const inputCommand = (command, isSyncAllSession = false) => {
   command = command + (isSyncAllSession ? '' : (autoExecuteScript.value ? '\n' : ''))
   socket.value.emit('input', command)
 }
+
+EventBus.$on('exec_external_command', (command) => {
+  if (!socket.value || !socket.value.connected || curStatus.value !== CONNECT_SUCCESS) {
+    $message.error('终端连接已断开,无法执行指令')
+    return
+  }
+  socket.value.emit('input', command + '\n')
+  term.value?.focus()
+})
 
 onMounted(async () => {
   createLocalTerminal()

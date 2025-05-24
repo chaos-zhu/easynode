@@ -259,7 +259,7 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
       pendingRecord.value = [] // 每轮执行前清空
     })
 
-    socket.value.emit('create', { hostIds, token: token.value, command, timeout })
+    socket.value.emit('ws_onekey', { hostIds, token: token.value, command, timeout })
 
     socket.value.on('output', (result) => {
       loading.value = false

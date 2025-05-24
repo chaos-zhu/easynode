@@ -224,7 +224,7 @@ module.exports = (httpServer) => {
     let sftpClient = new SFTPClient()
     consola.success('terminal websocket 已连接')
 
-    socket.on('create', async ({ hostId, token }) => {
+    socket.on('ws_sftp', async ({ hostId, token }) => {
       const { code } = await verifyAuthSync(token, requestIP)
       consola.log('code:', code)
       if (code !== 1) {

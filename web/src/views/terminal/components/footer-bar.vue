@@ -9,6 +9,9 @@
         <el-tab-pane label="脚本库" name="script">
           <ScriptInput :host-id="hostId" @exec-command="execCommand" />
         </el-tab-pane>
+        <el-tab-pane label="容器管理" name="docker">
+          <Docker :host-id="hostId" />
+        </el-tab-pane>
       </el-tabs>
     </div>
   </div>
@@ -19,6 +22,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { EventBus } from '@/utils'
 import Sftp from './sftp.vue'
 import ScriptInput from './script-input.vue'
+import Docker from './docker.vue'
 
 defineProps({
   hostId: {

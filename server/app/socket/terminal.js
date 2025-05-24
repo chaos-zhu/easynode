@@ -43,12 +43,13 @@ function createInteractiveShell(socket, targetSSHClient) {
           consola.info('交互终端已关闭')
           targetSSHClient.end()
         })
-      socket.emit('connect_shell_success') // 已连接终端，web端可以执行指令了
+      socket.emit('terminal_connect_shell_success') // 已连接终端，web端可以执行指令了
     })
   })
 }
 
-async function createTerminal(hostId, socket, targetSSHClient) {
+async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShell = true) {
+  consola.info(`准备创建${ isInteractiveShell ? '交互式' : '非交互式' }终端：${ hostId }`)
   return new Promise(async (resolve) => {
     const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
     if (!targetHostInfo) return socket.emit('create_fail', `查找hostId【${ hostId }】凭证信息失败`)
@@ -65,30 +66,34 @@ async function createTerminal(hostId, socket, targetSSHClient) {
 
       socket.emit('terminal_print_info', `准备连接目标终端: ${ name } - ${ host }`)
       socket.emit('terminal_print_info', `连接信息: ssh ${ username }@${ host } -p ${ port }  ->  ${ authType }`)
-
       consola.info('准备连接目标终端：', host)
       consola.log('连接信息', { username, port, authType })
+
       let closeNoticeFlag = false // 避免重复发送通知
       targetSSHClient
         .on('ready', async () => {
-          sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录成功`)
-          socket.emit('terminal_print_info', `终端连接成功: ${ name } - ${ host }`)
           consola.success('终端连接成功：', host)
-          socket.emit('connect_terminal_success', `终端连接成功：${ host }`)
-          let stream = await createInteractiveShell(socket, targetSSHClient)
-          resolve({ stream, jumpSshClients })
+          if (isInteractiveShell) {
+            sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录成功`)
+            socket.emit('terminal_print_info', `终端连接成功: ${ name } - ${ host }`)
+            socket.emit('terminal_connect_success', `终端连接成功：${ host }`)
+            let stream = await createInteractiveShell(socket, targetSSHClient)
+            resolve({ stream, jumpSshClients })
+          } else {
+            resolve({ jumpSshClients })
+          }
         })
         .on('close', (err) => {
           if (closeNoticeFlag) return closeNoticeFlag = false
           const closeReason = err ? '发生错误导致连接断开' : '正常断开连接'
           consola.info(`终端连接断开(${ closeReason }): ${ host }`)
-          socket.emit('connect_close', { reason: closeReason })
+          socket.emit('terminal_connect_close', { reason: closeReason })
         })
         .on('error', (err) => {
           closeNoticeFlag = true
           sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录失败`)
           consola.error('连接终端失败:', host, err.message)
-          socket.emit('connect_terminal_fail', err.message)
+          socket.emit('terminal_connect_fail', err.message)
         })
         .on('keyboard-interactive', function (name, instructions, instructionsLang, prompts, finish) {
           finish([targetConnectionOptions[authType]])
@@ -100,7 +105,7 @@ async function createTerminal(hostId, socket, targetSSHClient) {
         })
     } catch (err) {
       consola.error('创建终端失败: ', host, err.message)
-      socket.emit('create_terminal_fail', err.message)
+      socket.emit('terminal_create_fail', err.message)
     }
   })
 }
@@ -127,7 +132,7 @@ module.exports = (httpServer) => {
     consola.success('terminal websocket 已连接')
     let targetSSHClient = null
     let jumpSshClients = []
-    socket.on('create', async ({ hostId, token }) => {
+    socket.on('ws_terminal', async ({ hostId, token }) => {
       const { code } = await verifyAuthSync(token, requestIP)
       if (code !== 1) {
         socket.emit('token_verify_fail')
@@ -135,7 +140,7 @@ module.exports = (httpServer) => {
         return
       }
       targetSSHClient = new SSHClient()
-      let { stream = null, jumpSshClients: jumpSshClientsFromCreate } = await createTerminal(hostId, socket, targetSSHClient)
+      let { stream = null, jumpSshClients: jumpSshClientsFromCreate } = await createTerminal(hostId, socket, targetSSHClient, true)
       jumpSshClients = jumpSshClientsFromCreate
       function listenerInput(key) {
         if (targetSSHClient._sock.writable === false) return consola.info('终端连接已关闭,禁止输入')
@@ -168,3 +173,4 @@ module.exports = (httpServer) => {
 }
 
 module.exports.getConnectionOptions = getConnectionOptions
+module.exports.createTerminal = createTerminal
