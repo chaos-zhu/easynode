@@ -60,13 +60,22 @@
         <span class="label">已授权IP:</span>
         <div class="ip_tags">
           <el-tag
-            v-for="ip in plusInfo.usedIPs"
+            v-for="ip in displayedIPs"
             :key="ip"
             size="small"
             class="ip_tag"
           >
             {{ ip }}
           </el-tag>
+          <el-button
+            v-if="plusInfo.usedIPs.length > 5"
+            link
+            type="primary"
+            class="toggle_ips"
+            @click="showAllIPs = !showAllIPs"
+          >
+            {{ showAllIPs ? '收起' : `+${plusInfo.usedIPs.length - 5} 更多` }}
+          </el-button>
         </div>
       </div>
     </div>
@@ -156,6 +165,13 @@ onMounted(() => {
   getPlusConf()
   getPlusDiscount()
 })
+
+const showAllIPs = ref(false)
+
+const displayedIPs = computed(() => {
+  const ips = plusInfo.value.usedIPs || []
+  return showAllIPs.value ? ips : ips.slice(0, 5)
+})
 </script>
 
 <style lang="scss" scoped>
@@ -228,6 +244,12 @@ onMounted(() => {
 
           .ip_tag {
             margin: 2px;
+          }
+          .toggle_ips {
+            margin-top: 5px;
+            font-size: 12px;
+            padding: 0;
+            height: auto;
           }
         }
       }
