@@ -39,7 +39,8 @@ const useStore = defineStore('global', {
         themeName: 'Afterglow',
         background: 'linear-gradient(-225deg, #CBBACC 0%, #2580B3 100%)',
         autoReconnect: true,
-        autoExecuteScript: false
+        autoExecuteScript: false,
+        requireModifierForWebLinks: true
       },
       ...(localStorage.getItem('terminalConfig') ? JSON.parse(localStorage.getItem('terminalConfig')) : {})
     },

@@ -98,6 +98,22 @@
               />
             </el-tooltip>
           </el-form-item>
+          <el-form-item label="跳转修饰键" prop="requireModifierForWebLinks">
+            <el-tooltip
+              effect="dark"
+              content="禁用后直接点击链接即可跳转(无需Ctrl或Alt键)"
+              placement="right"
+            >
+              <el-switch
+                v-model="requireModifierForWebLinks"
+                class="swtich"
+                inline-prompt
+                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                active-text="启用"
+                inactive-text="禁用"
+              />
+            </el-tooltip>
+          </el-form-item>
         </el-form>
       </el-tab-pane>
       <el-tab-pane label="菜单选项">
@@ -181,6 +197,10 @@ const autoExecuteScript = computed({
   get: () => $store.terminalConfig.autoExecuteScript,
   set: (newVal) => $store.setTerminalSetting({ autoExecuteScript: newVal })
 })
+const requireModifierForWebLinks = computed({
+  get: () => $store.terminalConfig.requireModifierForWebLinks,
+  set: (newVal) => $store.setTerminalSetting({ requireModifierForWebLinks: newVal })
+});
 const scriptLibrary = computed({
   get: () => $store.menuSetting.scriptLibrary,
   set: (newVal) => $store.setMenuSetting({ scriptLibrary: newVal })

@@ -292,8 +292,13 @@ const handleResize = () => {
 
 const onWebLinks = () => {
   term.value.loadAddon(new WebLinksAddon((event, uri) => {
-    if (event.ctrlKey || event.altKey) window.open(uri, '_blank')
-  }))
+    const requireModifier = $store.terminalConfig.requireModifierForWebLinks;
+    // 根据配置决定跳转行为
+    // 如果用户禁用跳转修饰键，即requireModifier为false则直接跳转
+    if (!requireModifier || event.ctrlKey || event.altKey) {
+      window.open(uri, '_blank');
+    }
+  }));
 }
 
 // :TODO: 重写终端搜索功能
