@@ -1,6 +1,7 @@
 const path = require('path')
 
 consola.info('debug日志：', process.env.DEBUG === '1' ? '开启' : '关闭')
+consola.info('自定义真实IP请求头：', process.env.clientIPHeader ? '是' : '否')
 
 module.exports = {
   httpPort: 8082,
@@ -25,5 +26,6 @@ module.exports = {
   logConfig: {
     outDir: path.join(process.cwd(),'./app/db/logs'),
     recordLog: process.env.DEBUG === '1' // 是否记录日志
-  }
+  },
+  clientIPHeader: process.env.clientIPHeader || 'x-forwarded-for' // 自定义真实IP请求头, 默认为兼容nginx反代
 }

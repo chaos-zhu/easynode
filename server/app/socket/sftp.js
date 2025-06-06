@@ -3,7 +3,7 @@ const fs = require('fs-extra')
 const SFTPClient = require('ssh2-sftp-client')
 const CryptoJS = require('crypto-js')
 const { Server } = require('socket.io')
-const { sftpCacheDir } = require('../config')
+const { sftpCacheDir, clientIPHeader } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { isAllowedIp } = require('../utils/tools')
 const { HostListDB } = require('../utils/db-class')
@@ -227,8 +227,8 @@ module.exports = (httpServer) => {
     }
   })
   serverIo.on('connection', (socket) => {
-    // 前者兼容nginx反代, 后者兼容nodejs自身服务
-    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    // 前者为自定义真实IP请求头或默认兼容nginx反代, 后者兼容nodejs自身服务
+    let requestIP = socket.handshake.headers[clientIPHeader] || socket.handshake.address
     if (!isAllowedIp(requestIP)) {
       socket.emit('ip_forbidden', 'IP地址不在白名单中')
       socket.disconnect()

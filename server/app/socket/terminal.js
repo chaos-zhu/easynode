@@ -1,6 +1,7 @@
 const path = require('path')
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
+const { clientIPHeader } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { sendNoticeAsync } = require('../utils/notify')
 const { isAllowedIp, ping } = require('../utils/tools')
@@ -123,7 +124,7 @@ module.exports = (httpServer) => {
   serverIo.on('connection', (socket) => {
     connectionCount++
     consola.success(`terminal websocket 已连接 - 当前连接数: ${ connectionCount }`)
-    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    let requestIP = socket.handshake.headers[clientIPHeader] || socket.handshake.address
     if (!isAllowedIp(requestIP)) {
       socket.emit('ip_forbidden', 'IP地址不在白名单中')
       socket.disconnect()

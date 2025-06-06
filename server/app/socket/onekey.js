@@ -1,5 +1,6 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
+const { clientIPHeader } = require('../config')
 const { sendNoticeAsync } = require('../utils/notify')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { shellThrottle } = require('../utils/tools')
@@ -93,8 +94,8 @@ module.exports = (httpServer) => {
     }
   })
   serverIo.on('connection', (socket) => {
-    // 前者兼容nginx反代, 后者兼容nodejs自身服务
-    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    // 前者为自定义真实IP请求头或默认兼容nginx反代, 后者兼容nodejs自身服务
+    let requestIP = socket.handshake.headers[clientIPHeader] || socket.handshake.address
     if (!isAllowedIp(requestIP)) {
       socket.emit('ip_forbidden', 'IP地址不在白名单中')
       socket.disconnect()
