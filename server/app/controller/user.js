@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken')
 const axios = require('axios')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
+const { clientIPHeader } = require('../config')
 const version = require('../../package.json').version
 const getLicenseInfo = require('../utils/get-plus')
 const { plusServer1, plusServer2 } = require('../utils/plus-server')
@@ -28,8 +29,19 @@ let loginErrTotal = 0 // 总的登录错误次数
 let loginCountDown = forbidTimer
 let forbidLogin = false
 
+/**
+ * 获取真实客户端IP
+ * @param {Object} request - 请求对象
+ * @returns {String} 客户端IP
+ */
+const getClientIPFromRequest = (request) => {
+  // 前者为自定义真实IP请求头或默认兼容nginx反代, 后者为中间件获取的IP地址
+  return request.headers[clientIPHeader] || request.ip
+}
+
 const login = async ({ res, request }) => {
-  let { body: { loginName, ciphertext, jwtExpires, mfa2Token }, ip: clientIp } = request
+  let { body: { loginName, ciphertext, jwtExpires, mfa2Token } } = request
+  const clientIp = getClientIPFromRequest(request)
   if (!loginName && !ciphertext) return res.fail({ msg: '请求非法!' })
   if (forbidLogin) return res.fail({ msg: `禁止登录! 倒计时[${ loginCountDown }s]后尝试登录或重启面板服务` })
   loginErrCount++
