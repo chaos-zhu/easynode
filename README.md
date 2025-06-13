@@ -112,7 +112,7 @@ curl -o- https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easy
 >
 > 查看监控服务日志: `journalctl --follow -u easynode-client`
 >
-> 查看详细日志：journalctl -xe
+> 查看详细日志：`journalctl -xe`
 
 ---
 
