@@ -35,16 +35,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, getCurrentInstance } from 'vue'
+import { ref, onMounted, getCurrentInstance, watch } from 'vue'
 import { InfoFilled } from '@element-plus/icons-vue'
+import { useRoute } from 'vue-router'
 
 const { proxy: { $api, $tools, $message } } = getCurrentInstance()
+const route = useRoute()
 
 const loginRecordList = ref([])
 const loading = ref(false)
 const btnLoading = ref(false)
 const total = ref('')
 const allowedIPs = ref([])
+
+watch(() => route.query.refresh, (newVal) => {
+  if (newVal) {
+    handleLookupLoginRecord()
+  }
+})
 
 const handleLookupLoginRecord = () => {
   loading.value = true

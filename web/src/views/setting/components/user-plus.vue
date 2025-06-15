@@ -60,18 +60,63 @@
         <span class="label">已授权IP:</span>
         <div class="ip_tags">
           <el-tag
-            v-for="ip in plusInfo.usedIPs"
+            v-for="ip in displayedIPs"
             :key="ip"
             size="small"
             class="ip_tag"
           >
             {{ ip }}
           </el-tag>
+          <el-button
+            v-if="hasMoreIPs"
+            type="primary"
+            link
+            size="small"
+            class="view_all_btn"
+            @click="showAllIPsDialog = true"
+          >
+            查看所有({{ totalIPCount }})
+          </el-button>
+          <el-button
+            type="success"
+            size="small"
+            link
+            :loading="whitelistLoading"
+            @click="handleSetToWhitelist"
+          >
+            [追加所有IP到登录白名单]
+          </el-button>
         </div>
       </div>
     </div>
   </div>
   <PlusTable />
+
+  <el-dialog
+    v-model="showAllIPsDialog"
+    title="所有已授权IP"
+    width="600px"
+    :before-close="() => showAllIPsDialog = false"
+  >
+    <div class="all_ips_container">
+      <div class="ip_count_info">
+        共 {{ totalIPCount }} 个已授权IP
+      </div>
+      <div class="all_ip_tags">
+        <el-tag
+          v-for="ip in plusInfo.usedIPs"
+          :key="ip"
+          size="small"
+          class="ip_tag"
+        >
+          {{ ip }}
+        </el-tag>
+      </div>
+    </div>
+    <template #footer>
+      <el-button @click="showAllIPsDialog = false">关闭</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -80,12 +125,16 @@ import { ElMessageBox } from 'element-plus'
 import { TopRight } from '@element-plus/icons-vue'
 import { handlePlusSupport } from '@/utils'
 import PlusTable from '@/components/plus-table.vue'
+import { useRouter } from 'vue-router'
 
 const { proxy: { $api, $message, $store } } = getCurrentInstance()
+const router = useRouter()
 
 const errCount = ref(Number(localStorage.getItem('plusErrCount') || 0))
 const loading = ref(false)
 const formRef = ref(null)
+const showAllIPsDialog = ref(false)
+const whitelistLoading = ref(false)
 const formData = reactive({
   key: ''
 })
@@ -97,6 +146,20 @@ const discountContent = ref('')
 
 const plusInfo = computed(() => $store.plusInfo)
 const isPlusActive = computed(() => $store.isPlusActive)
+
+const displayedIPs = computed(() => {
+  const ips = plusInfo.value?.usedIPs || []
+  return ips.slice(0, 5)
+})
+
+const hasMoreIPs = computed(() => {
+  const ips = plusInfo.value?.usedIPs || []
+  return ips.length > 5
+})
+
+const totalIPCount = computed(() => {
+  return plusInfo.value?.usedIPs?.length || 0
+})
 
 const handleUpdate = () => {
   formRef.value.validate()
@@ -149,6 +212,53 @@ const getPlusDiscount = async () => {
   if (data?.discount) {
     discount.value = data.discount
     discountContent.value = data.content
+  }
+}
+
+const handleSetToWhitelist = async () => {
+  try {
+    const allAuthorizedIPs = plusInfo.value?.usedIPs || []
+    await ElMessageBox.confirm(
+      `确定要将 ${ allAuthorizedIPs.length } 个PLUS授权IP追加到登录白名单吗？<br/><span style="color: #ff4806;">注意！</span>设置后非白名单IP将无法访问面板`,
+      '确认操作',
+      {
+        confirmButtonText: '确认追加',
+        cancelButtonText: '取消',
+        type: 'warning',
+        dangerouslyUseHTMLString: true
+      }
+    )
+
+    whitelistLoading.value = true
+    const { data: recordData } = await $api.getLoginRecord()
+    const currentWhiteList = recordData.ipWhiteList || []
+    const mergedIPs = [...new Set([...currentWhiteList, ...allAuthorizedIPs,]),]
+    await $api.saveIpWhiteList({ ipWhiteList: mergedIPs })
+    $message({
+      type: 'success',
+      center: true,
+      message: `成功将 ${ allAuthorizedIPs.length } 个IP添加到登录白名单`
+    })
+
+    setTimeout(() => {
+      router.push({
+        path: '/setting',
+        query: {
+          tabKey: 'record',
+          refresh: Date.now()
+        }
+      })
+    }, 1000)
+
+  } catch (error) {
+    if (error === 'cancel') return
+    $message({
+      type: 'error',
+      center: true,
+      message: error.message || '设置白名单失败'
+    })
+  } finally {
+    whitelistLoading.value = false
   }
 }
 
@@ -229,8 +339,41 @@ onMounted(() => {
           .ip_tag {
             margin: 2px;
           }
+
+          .view_all_btn {
+            margin-left: 8px;
+            padding: 2px 4px;
+            font-size: 12px;
+            height: auto;
+          }
+        }
+
+        .ip_actions {
+          margin-top: 10px;
+
+          .el-button {
+            font-size: 12px;
+          }
         }
       }
+    }
+  }
+}
+
+.all_ips_container {
+  .ip_count_info {
+    margin-bottom: 15px;
+    color: #606266;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .all_ip_tags {
+    max-height: 400px;
+    overflow-y: auto;
+
+    .ip_tag {
+      margin: 4px;
     }
   }
 }
