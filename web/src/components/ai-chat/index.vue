@@ -92,12 +92,39 @@
           <Bubble
             :loading="isConnecting && index === chatList.length - 1"
             :placement="item.role === 'assistant' ? 'start' : 'end'"
-            :content="item.content"
-            :message-render="renderMarkdown"
+            :content="item.isEditing ? '' : item.content"
+            :message-render="item.isEditing ? null : renderMarkdown"
           >
             <template #avatar>
               <svg-icon v-if="item.role === 'assistant'" name="icon-AI-money" style="width: 25px; height: 25px;color: var(--el-menu-active-color);" />
               <el-icon v-else :size="20" style="color: #887dfd;"><Avatar /></el-icon>
+            </template>
+            <template v-if="item.isEditing" #message>
+              <div class="message_edit_container">
+                <el-input
+                  v-model="item.editingContent"
+                  type="textarea"
+                  :autosize="{ minRows: 3, maxRows: 10 }"
+                  placeholder="编辑消息内容"
+                  class="edit_textarea"
+                />
+                <div class="edit_actions">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    :loading="loading"
+                    @click="handleConfirmEdit(item.id, item.editingContent)"
+                  >
+                    确认
+                  </el-button>
+                  <el-button
+                    size="small"
+                    @click="handleCancelEdit(item.id)"
+                  >
+                    取消
+                  </el-button>
+                </div>
+              </div>
             </template>
             <template #header>
               <div v-show="item.reasoning" class="reasoning_box">
@@ -123,29 +150,32 @@
             <template v-if="index !== 0" #footer>
               <div class="action_btn" :style="item.role === 'assistant' ? 'left: 45px;' : 'right: 45px;'">
                 <el-button
+                  v-if="!item.isEditing"
                   size="small"
                   :icon="Refresh"
                   circle
                   @click="regenerateMessage(item.id, activeModel)"
                 />
                 <el-button
+                  v-if="!item.isEditing"
                   size="small"
                   :icon="CopyDocument"
                   circle
                   @click="copyContent(item.content)"
                 />
                 <el-button
+                  v-if="!item.isEditing"
                   size="small"
                   :icon="Delete"
                   circle
                   @click="deleteMessage(item.id)"
                 />
                 <el-button
-                  v-show="item.role === 'user'"
+                  v-show="item.role === 'user' && !item.isEditing"
                   size="small"
                   :icon="EditPen"
                   circle
-                  @click="editMessage(item.content)"
+                  @click="handleStartEdit(item.id)"
                 />
               </div>
             </template>
@@ -230,7 +260,10 @@ const {
   regenerateMessage,
   changeChat,
   removeChat,
-  addChat
+  addChat,
+  startEditMessage,
+  cancelEditMessage,
+  confirmEditMessage
 } = useAIChat()
 
 const aiApiConfigVisible = ref(false)
@@ -388,8 +421,25 @@ const scrollToBottom = () => {
   })
 }
 
-const editMessage = (content) => {
-  question.value = content
+const handleStartEdit = (messageId) => {
+  if (loading.value) {
+    $message.warning('请等待当前对话响应完成')
+    return
+  }
+  startEditMessage(messageId)
+}
+
+const handleCancelEdit = (messageId) => {
+  cancelEditMessage(messageId)
+}
+
+const handleConfirmEdit = async (messageId, newContent) => {
+  if (!newContent || !newContent.trim()) {
+    $message.warning('内容不能为空')
+    return
+  }
+
+  await confirmEditMessage(messageId, newContent.trim(), activeModel.value)
 }
 
 EventBus.$on('sendToAIInput', (text) => {
@@ -477,6 +527,32 @@ const handleChangeChat = (id) => {
     justify-content: center;
   }
 }
+
+.message_edit_container {
+  width: 380px;
+
+  .edit_textarea {
+    margin-bottom: 10px;
+    width: 100%;
+
+    :deep(.el-textarea__inner) {
+      width: 100% !important;
+      border-color: v-bind('isDark ? "#454242" : "#d9d9d9"');
+      background-color: v-bind('isDark ? "#1a1a1a" : "#fff"');
+      color: v-bind('isDark ? "#bbb" : "#000"');
+
+      &:focus {
+        border-color: #1677ff;
+      }
+    }
+  }
+
+  .edit_actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+}
 </style>
 
 <style lang="scss">
@@ -507,7 +583,7 @@ const handleChangeChat = (id) => {
       .ant-bubble-header {
         width: 100%;
       }
-      .ant-bubble-content.ant-bubble-content-filled {
+            .ant-bubble-content.ant-bubble-content-filled {
         background-color: transparent!important;
         border: 1px solid v-bind('isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"');
       }

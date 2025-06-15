@@ -5,7 +5,7 @@ import useStore from '@/store'
 import $api from '@/api'
 import { randomStr } from '@/utils'
 
-// const titlePrompt = '使用四到五个字直接返回这句话的简要主题，不要解释、不要标点、不要语气词、不要多余文本，不要加粗，如果没有主题，请直接返回“闲聊”'
+// const titlePrompt = '使用四到五个字直接返回这句话的简要主题，不要解释、不要标点、不要语气词、不要多余文本，不要加粗，如果没有主题，请直接返回"闲聊"'
 
 const defaultChatList = () => {
   return [{
@@ -242,6 +242,39 @@ export function useAIChat() {
     $store.getChatHistory()
   }
 
+  const startEditMessage = (messageId) => {
+    if (loading.value) return
+    const message = chatList.value.find(msg => msg.id === messageId)
+    if (message) {
+      message.isEditing = true
+      message.editingContent = message.content
+    }
+  }
+
+  const cancelEditMessage = (messageId) => {
+    const message = chatList.value.find(msg => msg.id === messageId)
+    if (message) {
+      message.isEditing = false
+      message.editingContent = ''
+    }
+  }
+
+  const confirmEditMessage = async (messageId, newContent, model) => {
+    if (loading.value) return
+
+    const messageIndex = chatList.value.findIndex(msg => msg.id === messageId)
+    if (messageIndex === -1) return
+
+    const message = chatList.value[messageIndex]
+    message.content = newContent
+    message.isEditing = false
+    message.editingContent = ''
+
+    chatList.value.splice(messageIndex)
+
+    await sendMessage(newContent, model)
+  }
+
   onUnmounted(() => {
     aiService.value?.closeConnection()
   })
@@ -260,6 +293,9 @@ export function useAIChat() {
     regenerateMessage,
     changeChat,
     removeChat,
-    addChat
+    addChat,
+    startEditMessage,
+    cancelEditMessage,
+    confirmEditMessage
   }
 }
