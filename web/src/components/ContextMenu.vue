@@ -85,6 +85,7 @@ const activeSubMenuIndex = ref(-1)
 const subMenuPosition = ref({ x: 0, y: 0 })
 const keepSubMenuOpen = ref(false)
 const menuItemRefs = ref({})
+const isInitializing = ref(false)
 let subMenuTimer = null
 
 const menuStyle = computed(() => ({
@@ -119,22 +120,36 @@ const setMenuItemRef = (el, index) => {
 const showMenu = async (event, items) => {
   if (!items || items.length === 0) return
 
+  isInitializing.value = true
+
+  // 先关闭可能存在的子菜单
+  activeSubMenuIndex.value = -1
+  keepSubMenuOpen.value = false
+  clearTimeout(subMenuTimer)
+
   menuItems.value = items
   position.value = { x: event.x, y: event.y }
   visible.value = true
-  activeSubMenuIndex.value = -1
-  keepSubMenuOpen.value = false
 
   await nextTick()
   adjustPosition()
+
+  // 延迟一小段时间，避免立即被点击事件关闭
+  setTimeout(() => {
+    isInitializing.value = false
+  }, 50)
 }
 
 const closeMenu = () => {
+  // 如果正在初始化，忽略关闭请求
+  if (isInitializing.value) return
+
   visible.value = false
   menuItems.value = []
   activeSubMenuIndex.value = -1
   keepSubMenuOpen.value = false
   menuItemRefs.value = {}
+  isInitializing.value = false
   clearTimeout(subMenuTimer)
 }
 
@@ -142,6 +157,8 @@ const handleItemClick = (item) => {
   if (item.onClick && typeof item.onClick === 'function') {
     item.onClick()
   }
+  // 点击菜单项时立即关闭，无需等待初始化
+  isInitializing.value = false
   closeMenu()
 }
 
@@ -269,6 +286,7 @@ defineExpose({
 .custom_context_menu {
   .context_menu_content {
     min-width: 160px;
+    max-width: 350px;
     border: 1px solid var(--el-border-color);
     border-radius: 6px;
     box-shadow: var(--el-box-shadow-light);

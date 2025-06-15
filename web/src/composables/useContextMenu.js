@@ -7,12 +7,28 @@ export function useContextMenu() {
   const menuRef = ref(null)
   let contextMenuApp = null
   let contextMenuInstance = null
+  let isClosing = false
 
-  const showMenu = (event, items) => {
+  const showMenu = async (event, items) => {
     event.preventDefault()
 
+    // 如果正在关闭中，等待关闭完成
+    if (isClosing) {
+      await new Promise(resolve => {
+        const checkClosed = () => {
+          if (!isClosing) {
+            resolve()
+          } else {
+            setTimeout(checkClosed, 10)
+          }
+        }
+        checkClosed()
+      })
+    }
+
+    // 如果已有菜单实例，先同步关闭
     if (contextMenuInstance) {
-      closeMenu()
+      await closeMenuSync()
     }
 
     contextMenuApp = createApp(ContextMenu)
@@ -48,19 +64,54 @@ export function useContextMenu() {
   }
 
   const closeMenu = () => {
-    if (contextMenuInstance) {
+    if (contextMenuInstance && !isClosing) {
+      isClosing = true
       contextMenuInstance.closeMenu()
 
       setTimeout(() => {
         if (contextMenuInstance && contextMenuInstance._container) {
-          contextMenuApp?.unmount()
-          document.body.removeChild(contextMenuInstance._container)
+          try {
+            contextMenuApp?.unmount()
+            if (document.body.contains(contextMenuInstance._container)) {
+              document.body.removeChild(contextMenuInstance._container)
+            }
+          } catch (error) {
+            console.warn('清理菜单时出错:', error)
+          }
           contextMenuInstance = null
           contextMenuApp = null
           menuRef.value = null
         }
+        isClosing = false
       }, 100)
     }
+  }
+
+  const closeMenuSync = () => {
+    return new Promise((resolve) => {
+      if (!contextMenuInstance) {
+        resolve()
+        return
+      }
+
+      isClosing = true
+      contextMenuInstance.closeMenu()
+
+      try {
+        contextMenuApp?.unmount()
+        if (document.body.contains(contextMenuInstance._container)) {
+          document.body.removeChild(contextMenuInstance._container)
+        }
+      } catch (error) {
+        console.warn('同步清理菜单时出错:', error)
+      }
+
+      contextMenuInstance = null
+      contextMenuApp = null
+      menuRef.value = null
+      isClosing = false
+      resolve()
+    })
   }
 
   return {
