@@ -752,7 +752,10 @@ const handleChangeChat = (id) => {
   right: 0px;
 }
 
-.markdown-body pre {
-  position: relative;
+.markdown-body {
+  font-size: 14px!important;
+  pre {
+    position: relative;
+  }
 }
 </style>
