@@ -24,6 +24,7 @@
         </el-dropdown>
         <el-dropdown
           v-if="scriptLibrary"
+          ref="scriptDropdownRef"
           trigger="click"
           max-height="50vh"
           :teleported="false"
@@ -33,7 +34,7 @@
           <template #dropdown>
             <el-cascader-panel
               v-if="scriptLibraryCascader"
-              v-model="scriptIdsPath"
+              ref="scriptCascaderRef"
               style="width: fit-content"
               :props="{
                 expandTrigger: 'hover',
@@ -47,7 +48,7 @@
                 :key="item.id"
                 @click="handleExecScript(item)"
               >
-                <span>{{ item.name }}</span>
+                <span :title="item.name">{{ item.name }}</span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -276,7 +277,8 @@ const showSetting = ref(false)
 const showMobileInfoSideDialog = ref(false)
 const longPressCtrl = ref(false)
 const longPressAlt = ref(false)
-const scriptIdsPath = ref([])
+const scriptDropdownRef = ref(null)
+const scriptCascaderRef = ref(null)
 
 const isPlusActive = computed(() => $store.isPlusActive)
 const terminalTabs = computed(() => props.terminalTabs)
@@ -398,18 +400,26 @@ const resetLongPress = () => {
   longPressAlt.value = false
 }
 
-const handleExecScript = ({ id: scriptId }) => {
-  const id = scriptLibraryCascader.value
-    ? scriptIdsPath.value.pop()
-    : scriptId
+const handleExecScript = async (scriptDescObj) => {
+  if (!scriptDescObj) return // clearCheckedNodes二次触发change事件
+  const id = Array.isArray(scriptDescObj) ? scriptDescObj.slice(-1)[0] : scriptDescObj.id
   const script = scriptList.value.find((item) => item.id === id)
   if (!script) return $message.warning('未找到对应的脚本')
 
   const command = script.command
-  if (!isSyncAllSession.value) return handleInputCommand(command)
-  terminalRefs.value.forEach((terminalRef) => {
-    terminalRef.inputCommand(command)
-  })
+  if (!isSyncAllSession.value) {
+    await handleInputCommand(command)
+  } else {
+    terminalRefs.value.forEach((terminalRef) => {
+      terminalRef.inputCommand(command)
+    })
+  }
+
+  await $nextTick()
+  setTimeout(() => {
+    scriptCascaderRef.value?.clearCheckedNodes()
+    scriptDropdownRef.value?.handleClose()
+  }, 100)
 }
 
 const terminalInput = (command) => {
