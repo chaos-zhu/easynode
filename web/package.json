@@ -25,7 +25,6 @@
     "@codemirror/language": "^6.11.0",
     "@codemirror/legacy-modes": "^6.5.0",
     "@codemirror/theme-one-dark": "^6.1.2",
-    "@imengyu/vue3-context-menu": "^1.4.8",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-search": "^0.15.0",
     "@xterm/addon-web-links": "^0.11.0",

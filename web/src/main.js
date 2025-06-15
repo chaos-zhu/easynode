@@ -1,7 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import useStore from '@store/index'
-import ContextMenu from '@imengyu/vue3-context-menu'
 import router from './router'
 import tools from './plugins/tools'
 import elementPlugins from './plugins/element'
@@ -9,7 +8,6 @@ import globalComponents from './plugins/components'
 import axios from '@/utils/axios'
 import api from './api'
 import App from './app.vue'
-import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
 import './assets/scss/reset.scss'
 import './assets/scss/global.scss'
 import './assets/scss/mobile.scss'
@@ -19,7 +17,6 @@ elementPlugins(app)
 globalComponents(app)
 app.use(createPinia())
 app.use(router)
-app.use(ContextMenu)
 
 app.config.globalProperties.$api = api
 app.config.globalProperties.$tools = tools
