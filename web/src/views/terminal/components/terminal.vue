@@ -2,10 +2,26 @@
   <div class="terminal_wrap">
     <div class="terminal_top">
       <div class="left_menu">
-        <el-dropdown trigger="click">
+        <el-dropdown
+          ref="hostDropdownRef"
+          trigger="click"
+          max-height="50vh"
+          :teleported="false"
+          class="dropdown_menu"
+        >
           <span class="link_text">连接<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
-            <el-dropdown-menu>
+            <el-cascader-panel
+              v-if="hostGroupCascader"
+              ref="hostGroupCascaderRef"
+              style="width: fit-content"
+              :props="{
+                expandTrigger: 'hover',
+              }"
+              :options="formatHostGroupList"
+              @change="handleLinkHost"
+            />
+            <el-dropdown-menu v-else>
               <el-dropdown-item
                 class="link_close_all"
                 @click="handleCloseAllTab"
@@ -28,7 +44,7 @@
           trigger="click"
           max-height="50vh"
           :teleported="false"
-          class="scripts_menu"
+          class="dropdown_menu"
         >
           <span class="link_text">脚本库<el-icon><arrow-down /></el-icon></span>
           <template #dropdown>
@@ -260,6 +276,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['closed', 'close-all-tab', 'removeTab', 'add-host',])
+const hostGroupAll = 'host-group-all-'
 const { isMobileScreen } = useMobileWidth()
 const showInputCommand = ref(false)
 const infoSideRef = ref(null)
@@ -279,10 +296,13 @@ const longPressCtrl = ref(false)
 const longPressAlt = ref(false)
 const scriptDropdownRef = ref(null)
 const scriptCascaderRef = ref(null)
+const hostGroupCascaderRef = ref(null)
+const hostDropdownRef = ref(null)
 
 const isPlusActive = computed(() => $store.isPlusActive)
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
+const hostGroupList = computed(() => $store.groupList)
 const hostList = computed(() => $store.hostList)
 const curHost = computed(() =>
   hostList.value.find(
@@ -295,8 +315,41 @@ const scriptLibrary = computed(() => $store.menuSetting.scriptLibrary)
 const scriptLibraryCascader = computed(
   () => $store.menuSetting.scriptLibraryCascader
 )
+const hostGroupCascader = computed(() => $store.menuSetting.hostGroupCascader)
+const formatHostGroupList = computed(() => {
+  const groupList = hostList.value.reduce((acc, item) => {
+    const groupName = hostGroupList.value.find((group) => group.id === item.group)?.name
+    if (!acc[groupName]) {
+      acc[groupName] = []
+    }
+    acc[groupName].push(item)
+    return acc
+  }, {})
+  const result = Object.entries(groupList)
+    .map(([groupName, hosts,]) => {
+      const children = hosts.map((host) => ({
+        value: host.id,
+        label: host.name
+      }))
+      if (hosts.length > 1) {
+        children.unshift({
+          value: `${ hostGroupAll }${ hosts[0].group }`,
+          label: '全部连接'
+        })
+      }
+      return {
+        value: groupName,
+        label: groupName,
+        children
+      }
+    })
+  result.unshift({
+    value: 'closeAll',
+    label: '关闭所有连接'
+  })
+  return result
+})
 const formatScriptList = computed(() => {
-  // 首先创建一个以分组id为key的脚本映射
   const scriptsByGroup = scriptList.value.reduce((acc, script) => {
     const groupId = script.group || 'default'
     if (!acc[groupId]) {
@@ -309,8 +362,6 @@ const formatScriptList = computed(() => {
     })
     return acc
   }, {})
-
-  // 将分组转换为级联面板所需的格式
   return scriptGroupList.value.map((group) => ({
     value: group.id,
     label: group.name,
@@ -351,16 +402,6 @@ const handleResizeTerminalSftp = () => {
   })
 }
 
-const handleLinkHost = (host) => {
-  if (!host.isConfig) {
-    $message.warning('请先配置SSH连接信息')
-    hostFormVisible.value = true
-    updateHostData.value = { ...host }
-    return
-  }
-  emit('add-host', host)
-}
-
 const handleCloseAllTab = () => {
   emit('close-all-tab')
 }
@@ -398,6 +439,37 @@ const handleClickVirtualKeyboard = async (virtualKey) => {
 const resetLongPress = () => {
   longPressCtrl.value = false
   longPressAlt.value = false
+}
+
+const handleLinkHost = (hostDescObj) => {
+  if (!hostDescObj) return // clearCheckedNodes二次触发change事件
+  const id = Array.isArray(hostDescObj) ? hostDescObj.slice(-1)[0] : hostDescObj.id
+  if (id === 'closeAll') return handleCloseAllTab()
+  if (id.startsWith(hostGroupAll)) {
+    const groupId = id.split(hostGroupAll)[1]
+    const hosts = hostList.value.filter((host) => host.group === groupId)
+    const configHosts = hosts.filter((host) => host.isConfig)
+    if (configHosts.length > 0) {
+      configHosts.forEach((host) => {
+        emit('add-host', host)
+      })
+    } else {
+      $message.warning('请先配置SSH连接信息')
+    }
+  } else {
+    const host = hostList.value.find((item) => item.id === id)
+    if (!host.isConfig) {
+      $message.warning('请先配置SSH连接信息')
+      hostFormVisible.value = true
+      updateHostData.value = { ...host }
+      return
+    }
+    emit('add-host', host)
+  }
+  setTimeout(() => {
+    hostGroupCascaderRef.value?.clearCheckedNodes()
+    hostDropdownRef.value?.handleClose()
+  }, 100)
 }
 
 const handleExecScript = async (scriptDescObj) => {
@@ -570,7 +642,7 @@ const handleInputCommand = async (command) => {
     // :deep(.el-dropdown) {
     //   margin-top: -2px;
     // }
-    .scripts_menu {
+    .dropdown_menu {
       :deep(.el-dropdown-menu) {
         min-width: 120px;
         max-width: 300px;

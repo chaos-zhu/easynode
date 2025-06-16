@@ -46,7 +46,8 @@ const useStore = defineStore('global', {
     menuSetting: {
       ...{
         scriptLibrary: true,
-        scriptLibraryCascader: false
+        scriptLibraryCascader: false,
+        hostGroupCascader: false
       },
       ...(localStorage.getItem('menuSetting') ? JSON.parse(localStorage.getItem('menuSetting')) : {})
     },
