@@ -1,7 +1,18 @@
 ## TODO
 
-* serv00 SFTP修复
 * 新增服务器定时任务功能
+* 重构SFTP面板
+* 添加文件对传功能
+
+## [3.0.8](https://github.com/chaos-zhu/easynode/releases) (2025-06-18)
+
+* 终端页支持实例分组菜单并支持一键连接分组所有实例
+* 优化终端渲染，提升缓存行数至5000
+* 已授权ip优化UI并支持一键设置到登录白名单
+* AI组件对话编辑功能与字体大小优化
+* 优化终端右键菜单
+* 修复脚本库下拉菜单重复选择
+
 
 ## [3.0.7](https://github.com/chaos-zhu/easynode/releases) (2025-05-24)
 
