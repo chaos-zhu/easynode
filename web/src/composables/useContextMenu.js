@@ -5,6 +5,7 @@ import ElementPlus from 'element-plus'
 
 export function useContextMenu() {
   const menuRef = ref(null)
+  const isVisible = ref(false)
   let contextMenuApp = null
   let contextMenuInstance = null
   let isClosing = false
@@ -61,11 +62,13 @@ export function useContextMenu() {
     ])
 
     contextMenuInstance._container = container
+    isVisible.value = true
   }
 
   const closeMenu = () => {
     if (contextMenuInstance && !isClosing) {
       isClosing = true
+      isVisible.value = false
       contextMenuInstance.closeMenu()
 
       setTimeout(() => {
@@ -95,6 +98,7 @@ export function useContextMenu() {
       }
 
       isClosing = true
+      isVisible.value = false
       contextMenuInstance.closeMenu()
 
       try {
@@ -116,6 +120,7 @@ export function useContextMenu() {
 
   return {
     menuRef,
+    isVisible,
     showMenu,
     closeMenu
   }

@@ -61,7 +61,7 @@ const fitAddon = ref(null)
 const socketConnected = ref(false)
 const curStatus = ref(CONNECTING)
 const terminalRef = ref(null)
-const { showMenu, closeMenu } = useContextMenu()
+const { showMenu, closeMenu, isVisible } = useContextMenu()
 const cursorTheme = {
   cursor: '#00ff41',
   cursorAccent: '#000000'
@@ -380,6 +380,11 @@ const onData = () => {
     }
     if (!socket.value || !socketConnected.value) return
 
+    // 检查是否按下ESC键且右键菜单正在显示
+    if (key === '\x1b') { // ESC键的ASCII码是27，对应字符是'\x1b'
+      if (isVisible.value) return closeMenu()
+    }
+
     if (isLongPressCtrl.value || isLongPressAlt.value) {
       const keyCode = key.toUpperCase().charCodeAt(0)
       console.log('keyCode: ', keyCode)
@@ -482,7 +487,10 @@ const handleRightClick = async (e) => {
   }
   const copySelection = str ? {
     label: '复制',
-    onClick: async () => await handleCopySelection()
+    onClick: async () => {
+      await handleCopySelection()
+      focusTab()
+    }
   } : null
   const pasteSelection = str ? {
     label: '粘贴选中内容',
