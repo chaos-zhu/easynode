@@ -17,6 +17,7 @@ import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance, watch, n
 // import CommandHistory from './command_history.vue'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
+import { CanvasAddon } from '@xterm/addon-canvas'
 import { FitAddon } from '@xterm/addon-fit'
 import { SearchAddon } from '@xterm/addon-search'
 // import { SearchBarAddon } from 'xterm-addon-search-bar'
@@ -59,9 +60,12 @@ const fitAddon = ref(null)
 // const searchBar = ref(null)
 const socketConnected = ref(false)
 const curStatus = ref(CONNECTING)
-const terminal = ref(null)
 const terminalRef = ref(null)
 const { showMenu, closeMenu } = useContextMenu()
+const cursorTheme = {
+  cursor: '#00ff41',
+  cursorAccent: '#000000'
+}
 
 const token = computed(() => $store.token)
 const theme = computed(() => themeList[$store.terminalConfig.themeName])
@@ -85,26 +89,40 @@ watch(menuCollapse, () => {
 
 watch(theme, () => {
   nextTick(() => {
-    if (!background.value) terminal.value.options.theme = theme.value
-    else terminal.value.options.theme = { ...theme.value, background: '#00000080' }
+    // 自定义光标颜色
+    const customTheme = {
+      ...theme.value,
+      ...cursorTheme
+    }
+
+    if (!background.value) {
+      term.value.options.theme = customTheme
+    } else {
+      term.value.options.theme = { ...customTheme, background: '#00000080' }
+    }
   })
 })
 
 watch(fontSize, () => {
   nextTick(() => {
-    terminal.value.options.fontSize = fontSize.value
+    term.value.options.fontSize = fontSize.value
     handleResize()
   })
 })
 
 watch(background, (newVal) => {
   nextTick(() => {
+    const customTheme = {
+      ...theme.value,
+      ...cursorTheme
+    }
+
     if (newVal) {
-      terminal.value.options.theme = { ...theme.value, background: '#00000080' }
+      term.value.options.theme = { ...customTheme, background: '#00000080' }
       terminalRef.value.style.backgroundImage = background.value?.startsWith('http') ? `url(${ background.value })` : `${ background.value }`
       // terminalRef.value.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15)), url(${ background.value })`
     } else {
-      terminal.value.options.theme = theme.value
+      term.value.options.theme = customTheme
       terminalRef.value.style.backgroundImage = null
     }
   })
@@ -239,7 +257,6 @@ const reconnectTerminal = (isCommonTips = false, tips) => {
 
 const createLocalTerminal = () => {
   let terminalInstance = new Terminal({
-    rendererType: 'dom',
     bellStyle: 'sound',
     convertEol: true,
     cursorBlink: true,
@@ -248,8 +265,24 @@ const createLocalTerminal = () => {
     allowTransparency: true,
     fontFamily: 'Cascadia Code, Menlo, monospace',
     fontSize: fontSize.value,
-    theme: theme.value
+    theme: theme.value,
+    scrollback: 5000, // 滚动缓冲区大小
+    tabStopWidth: 4,
+    windowsMode: false, // 禁用Windows模式提升性能
+    macOptionIsMeta: true, // macOS优化
+    smoothScrollDuration: 0 // 平滑滚动时间
   })
+
+  const canvasAddon = new CanvasAddon()
+
+  // Canvas渲染器错误处理
+  // if (canvasAddon.onContextLoss) {
+  //   canvasAddon.onContextLoss(() => {
+  //     console.warn('Canvas context lost, attempting to recover...')
+  //   })
+  // }
+
+  terminalInstance.loadAddon(canvasAddon)
   term.value = terminalInstance
   terminalInstance.open(terminalRef.value)
   terminalInstance.writeln('\x1b[1;32mWelcome to EasyNode terminal\x1b[0m.')
@@ -258,7 +291,6 @@ const createLocalTerminal = () => {
   onFindText()
   onWebLinks()
   onResize()
-  terminal.value = terminalInstance
 }
 
 const shellResize = () => {

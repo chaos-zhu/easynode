@@ -7,6 +7,7 @@
     :close-on-press-escape="true"
     :modal="true"
     modal-class="local_setting_drawer"
+    :size="isMobileScreen ? '80%' : '30%'"
   >
     <el-tabs tab-position="top">
       <el-tab-pane label="终端设置" lazy>
