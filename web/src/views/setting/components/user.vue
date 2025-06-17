@@ -64,7 +64,7 @@
     <template v-else>
       <div class="mfa2_container">
         <!-- https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2 -->
-        <p>1. 使用MFA2应用(<a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2" target="_blank" class="link">Google Authenticator</a> )扫描下面二维码，或者输入秘钥 <span class="secret">{{ MFA2Data.secret }}</span></p>
+        <p>1. 使用MFA2应用(<a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2" target="_blank" class="link">Google Authenticator</a>)扫描下面二维码，或者输入秘钥 <span class="secret">{{ MFA2Data.secret }}</span></p>
         <img :src="MFA2Data.qrImage" :alt="MFA2Data.secret">
         <p>2. 输入MFA2应用上的6位数字</p>
         <el-input
