@@ -1,6 +1,6 @@
 const NodeRSA = require('node-rsa')
 const { randomStr } = require('./utils/tools')
-const { AESEncryptAsync } = require('./utils/encrypt')
+const { AESEncryptAsync, SHA1Encrypt } = require('./utils/encrypt')
 const { KeyDB, GroupDB, NotifyDB, NotifyConfigDB, ScriptGroupDB } = require('./utils/db-class')
 
 async function initKeyDB() {
@@ -23,9 +23,13 @@ async function initKeyDB() {
     consola.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
     return
   }
+
+  const randomUsername = randomStr(8)
+  const randomPassword = randomStr(8)
+
   let newConfig = {
-    user: 'admin',
-    pwd: 'admin',
+    user: randomUsername,
+    pwd: SHA1Encrypt(randomPassword),
     commonKey: randomStr(16),
     publicKey: '',
     privateKey: ''
@@ -38,6 +42,14 @@ async function initKeyDB() {
   newConfig.privateKey = await AESEncryptAsync(privateKey, newConfig.commonKey) // 加密私钥
   newConfig.publicKey = publicKey // 公开公钥
   await keyDB.updateAsync({}, { $set: newConfig }, { upsert: true })
+
+  // 在控制台打印随机生成的账号密码
+  consola.info('========================================')
+  consola.info('EasyNode 默认登录凭据 (请及时更改):')
+  consola.info(`用户名: ${ randomUsername }`)
+  consola.info(`密码: ${ randomPassword }`)
+  consola.info('========================================')
+
   consola.info('Task: 已生成新的非对称加密公私钥')
 }
 

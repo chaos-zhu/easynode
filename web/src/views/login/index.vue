@@ -84,7 +84,7 @@
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { RSAEncrypt } from '@utils/index.js'
 
-const { proxy: { $store, $api, $message, $messageBox, $router } } = getCurrentInstance()
+const { proxy: { $store, $api, $message, $router } } = getCurrentInstance()
 
 const expireEnum = reactive({
   ONE_SESSION: 'one_session',
@@ -134,27 +134,11 @@ const handleLogin = () => {
       $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
       $store.setUser(loginName)
       $message.success({ message: msg || 'success', center: true })
-      loginSuccess()
+      $router.push('/')
     } finally {
       loading.value = false
     }
   })
-}
-
-const loginSuccess = () => {
-  let { loginName, pwd } = loginForm
-  if (loginName === 'admin' && pwd === 'admin') {
-    $messageBox.confirm('请立即修改初始用户名及密码！防止恶意扫描！', 'Warning', {
-      confirmButtonText: '确定',
-      showCancelButton: false,
-      type: 'warning'
-    })
-      .then(async () => {
-        $router.push('/setting')
-      })
-  } else {
-    $router.push('/')
-  }
 }
 
 onMounted(async () => {

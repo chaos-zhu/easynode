@@ -59,7 +59,7 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 
 ## 项目部署
 
-- 默认账户密码 `admin/admin`
+- v3.0.8版本开始用户名密码不再是admin/admin. 需查看**终端日志**，另外登录后请及时修改，避免日志残留敏感信息
 - 默认web端口：**8082**
 
 ### docker-compose部署-自动更新（推荐）

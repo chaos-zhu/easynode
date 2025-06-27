@@ -67,12 +67,11 @@ const login = async ({ res, request }) => {
       console.log('MFA2 verfify:', isValid)
       if (!isValid) return res.fail({ msg: '验证失败' })
     }
-    if (loginName === user && loginPwd === 'admin' && pwd === 'admin') {
-      const token = await beforeLoginHandler(clientIp, jwtExpires)
-      return res.success({ data: { token, jwtExpires }, msg: '登录成功，请及时修改默认用户名和密码' })
-    }
+
+    // 统一使用SHA1加密验证
     loginPwd = SHA1Encrypt(loginPwd)
     if (loginName !== user || loginPwd !== pwd) return res.fail({ msg: `用户名或密码错误 ${ loginErrTotal }/${ allowErrCount }` })
+
     const token = await beforeLoginHandler(clientIp, jwtExpires)
     return res.success({ data: { token, jwtExpires }, msg: '登录成功' })
   } catch (error) {
@@ -90,7 +89,7 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
   let token = jwt.sign({ date: Date.now() }, commonKey, { expiresIn: jwtExpires }) // 生成token
   token = await AESEncryptAsync(token) // 对称加密token后再传输给前端
 
-  // 记录客户端登录IP(用于判断是否异地且只保留最近10��)
+  // 记录客户端登录IP(用于判断是否异地且只保留最近10次)
   const clientIPInfo = await getNetIPInfo(clientIp)
   const { ip, country, city } = clientIPInfo || {}
   consola.info('登录成功:', new Date(), { ip, country, city })
@@ -105,12 +104,12 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
 const updatePwd = async ({ res, request }) => {
   let { body: { oldLoginName, oldPwd, newLoginName, newPwd } } = request
   let rsaOldPwd = await RSADecryptAsync(oldPwd)
-  oldPwd = rsaOldPwd === 'admin' ? 'admin' : SHA1Encrypt(rsaOldPwd)
+  oldPwd = SHA1Encrypt(rsaOldPwd)
   let keyObj = await keyDB.findOneAsync({})
   let { user, pwd } = keyObj
   if (oldLoginName !== user || oldPwd !== pwd) return res.fail({ data: false, msg: '原用户名或密码校验失败' })
   // 旧密钥校验通过，加密保存新密码
-  newPwd = await RSADecryptAsync(newPwd) === 'admin' ? 'admin' : SHA1Encrypt(await RSADecryptAsync(newPwd))
+  newPwd = SHA1Encrypt(await RSADecryptAsync(newPwd))
   keyObj.user = newLoginName
   keyObj.pwd = newPwd
   await keyDB.updateAsync({}, keyObj)
