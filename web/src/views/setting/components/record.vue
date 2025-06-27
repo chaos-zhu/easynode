@@ -31,6 +31,18 @@
       </template>
     </el-table-column>
     <el-table-column prop="date" label="时间" />
+    <el-table-column label="操作" width="200">
+      <template #header>
+        <el-button
+          type="danger"
+          size="small"
+          :loading="removeLoading"
+          @click="handleRemoveLogs"
+        >
+          移除一周前的登录日志
+        </el-button>
+      </template>
+    </el-table-column>
   </el-table>
 </template>
 
@@ -39,12 +51,13 @@ import { ref, onMounted, getCurrentInstance, watch } from 'vue'
 import { InfoFilled } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 
-const { proxy: { $api, $tools, $message } } = getCurrentInstance()
+const { proxy: { $api, $tools, $message, $messageBox } } = getCurrentInstance()
 const route = useRoute()
 
 const loginRecordList = ref([])
 const loading = ref(false)
 const btnLoading = ref(false)
+const removeLoading = ref(false)
 const total = ref('')
 const allowedIPs = ref([])
 
@@ -81,6 +94,27 @@ const handleSaveAllowedIPs = async () => {
   } finally {
     btnLoading.value = false
   }
+}
+
+const handleRemoveLogs = async () => {
+  $messageBox.confirm('确定要移除一周前的登录日志吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(async () => {
+      removeLoading.value = true
+      try {
+        const { msg } = await $api.removeSomeLoginRecords()
+        handleLookupLoginRecord()
+        $message.success(msg)
+      } catch (error) {
+        console.error(error)
+        $message.error('移除一周前的登录日志失败')
+      } finally {
+        removeLoading.value = false
+      }
+    })
 }
 
 onMounted(() => {

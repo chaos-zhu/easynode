@@ -165,5 +165,8 @@ export default {
   },
   removeChatHistory(chatId) {
     return axios({ url: `/chat-history/${ chatId }`, method: 'delete' })
+  },
+  removeSomeLoginRecords() {
+    return axios({ url: '/remove-some-login-records', method: 'delete' })
   }
 }

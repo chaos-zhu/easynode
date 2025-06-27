@@ -21,7 +21,15 @@ const saveIpWhiteList = async ({ res, request }) => {
   res.success({ msg: 'success' })
 }
 
+const removeSomeLoginRecords = async ({ res }) => {
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const result = await logDB.removeAsync({ date: { $lt: sevenDaysAgo } }, { multi: true })
+  if (result === 0) return res.success({ msg: '没有符合条件的登录日志' })
+  res.success({ msg: `已成功移除 ${ result } 条登录日志` })
+}
+
 module.exports = {
   getLog,
-  saveIpWhiteList
+  saveIpWhiteList,
+  removeSomeLoginRecords
 }

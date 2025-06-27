@@ -6,7 +6,7 @@ const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('..
 const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript, batchRemoveScript, importScript } = require('../controller/scripts')
 const { getScriptGroupList, addScriptGroup, removeScriptGroup, updateScriptGroup } = require('../controller/script-group')
 const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
-const { getLog, saveIpWhiteList } = require('../controller/log')
+const { getLog, saveIpWhiteList, removeSomeLoginRecords } = require('../controller/log')
 const { getAIConfig, saveAIConfig, getAIModels, getChatHistory, saveChatHistory, removeChatHistory } = require('../controller/chat')
 
 const ssh = [
@@ -265,6 +265,11 @@ const log = [
     method: 'post',
     path: '/ip-white-list',
     controller: saveIpWhiteList
+  },
+  {
+    method: 'delete',
+    path: '/remove-some-login-records',
+    controller: removeSomeLoginRecords
   }
 ]
 
