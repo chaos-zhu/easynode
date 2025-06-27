@@ -13,7 +13,7 @@
             IP
           </div>
         </template>
-        <span style="margin-right: 10px;">{{ host }}</span>
+        <span class="host-info-ip" :title="host">{{ host }}</span>
         <template v-if="pingMs">
           <el-tooltip effect="dark" content="该值为EasyNode服务端主机到目标主机的ping值" placement="bottom">
             <span class="host-ping" :style="{backgroundColor: handlePingColor(pingMs)}">{{ pingMs }}ms</span>
@@ -264,7 +264,7 @@ const pingMs = computed(() => {
 
 const handleCopy = async () => {
   await navigator.clipboard.writeText(host.value)
-  $message.success({ message: 'success', center: true })
+  $message.success({ message: '复制成功', center: true })
 }
 
 const handleUsedColor = (num) => {
@@ -313,6 +313,17 @@ onBeforeUnmount(() => {
     text-align: center;
     min-width: 30px;
     max-width: 30px;
+  }
+
+  .host-info-ip {
+    word-break: break-all;
+    max-width: 100px;
+    display: inline-block;
+    vertical-align: top;
+    margin-right: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .host-ping {

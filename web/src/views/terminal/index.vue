@@ -6,8 +6,11 @@
         <el-table-column prop="name" label="name" />
         <el-table-column>
           <template #default="{ row }">
-            <span>{{ row.username ? `ssh ${row.username}@` : '' }}{{ row.host }}{{ row.port ? ` -p ${row.port}` : ''
-            }}</span>
+            <span @click="handleCopy(row.host)">
+              {{
+                row.username ? `ssh ${row.username}@` : '' }}{{ row.host }}{{ row.port ? ` -p ${row.port}` : ''
+              }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column fixed="right" width="80px">
@@ -113,6 +116,11 @@ onActivated(async () => {
   if (!targetHosts || !targetHosts.length) return
   terminalTabs.push(...targetHosts)
 })
+
+const handleCopy = async (host) => {
+  await navigator.clipboard.writeText(host)
+  $message.success({ message: '复制成功', center: true })
+}
 
 </script>
 

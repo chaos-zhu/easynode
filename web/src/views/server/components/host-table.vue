@@ -64,7 +64,11 @@
         <template #default="scope">{{ scope.row.name }}</template>
       </el-table-column>
       <el-table-column property="username" label="用户名" />
-      <el-table-column property="host" label="IP" />
+      <el-table-column property="host" label="IP">
+        <template #default="scope">
+          <span @click="handleCopy(scope.row.host)">{{ scope.row.host }}</span>
+        </template>
+      </el-table-column>
       <el-table-column property="port" label="端口" />
       <!-- <el-table-column property="port" label="认证类型">
         <template #default="scope">{{ scope.row.authType === 'password' ? '密码' : '密钥' }}</template>
@@ -226,6 +230,11 @@ const handleRemoveHost = async ({ id }) => {
     emit('update-list')
     clearSelection()
   })
+}
+
+const handleCopy = async (host) => {
+  await navigator.clipboard.writeText(host)
+  $message.success({ message: '复制成功', center: true })
 }
 </script>
 
