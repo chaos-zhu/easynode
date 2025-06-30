@@ -133,6 +133,9 @@ webssh与监控服务都将以`该服务器作为中转`。中国大陆用户建
 
 ## 项目赞助
 
+CDN acceleration and security protection for this project are sponsored by Tencent EdgeOne.
+[![EdgeOne Logo](https://edgeone.ai/media/34fe3a45-492d-4ea4-ae5d-ea1087ca7b4b.png)](https://edgeone.ai/?from=github)
+
 [![image](https://img.shields.io/badge/NodeSupport-YXVM-red)](https://yxvm.com/)
 
 [![image](https://img.shields.io/badge/VPS-ZMTO-red)](https://zmto.com/)
