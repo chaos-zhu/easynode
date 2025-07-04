@@ -191,7 +191,7 @@ const useStore = defineStore('global', {
         localStorage.setItem('isDark', isDark)
         this.$patch({ isDark })
       }
-      if (animate) {
+      if (animate && typeof document.startViewTransition === 'function') {
         let transition = document.startViewTransition(() => {
           document.documentElement.classList.toggle('dark')
         })
