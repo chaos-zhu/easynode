@@ -66,13 +66,14 @@
         </template>
         <div v-else class="empty-list">
           <el-empty
-            :image-size="60"
+            :image-size="38"
             description="暂无脚本"
           >
             <template #description>
               <p>当前分组暂无脚本</p>
             </template>
             <el-button
+              size="small"
               type="primary"
               @click="handleAddScript"
             >
@@ -92,20 +93,24 @@
           placeholder="请输入脚本内容..."
         />
         <div class="action_btn">
-          <el-button
-            v-show="scriptContent"
+          <el-dropdown
+            split-button
+            trigger="click"
             type="primary"
-            plain
-            @click="handleSaveAsScript"
-          >
-            保存脚本
-          </el-button>
-          <el-button
-            type="primary"
+            size="small"
+            :disabled="!scriptContent"
             @click="handleSendToTerminal"
           >
-            发送到终端
-          </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item>发送至当前窗口终端</el-dropdown-item>
+                <el-dropdown-item>发送至所有窗口终端</el-dropdown-item>
+                <el-dropdown-item @click="handleSaveAsScript">保存至脚本库</el-dropdown-item>
+                <el-dropdown-item @click="handleSendClearContent">发送后清空内容: {{ isClearContent ? '是' : '否' }}</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+            发送至终端
+          </el-dropdown>
         </div>
       </div>
     </div>
@@ -149,6 +154,7 @@ const activeGroup = ref('')
 const scriptEditVisible = ref(false)
 const editScriptData = ref(null)
 const scriptGroupVisible = ref(false)
+const isClearContent = ref(false)
 
 const isPlusActive = computed(() => $store.isPlusActive)
 const scriptGroupList = computed(() => $store.scriptGroupList || [])
@@ -185,9 +191,14 @@ const handleSendToEditor = (script) => {
 
 const handleSendToTerminal = () => {
   if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
-  if (!scriptContent.value) return
   emit('exec-command', scriptContent.value)
-  scriptContent.value = ''
+  if (isClearContent.value) {
+    scriptContent.value = ''
+  }
+}
+
+const handleSendClearContent = () => {
+  isClearContent.value = !isClearContent.value
 }
 
 const handleAddScript = () => {
@@ -271,6 +282,7 @@ if (scriptGroupList.value.length) {
         font-size: 13px;
         border: 1px solid var(--el-border-color-light);
         flex-shrink: 0;
+        transition: all 0.2s;
 
         &:hover {
           background-color: var(--el-fill-color-light);
@@ -287,7 +299,6 @@ if (scriptGroupList.value.length) {
           display: flex;
           align-items: center;
           gap: 4px;
-          background-color: var(--el-color-info-light-9);
           border-color: var(--el-color-info-light-5);
           color: var(--el-text-color-regular);
 
@@ -295,11 +306,6 @@ if (scriptGroupList.value.length) {
             font-size: 14px;
           }
 
-          &:hover {
-            background-color: var(--el-color-info-light-7);
-            border-color: var(--el-color-info);
-            color: var(--el-color-info-dark-2);
-          }
         }
       }
     }
@@ -317,10 +323,10 @@ if (scriptGroupList.value.length) {
         color: var(--el-text-color-secondary);
 
         :deep(.el-empty__description) {
-          margin-bottom: 10px;
+          margin-bottom: 0px;
           p {
             margin: 0;
-            line-height: 1.5;
+            line-height: 0.5;
 
             &.sub-text {
               font-size: 12px;

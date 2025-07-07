@@ -152,7 +152,7 @@
         </div>
       </div>
     </div>
-    <el-drawer
+    <!-- <el-drawer
       v-if="isMobileScreen"
       v-model="showMobileInfoSideDialog"
       :with-header="false"
@@ -173,59 +173,126 @@
         :visible="visible"
         :ping-data="pingData"
       />
-    </div>
-    <div class="terminal_and_sftp_wrap">
-      <el-tabs
-        v-model="activeTabIndex"
-        type="border-card"
-        tab-position="top"
-        @tab-remove="removeTab"
-        @tab-change="tabChange"
+    </div> -->
+    <el-tabs
+      v-model="activeTabIndex"
+      type="border-card"
+      tab-position="top"
+      class="tabs_container"
+      @tab-remove="removeTab"
+      @tab-change="tabChange"
+    >
+      <el-tab-pane
+        v-for="(item, index) in terminalTabs"
+        :key="item.key"
+        :label="item.name"
+        :name="index"
+        :closable="true"
       >
-        <el-tab-pane
-          v-for="(item, index) in terminalTabs"
-          :key="item.key"
-          :label="item.name"
-          :name="index"
-          :closable="true"
-          class="el_tab_pane"
-        >
-          <template #label>
-            <div class="tab_label">
-              <span
-                class="tab_status"
-                :style="{ background: getStatusColor(item.status) }"
-              />
-              <span>{{ item.name }}</span>
-            </div>
-          </template>
-          <div class="tab_content_wrap" :style="{ height: mainHeight + 'px' }">
-            <!-- @cd-command="cdCommand" -->
-            <TerminalTab
-              ref="terminalRefs"
-              :host-obj="item"
-              :long-press-ctrl="longPressCtrl"
-              :long-press-alt="longPressAlt"
-              @input-command="terminalInput"
-              @ping-data="getPingData"
-              @reset-long-press="resetLongPress"
+        <template #label>
+          <div class="tab_label">
+            <span
+              class="tab_status"
+              :style="{ background: getStatusColor(item.status) }"
             />
-            <FloatMenu
+            <span>{{ item.name }}</span>
+          </div>
+        </template>
+        <div class="tab_content_wrap">
+          <div class="tab_content_header">
+            <div class="tab_content_wrap_header_item active">
+              <el-tooltip
+                effect="dark"
+                content="状态"
+                placement="bottom"
+              >
+                <svg-icon name="icon-zhuangtai" class="icon" />
+              </el-tooltip>
+            </div>
+            <div class="tab_content_wrap_header_item">
+              <el-tooltip
+                effect="dark"
+                content="Sftp"
+                placement="bottom"
+              >
+                <svg-icon name="icon-sftp" class="icon" />
+              </el-tooltip>
+            </div>
+            <div class="tab_content_wrap_header_item">
+              <el-tooltip
+                effect="dark"
+                content="同步输入到所有分屏"
+                placement="bottom"
+              >
+                <svg-icon name="icon-lianjie" class="icon" />
+              </el-tooltip>
+            </div>
+            <div class="tab_content_wrap_header_item">
+              <el-tooltip
+                effect="dark"
+                content="上下分屏"
+                placement="bottom"
+              >
+                <svg-icon name="icon-a-06gaodufenping" class="icon" />
+              </el-tooltip>
+            </div>
+            <div class="tab_content_wrap_header_item">
+              <el-tooltip
+                effect="dark"
+                content="左右分屏"
+                placement="bottom"
+              >
+                <svg-icon name="icon-a-05kuandufenping" class="icon" />
+              </el-tooltip>
+            </div>
+          </div>
+          <div class="tab_content_main">
+            <div class="tab_content_main_info">
+              <InfoSide
+                ref="infoSideRef"
+                :host-info="curHost"
+                :visible="visible"
+                :ping-data="pingData"
+              />
+            </div>
+            <div class="tab_content_main_terminals">
+              <!-- @cd-command="cdCommand" -->
+              <TerminalTab
+                ref="terminalRefs"
+                :host-obj="item"
+                :long-press-ctrl="longPressCtrl"
+                :long-press-alt="longPressAlt"
+                @input-command="terminalInput"
+                @ping-data="getPingData"
+                @reset-long-press="resetLongPress"
+              />
+            </div>
+            <div class="tab_content_main_sftp">
+              <SftpV2
+                :host-id="item.id"
+                @resize="resizeTerminal"
+                @exec-command="handleInputCommand"
+              />
+            </div>
+            <!-- <FloatMenu
               v-if="isMobileScreen"
               :long-press-ctrl="longPressCtrl"
               :long-press-alt="longPressAlt"
               @click-key="handleClickVirtualKeyboard"
-            />
+            /> -->
+          </div>
+          <div
+            :class="['tab_content_footer', { 'show_footer_bar': showFooterBar }]"
+          >
             <FooterBar
-              v-if="showFooterBar"
               :host-id="item.id"
               @resize="resizeTerminal"
               @exec-command="handleInputCommand"
             />
           </div>
-        </el-tab-pane>
-      </el-tabs>
-    </div>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
 
     <InputCommand
       v-model:show="showInputCommand"
@@ -263,6 +330,7 @@ import InfoSide from './info-side.vue'
 import HostForm from '../../server/components/host-form.vue'
 import TerminalSetting from './terminal-setting.vue'
 import FooterBar from './footer-bar.vue'
+import SftpV2 from './sftp-v2.vue'
 
 const {
   proxy: { $nextTick, $store, $message }
@@ -369,15 +437,6 @@ const formatScriptList = computed(() => {
   }))
 })
 
-onMounted(() => {
-  handleResizeTerminalSftp()
-  window.addEventListener('resize', handleResizeTerminalSftp)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResizeTerminalSftp)
-})
-
 const getStatusColor = (status) => {
   return (
     terminalStatusList.find((item) => item.value === status)?.color || 'gray'
@@ -393,13 +452,6 @@ const handleUpdateList = async ({ host }) => {
     $message.error('获取实例列表失败')
     console.error('获取实例列表失败: ', err)
   }
-}
-
-const handleResizeTerminalSftp = () => {
-  $nextTick(() => {
-    mainHeight.value =
-      document.querySelector('.terminal_and_sftp_wrap')?.offsetHeight - 45 // 45 is tab-header height+15
-  })
 }
 
 const handleCloseAllTab = () => {
@@ -546,10 +598,12 @@ watch(
 
 watch(
   showFooterBar,
-  async () => {
-    localStorage.setItem('showFooterBar', showFooterBar.value)
-    await $nextTick()
-    resizeTerminal()
+  () => {
+    setTimeout(async () => {
+      localStorage.setItem('showFooterBar', showFooterBar.value)
+      await $nextTick()
+      resizeTerminal()
+    }, 210)
   },
   {
     immediate: true,
@@ -605,13 +659,10 @@ const handleInputCommand = async (command) => {
 
 <style lang="scss" scoped>
 .terminal_wrap {
-  display: flex;
-  flex-wrap: wrap;
-  height: 100%;
+  // height: 100%;
 
   :deep(.el-tabs__content) {
-    // width: 100%;
-    padding: 0 0 5px 0;
+    padding: 0;
   }
 
   :deep(.el-tabs--border-card) {
@@ -694,12 +745,7 @@ const handleInputCommand = async (command) => {
     border: var(--el-descriptions-table-border);
   }
 
-  .terminal_and_sftp_wrap {
-    height: calc(100% - $terminalTopHeight);
-    overflow: hidden;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+  .tabs_container {
     position: relative;
 
     .tab_label {
@@ -719,13 +765,68 @@ const handleInputCommand = async (command) => {
     }
 
     .tab_content_wrap {
+      flex: 1;
+      height: calc(100vh - 142px);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-
-      :deep(.terminal_tab_container) {
-        flex: 1;
+      .tab_content_header {
+        height: 30px;
+        min-height: 30px;
+        display: flex;
+        align-items: center;
+        // border-bottom: 1px solid var(--el-border-color);
+        .tab_content_wrap_header_item {
+          padding: 0 15px;
+          &.active {
+            color: var(--el-color-success);
+          }
+          .icon {
+            font-size: 16px;
+            cursor: pointer;
+            outline: none;
+          }
+        }
       }
+      .tab_content_main {
+        flex: 1;
+        min-height: 300px;
+        display: flex;
+
+        .tab_content_main_info {
+          width: 250px;
+          min-width: 250px;
+          height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+
+        .tab_content_main_terminals {
+          height: 100%;
+          flex: 1;
+        }
+
+        .tab_content_main_sftp {
+          height: 100%;
+          width: 450px;
+          min-width: 450px;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+      }
+
+      .tab_content_footer {
+        transition: all 0.2s;
+        height: 0;
+        min-height: 0;
+        &.show_footer_bar {
+          height: 250px;
+          min-height: 250px;
+          overflow-x: hidden;
+          overflow-y: auto;
+        }
+      }
+
     }
 
     .full-screen-button {

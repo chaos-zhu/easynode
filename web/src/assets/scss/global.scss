@@ -17,7 +17,7 @@ textarea {
 
   // 滚动条整体部分
   &::-webkit-scrollbar {
-    width: 6px;
+    width: 0px; // 暂且隐藏滚动条
     height: 6px;
   }
 

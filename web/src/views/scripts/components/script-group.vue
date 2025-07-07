@@ -9,7 +9,7 @@
   >
     <div class="group_container">
       <div class="header">
-        <el-button type="primary" @click="addGroup">添加分组</el-button>
+        <el-button type="primary" size="small" @click="addGroup">添加分组</el-button>
       </div>
       <el-table v-loading="loading" :data="list">
         <el-table-column prop="index" label="序号" />
@@ -39,8 +39,15 @@
         <el-table-column label="操作" fixed="right" width="160px">
           <template #default="{ row }">
             <template v-if="row.id !== 'builtin'">
-              <el-button type="primary" @click="handleChange(row)">修改</el-button>
-              <el-button v-show="row.id !== 'default'" type="danger" @click="deleteGroup(row)">删除</el-button>
+              <el-button type="primary" size="small" @click="handleChange(row)">修改</el-button>
+              <el-button
+                v-show="row.id !== 'default'"
+                type="danger"
+                size="small"
+                @click="deleteGroup(row)"
+              >
+                删除
+              </el-button>
             </template>
             <template v-else>
               <span>--</span>
@@ -72,8 +79,8 @@
         </el-form>
         <template #footer>
           <span class="dialog-footer">
-            <el-button @click="groupFormVisible = false">取消</el-button>
-            <el-button type="primary" @click="updateForm">确定</el-button>
+            <el-button size="small" @click="groupFormVisible = false">取消</el-button>
+            <el-button type="primary" size="small" @click="updateForm">确定</el-button>
           </span>
         </template>
       </el-dialog>

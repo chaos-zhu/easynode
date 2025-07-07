@@ -1,11 +1,11 @@
 <template>
   <div ref="footerBarContainerRef" class="footer_bar_container">
-    <div ref="adjustRef" class="adjust" />
+    <!-- <div ref="adjustRef" class="adjust" /> -->
     <div class="footer_bar_content">
       <el-tabs v-model="activeTab" type="border-card" class="footer_bar_tabs">
-        <el-tab-pane label="文件传输" name="sftp">
+        <!-- <el-tab-pane label="文件传输" name="sftp">
           <Sftp :host-id="hostId" />
-        </el-tab-pane>
+        </el-tab-pane> -->
         <el-tab-pane label="脚本库" name="script">
           <ScriptInput :host-id="hostId" @exec-command="execCommand" />
         </el-tab-pane>
@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { EventBus } from '@/utils'
 import Sftp from './sftp.vue'
 import ScriptInput from './script-input.vue'
@@ -34,35 +34,69 @@ defineProps({
 const emit = defineEmits(['resize', 'exec-command',])
 const footerBarContainerRef = ref(null)
 const adjustRef = ref(null)
-const activeTab = ref('sftp')
+const activeTab = ref('script')
 
 const adjustHeight = async () => {
-  let startAdjust = false
-  let timer = null
   await nextTick()
+
   try {
-    let footerBarHeight = localStorage.getItem('footerBarHeight')
-    if (footerBarHeight) footerBarContainerRef.value.style.height = footerBarHeight
-    adjustRef.value.addEventListener('mousedown', () => {
+    const savedHeight = localStorage.getItem('footerBarHeight')
+    if (savedHeight) {
+      footerBarContainerRef.value.style.height = savedHeight
+    }
+
+    let startAdjust = false
+    let timer = null
+
+    // 清理之前的事件监听器
+    const cleanup = () => {
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
+    }
+
+    const handleMouseDown = () => {
       startAdjust = true
-    })
-    document.addEventListener('mousemove', (e) => {
+    }
+
+    const handleMouseMove = (e) => {
       if (!startAdjust) return
+
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
-        footerBarHeight = `calc(100vh - ${ e.pageY }px - 20px)`
+        const footerBarHeight = `calc(100vh - ${ e.pageY }px - 20px)`
         footerBarContainerRef.value.style.height = footerBarHeight
-        emit('resize')
-      })
-    })
-    document.addEventListener('mouseup', () => {
+        timer = null
+      }, 0)
+    }
+
+    const handleMouseUp = () => {
       if (!startAdjust) return
       startAdjust = false
-      localStorage.setItem('footerBarHeight', footerBarHeight)
+
+      const currentHeight = footerBarContainerRef.value.style.height
+      footerBarContainerRef.value.style.height = `${ currentHeight } !important`
+      footerBarContainerRef.value.style.maxHeight = `${ currentHeight } !important`
+      localStorage.setItem('footerBarHeight', currentHeight)
       EventBus.$emit('update-footer-bar-height')
-    })
+      emit('resize')
+      cleanup()
+    }
+
+    adjustRef.value.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      cleanup()
+      adjustRef.value?.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
   } catch (error) {
-    console.warn(error.message)
+    console.warn('adjustHeight error:', error.message)
+    return () => {}
   }
 }
 
@@ -70,12 +104,23 @@ const execCommand = (command) => {
   emit('exec-command', command)
 }
 
-onMounted(() => {
-  adjustHeight()
-  EventBus.$on('update-footer-bar-height', () => {
-    adjustHeight()
+// 保存清理函数的引用
+let cleanupAdjustHeight = null
+
+onMounted(async () => {
+  cleanupAdjustHeight = await adjustHeight()
+  EventBus.$on('update-footer-bar-height', async () => {
+    if (cleanupAdjustHeight) cleanupAdjustHeight()
+    cleanupAdjustHeight = await adjustHeight()
   })
 })
+
+onBeforeUnmount(() => {
+  if (cleanupAdjustHeight) {
+    cleanupAdjustHeight()
+  }
+})
+
 </script>
 
 <style lang="scss" scoped>
@@ -84,7 +129,7 @@ onMounted(() => {
   position: relative;
   background: #ffffff;
   border: 1px solid var(--el-border-color);
-  min-height: 100px;
+  height: 100%;
   .adjust {
     user-select: none;
     position: absolute;

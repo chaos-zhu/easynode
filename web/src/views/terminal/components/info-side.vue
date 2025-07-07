@@ -287,26 +287,9 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .info_container {
-  // border-top: 1px solid var(--el-border-color);
-  flex-shrink: 0;
-  // overflow: scroll;
   transition: all 0.15s;
+  height: 100%;
 
-  // header {
-  //   display: flex;
-  //   justify-content: space-between;
-  //   align-items: center;
-  //   height: 30px;
-  //   margin: 10px;
-  //   position: relative;
-
-  //   img {
-  //     cursor: pointer;
-  //     height: 80%;
-  //   }
-  // }
-
-  // 表格中系统标识的title
   .item-title {
     user-select: none;
     white-space: nowrap;
@@ -317,7 +300,7 @@ onBeforeUnmount(() => {
 
   .host-info-ip {
     word-break: break-all;
-    max-width: 100px;
+    max-width: 92px;
     display: inline-block;
     vertical-align: top;
     margin-right: 10px;

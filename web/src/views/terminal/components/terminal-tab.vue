@@ -695,6 +695,7 @@ defineExpose({
 
 <style lang="scss" scoped>
 .terminal_tab_container {
+  height: 100%;
   min-height: 200px;
   position: relative;
   .terminal_container {
