@@ -5,6 +5,7 @@ const { httpPort } = require('./config')
 const middlewares = require('./middlewares')
 const wsTerminal = require('./socket/terminal')
 const wsSftp = require('./socket/sftp')
+const wsSftpV2 = require('./socket/sftp-v2')
 const wsDocker = require('./socket/docker')
 const wsClientInfo = require('./socket/clients')
 const wsOnekey = require('./socket/onekey')
@@ -25,6 +26,7 @@ function serverHandler(app, server) {
   app.proxy = true // 用于nginx反代时获取真实客户端ip
   wsTerminal(server) // 终端
   wsSftp(server) // sftp
+  wsSftpV2(server) // sftp-v2
   wsDocker(server) // docker
   wsOnekey(server) // 一键指令
   wsClientInfo(server) // 客户端信息

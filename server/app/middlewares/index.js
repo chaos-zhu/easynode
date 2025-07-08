@@ -6,11 +6,13 @@ const useLog = require('./log4') // 记录日志，需要等待路由处理完�
 const useKoaBody = require('./body') // 处理body参数 【请求需先走该中间件】
 const { useRoutes, useAllowedMethods } = require('./router') // 路由管理
 const useStatic = require('./static') // 静态目录
+const useSftpCacheStatic = require('./sftp-cache') // SFTP缓存文件服务
 const compress = require('./compress') // br/gzip压缩
 const history = require('./history') // vue-router的history模式
 
 module.exports = [
   ipFilter,
+  useSftpCacheStatic, // SFTP缓存文件服务
   compress,
   history,
   useStatic, // staic先注册，不然会被jwt拦截

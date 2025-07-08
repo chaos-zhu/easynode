@@ -11,6 +11,7 @@ import { codeInspectorPlugin } from 'code-inspector-plugin'
 
 const serviceURI = 'http://localhost:8082/'
 const serviceApiPrefix = '/api/v1'
+const sftpCachePrefix = '/sftp-cache'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -21,6 +22,10 @@ export default defineConfig({
     cors: true,
     proxy: {
       [serviceApiPrefix]: {
+        target: serviceURI
+        // rewrite: (p) => p.replace(/^\/api/, '')
+      },
+      [sftpCachePrefix]: {
         target: serviceURI
         // rewrite: (p) => p.replace(/^\/api/, '')
       }

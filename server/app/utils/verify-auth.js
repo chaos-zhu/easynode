@@ -12,7 +12,7 @@ const enumLoginCode = {
 
 // 校验token
 const verifyAuthSync = async (token, clientIp) => {
-  consola.info('verifyAuthSync IP：', clientIp)
+  // consola.info('verifyAuthSync IP：', clientIp)
   try {
     token = await AESDecryptAsync(token) // 先aes解密
     const { commonKey } = await keyDB.findOneAsync({})

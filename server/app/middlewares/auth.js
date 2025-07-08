@@ -9,7 +9,7 @@ consola.info('路由白名单：', whitePath)
 
 const useAuth = async ({ request, res }, next) => {
   const { path, headers: { token } } = request
-  consola.info('verify path: ', path)
+  // consola.info('verify path: ', path)
   if (whitePath.includes(path)) return next()
   if (!token) return res.fail({ msg: '未登录', status: 403 })
   // 验证token

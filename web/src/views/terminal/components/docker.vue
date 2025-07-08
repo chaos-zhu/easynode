@@ -205,7 +205,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, getCurrentInstance } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, getCurrentInstance } from 'vue'
 import { VideoPlay, VideoPause, RefreshRight, Delete, MoreFilled } from '@element-plus/icons-vue'
 import CodeEdit from '@/components/code-edit/index.vue'
 import PlusLimitTip from '@/components/common/PlusLimitTip.vue'
@@ -432,6 +432,14 @@ const intervalLogs = () => {
 
 onMounted(() => {
   connectDocker()
+})
+
+onUnmounted(() => {
+  if (socket.value) {
+    socket.value.removeAllListeners()
+    socket.value.close()
+    socket.value = null
+  }
 })
 </script>
 
