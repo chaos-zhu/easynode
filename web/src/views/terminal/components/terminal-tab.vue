@@ -5,6 +5,7 @@
       class="terminal_container"
       @contextmenu="handleRightClick"
       @mouseup="handleMouseUp"
+      @mousedown="emit('tab-focus', uid)"
     />
     <!-- <div class="terminal_command_history">
       <CommandHistory :list="commandHistoryList" />
@@ -27,11 +28,17 @@ import themeList from 'xterm-theme'
 import { terminalStatus } from '@/utils/enum'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { EventBus, isDockerId, isDockerComposeYml } from '@/utils'
+import useMobileWidth from '@/composables/useMobileWidth'
 
 const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
 
+const instance = getCurrentInstance()
+const { uid } = instance
+const { proxy: { $api, $store, $serviceURI, $notification, $router, $message, $messageBox } } = instance
+
 const { io } = socketIo
-const { proxy: { $api, $store, $serviceURI, $notification, $router, $message, $messageBox } } = getCurrentInstance()
+
+const { isMobileScreen } = useMobileWidth()
 
 const props = defineProps({
   hostObj: {
@@ -45,10 +52,11 @@ const props = defineProps({
   longPressAlt: {
     type: Boolean,
     default: false
-  }
+  },
+  autoFocus: { type: Boolean, default: true }
 })
 
-const emit = defineEmits(['inputCommand', 'cdCommand', 'ping-data', 'reset-long-press',])
+const emit = defineEmits(['inputCommand', 'cdCommand', 'ping-data', 'reset-long-press', 'tab-focus',])
 
 const socket = ref(null)
 // const commandHistoryList = ref([])
@@ -274,6 +282,7 @@ const createLocalTerminal = () => {
   })
 
   const canvasAddon = new CanvasAddon()
+  // const webglAddon = new WebglAddon()
 
   // Canvas渲染器错误处理
   // if (canvasAddon.onContextLoss) {
@@ -281,13 +290,13 @@ const createLocalTerminal = () => {
   //     console.warn('Canvas context lost, attempting to recover...')
   //   })
   // }
-
-  terminalInstance.loadAddon(canvasAddon)
+  // terminalInstance.loadAddon(canvasAddon)
   term.value = terminalInstance
   terminalInstance.open(terminalRef.value)
+  !isMobileScreen.value && terminalInstance.loadAddon(canvasAddon)
   terminalInstance.writeln('\x1b[1;32mWelcome to EasyNode terminal\x1b[0m.')
   terminalInstance.writeln('\x1b[1;32mAn experimental Web-SSH Terminal\x1b[0m.')
-  terminalInstance.focus()
+  if (props.autoFocus) terminalInstance.focus()
   onFindText()
   onWebLinks()
   onResize()
@@ -428,7 +437,7 @@ const onData = () => {
       }
     })
     if (curStatus.value !== CONNECT_SUCCESS) return
-    emit('inputCommand', key)
+    emit('inputCommand', key, uid)
     socket.value.emit('input', key)
   })
 }
@@ -644,7 +653,7 @@ const handlePaste = async () => {
   while (key.endsWith('\n')) {
     key = key.slice(0, -1)
   }
-  emit('inputCommand', key)
+  emit('inputCommand', key, uid)
   socket.value.emit('input', key)
   term.value.focus()
   term.value.clearSelection()
@@ -711,7 +720,7 @@ defineExpose({
     }
 
     :deep(.xterm-screen) {
-      padding: 0 0 0 10px;
+      padding: 0;
     }
   }
   .terminal_command_history {

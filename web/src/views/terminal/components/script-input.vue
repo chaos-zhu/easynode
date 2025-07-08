@@ -314,7 +314,6 @@ if (scriptGroupList.value.length) {
       flex: 1;
       overflow-y: auto;
       padding: 10px;
-      padding-bottom: 30px;
       .empty-list {
         height: 100%;
         display: flex;

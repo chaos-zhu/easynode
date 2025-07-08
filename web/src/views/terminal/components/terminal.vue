@@ -1,15 +1,14 @@
 <template>
   <div class="terminal_wrap">
-    <div class="terminal_top">
+    <div class="terminal_top" :class="{ 'mobile': isMobileScreen }">
       <div class="left_menu">
         <el-dropdown
           ref="hostDropdownRef"
           trigger="click"
           max-height="50vh"
-          :teleported="false"
           class="dropdown_menu"
         >
-          <span class="link_text">连接<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text">连接<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-cascader-panel
               v-if="hostGroupCascader"
@@ -43,10 +42,9 @@
           ref="scriptDropdownRef"
           trigger="click"
           max-height="50vh"
-          :teleported="false"
           class="dropdown_menu"
         >
-          <span class="link_text">脚本库<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text">脚本库<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-cascader-panel
               v-if="scriptLibraryCascader"
@@ -69,29 +67,10 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <!-- <el-dropdown trigger="click">
-          <span class="link_text">分屏<el-icon><arrow-down /></el-icon></span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="handleFullScreen">
-                <span>双屏</span>
-              </el-dropdown-item>
-              <el-dropdown-item @click="handleFullScreen">
-                <span>三屏</span>
-              </el-dropdown-item>
-              <el-dropdown-item @click="handleFullScreen">
-                <span>四屏</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown> -->
         <el-dropdown trigger="click">
-          <span class="link_text">功能项<el-icon><arrow-down /></el-icon></span>
+          <span class="link_text">功能项<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
-              <!-- <el-dropdown-item @click="showInputCommand = true">
-                <span>长指令输入</span>
-              </el-dropdown-item> -->
               <el-dropdown-item @click="handleFullScreen">
                 <span>启用全屏</span>
               </el-dropdown-item>
@@ -103,19 +82,10 @@
         </el-dropdown>
       </div>
       <div class="right_overview">
-        <div v-if="isMobileScreen" class="switch_wrap">
-          <el-button
-            :type="curHost?.monitorData?.connect ? 'success' : 'danger'"
-            text
-            @click="() => (showMobileInfoSideDialog = true)"
-          >
-            状态
-          </el-button>
-        </div>
         <div class="switch_wrap">
           <el-tooltip
             effect="dark"
-            content="同步键盘输入到所有会话"
+            content="同步输入到所有终端"
             placement="bottom"
           >
             <el-switch
@@ -134,7 +104,7 @@
         <div class="switch_wrap">
           <el-tooltip
             effect="dark"
-            content="包含SFTP文件传输、脚本库等功能"
+            content="包含脚本库、docker管理等功能"
             placement="bottom"
           >
             <el-switch
@@ -150,30 +120,29 @@
             />
           </el-tooltip>
         </div>
+        <div class="switch_wrap">
+          <!-- :content="isSingleWindowMode ? '多窗口展示连接的多个服务器终端' : '单窗口一屏展示连接的不同服务器终端'" -->
+          <el-tooltip
+            effect="dark"
+            placement="bottom"
+            content="开发中"
+          >
+            <el-switch
+              v-model="isSingleWindowMode"
+              disabled
+              class="swtich"
+              inline-prompt
+              style="
+                --el-switch-on-color: #13ce66;
+                --el-switch-off-color: #409eff;
+              "
+              active-text="单窗口模式"
+              inactive-text="多窗口模式"
+            />
+          </el-tooltip>
+        </div>
       </div>
     </div>
-    <!-- <el-drawer
-      v-if="isMobileScreen"
-      v-model="showMobileInfoSideDialog"
-      :with-header="false"
-      direction="ltr"
-      class="mobile_menu_drawer"
-    >
-      <InfoSide
-        ref="infoSideRef"
-        :host-info="curHost"
-        :visible="visible"
-        :ping-data="pingData"
-      />
-    </el-drawer>
-    <div v-else class="info_box">
-      <InfoSide
-        ref="infoSideRef"
-        :host-info="curHost"
-        :visible="visible"
-        :ping-data="pingData"
-      />
-    </div> -->
     <el-tabs
       v-model="activeTabIndex"
       type="border-card"
@@ -200,54 +169,80 @@
         </template>
         <div class="tab_content_wrap">
           <div class="tab_content_header">
-            <div class="tab_content_wrap_header_item active">
+            <div :class="['tab_content_wrap_header_item', { 'active': showInfoSide }]">
               <el-tooltip
                 effect="dark"
                 content="状态"
                 placement="bottom"
               >
-                <svg-icon name="icon-zhuangtai" class="icon" />
+                <span @click="() => (showInfoSide = !showInfoSide)">
+                  <svg-icon name="icon-zhuangtai" class="icon" />
+                </span>
               </el-tooltip>
             </div>
-            <div class="tab_content_wrap_header_item">
+            <div :class="['tab_content_wrap_header_item', { 'active': showSftp }]">
               <el-tooltip
                 effect="dark"
-                content="Sftp"
+                content="文件传输"
                 placement="bottom"
               >
-                <svg-icon name="icon-sftp" class="icon" />
+                <span @click="() => (showSftp = !showSftp)">
+                  <svg-icon name="icon-sftp" class="icon" />
+                </span>
               </el-tooltip>
             </div>
-            <div class="tab_content_wrap_header_item">
+            <div :class="['tab_content_wrap_header_item', { 'active': getSyncCurTab(item.key) }]">
               <el-tooltip
                 effect="dark"
-                content="同步输入到所有分屏"
+                content="同步输入到分屏"
                 placement="bottom"
               >
-                <svg-icon name="icon-lianjie" class="icon" />
+                <span @click="handleSyncCurTabInput">
+                  <svg-icon name="icon-lianjie" class="icon" />
+                </span>
               </el-tooltip>
             </div>
-            <div class="tab_content_wrap_header_item">
-              <el-tooltip
-                effect="dark"
-                content="上下分屏"
-                placement="bottom"
-              >
-                <svg-icon name="icon-a-06gaodufenping" class="icon" />
-              </el-tooltip>
-            </div>
-            <div class="tab_content_wrap_header_item">
+            <div :class="['tab_content_wrap_header_item', { 'active': getSplitStatus(item.key).h }]">
               <el-tooltip
                 effect="dark"
                 content="左右分屏"
                 placement="bottom"
               >
-                <svg-icon name="icon-a-05kuandufenping" class="icon" />
+                <span @click="handleHorizontalScreen">
+                  <svg-icon name="icon-a-06gaodufenping" class="icon" />
+                </span>
+              </el-tooltip>
+            </div>
+            <div :class="['tab_content_wrap_header_item', { 'active': getSplitStatus(item.key).v }]">
+              <el-tooltip
+                effect="dark"
+                content="上下分屏"
+                placement="bottom"
+              >
+                <span @click="handleVerticalScreen">
+                  <svg-icon name="icon-a-05kuandufenping" class="icon" />
+                </span>
               </el-tooltip>
             </div>
           </div>
           <div class="tab_content_main">
-            <div class="tab_content_main_info">
+            <!-- 移动端 -->
+            <el-drawer
+              v-if="isMobileScreen"
+              v-model="showInfoSide"
+              :with-header="false"
+              direction="ltr"
+              class="mobile_menu_drawer"
+            >
+              <InfoSide
+                ref="infoSideRef"
+                :host-info="curHost"
+                :visible="visible"
+                :ping-data="pingData"
+              />
+            </el-drawer>
+            <!-- PC端 -->
+            <div v-else :class="['tab_content_main_info_side', { 'show_info_side': showInfoSide }]">
               <InfoSide
                 ref="infoSideRef"
                 :host-info="curHost"
@@ -255,37 +250,57 @@
                 :ping-data="pingData"
               />
             </div>
-            <div class="tab_content_main_terminals">
-              <!-- @cd-command="cdCommand" -->
-              <TerminalTab
-                ref="terminalRefs"
-                :host-obj="item"
-                :long-press-ctrl="longPressCtrl"
-                :long-press-alt="longPressAlt"
-                @input-command="terminalInput"
-                @ping-data="getPingData"
-                @reset-long-press="resetLongPress"
-              />
+            <div
+              class="tab_content_main_terminals"
+              :class="getSplitContainerClass(item.key)"
+            >
+              <template v-for="panelIndex in getTerminalCount(item.key)" :key="`${item.key}-${panelIndex}`">
+                <div
+                  class="terminal_item"
+                  :class="getSplitItemClass(item.key, panelIndex)"
+                  @click="setActiveSplit(item.key, panelIndex)"
+                >
+                  <!-- @cd-command="cdCommand" -->
+                  <TerminalTab
+                    ref="terminalRefs"
+                    :host-obj="item"
+                    :long-press-ctrl="longPressCtrl"
+                    :long-press-alt="longPressAlt"
+                    :auto-focus="panelIndex === 1"
+                    @input-command="(cmd, uid) => terminalInput(cmd, uid)"
+                    @ping-data="getPingData"
+                    @reset-long-press="resetLongPress"
+                    @tab-focus="handleTabFocus"
+                  />
+                </div>
+              </template>
             </div>
-            <div class="tab_content_main_sftp">
+
+            <el-drawer
+              v-if="isMobileScreen"
+              v-model="showSftp"
+              :with-header="false"
+              direction="rtl"
+              class="mobile_menu_drawer"
+            >
               <SftpV2
                 :host-id="item.id"
-                @resize="resizeTerminal"
+                @exec-command="handleInputCommand"
+              />
+            </el-drawer>
+            <div v-else :class="['tab_content_main_sftp', { 'show_sftp': showSftp }]">
+              <SftpV2
+                :host-id="item.id"
                 @exec-command="handleInputCommand"
               />
             </div>
-            <!-- <FloatMenu
-              v-if="isMobileScreen"
-              :long-press-ctrl="longPressCtrl"
-              :long-press-alt="longPressAlt"
-              @click-key="handleClickVirtualKeyboard"
-            /> -->
           </div>
           <div
             :class="['tab_content_footer', { 'show_footer_bar': showFooterBar }]"
           >
             <FooterBar
               :host-id="item.id"
+              :show="showFooterBar"
               @resize="resizeTerminal"
               @exec-command="handleInputCommand"
             />
@@ -313,18 +328,16 @@
 <script setup>
 import {
   ref,
+  reactive,
   computed,
   getCurrentInstance,
   watch,
-  onMounted,
-  onBeforeUnmount,
   nextTick
 } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import InputCommand from '@/components/input-command/index.vue'
-import FloatMenu from '@/components/float-menu/index.vue'
-import { terminalStatusList, virtualKeyType } from '@/utils/enum'
+import { terminalStatusList } from '@/utils/enum'
 import TerminalTab from './terminal-tab.vue'
 import InfoSide from './info-side.vue'
 import HostForm from '../../server/components/host-form.vue'
@@ -353,13 +366,14 @@ const terminalRefs = ref([])
 // const sftpRefs = ref([])
 const activeTabIndex = ref(0)
 const visible = ref(true)
-const showFooterBar = ref(localStorage.getItem('showFooterBar') === 'true')
 const isSyncAllSession = ref(false)
-const mainHeight = ref('')
+const isSingleWindowMode = ref(false)
 const hostFormVisible = ref(false)
 const updateHostData = ref(null)
 const showSetting = ref(false)
-const showMobileInfoSideDialog = ref(false)
+const showInfoSide = ref(!isMobileScreen.value)
+const showSftp = ref(!isMobileScreen.value)
+const showFooterBar = ref(false)
 const longPressCtrl = ref(false)
 const longPressAlt = ref(false)
 const scriptDropdownRef = ref(null)
@@ -367,7 +381,91 @@ const scriptCascaderRef = ref(null)
 const hostGroupCascaderRef = ref(null)
 const hostDropdownRef = ref(null)
 
-const isPlusActive = computed(() => $store.isPlusActive)
+// 当前聚焦终端 uid
+const focusedUid = ref(null)
+
+const handleTabFocus = (uid) => {
+  focusedUid.value = uid
+}
+
+// ======================= 同步当前tab分屏状态 =======================
+const syncCurTabMap = reactive({})
+
+const getSyncCurTab = (key) => syncCurTabMap[key] || false
+
+const handleSyncCurTabInput = () => {
+  const key = getTabKeyByIndex(activeTabIndex.value)
+  if (!key) return
+  syncCurTabMap[key] = !getSyncCurTab(key)
+}
+
+// ======================= 分屏面板激活状态 =======================
+const activeSplitMap = reactive({})
+
+const getActiveSplit = (key) => activeSplitMap[key] || 1
+
+const setActiveSplit = (key, idx) => {
+  activeSplitMap[key] = idx
+}
+
+const getSplitItemClass = (key, panelIndex) => {
+  const classes = []
+  const { h, v } = getSplitStatus(key)
+  if (h && v) { // four split
+    const activeIdx = getActiveSplit(key)
+    if (panelIndex === activeIdx) classes.push(`active_split_${ panelIndex }`)
+  }
+  // for two split no special class
+  return classes
+}
+
+// ======================= 分屏状态 =======================
+// 每个 tab(key) 对应的分屏状态 { h: boolean, v: boolean }
+const splitStatusMap = reactive({})
+
+const getTabKeyByIndex = (idx) => terminalTabs.value[idx]?.key
+
+const getSplitStatus = (key) => splitStatusMap[key] || { h: false, v: false }
+
+// 计算某 tab 需要渲染的终端数量
+const getTerminalCountByIndex = (idx) => {
+  const key = getTabKeyByIndex(idx)
+  if (!key) return 0
+  const { h, v } = getSplitStatus(key)
+  return (h ? 2 : 1) * (v ? 2 : 1)
+}
+
+const getStartIndexByTabIndex = (idx) => {
+  let start = 0
+  for (let i = 0; i < idx; i++) {
+    start += getTerminalCountByIndex(i)
+  }
+  return start
+}
+
+const getTerminalRefsOfTab = (idx) => {
+  const start = getStartIndexByTabIndex(idx)
+  const count = getTerminalCountByIndex(idx)
+  return terminalRefs.value.slice(start, start + count)
+}
+
+const getFirstTerminalRefOfTab = (idx) => getTerminalRefsOfTab(idx)[0]
+
+// ======================= 提供给模板使用的辅助函数 =======================
+const getTerminalCount = (tabKey) => {
+  const { h, v } = getSplitStatus(tabKey)
+  return (h ? 2 : 1) * (v ? 2 : 1)
+}
+
+const getSplitContainerClass = (tabKey) => {
+  const { h, v } = getSplitStatus(tabKey)
+  if (h && v) return 'four_split'
+  if (h) return 'horizontal_split'
+  if (v) return 'vertical_split'
+  return 'single_split'
+}
+
+// const isPlusActive = computed(() => $store.isPlusActive)
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
 const hostGroupList = computed(() => $store.groupList)
@@ -458,36 +556,6 @@ const handleCloseAllTab = () => {
   emit('close-all-tab')
 }
 
-const { LONG_PRESS, SINGLE_PRESS } = virtualKeyType
-const handleClickVirtualKeyboard = async (virtualKey) => {
-  const { key, ansi, type } = virtualKey
-  // console.log(key, ascii, ansi, type)
-  switch (type) {
-    case LONG_PRESS:
-      // console.log('待组合键')
-      if (key === 'Ctrl') {
-        longPressCtrl.value = true
-        longPressAlt.value = false
-      }
-      if (key === 'Alt') {
-        longPressAlt.value = true
-        longPressCtrl.value = false
-      }
-      // eslint-disable-next-line no-case-declarations
-      const curTerminalRef = terminalRefs.value[activeTabIndex.value]
-      await $nextTick()
-      curTerminalRef?.focusTab()
-      break
-    case SINGLE_PRESS:
-      longPressCtrl.value = false
-      longPressAlt.value = false
-      handleExecScript({ command: ansi })
-      break
-    default:
-      break
-  }
-}
-
 const resetLongPress = () => {
   longPressCtrl.value = false
   longPressAlt.value = false
@@ -546,12 +614,20 @@ const handleExecScript = async (scriptDescObj) => {
   }, 100)
 }
 
-const terminalInput = (command) => {
-  if (!isSyncAllSession.value) return
-  let filterTerminalRefs = terminalRefs.value.filter((host, index) => {
-    return index !== activeTabIndex.value
-  })
-  filterTerminalRefs.forEach((hostRef) => {
+const terminalInput = (command, uid) => {
+  const curTabKey = getTabKeyByIndex(activeTabIndex.value)
+  const isSyncCurTab = getSyncCurTab(curTabKey)
+
+  if (!isSyncAllSession.value && !isSyncCurTab) return
+
+  let targetRefs = []
+  if (isSyncAllSession.value) {
+    targetRefs = terminalRefs.value
+  } else if (isSyncCurTab) {
+    targetRefs = getTerminalRefsOfTab(activeTabIndex.value)
+  }
+  targetRefs = targetRefs.filter((r) => r?.$?.uid !== uid)
+  targetRefs.forEach((hostRef) => {
     hostRef.inputCommand(command, true)
   })
 }
@@ -575,8 +651,7 @@ const getPingData = (data) => {
 
 const tabChange = async (index) => {
   await $nextTick()
-  const curTerminalRef = terminalRefs.value[index]
-  curTerminalRef?.focusTab()
+  getFirstTerminalRefOfTab(index)?.focusTab()
 }
 
 watch(
@@ -597,11 +672,9 @@ watch(
 )
 
 watch(
-  showFooterBar,
+  [showFooterBar, showInfoSide, showSftp,],
   () => {
     setTimeout(async () => {
-      localStorage.setItem('showFooterBar', showFooterBar.value)
-      await $nextTick()
       resizeTerminal()
     }, 210)
   },
@@ -613,6 +686,12 @@ watch(
 
 const removeTab = (index) => {
   emit('removeTab', index)
+  const key = getTabKeyByIndex(index)
+  if (key) {
+    if (splitStatusMap[key]) delete splitStatusMap[key]
+    if (syncCurTabMap[key]) delete syncCurTabMap[key]
+    if (activeSplitMap[key]) delete activeSplitMap[key]
+  }
   if (index === activeTabIndex.value) {
     nextTick(() => {
       activeTabIndex.value = 0
@@ -624,6 +703,34 @@ const handleFullScreen = () => {
   document
     .getElementsByClassName('terminal_and_sftp_wrap')[0]
     .requestFullscreen()
+}
+
+const handleHorizontalScreen = () => {
+  // if (isMobileScreen.value) return $message.info('移动端暂不支持左右分屏')
+  const key = getTabKeyByIndex(activeTabIndex.value)
+  if (!key) return
+  const status = splitStatusMap[key] || { h: false, v: false }
+  splitStatusMap[key] = { ...status, h: !status.h }
+  nextTick(() => {
+    resizeTerminal()
+    // 重新聚焦原先终端
+    const ref = terminalRefs.value.find(r => r?.$?.uid === focusedUid.value)
+    ref?.focusTab ? ref.focusTab() : terminalRefs.value?.[0]?.focusTab()
+  })
+}
+
+const handleVerticalScreen = () => {
+  // if (isMobileScreen.value) return
+  const key = getTabKeyByIndex(activeTabIndex.value)
+  if (!key) return
+  const status = splitStatusMap[key] || { h: false, v: false }
+  splitStatusMap[key] = { ...status, v: !status.v }
+  nextTick(() => {
+    resizeTerminal()
+    // focusLastTerminalOfActive()
+    const ref = terminalRefs.value.find(r => r?.$?.uid === focusedUid.value)
+    ref?.focusTab ? ref.focusTab() : terminalRefs.value?.[0]?.focusTab()
+  })
 }
 
 // const registryDbClick = () => {
@@ -649,7 +756,7 @@ const resizeTerminal = () => {
 }
 
 const handleInputCommand = async (command) => {
-  const curTerminalRef = terminalRefs.value[activeTabIndex.value]
+  const curTerminalRef = getFirstTerminalRefOfTab(activeTabIndex.value)
   await $nextTick()
   curTerminalRef?.focusTab()
   curTerminalRef.inputCommand(`${ command }`)
@@ -679,15 +786,22 @@ const handleInputCommand = async (command) => {
   .terminal_top {
     width: 100%;
     height: $terminalTopHeight;
+    &.mobile {
+      overflow-x: scroll;
+      overflow-y: auto;
+      -ms-overflow-style: none; /* IE/Edge */
+      scrollbar-width: none; /* Firefox */
+      &::-webkit-scrollbar { display: none; }
+    }
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 5px 0 15px;
-    position: sticky;
-    top: 0;
+    // position: sticky;
+    // top: 0;
     background: var(--el-fill-color-light);
     color: var(--el-text-color-regular);
-    z-index: 3;
+    // z-index: 3;
     user-select: none;
 
     // :deep(.el-dropdown) {
@@ -703,10 +817,15 @@ const handleInputCommand = async (command) => {
     .link_text {
       font-size: var(--el-font-size-base);
       color: var(--el-text-color-regular);
+      white-space: nowrap;
       // color: var(--el-color-primary);
       cursor: pointer;
       margin-right: 10px;
-
+      display: flex;
+      align-items: center;
+      .link_icon {
+        margin-left: 5px;
+      }
       .hidden_icon {
         opacity: 0;
       }
@@ -724,7 +843,7 @@ const handleInputCommand = async (command) => {
       .switch_wrap {
         display: flex;
         align-items: center;
-        margin-right: 5px;
+        margin-right: 16px;
       }
 
       .full_icon {
@@ -775,7 +894,7 @@ const handleInputCommand = async (command) => {
         min-height: 30px;
         display: flex;
         align-items: center;
-        // border-bottom: 1px solid var(--el-border-color);
+        border-bottom: 1px solid var(--el-border-color);
         .tab_content_wrap_header_item {
           padding: 0 15px;
           &.active {
@@ -793,25 +912,98 @@ const handleInputCommand = async (command) => {
         min-height: 300px;
         display: flex;
 
-        .tab_content_main_info {
-          width: 250px;
-          min-width: 250px;
+        .tab_content_main_info_side {
+          width: 0;
+          min-width: 0;
           height: 100%;
           overflow-y: auto;
           overflow-x: hidden;
+          transition: all 0.2s;
+          &.show_info_side {
+            width: 250px;
+            min-width: 250px;
+          }
         }
 
         .tab_content_main_terminals {
           height: 100%;
           flex: 1;
+          min-width: 300px;
+          display: flex;
+          .terminal_item {
+            box-sizing: border-box;
+          }
+          &.single_split {
+            flex-direction: row;
+            .terminal_item {
+              flex: 1;
+            }
+          }
+          &.horizontal_split {
+            flex-direction: row;
+            .terminal_item {
+              flex: 1;
+              &:not(:first-child) {
+                border-left: 1px solid var(--el-color-success);
+              }
+            }
+          }
+          &.vertical_split {
+            flex-direction: column;
+            .terminal_item {
+              flex: 1;
+              &:not(:first-child) {
+                border-top: 1px solid var(--el-color-success);
+              }
+            }
+          }
+          &.four_split {
+            flex-wrap: wrap;
+            .terminal_item {
+              flex: 0 0 50%;
+              height: 50%;
+              box-sizing: border-box;
+              border: 1px solid var(--el-border-color);
+            }
+            .terminal_item.active_split_1 {
+              border-right: 1px solid var(--el-color-success);
+              border-bottom: 1px solid var(--el-color-success);
+            }
+            .terminal_item.active_split_2 {
+              border-left: 1px solid var(--el-color-success);
+              border-bottom: 1px solid var(--el-color-success);
+            }
+            .terminal_item.active_split_3 {
+              border-right: 1px solid var(--el-color-success);
+              border-top: 1px solid var(--el-color-success);
+            }
+            .terminal_item.active_split_4 {
+              border-left: 1px solid var(--el-color-success);
+              border-top: 1px solid var(--el-color-success);
+            }
+          }
+          .terminal_item {
+            min-width: 0;
+            min-height: 0;
+            height: 100%;
+            box-sizing: border-box;
+          }
         }
 
         .tab_content_main_sftp {
           height: 100%;
-          width: 450px;
-          min-width: 450px;
-          overflow-y: auto;
-          overflow-x: hidden;
+          width: 0;
+          min-width: 0;
+          overflow: hidden;
+          transition: all 0.2s;
+          flex-shrink: 0;
+          &.show_sftp {
+            width: 450px;
+            min-width: 450px;
+            max-width: 450px;
+            overflow-y: auto;
+            overflow-x: hidden;
+          }
         }
       }
 
@@ -819,6 +1011,7 @@ const handleInputCommand = async (command) => {
         transition: all 0.2s;
         height: 0;
         min-height: 0;
+        overflow: hidden;
         &.show_footer_bar {
           height: 250px;
           min-height: 250px;

@@ -12,7 +12,8 @@ const {
   logDBPath,
   plusDBPath,
   aiConfigDBPath,
-  chatHistoryDBPath
+  chatHistoryDBPath,
+  favoriteSftpDBPath
 } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
@@ -164,5 +165,16 @@ module.exports.ChatHistoryDB = class ChatHistoryDB {
   }
   getInstance() {
     return ChatHistoryDB.instance
+  }
+}
+
+module.exports.FavoriteSftpDB = class FavoriteSftpDB {
+  constructor() {
+    if (!FavoriteSftpDB.instance) {
+      FavoriteSftpDB.instance = new Datastore({ filename: favoriteSftpDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return FavoriteSftpDB.instance
   }
 }
