@@ -2,17 +2,7 @@
   <div class="server_group_container">
     <div class="server_group_header">
       <el-button type="primary" class="add_host_btn" @click="hostFormVisible = true">添加实例</el-button>
-      <el-dropdown trigger="click">
-        <el-button type="primary" class="group_action_btn">
-          导入导出<el-icon class="el-icon--right"><arrow-down /></el-icon>
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item @click="importVisible = true">导入实例</el-dropdown-item>
-            <el-dropdown-item @click="handleBatchExport">导出实例</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+
       <el-dropdown trigger="click">
         <el-button type="primary" class="group_action_btn">
           批量操作<el-icon class="el-icon--right"><arrow-down /></el-icon>
@@ -23,6 +13,17 @@
             <el-dropdown-item @click="handleBatchModify">批量修改</el-dropdown-item>
             <el-dropdown-item @click="handleBatchRemove">批量删除</el-dropdown-item>
             <el-dropdown-item @click="handleBatchOnekey">安装客户端</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <el-dropdown trigger="click">
+        <el-button type="primary" class="group_action_btn">
+          导入导出<el-icon class="el-icon--right"><arrow-down /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="importVisible = true">导入实例</el-dropdown-item>
+            <el-dropdown-item @click="handleBatchExport">导出实例</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>

@@ -1,5 +1,5 @@
 <template>
-  <div class="script_input_container">
+  <div class="script_input_container" @click.stop>
     <PlusLimitTip />
     <div class="left_box">
       <div class="group_list">
@@ -103,8 +103,8 @@
           >
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item>发送至当前窗口终端</el-dropdown-item>
-                <el-dropdown-item>发送至所有窗口终端</el-dropdown-item>
+                <!-- <el-dropdown-item>发送至当前窗口终端</el-dropdown-item> -->
+                <!-- <el-dropdown-item>发送至所有窗口终端</el-dropdown-item> -->
                 <el-dropdown-item @click="handleSaveAsScript">保存至脚本库</el-dropdown-item>
                 <el-dropdown-item @click="handleSendClearContent">发送后清空内容: {{ isClearContent ? '是' : '否' }}</el-dropdown-item>
               </el-dropdown-menu>
@@ -243,6 +243,8 @@ if (scriptGroupList.value.length) {
 <style lang="scss" scoped>
 .script_input_container {
   height: 100%;
+  max-height: 50vh;
+  // overflow: auto;
   display: flex;
   gap: 10px;
   padding: 10px;

@@ -1,1056 +1,752 @@
 <template>
-  <div class="terminal_wrap">
-    <div class="terminal_top" :class="{ 'mobile': isMobileScreen }">
-      <div class="left_menu">
-        <el-dropdown
-          ref="hostDropdownRef"
-          trigger="click"
-          max-height="50vh"
-          class="dropdown_menu"
-        >
-          <span class="link_text">连接<el-icon class="link_icon"><arrow-down /></el-icon></span>
-          <template #dropdown>
-            <el-cascader-panel
-              v-if="hostGroupCascader"
-              ref="hostGroupCascaderRef"
-              style="width: fit-content"
-              :props="{
-                expandTrigger: 'hover',
-              }"
-              :options="formatHostGroupList"
-              @change="handleLinkHost"
-            />
-            <el-dropdown-menu v-else>
-              <el-dropdown-item
-                class="link_close_all"
-                @click="handleCloseAllTab"
-              >
-                <span>关闭所有连接</span>
-              </el-dropdown-item>
-              <el-dropdown-item
-                v-for="(item, index) in hostList"
-                :key="index"
-                @click="handleLinkHost(item)"
-              >
-                {{ item.name }} {{ item.host }}
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-        <el-dropdown
-          v-if="scriptLibrary"
-          ref="scriptDropdownRef"
-          trigger="click"
-          max-height="50vh"
-          class="dropdown_menu"
-        >
-          <span class="link_text">脚本库<el-icon class="link_icon"><arrow-down /></el-icon></span>
-          <template #dropdown>
-            <el-cascader-panel
-              v-if="scriptLibraryCascader"
-              ref="scriptCascaderRef"
-              style="width: fit-content"
-              :props="{
-                expandTrigger: 'hover',
-              }"
-              :options="formatScriptList"
-              @change="handleExecScript"
-            />
-            <el-dropdown-menu v-else>
-              <el-dropdown-item
-                v-for="item in scriptList"
-                :key="item.id"
-                @click="handleExecScript(item)"
-              >
-                <span :title="item.name">{{ item.name }}</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-        <el-dropdown trigger="click">
-          <span class="link_text">功能项<el-icon class="link_icon"><arrow-down /></el-icon></span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="handleFullScreen">
-                <span>启用全屏</span>
-              </el-dropdown-item>
-              <el-dropdown-item @click="showSetting = true">
-                <span>本地设置</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
-      <div class="right_overview">
-        <div class="switch_wrap">
-          <el-tooltip
-            effect="dark"
-            content="同步输入到所有终端"
-            placement="bottom"
-          >
-            <el-switch
-              v-model="isSyncAllSession"
-              class="swtich"
-              inline-prompt
-              style="
-                --el-switch-on-color: #13ce66;
-                --el-switch-off-color: #ff4949;
-              "
-              active-text="同步"
-              inactive-text="同步"
-            />
-          </el-tooltip>
-        </div>
-        <div class="switch_wrap">
-          <el-tooltip
-            effect="dark"
-            content="包含脚本库、docker管理等功能"
-            placement="bottom"
-          >
-            <el-switch
-              v-model="showFooterBar"
-              class="swtich"
-              inline-prompt
-              style="
-                --el-switch-on-color: #13ce66;
-                --el-switch-off-color: #ff4949;
-              "
-              active-text="功能栏"
-              inactive-text="功能栏"
-            />
-          </el-tooltip>
-        </div>
-        <div class="switch_wrap">
-          <!-- :content="isSingleWindowMode ? '多窗口展示连接的多个服务器终端' : '单窗口一屏展示连接的不同服务器终端'" -->
-          <el-tooltip
-            effect="dark"
-            placement="bottom"
-            content="开发中"
-          >
-            <el-switch
-              v-model="isSingleWindowMode"
-              disabled
-              class="swtich"
-              inline-prompt
-              style="
-                --el-switch-on-color: #13ce66;
-                --el-switch-off-color: #409eff;
-              "
-              active-text="单窗口模式"
-              inactive-text="多窗口模式"
-            />
-          </el-tooltip>
-        </div>
-      </div>
-    </div>
-    <el-tabs
-      v-model="activeTabIndex"
-      type="border-card"
-      tab-position="top"
-      class="tabs_container"
-      @tab-remove="removeTab"
-      @tab-change="tabChange"
-    >
-      <el-tab-pane
-        v-for="(item, index) in terminalTabs"
-        :key="item.key"
-        :label="item.name"
-        :name="index"
-        :closable="true"
-      >
-        <template #label>
-          <div class="tab_label">
-            <span
-              class="tab_status"
-              :style="{ background: getStatusColor(item.status) }"
-            />
-            <span>{{ item.name }}</span>
-          </div>
-        </template>
-        <div class="tab_content_wrap">
-          <div class="tab_content_header">
-            <div :class="['tab_content_wrap_header_item', { 'active': showInfoSide }]">
-              <el-tooltip
-                effect="dark"
-                content="状态"
-                placement="bottom"
-              >
-                <span @click="() => (showInfoSide = !showInfoSide)">
-                  <svg-icon name="icon-zhuangtai" class="icon" />
-                </span>
-              </el-tooltip>
-            </div>
-            <div :class="['tab_content_wrap_header_item', { 'active': showSftp }]">
-              <el-tooltip
-                effect="dark"
-                content="文件传输"
-                placement="bottom"
-              >
-                <span @click="() => (showSftp = !showSftp)">
-                  <svg-icon name="icon-sftp" class="icon" />
-                </span>
-              </el-tooltip>
-            </div>
-            <div :class="['tab_content_wrap_header_item', { 'active': getSyncCurTab(item.key) }]">
-              <el-tooltip
-                effect="dark"
-                content="同步输入到分屏"
-                placement="bottom"
-              >
-                <span @click="handleSyncCurTabInput">
-                  <svg-icon name="icon-lianjie" class="icon" />
-                </span>
-              </el-tooltip>
-            </div>
-            <div :class="['tab_content_wrap_header_item', { 'active': getSplitStatus(item.key).h }]">
-              <el-tooltip
-                effect="dark"
-                content="左右分屏"
-                placement="bottom"
-              >
-                <span @click="handleHorizontalScreen">
-                  <svg-icon name="icon-a-06gaodufenping" class="icon" />
-                </span>
-              </el-tooltip>
-            </div>
-            <div :class="['tab_content_wrap_header_item', { 'active': getSplitStatus(item.key).v }]">
-              <el-tooltip
-                effect="dark"
-                content="上下分屏"
-                placement="bottom"
-              >
-                <span @click="handleVerticalScreen">
-                  <svg-icon name="icon-a-05kuandufenping" class="icon" />
-                </span>
-              </el-tooltip>
-            </div>
-          </div>
-          <div class="tab_content_main">
-            <!-- 移动端 -->
-            <el-drawer
-              v-if="isMobileScreen"
-              v-model="showInfoSide"
-              :with-header="false"
-              direction="ltr"
-              class="mobile_menu_drawer"
-            >
-              <InfoSide
-                ref="infoSideRef"
-                :host-info="curHost"
-                :visible="visible"
-                :ping-data="pingData"
-              />
-            </el-drawer>
-            <!-- PC端 -->
-            <div v-else :class="['tab_content_main_info_side', { 'show_info_side': showInfoSide }]">
-              <InfoSide
-                ref="infoSideRef"
-                :host-info="curHost"
-                :visible="visible"
-                :ping-data="pingData"
-              />
-            </div>
-            <div
-              class="tab_content_main_terminals"
-              :class="getSplitContainerClass(item.key)"
-            >
-              <template v-for="panelIndex in getTerminalCount(item.key)" :key="`${item.key}-${panelIndex}`">
-                <div
-                  class="terminal_item"
-                  :class="getSplitItemClass(item.key, panelIndex)"
-                  @click="setActiveSplit(item.key, panelIndex)"
-                >
-                  <!-- @cd-command="cdCommand" -->
-                  <TerminalTab
-                    ref="terminalRefs"
-                    :host-obj="item"
-                    :long-press-ctrl="longPressCtrl"
-                    :long-press-alt="longPressAlt"
-                    :auto-focus="panelIndex === 1"
-                    @input-command="(cmd, uid) => terminalInput(cmd, uid)"
-                    @ping-data="getPingData"
-                    @reset-long-press="resetLongPress"
-                    @tab-focus="handleTabFocus"
-                  />
-                </div>
-              </template>
-            </div>
-
-            <el-drawer
-              v-if="isMobileScreen"
-              v-model="showSftp"
-              :with-header="false"
-              direction="rtl"
-              class="mobile_menu_drawer"
-            >
-              <SftpV2
-                :host-id="item.id"
-                @exec-command="handleInputCommand"
-              />
-            </el-drawer>
-            <div v-else :class="['tab_content_main_sftp', { 'show_sftp': showSftp }]">
-              <SftpV2
-                :host-id="item.id"
-                @exec-command="handleInputCommand"
-              />
-            </div>
-          </div>
-          <div
-            :class="['tab_content_footer', { 'show_footer_bar': showFooterBar }]"
-          >
-            <FooterBar
-              :host-id="item.id"
-              :show="showFooterBar"
-              @resize="resizeTerminal"
-              @exec-command="handleInputCommand"
-            />
-          </div>
-        </div>
-      </el-tab-pane>
-    </el-tabs>
-
-    <InputCommand
-      v-model:show="showInputCommand"
-      @input-command="handleInputCommand"
+  <div class="terminal_tab_container">
+    <div
+      ref="terminalRef"
+      class="terminal_container"
+      @contextmenu="handleRightClick"
+      @mouseup="handleMouseUp"
+      @mousedown="emit('tab-focus', uid)"
     />
-
-    <HostForm
-      v-model:show="hostFormVisible"
-      :default-data="updateHostData"
-      @update-list="handleUpdateList"
-      @closed="updateHostData = null"
-    />
-
-    <TerminalSetting v-model:show="showSetting" />
+    <!-- <div class="terminal_command_history">
+      <CommandHistory :list="commandHistoryList" />
+    </div> -->
   </div>
 </template>
 
 <script setup>
-import {
-  ref,
-  reactive,
-  computed,
-  getCurrentInstance,
-  watch,
-  nextTick
-} from 'vue'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance, watch, nextTick } from 'vue'
+// import CommandHistory from './command_history.vue'
+import { Terminal } from '@xterm/xterm'
+import '@xterm/xterm/css/xterm.css'
+import { CanvasAddon } from '@xterm/addon-canvas'
+import { FitAddon } from '@xterm/addon-fit'
+import { SearchAddon } from '@xterm/addon-search'
+// import { SearchBarAddon } from 'xterm-addon-search-bar'
+import { WebLinksAddon } from '@xterm/addon-web-links'
+import socketIo from 'socket.io-client'
+import themeList from 'xterm-theme'
+import { terminalStatus } from '@/utils/enum'
+import { useContextMenu } from '@/composables/useContextMenu'
+import { EventBus, isDockerId, isDockerComposeYml } from '@/utils'
 import useMobileWidth from '@/composables/useMobileWidth'
-import InputCommand from '@/components/input-command/index.vue'
-import { terminalStatusList } from '@/utils/enum'
-import TerminalTab from './terminal-tab.vue'
-import InfoSide from './info-side.vue'
-import HostForm from '../../server/components/host-form.vue'
-import TerminalSetting from './terminal-setting.vue'
-import FooterBar from './footer-bar.vue'
-import SftpV2 from './sftp-v2.vue'
 
-const {
-  proxy: { $nextTick, $store, $message }
-} = getCurrentInstance()
+const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
+
+const instance = getCurrentInstance()
+const { uid } = instance
+const { proxy: { $api, $store, $serviceURI, $notification, $router, $message, $messageBox } } = instance
+
+const { io } = socketIo
+
+const { isMobileScreen } = useMobileWidth()
 
 const props = defineProps({
-  terminalTabs: {
-    type: Array,
-    required: true
-  }
+  hostObj: {
+    required: true,
+    type: Object
+  },
+  longPressCtrl: {
+    type: Boolean,
+    default: false
+  },
+  longPressAlt: {
+    type: Boolean,
+    default: false
+  },
+  isSingleWindow: {
+    type: Boolean,
+    default: false
+  },
+  autoFocus: { type: Boolean, default: true }
 })
 
-const emit = defineEmits(['closed', 'close-all-tab', 'removeTab', 'add-host',])
-const hostGroupAll = 'host-group-all-'
-const { isMobileScreen } = useMobileWidth()
-const showInputCommand = ref(false)
-const infoSideRef = ref(null)
-const pingData = ref({})
-const terminalRefs = ref([])
-// const sftpRefs = ref([])
-const activeTabIndex = ref(0)
-const visible = ref(true)
-const isSyncAllSession = ref(false)
-const isSingleWindowMode = ref(false)
-const hostFormVisible = ref(false)
-const updateHostData = ref(null)
-const showSetting = ref(false)
-const showInfoSide = ref(!isMobileScreen.value)
-const showSftp = ref(!isMobileScreen.value)
-const showFooterBar = ref(false)
-const longPressCtrl = ref(false)
-const longPressAlt = ref(false)
-const scriptDropdownRef = ref(null)
-const scriptCascaderRef = ref(null)
-const hostGroupCascaderRef = ref(null)
-const hostDropdownRef = ref(null)
+const emit = defineEmits(['inputCommand', 'cdCommand', 'ping-data', 'reset-long-press', 'tab-focus',])
 
-// 当前聚焦终端 uid
-const focusedUid = ref(null)
-
-const handleTabFocus = (uid) => {
-  focusedUid.value = uid
+const socket = ref(null)
+// const commandHistoryList = ref([])
+const term = ref(null)
+const initCommand = ref('')
+const timer = ref(null)
+const pingTimer = ref(null)
+const fitAddon = ref(null)
+// const searchBar = ref(null)
+const socketConnected = ref(false)
+const curStatus = ref(CONNECTING)
+const terminalRef = ref(null)
+const { showMenu, closeMenu, isVisible } = useContextMenu()
+const cursorTheme = {
+  cursor: '#00ff41',
+  cursorAccent: '#000000'
 }
 
-// ======================= 同步当前tab分屏状态 =======================
-const syncCurTabMap = reactive({})
+const token = computed(() => $store.token)
+const theme = computed(() => themeList[$store.terminalConfig.themeName])
+const fontSize = computed(() => $store.terminalConfig.fontSize)
+const background = computed(() => $store.terminalConfig.background)
+const hostObj = computed(() => props.hostObj)
+const hostId = computed(() => hostObj.value.id)
+const host = computed(() => hostObj.value.host)
+const menuCollapse = computed(() => $store.menuCollapse)
+const autoExecuteScript = computed(() => $store.terminalConfig.autoExecuteScript)
+const autoReconnect = computed(() => $store.terminalConfig.autoReconnect)
+const isPlusActive = computed(() => $store.isPlusActive)
+const isLongPressCtrl = computed(() => props.longPressCtrl)
+const isLongPressAlt = computed(() => props.longPressAlt)
 
-const getSyncCurTab = (key) => syncCurTabMap[key] || false
-
-const handleSyncCurTabInput = () => {
-  const key = getTabKeyByIndex(activeTabIndex.value)
-  if (!key) return
-  syncCurTabMap[key] = !getSyncCurTab(key)
-}
-
-// ======================= 分屏面板激活状态 =======================
-const activeSplitMap = reactive({})
-
-const getActiveSplit = (key) => activeSplitMap[key] || 1
-
-const setActiveSplit = (key, idx) => {
-  activeSplitMap[key] = idx
-}
-
-const getSplitItemClass = (key, panelIndex) => {
-  const classes = []
-  const { h, v } = getSplitStatus(key)
-  if (h && v) { // four split
-    const activeIdx = getActiveSplit(key)
-    if (panelIndex === activeIdx) classes.push(`active_split_${ panelIndex }`)
-  }
-  // for two split no special class
-  return classes
-}
-
-// ======================= 分屏状态 =======================
-// 每个 tab(key) 对应的分屏状态 { h: boolean, v: boolean }
-const splitStatusMap = reactive({})
-
-const getTabKeyByIndex = (idx) => terminalTabs.value[idx]?.key
-
-const getSplitStatus = (key) => splitStatusMap[key] || { h: false, v: false }
-
-// 计算某 tab 需要渲染的终端数量
-const getTerminalCountByIndex = (idx) => {
-  const key = getTabKeyByIndex(idx)
-  if (!key) return 0
-  const { h, v } = getSplitStatus(key)
-  return (h ? 2 : 1) * (v ? 2 : 1)
-}
-
-const getStartIndexByTabIndex = (idx) => {
-  let start = 0
-  for (let i = 0; i < idx; i++) {
-    start += getTerminalCountByIndex(i)
-  }
-  return start
-}
-
-const getTerminalRefsOfTab = (idx) => {
-  const start = getStartIndexByTabIndex(idx)
-  const count = getTerminalCountByIndex(idx)
-  return terminalRefs.value.slice(start, start + count)
-}
-
-const getFirstTerminalRefOfTab = (idx) => getTerminalRefsOfTab(idx)[0]
-
-// ======================= 提供给模板使用的辅助函数 =======================
-const getTerminalCount = (tabKey) => {
-  const { h, v } = getSplitStatus(tabKey)
-  return (h ? 2 : 1) * (v ? 2 : 1)
-}
-
-const getSplitContainerClass = (tabKey) => {
-  const { h, v } = getSplitStatus(tabKey)
-  if (h && v) return 'four_split'
-  if (h) return 'horizontal_split'
-  if (v) return 'vertical_split'
-  return 'single_split'
-}
-
-// const isPlusActive = computed(() => $store.isPlusActive)
-const terminalTabs = computed(() => props.terminalTabs)
-const terminalTabsLen = computed(() => props.terminalTabs.length)
-const hostGroupList = computed(() => $store.groupList)
-const hostList = computed(() => $store.hostList)
-const curHost = computed(() =>
-  hostList.value.find(
-    (item) => item.host === terminalTabs.value[activeTabIndex.value]?.host
-  )
-)
-const scriptGroupList = computed(() => $store.scriptGroupList)
-const scriptList = computed(() => $store.scriptList)
-const scriptLibrary = computed(() => $store.menuSetting.scriptLibrary)
-const scriptLibraryCascader = computed(
-  () => $store.menuSetting.scriptLibraryCascader
-)
-const hostGroupCascader = computed(() => $store.menuSetting.hostGroupCascader)
-const formatHostGroupList = computed(() => {
-  const groupList = hostList.value.reduce((acc, item) => {
-    const groupName = hostGroupList.value.find((group) => group.id === item.group)?.name
-    if (!acc[groupName]) {
-      acc[groupName] = []
-    }
-    acc[groupName].push(item)
-    return acc
-  }, {})
-  const result = Object.entries(groupList)
-    .map(([groupName, hosts,]) => {
-      const children = hosts.map((host) => ({
-        value: host.id,
-        label: host.name
-      }))
-      if (hosts.length > 1) {
-        children.unshift({
-          value: `${ hostGroupAll }${ hosts[0].group }`,
-          label: '全部连接'
-        })
-      }
-      return {
-        value: groupName,
-        label: groupName,
-        children
-      }
-    })
-  result.unshift({
-    value: 'closeAll',
-    label: '关闭所有连接'
+watch(menuCollapse, () => {
+  nextTick(() => {
+    handleResize()
   })
-  return result
 })
-const formatScriptList = computed(() => {
-  const scriptsByGroup = scriptList.value.reduce((acc, script) => {
-    const groupId = script.group || 'default'
-    if (!acc[groupId]) {
-      acc[groupId] = []
+
+watch(theme, () => {
+  nextTick(() => {
+    // 自定义光标颜色
+    const customTheme = {
+      ...theme.value,
+      ...cursorTheme
     }
-    acc[groupId].push({
-      value: script.id,
-      label: script.name,
-      command: script.command // 保存command用于执行脚本
-    })
-    return acc
-  }, {})
-  return scriptGroupList.value.map((group) => ({
-    value: group.id,
-    label: group.name,
-    children: scriptsByGroup[group.id] || []
-  }))
+
+    if (!background.value) {
+      term.value.options.theme = customTheme
+    } else {
+      term.value.options.theme = { ...customTheme, background: '#00000080' }
+    }
+  })
 })
 
-const getStatusColor = (status) => {
-  return (
-    terminalStatusList.find((item) => item.value === status)?.color || 'gray'
-  )
-}
+watch(fontSize, () => {
+  nextTick(() => {
+    term.value.options.fontSize = fontSize.value
+    handleResize()
+  })
+})
 
-const handleUpdateList = async ({ host }) => {
-  try {
-    await $store.getHostList()
-    let targetHost = hostList.value.find((item) => item.host === host)
-    if (targetHost) emit('add-host', targetHost)
-  } catch (err) {
-    $message.error('获取实例列表失败')
-    console.error('获取实例列表失败: ', err)
-  }
-}
+watch(background, (newVal) => {
+  nextTick(() => {
+    const customTheme = {
+      ...theme.value,
+      ...cursorTheme
+    }
 
-const handleCloseAllTab = () => {
-  emit('close-all-tab')
-}
-
-const resetLongPress = () => {
-  longPressCtrl.value = false
-  longPressAlt.value = false
-}
-
-const handleLinkHost = (hostDescObj) => {
-  if (!hostDescObj) return // clearCheckedNodes二次触发change事件
-  const id = Array.isArray(hostDescObj) ? hostDescObj.slice(-1)[0] : hostDescObj.id
-  if (id === 'closeAll') return handleCloseAllTab()
-  if (id.startsWith(hostGroupAll)) {
-    const groupId = id.split(hostGroupAll)[1]
-    const hosts = hostList.value.filter((host) => host.group === groupId)
-    const configHosts = hosts.filter((host) => host.isConfig)
-    if (configHosts.length > 0) {
-      configHosts.forEach((host) => {
-        emit('add-host', host)
-      })
+    if (newVal) {
+      term.value.options.theme = { ...customTheme, background: '#00000080' }
+      terminalRef.value.style.backgroundImage = background.value?.startsWith('http') ? `url(${ background.value })` : `${ background.value }`
+      // terminalRef.value.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15)), url(${ background.value })`
     } else {
-      $message.warning('请先配置SSH连接信息')
+      term.value.options.theme = customTheme
+      terminalRef.value.style.backgroundImage = null
+    }
+  })
+}, { immediate: true })
+
+watch(curStatus, () => {
+  console.warn(`status: ${ curStatus.value }`)
+  hostObj.value.status = curStatus.value
+})
+
+const getCommand = async () => {
+  let { data } = await $api.getCommand(hostId.value)
+  if (data) initCommand.value = data
+}
+
+const connectIO = () => {
+  curStatus.value = CONNECTING
+  socket.value = io($serviceURI, {
+    path: props.isSingleWindow ? '/terminal-single-window' : '/terminal',
+    forceNew: false,
+    reconnection: false,
+    reconnectionAttempts: 0
+  })
+  socket.value.on('connect', () => {
+    console.log('/terminal socket已连接：', hostId.value)
+
+    socketConnected.value = true
+    socket.value.emit('ws_terminal', { hostId: hostId.value, token: token.value })
+    socket.value.on('terminal_connect_success', () => {
+      socket.value.on('output', (str) => {
+        term.value.write(str)
+        terminalText.value += str
+      })
+      socket.value.on('terminal_connect_shell_success', () => {
+        curStatus.value = CONNECT_SUCCESS
+        shellResize()
+        if (initCommand.value) socket.value.emit('input', initCommand.value + '\n')
+      })
+
+      // socket.value.on('terminal_command_history', (data) => {
+      //   console.log(data)
+      //   commandHistoryList.value = data
+      // })
+    })
+
+    if (pingTimer.value) clearInterval(pingTimer.value)
+    pingTimer.value = setInterval(() => {
+      socket.value?.emit('get_ping', host.value)
+    }, 3000)
+    socket.value.emit('get_ping', host.value) // 获取服务端到客户端的ping值
+    socket.value.on('ping_data', (pingMs) => {
+      emit('ping-data', Object.assign({ ip: host.value }, pingMs))
+    })
+
+    socket.value.on('token_verify_fail', () => {
+      $notification({ title: 'Error', message: 'token校验失败，请重新登录', type: 'error' })
+      $router.push('/login')
+    })
+
+    socket.value.on('terminal_print_info', (msg) => {
+      term.value.write(`${ msg }\r\n`)
+    })
+
+    socket.value.on('terminal_connect_close', () => {
+      curStatus.value = CONNECT_FAIL
+      term.value.write('\r\n\x1b[91m终端主动断开连接, 回车重新发起连接\x1b[0m')
+    })
+
+    socket.value.on('terminal_connect_fail', (message) => {
+      curStatus.value = CONNECT_FAIL
+      term.value.write(`\r\n\x1b[91m连接终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
+    })
+
+    socket.value.on('terminal_create_fail', (message) => {
+      curStatus.value = CONNECT_FAIL
+      term.value.write(`\r\n\x1b[91m创建终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
+    })
+
+  })
+
+  socket.value.on('disconnect', (reason) => {
+    console.warn('terminal websocket 连接断开:', reason)
+    switch (reason) {
+      case 'io server disconnect':
+        reconnectTerminal(true, '服务端主动断开连接')
+        break
+      case 'io client disconnect': // 客户端主动断开连接
+        break
+      case 'transport close':
+        reconnectTerminal(true, '本地网络连接异常')
+        break
+      case 'transport error':
+        reconnectTerminal(true, '建立连接错误')
+        break
+      case 'parse error':
+        reconnectTerminal(true, '数据解析错误')
+        break
+      default:
+        reconnectTerminal(true, '连接意外断开')
+    }
+  })
+
+  socket.value.on('connect_error', (err) => {
+    console.error('EasyNode服务端连接错误：', err)
+    curStatus.value = CONNECT_FAIL
+    term.value.write('\r\n\x1b[91mError: 连接失败,请检查EasyNode服务端是否正常, 回车重新发起连接\x1b[0m \r\n')
+    $notification({
+      title: '服务端连接失败',
+      message: '请检查EasyNode服务端是否正常',
+      type: 'error'
+    })
+  })
+}
+
+const reconnectTerminal = (isCommonTips = false, tips) => {
+  socket.value.removeAllListeners()
+  socket.value.close()
+  socket.value = null
+  socketConnected.value = false
+  if (isCommonTips) {
+    if (isPlusActive.value && autoReconnect.value) {
+      term.value.write(`\r\n\x1b[91m${ tips },自动重连中...\x1b[0m \r\n`)
+      connectIO()
+    } else {
+      term.value.write(`\r\n\x1b[91mError: ${ tips },请重新连接。([功能项->本地设置->快捷操作]中开启自动重连)\x1b[0m \r\n`)
     }
   } else {
-    const host = hostList.value.find((item) => item.id === id)
-    if (!host.isConfig) {
-      $message.warning('请先配置SSH连接信息')
-      hostFormVisible.value = true
-      updateHostData.value = { ...host }
+    term.value.write(`\n${ tips } \n`)
+    connectIO()
+  }
+}
+
+const createLocalTerminal = () => {
+  let terminalInstance = new Terminal({
+    bellStyle: 'sound',
+    convertEol: true,
+    cursorBlink: true,
+    disableStdin: false,
+    minimumContrastRatio: 7,
+    allowTransparency: true,
+    fontFamily: 'Cascadia Code, Menlo, monospace',
+    fontSize: fontSize.value,
+    theme: theme.value,
+    scrollback: 5000, // 滚动缓冲区大小
+    tabStopWidth: 4,
+    windowsMode: false, // 禁用Windows模式提升性能
+    macOptionIsMeta: true, // macOS优化
+    smoothScrollDuration: 0 // 平滑滚动时间
+  })
+
+  const canvasAddon = new CanvasAddon()
+  // const webglAddon = new WebglAddon()
+
+  // Canvas渲染器错误处理
+  // if (canvasAddon.onContextLoss) {
+  //   canvasAddon.onContextLoss(() => {
+  //     console.warn('Canvas context lost, attempting to recover...')
+  //   })
+  // }
+  // terminalInstance.loadAddon(canvasAddon)
+  term.value = terminalInstance
+  terminalInstance.open(terminalRef.value)
+  !isMobileScreen.value && terminalInstance.loadAddon(canvasAddon)
+  terminalInstance.writeln('\x1b[1;32mWelcome to EasyNode terminal\x1b[0m.')
+  terminalInstance.writeln('\x1b[1;32mAn experimental Web-SSH Terminal\x1b[0m.')
+  if (props.autoFocus) terminalInstance.focus()
+  onFindText()
+  onWebLinks()
+  onResize()
+}
+
+const shellResize = () => {
+  fitAddon.value.fit()
+  let { rows, cols } = term.value
+  socket.value?.emit('resize', { rows, cols })
+}
+
+const onResize = () => {
+  fitAddon.value = new FitAddon()
+  term.value.loadAddon(fitAddon.value)
+  window.addEventListener('resize', handleResize)
+}
+
+const handleResize = () => {
+  if (timer.value) clearTimeout(timer.value)
+  timer.value = setTimeout(async () => {
+    // 由于非当前的el-tab-pane的display属性为none, 调用fitAddon.value?.fit()时无法获取宽高，因此先展示，再fit，最后再隐藏
+    let temp = []
+    let panes = Array.from(document.getElementsByClassName('el-tab-pane'))
+    panes.forEach((item, index) => {
+      temp[index] = item.style.display
+      item.style.display = 'block'
+    })
+    shellResize()
+    panes.forEach((item, index) => {
+      item.style.display = temp[index]
+    })
+  }, 200)
+}
+
+const onWebLinks = () => {
+  term.value.loadAddon(new WebLinksAddon((event, uri) => {
+    if (event.ctrlKey || event.altKey) window.open(uri, '_blank')
+  }))
+}
+
+// :TODO: 重写终端搜索功能
+const onFindText = () => {
+  const searchAddon = new SearchAddon()
+  // searchBar.value = new SearchBarAddon({ searchAddon })
+  term.value.loadAddon(searchAddon)
+  // term.value.loadAddon(searchBar.value)
+}
+
+const terminalText = ref(null)
+const enterTimer = ref(null)
+
+function filterAnsiSequences(str) {
+  // 使用正则表达式移除ANSI转义序列
+  // return str.replace(/\x1b\[[0-9;]*m|\x1b\[?[\d;]*[A-HJKSTfmin]/g, '')
+  // eslint-disable-next-line
+  return str.replace(/\x1b\[[0-9;]*[mGK]|(\x1b\][0-?]*[0-7;]*\x07)|(\x1b[\[\]()#%;][0-9;?]*[0-9A-PRZcf-ntqry=><])/g, '')
+}
+
+// 处理 Backspace，删除前一个字符
+function applyBackspace(text) {
+  let result = []
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '\b') {
+      if (result.length > 0) {
+        result.pop()
+      }
+    } else {
+      result.push(text[i])
+    }
+  }
+  return result.join('')
+}
+
+function extractLastCdPath(text) {
+  const regex = /cd\s+([^\s]+)(?=\s|$)/g
+  let lastMatch
+  let match
+  regex.lastIndex = 0
+  while ((match = regex.exec(text)) !== null) {
+    lastMatch = match
+  }
+  return lastMatch ? lastMatch[1] : null
+}
+
+const onData = () => {
+  term.value.onData((key) => {
+    if ('\r' === key && curStatus.value === CONNECT_FAIL) {
+      reconnectTerminal(false, '重新连接中...')
       return
     }
-    emit('add-host', host)
-  }
-  setTimeout(() => {
-    hostGroupCascaderRef.value?.clearCheckedNodes()
-    hostDropdownRef.value?.handleClose()
-  }, 100)
-}
+    if (!socket.value || !socketConnected.value) return
 
-const handleExecScript = async (scriptDescObj) => {
-  if (!scriptDescObj) return // clearCheckedNodes二次触发change事件
-  const id = Array.isArray(scriptDescObj) ? scriptDescObj.slice(-1)[0] : scriptDescObj.id
-  const script = scriptList.value.find((item) => item.id === id)
-  if (!script) return $message.warning('未找到对应的脚本')
-
-  const command = script.command
-  if (!isSyncAllSession.value) {
-    await handleInputCommand(command)
-  } else {
-    terminalRefs.value.forEach((terminalRef) => {
-      terminalRef.inputCommand(command)
-    })
-  }
-
-  await $nextTick()
-  setTimeout(() => {
-    scriptCascaderRef.value?.clearCheckedNodes()
-    scriptDropdownRef.value?.handleClose()
-  }, 100)
-}
-
-const terminalInput = (command, uid) => {
-  const curTabKey = getTabKeyByIndex(activeTabIndex.value)
-  const isSyncCurTab = getSyncCurTab(curTabKey)
-
-  if (!isSyncAllSession.value && !isSyncCurTab) return
-
-  let targetRefs = []
-  if (isSyncAllSession.value) {
-    targetRefs = terminalRefs.value
-  } else if (isSyncCurTab) {
-    targetRefs = getTerminalRefsOfTab(activeTabIndex.value)
-  }
-  targetRefs = targetRefs.filter((r) => r?.$?.uid !== uid)
-  targetRefs.forEach((hostRef) => {
-    hostRef.inputCommand(command, true)
-  })
-}
-
-// 识别命令动态切换目录功能暂时取消
-// const cdCommand = (path) => {
-//   // console.log('cdCommand:', path)
-//   if (!showSftp.value) return
-//   if (isSyncAllSession.value) {
-//     sftpRefs.value.forEach(sftpRef => {
-//       sftpRef.openDir(path)
-//     })
-//   } else {
-//     sftpRefs.value[activeTabIndex.value].openDir(path, false)
-//   }
-// }
-
-const getPingData = (data) => {
-  pingData.value[data.ip] = data
-}
-
-const tabChange = async (index) => {
-  await $nextTick()
-  getFirstTerminalRefOfTab(index)?.focusTab()
-}
-
-watch(
-  terminalTabsLen,
-  () => {
-    let len = terminalTabsLen.value
-    // console.log('add tab:', len)
-    if (len > 0) {
-      activeTabIndex.value = len - 1
-      // registryDbClick()
-      tabChange(activeTabIndex.value)
+    // 检查是否按下ESC键且右键菜单正在显示
+    if (key === '\x1b') { // ESC键的ASCII码是27，对应字符是'\x1b'
+      if (isVisible.value) return closeMenu()
     }
-  },
-  {
-    immediate: true,
-    deep: false
-  }
-)
 
-watch(
-  [showFooterBar, showInfoSide, showSftp,],
-  () => {
-    setTimeout(async () => {
-      resizeTerminal()
-    }, 210)
-  },
-  {
-    immediate: true,
-    deep: false
-  }
-)
+    if (isLongPressCtrl.value || isLongPressAlt.value) {
+      const keyCode = key.toUpperCase().charCodeAt(0)
+      console.log('keyCode: ', keyCode)
+      const ansiCode = keyCode - 64
+      console.log('ansiCode:', ansiCode)
+      if (ansiCode >= 1 && ansiCode <= 26) {
+        const controlChar = String.fromCharCode(ansiCode)
+        socket.value.emit('input', isLongPressCtrl.value ? controlChar : `\x1b${ key }`)
+      }
+      emit('reset-long-press')
+      return
+    }
 
-const removeTab = (index) => {
-  emit('removeTab', index)
-  const key = getTabKeyByIndex(index)
-  if (key) {
-    if (splitStatusMap[key]) delete splitStatusMap[key]
-    if (syncCurTabMap[key]) delete syncCurTabMap[key]
-    if (activeSplitMap[key]) delete activeSplitMap[key]
-  }
-  if (index === activeTabIndex.value) {
-    nextTick(() => {
-      activeTabIndex.value = 0
+    let acsiiCode = key.codePointAt()
+    // console.log(acsiiCode)
+    if (acsiiCode === 22) return handlePaste() // Ctrl + V
+    // if (acsiiCode === 6) return searchBar.value.show() // Ctrl + F
+    enterTimer.value = setTimeout(() => {
+      if (enterTimer.value) clearTimeout(enterTimer.value)
+      if (key === '\r') { // Enter
+        if (curStatus.value === CONNECT_SUCCESS) {
+          let cleanText = applyBackspace(filterAnsiSequences(terminalText.value))
+          const lines = cleanText.split('\n')
+          // console.log('lines: ', lines)
+          const lastLine = lines[lines.length - 1].trim()
+          // console.log('lastLine: ', lastLine)
+          // 截取最后一个提示符后的内容（'$'或'#'后的内容）
+          const commandStartIndex = lastLine.lastIndexOf('#') + 1
+          const commandText = lastLine.substring(commandStartIndex).trim()
+          // eslint-disable-next-line
+          const cdPath = extractLastCdPath(commandText)
+
+          if (cdPath) {
+            console.log('cd command path:', cdPath)
+            let firstChar = cdPath.charAt(0)
+            if (!['/',].includes(firstChar)) return console.log('err fullpath:', cdPath) // 后端依赖不支持 '~'
+            emit('cdCommand', cdPath)
+          }
+          terminalText.value = ''
+        }
+      }
     })
-  }
-}
-
-const handleFullScreen = () => {
-  document
-    .getElementsByClassName('terminal_and_sftp_wrap')[0]
-    .requestFullscreen()
-}
-
-const handleHorizontalScreen = () => {
-  // if (isMobileScreen.value) return $message.info('移动端暂不支持左右分屏')
-  const key = getTabKeyByIndex(activeTabIndex.value)
-  if (!key) return
-  const status = splitStatusMap[key] || { h: false, v: false }
-  splitStatusMap[key] = { ...status, h: !status.h }
-  nextTick(() => {
-    resizeTerminal()
-    // 重新聚焦原先终端
-    const ref = terminalRefs.value.find(r => r?.$?.uid === focusedUid.value)
-    ref?.focusTab ? ref.focusTab() : terminalRefs.value?.[0]?.focusTab()
+    if (curStatus.value !== CONNECT_SUCCESS) return
+    emit('inputCommand', key, uid)
+    socket.value.emit('input', key)
   })
 }
 
-const handleVerticalScreen = () => {
-  // if (isMobileScreen.value) return
-  const key = getTabKeyByIndex(activeTabIndex.value)
-  if (!key) return
-  const status = splitStatusMap[key] || { h: false, v: false }
-  splitStatusMap[key] = { ...status, v: !status.v }
-  nextTick(() => {
-    resizeTerminal()
-    // focusLastTerminalOfActive()
-    const ref = terminalRefs.value.find(r => r?.$?.uid === focusedUid.value)
-    ref?.focusTab ? ref.focusTab() : terminalRefs.value?.[0]?.focusTab()
+const handleCopySelection = async () => {
+  let str = term.value.getSelection().trim()
+  if (!str) return
+  const text = new Blob([str,], { type: 'text/plain' })
+  const item = new ClipboardItem({
+    'text/plain': text
   })
+  await navigator.clipboard.write([item,])
+  term.value.clearSelection()
 }
 
-// const registryDbClick = () => {
-//   $nextTick(() => {
-//     let tabItems = Array.from(document.getElementsByClassName('el-tabs__item'))
-//     tabItems.forEach(item => {
-//       item.removeEventListener('dblclick', handleDblclick)
-//       item.addEventListener('dblclick', handleDblclick)
-//     })
-//   })
-// }
-
-// const handleDblclick = (e) => {
-//   let key = e.target.id.substring(4)
-//   removeTab(key)
-// }
-
-const resizeTerminal = () => {
-  for (let terminalTabRef of terminalRefs.value) {
-    const { handleResize } = terminalTabRef || {}
-    handleResize && handleResize()
+const handleMouseUp = async (e) => {
+  if (e.button === 1) return handlePaste() // 鼠标中键粘贴
+  if (e.button === 0) {
+    let str = term.value.getSelection().trim()
+    if (!str) return closeMenu()
+    handleRightClick(e)
   }
 }
 
-const handleInputCommand = async (command) => {
-  const curTerminalRef = getFirstTerminalRefOfTab(activeTabIndex.value)
-  await $nextTick()
-  curTerminalRef?.focusTab()
-  curTerminalRef.inputCommand(`${ command }`)
-  showInputCommand.value = false
+const plusTips = () => {
+  if (!isPlusActive.value) {
+    // $message.warning('Plus功能未激活')
+    $messageBox.confirm('Plus功能未激活', 'Warning', {
+      confirmButtonText: '前往设置',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+      .then(async () => {
+        $router.push('/setting?tabKey=plus')
+      })
+    return false
+  }
+  return true
 }
+
+const handleRightClick = async (e) => {
+  let str = term.value.getSelection().trim()
+  const sendToAI = str ? {
+    label: '发送到AI会话',
+    onClick: () => {
+      EventBus.$emit('sendToAIInput', `\`\`\`shell\n${ str }\n\`\`\`\n`)
+      term.value.clearSelection()
+    }
+  } : null
+  const paste = {
+    label: '粘贴',
+    onClick: () => {
+      handlePaste()
+      term.value.clearSelection()
+    }
+  }
+  const copySelection = str ? {
+    label: '复制',
+    onClick: async () => {
+      await handleCopySelection()
+      focusTab()
+    }
+  } : null
+  const pasteSelection = str ? {
+    label: '粘贴选中内容',
+    onClick: async () => {
+      await handleCopySelection()
+      handlePaste()
+    }
+  } : null
+  const clear = {
+    label: '清屏',
+    onClick: () => {
+      handleClear()
+    }
+  }
+  const dockerId = isDockerId(str) ? {
+    label: 'docker容器ID',
+    children: [
+      {
+        label: '[plus]检测选中内容可能为docker容器ID',
+        disabled: true
+      },
+      {
+        label: `登录: docker exec -it ${ str } bash`,
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand(`docker exec -it ${ str } bash`)
+        }
+      },
+      {
+        label: `停止: docker stop ${ str }`,
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand(`docker stop ${ str }`)
+        }
+      },
+      {
+        label: `重启: docker restart ${ str }`,
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand(`docker restart ${ str }`)
+        }
+      },
+      {
+        label: `删除: docker rm -f ${ str }`,
+        onClick: () => {
+          if (!plusTips()) return
+          $messageBox.confirm(`确认删除该容器：${ str }`, 'Warning', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          })
+            .then(async () => {
+              focusTab()
+              inputCommand(`docker rm -f ${ str }`)
+            })
+        }
+      },
+      {
+        label: `日志: docker logs -f ${ str }`,
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand(`docker logs -f ${ str }`)
+        }
+      },
+    ]
+  } : null
+
+  const dockerComposeYml = isDockerComposeYml(str) ? {
+    label: 'docker-compose文件',
+    children: [
+      {
+        label: '[plus]检测选中内容可能为docker-compose文件',
+        disabled: true
+      },
+      {
+        label: '启动: docker-compose up -d',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose up -d')
+        }
+      },
+      {
+        label: '停止并删除: docker-compose down',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose down')
+        }
+      },
+      {
+        label: '重启: docker-compose restart',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose restart')
+        }
+      },
+      {
+        label: '查看日志: docker-compose logs -f',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose logs -f')
+        }
+      },
+      {
+        label: '拉取新镜像: docker-compose pull',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose pull')
+        }
+      },
+      {
+        label: '重建: docker-compose up -d --force-recreate',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose up -d --force-recreate')
+        }
+      },
+    ]
+  } : null
+
+  const menu = [
+    sendToAI,
+    copySelection,
+    paste,
+    pasteSelection,
+    clear,
+    dockerId,
+    dockerComposeYml,
+  ].filter(Boolean)
+  showMenu(e, menu)
+}
+
+const handleClear = () => {
+  term.value.clearSelection()
+  term.value.clear()
+  term.value.focus()
+}
+
+const handlePaste = async () => {
+  let key = await navigator.clipboard.readText()
+  // 如果粘贴的内容以换行符结尾则去掉换行符(防止自动执行)
+  while (key.endsWith('\n')) {
+    key = key.slice(0, -1)
+  }
+  emit('inputCommand', key, uid)
+  socket.value.emit('input', key)
+  term.value.focus()
+  term.value.clearSelection()
+}
+
+const focusTab = () => {
+  term.value.blur()
+  setTimeout(() => {
+    term.value.focus()
+  }, 200)
+}
+
+const inputCommand = (command, isSyncAllSession = false) => {
+  command = command + (isSyncAllSession ? '' : (autoExecuteScript.value ? '\n' : ''))
+  socket.value.emit('input', command)
+}
+
+const execExternalCommand = (command) => {
+  if (!socket.value || !socket.value.connected || curStatus.value !== CONNECT_SUCCESS) {
+    $message.error('终端连接已断开,无法执行指令')
+    return
+  }
+  socket.value.emit('input', command + '\n')
+  term.value?.focus()
+}
+
+onMounted(async () => {
+  createLocalTerminal()
+  await getCommand()
+  connectIO()
+  await nextTick()
+  onData()
+  EventBus.$on('exec_external_command', execExternalCommand)
+})
+
+onBeforeUnmount(() => {
+  EventBus.$off('exec_external_command', execExternalCommand)
+  socket.value?.close()
+  window.removeEventListener('resize', handleResize)
+  clearInterval(pingTimer.value)
+})
+
+defineExpose({
+  focusTab,
+  handleResize,
+  inputCommand,
+  handleClear
+})
 </script>
 
 <style lang="scss" scoped>
-.terminal_wrap {
-  // height: 100%;
+.terminal_tab_container {
+  height: 100%;
+  min-height: 200px;
+  position: relative;
+  .terminal_container {
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
 
-  :deep(.el-tabs__content) {
-    padding: 0;
-  }
+    :deep(.xterm) {
+      height: 100%;
+    }
 
-  :deep(.el-tabs--border-card) {
-    border: none;
-  }
-
-  :deep(.el-tabs__nav-wrap.is-scrollable.is-top) {
-    display: flex;
-    align-items: center;
-  }
-
-  $terminalTopHeight: 30px;
-
-  .terminal_top {
-    width: 100%;
-    height: $terminalTopHeight;
-    &.mobile {
-      overflow-x: scroll;
+    :deep(.xterm-viewport) {
       overflow-y: auto;
-      -ms-overflow-style: none; /* IE/Edge */
-      scrollbar-width: none; /* Firefox */
-      &::-webkit-scrollbar { display: none; }
-    }
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 5px 0 15px;
-    // position: sticky;
-    // top: 0;
-    background: var(--el-fill-color-light);
-    color: var(--el-text-color-regular);
-    // z-index: 3;
-    user-select: none;
-
-    // :deep(.el-dropdown) {
-    //   margin-top: -2px;
-    // }
-    .dropdown_menu {
-      :deep(.el-dropdown-menu) {
-        min-width: 120px;
-        max-width: 300px;
-      }
     }
 
-    .link_text {
-      font-size: var(--el-font-size-base);
-      color: var(--el-text-color-regular);
-      white-space: nowrap;
-      // color: var(--el-color-primary);
-      cursor: pointer;
-      margin-right: 10px;
-      display: flex;
-      align-items: center;
-      .link_icon {
-        margin-left: 5px;
-      }
-      .hidden_icon {
-        opacity: 0;
-      }
-    }
-
-    .left_menu {
-      display: flex;
-      align-items: center;
-    }
-
-    .right_overview {
-      display: flex;
-      align-items: center;
-
-      .switch_wrap {
-        display: flex;
-        align-items: center;
-        margin-right: 16px;
-      }
-
-      .full_icon {
-        cursor: pointer;
-
-        &:hover .icon {
-          color: var(--el-color-primary);
-        }
-      }
+    :deep(.xterm-screen) {
+      padding: 0;
     }
   }
-
-  .info_box {
-    height: calc(100% - $terminalTopHeight);
+  .terminal_command_history {
+    width: 200px;
+    height: 100%;
     overflow: auto;
-    display: flex;
-    flex-direction: column;
-    border: var(--el-descriptions-table-border);
-  }
-
-  .tabs_container {
-    position: relative;
-
-    .tab_label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      .tab_status {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        margin-right: 5px;
-        transition: all 0.5s;
-        // background-color: var(--el-color-primary);
-      }
-    }
-
-    .tab_content_wrap {
-      flex: 1;
-      height: calc(100vh - 142px);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      .tab_content_header {
-        height: 30px;
-        min-height: 30px;
-        display: flex;
-        align-items: center;
-        border-bottom: 1px solid var(--el-border-color);
-        .tab_content_wrap_header_item {
-          padding: 0 15px;
-          &.active {
-            color: var(--el-color-success);
-          }
-          .icon {
-            font-size: 16px;
-            cursor: pointer;
-            outline: none;
-          }
-        }
-      }
-      .tab_content_main {
-        flex: 1;
-        min-height: 300px;
-        display: flex;
-
-        .tab_content_main_info_side {
-          width: 0;
-          min-width: 0;
-          height: 100%;
-          overflow-y: auto;
-          overflow-x: hidden;
-          transition: all 0.2s;
-          &.show_info_side {
-            width: 250px;
-            min-width: 250px;
-          }
-        }
-
-        .tab_content_main_terminals {
-          height: 100%;
-          flex: 1;
-          min-width: 300px;
-          display: flex;
-          .terminal_item {
-            box-sizing: border-box;
-          }
-          &.single_split {
-            flex-direction: row;
-            .terminal_item {
-              flex: 1;
-            }
-          }
-          &.horizontal_split {
-            flex-direction: row;
-            .terminal_item {
-              flex: 1;
-              &:not(:first-child) {
-                border-left: 1px solid var(--el-color-success);
-              }
-            }
-          }
-          &.vertical_split {
-            flex-direction: column;
-            .terminal_item {
-              flex: 1;
-              &:not(:first-child) {
-                border-top: 1px solid var(--el-color-success);
-              }
-            }
-          }
-          &.four_split {
-            flex-wrap: wrap;
-            .terminal_item {
-              flex: 0 0 50%;
-              height: 50%;
-              box-sizing: border-box;
-              border: 1px solid var(--el-border-color);
-            }
-            .terminal_item.active_split_1 {
-              border-right: 1px solid var(--el-color-success);
-              border-bottom: 1px solid var(--el-color-success);
-            }
-            .terminal_item.active_split_2 {
-              border-left: 1px solid var(--el-color-success);
-              border-bottom: 1px solid var(--el-color-success);
-            }
-            .terminal_item.active_split_3 {
-              border-right: 1px solid var(--el-color-success);
-              border-top: 1px solid var(--el-color-success);
-            }
-            .terminal_item.active_split_4 {
-              border-left: 1px solid var(--el-color-success);
-              border-top: 1px solid var(--el-color-success);
-            }
-          }
-          .terminal_item {
-            min-width: 0;
-            min-height: 0;
-            height: 100%;
-            box-sizing: border-box;
-          }
-        }
-
-        .tab_content_main_sftp {
-          height: 100%;
-          width: 0;
-          min-width: 0;
-          overflow: hidden;
-          transition: all 0.2s;
-          flex-shrink: 0;
-          &.show_sftp {
-            width: 450px;
-            min-width: 450px;
-            max-width: 450px;
-            overflow-y: auto;
-            overflow-x: hidden;
-          }
-        }
-      }
-
-      .tab_content_footer {
-        transition: all 0.2s;
-        height: 0;
-        min-height: 0;
-        overflow: hidden;
-        &.show_footer_bar {
-          height: 250px;
-          min-height: 250px;
-          overflow-x: hidden;
-          overflow-y: auto;
-        }
-      }
-
-    }
-
-    .full-screen-button {
-      position: absolute;
-      right: 10px;
-      top: 4px;
-      z-index: 99999;
-    }
-  }
-
-  .visible {
     position: absolute;
-    z-index: 999999;
-    top: 13px;
-    left: 5px;
-    cursor: pointer;
-    transition: all 0.3s;
-
-    &:hover {
-      transform: scale(1.1);
-    }
+    top: 0;
+    right: 0;
+    z-index: 1;
+    background-color: #fff;
+    border-radius: 6px
   }
 }
 </style>
 
-<style>
-.action_icon {
-  color: var(--el-color-primary);
-}
-
-.link_close_all:hover {
-  color: #ff4949 !important;
+<style lang="scss">
+.terminals {
+  .el-tabs__header {
+    padding-left: 55px;
+  }
 }
 </style>

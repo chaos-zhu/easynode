@@ -31,20 +31,45 @@ async function getConnectionOptions(hostId) {
 }
 
 function createInteractiveShell(socket, targetSSHClient) {
-  return new Promise((resolve) => {
-    targetSSHClient.shell({ term: 'xterm-color' }, (err, stream) => {
-      resolve(stream)
-      if (err) return socket.emit('output', err.toString())
-      stream
-        .on('data', (data) => {
-          socket.emit('output', data.toString())
-        })
-        .on('close', () => {
-          consola.info('交互终端已关闭')
-          targetSSHClient.end()
-        })
-      socket.emit('terminal_connect_shell_success') // 已连接终端，web端可以执行指令了
-    })
+  return new Promise((resolve, reject) => {
+    // 检查SSH客户端连接状态
+    if (!targetSSHClient || !targetSSHClient._sock || !targetSSHClient._sock.writable) {
+      const errorMsg = 'SSH客户端连接已断开，无法创建交互式终端'
+      consola.error(errorMsg)
+      socket.emit('terminal_connect_fail', errorMsg)
+      return reject(new Error(errorMsg))
+    }
+
+    try {
+      targetSSHClient.shell({ term: 'xterm-color' }, (err, stream) => {
+        if (err) {
+          consola.error('创建交互式终端失败:', err.message)
+          socket.emit('terminal_connect_fail', err.message)
+          return reject(err)
+        }
+
+        resolve(stream)
+
+        stream
+          .on('data', (data) => {
+            socket.emit('output', data.toString())
+          })
+          .on('close', () => {
+            consola.info('交互终端已关闭')
+            targetSSHClient.end()
+          })
+          .on('error', (streamErr) => {
+            consola.error('终端流错误:', streamErr.message)
+            socket.emit('terminal_connect_fail', streamErr.message)
+          })
+
+        socket.emit('terminal_connect_shell_success') // 已连接终端，web端可以执行指令了
+      })
+    } catch (shellError) {
+      consola.error('调用shell方法失败:', shellError.message)
+      socket.emit('terminal_connect_fail', shellError.message)
+      reject(shellError)
+    }
   })
 }
 
@@ -77,8 +102,16 @@ async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShel
             sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录成功`)
             socket.emit('terminal_print_info', `终端连接成功: ${ name } - ${ host }`)
             socket.emit('terminal_connect_success', `终端连接成功：${ host }`)
-            let stream = await createInteractiveShell(socket, targetSSHClient)
-            resolve({ stream, jumpSshClients })
+
+            try {
+              let stream = await createInteractiveShell(socket, targetSSHClient)
+              resolve({ stream, jumpSshClients })
+            } catch (shellError) {
+              consola.error('创建交互式终端失败:', host, shellError.message)
+              // 连接已经成功但创建shell失败，需要清理连接
+              targetSSHClient.end()
+              jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
+            }
           } else {
             resolve({ jumpSshClients })
           }
@@ -110,14 +143,7 @@ async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShel
   })
 }
 
-module.exports = (httpServer) => {
-  const serverIo = new Server(httpServer, {
-    path: '/terminal',
-    cors: {
-      origin: '*'
-    }
-  })
-
+function createServerIo(serverIo) {
   let connectionCount = 0
 
   serverIo.on('connection', (socket) => {
@@ -133,24 +159,44 @@ module.exports = (httpServer) => {
     let targetSSHClient = null
     let jumpSshClients = []
     socket.on('ws_terminal', async ({ hostId, token }) => {
-      const { code } = await verifyAuthSync(token, requestIP)
-      if (code !== 1) {
-        socket.emit('token_verify_fail')
-        socket.disconnect()
-        return
+      try {
+        const { code } = await verifyAuthSync(token, requestIP)
+        if (code !== 1) {
+          socket.emit('token_verify_fail')
+          socket.disconnect()
+          return
+        }
+
+        targetSSHClient = new SSHClient()
+        let result = await createTerminal(hostId, socket, targetSSHClient, true)
+
+        // 如果创建终端失败，result可能为undefined
+        if (!result) {
+          consola.error('创建终端失败，未返回结果')
+          return
+        }
+
+        let { stream = null, jumpSshClients: jumpSshClientsFromCreate } = result
+        jumpSshClients = jumpSshClientsFromCreate || []
+
+        const listenerInput = (key) => {
+          if (!targetSSHClient || !targetSSHClient._sock || !targetSSHClient._sock.writable) {
+            consola.info('终端连接已关闭,禁止输入')
+            return
+          }
+          stream && stream.write(key)
+        }
+
+        const resizeShell = ({ rows, cols }) => {
+          stream && stream.setWindow(rows, cols)
+        }
+
+        socket.on('input', listenerInput)
+        socket.on('resize', resizeShell)
+      } catch (error) {
+        consola.error('ws_terminal事件处理失败:', error.message)
+        socket.emit('terminal_connect_fail', `连接失败: ${ error.message }`)
       }
-      targetSSHClient = new SSHClient()
-      let { stream = null, jumpSshClients: jumpSshClientsFromCreate } = await createTerminal(hostId, socket, targetSSHClient, true)
-      jumpSshClients = jumpSshClientsFromCreate
-      function listenerInput(key) {
-        if (targetSSHClient._sock.writable === false) return consola.info('终端连接已关闭,禁止输入')
-        stream && stream.write(key)
-      }
-      function resizeShell({ rows, cols }) {
-        stream && stream.setWindow(rows, cols)
-      }
-      socket.on('input', listenerInput)
-      socket.on('resize', resizeShell)
     })
 
     socket.on('get_ping', async (ip) => {
@@ -172,5 +218,16 @@ module.exports = (httpServer) => {
   })
 }
 
+module.exports = (httpServer) => {
+  const serverIo = new Server(httpServer, {
+    path: '/terminal',
+    cors: {
+      origin: '*'
+    }
+  })
+  createServerIo(serverIo)
+}
+
 module.exports.getConnectionOptions = getConnectionOptions
 module.exports.createTerminal = createTerminal
+module.exports.createServerIo = createServerIo
