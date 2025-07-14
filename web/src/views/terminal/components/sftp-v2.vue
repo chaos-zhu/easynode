@@ -541,6 +541,7 @@ import unknowIcon from '@/assets/image/system/unknow.png'
 import { useContextMenu } from '@/composables/useContextMenu'
 import TextEditor from '@/components/text-editor/index.vue'
 import ImagePreview from '@/components/image-preview/index.vue'
+import { EventBus } from '@/utils'
 
 const props = defineProps({
   hostId: {
@@ -1585,6 +1586,17 @@ const onRowContextMenu = (row, _column, event) => {
       $message.success('已复制路径')
     }
   })
+
+  // 发送cd指令到终端
+  if (row.type === 'd') {
+    const cdCommand = `cd ${ currentPath.value }/${ row.name }`.replace(/\/+/g, '/')
+    items.push({
+      label: '发送cd指令到终端',
+      onClick: () => {
+        EventBus.$emit('exec_external_command', cdCommand)
+      }
+    })
+  }
 
   showMenu(event, items)
 }

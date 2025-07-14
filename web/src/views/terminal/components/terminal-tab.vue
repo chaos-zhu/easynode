@@ -671,14 +671,14 @@ const inputCommand = (command, isSyncAllSession = false) => {
   socket.value.emit('input', command)
 }
 
-EventBus.$on('exec_external_command', (command) => {
+const execExternalCommand = (command) => {
   if (!socket.value || !socket.value.connected || curStatus.value !== CONNECT_SUCCESS) {
     $message.error('终端连接已断开,无法执行指令')
     return
   }
   socket.value.emit('input', command + '\n')
   term.value?.focus()
-})
+}
 
 onMounted(async () => {
   createLocalTerminal()
@@ -686,9 +686,11 @@ onMounted(async () => {
   connectIO()
   await nextTick()
   onData()
+  EventBus.$on('exec_external_command', execExternalCommand)
 })
 
 onBeforeUnmount(() => {
+  EventBus.$off('exec_external_command', execExternalCommand)
   socket.value?.close()
   window.removeEventListener('resize', handleResize)
   clearInterval(pingTimer.value)

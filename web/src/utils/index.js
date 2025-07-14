@@ -17,6 +17,15 @@ EventBus.$on = (event, callback) => {
   EventBus[event].push(callback)
 }
 
+EventBus.$off = (event, callback) => {
+  if (!EventBus[event]) return
+  if (!callback) {
+    delete EventBus[event]
+  } else {
+    EventBus[event] = EventBus[event].filter(cb => cb !== callback)
+  }
+}
+
 export const randomStr = (e) =>{
   e = e || 16
   let str = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678',
