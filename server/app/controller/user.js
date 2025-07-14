@@ -4,10 +4,9 @@ const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
 const version = require('../../package.json').version
 const getLicenseInfo = require('../utils/get-plus')
-const { plusServer1, plusServer2 } = require('../utils/plus-server')
 const { sendNoticeAsync } = require('../utils/notify')
 const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt } = require('../utils/encrypt')
-const { getNetIPInfo } = require('../utils/tools')
+const { getNetIPInfo, requestWithFailover } = require('../utils/tools')
 const { KeyDB, LogDB, PlusDB } = require('../utils/db-class')
 
 const keyDB = new KeyDB().getInstance()
@@ -177,23 +176,22 @@ const getPlusInfo = async ({ res }) => {
 
 const getPlusDiscount = async ({ res } = {}) => {
   if (process.env.EXEC_ENV === 'local') return res.success({ discount: false })
-  const servers = [plusServer1, plusServer2]
-  for (const server of servers) {
-    try {
-      const url = `${ server }/api/announcement/public?version=${ version }`
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${ response.status }`)
-      }
+
+  try {
+    const response = await requestWithFailover(`/api/announcement/public?version=${ version }`)
+
+    if (response.ok) {
       const data = await response.json()
       return res.success({ data, msg: 'success' })
-    } catch (error) {
-      if (server === servers[servers.length - 1]) {
-        consola.error('All servers failed:', error.message)
-        return res.success({ discount: false })
-      }
-      continue
     }
+
+    // 如果是403或其他错误状态码
+    consola.error('获取折扣信息失败，状态码:', response.status)
+    return res.success({ discount: false })
+
+  } catch (error) {
+    consola.error('获取折扣信息失败:', error.message)
+    return res.success({ discount: false })
   }
 }
 

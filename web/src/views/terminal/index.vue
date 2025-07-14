@@ -38,8 +38,7 @@
       </el-table>
     </div>
     <div v-else>
-      <Terminal
-        ref="terminalRef"
+      <TerminalWrapper
         :terminal-tabs="terminalTabs"
         @remove-tab="handleRemoveTab"
         @add-host="linkTerminal"
@@ -58,7 +57,7 @@
 <script setup>
 import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import Terminal from './components/terminal.vue'
+import TerminalWrapper from './components/terminal-wrapper.vue'
 import HostForm from '../server/components/host-form.vue'
 import { randomStr } from '@utils/index.js'
 import { terminalStatus } from '@/utils/enum'
@@ -69,7 +68,6 @@ const { proxy: { $store, $message } } = getCurrentInstance()
 let terminalTabs = reactive([])
 let hostFormVisible = ref(false)
 let updateHostData = ref(null)
-const terminalRef = ref(null)
 const route = useRoute()
 
 let showLinkTips = computed(() => !Boolean(terminalTabs.length))

@@ -1,15 +1,11 @@
-const { getLocalNetIP } = require('./tools')
+const { getLocalNetIP, requestWithFailover } = require('./tools')
 const { AESEncryptAsync } = require('./encrypt')
 const version = require('../../package.json').version
-const { plusServer1, plusServer2 } = require('./plus-server')
 const { PlusDB } = require('./db-class')
 const plusDB = new PlusDB().getInstance()
 
 async function getLicenseInfo(key = '') {
   const { key: plusKey } = await plusDB.findOneAsync({}) || {}
-  // console.log('plusKey: ', plusKey)
-  // console.log('key: ', key)
-  // console.log('process.env.PLUS_KEY: ', process.env.PLUS_KEY)
   key = key || plusKey || process.env.PLUS_KEY
   if (!key || key.length < 16) return { success: false, msg: 'Invalid Plus Key' }
   let ip = ''
@@ -28,32 +24,13 @@ async function getLicenseInfo(key = '') {
     return { success: false, msg: 'get public ip failed' }
   }
   try {
-    let response
-    let method = 'POST'
-    let body = JSON.stringify({ ip, key, version })
-    let headers = { 'Content-Type': 'application/json' }
-    let timeout = 10000
-    try {
-      response = await fetch(plusServer1 + '/api/licenses/activate', {
-        method,
-        headers,
-        body,
-        timeout
-      })
-
-      if (!response.ok && (response.status !== 403)) {
-        throw new Error('port1 error')
-      }
-
-    } catch (error) {
-      consola.log('retry to activate plus by backup server')
-      response = await fetch(plusServer2 + '/api/licenses/activate', {
-        method,
-        headers,
-        body,
-        timeout
-      })
+    const requestOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip, key, version })
     }
+
+    const response = await requestWithFailover('/api/licenses/activate', requestOptions)
 
     if (!response.ok) {
       consola.log('activate plus failed: ', response.status)

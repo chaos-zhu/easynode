@@ -1,4 +1,8 @@
 module.exports = {
-  plusServer1: 'https://en1.221022.xyz',
-  plusServer2: 'https://en2.221022.xyz'
+  plusServers: [
+    'https://en1-plus-active-tencent-eo.chaoszhu.com',
+    'https://en2-plus-active-tencent-eo.chaoszhu.com',
+    'https://en1.221022.xyz',
+    'https://en2.221022.xyz'
+  ]
 }

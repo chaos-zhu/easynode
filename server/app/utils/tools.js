@@ -4,6 +4,7 @@ const net = require('net')
 const iconv = require('iconv-lite')
 const axios = require('axios')
 const request = axios.create({ timeout: 3000 })
+const { plusServers } = require('./plus-server')
 
 // 为空时请求本地IP
 const getNetIPInfo = async (searchIp = '') => {
@@ -310,6 +311,49 @@ const ping = (ip, timeout = 5000) => {
   })
 }
 
+async function requestWithFailover(path, options = {}, timeout = 5000) {
+  const { method = 'GET', headers = {}, body = null } = options
+
+  for (let i = 0; i < plusServers.length; i++) {
+    const server = plusServers[i]
+    try {
+      consola.info(`Plus服务: ${ i + 1 }/${ plusServers.length }: ${ server }${ path }`)
+
+      const response = await fetch(server + path, {
+        method,
+        headers,
+        body,
+        timeout
+      })
+
+      // 如果状态码是200或403，不需要尝试下一个服务器
+      if (response.ok || response.status === 403) {
+        consola.info(`Plus服务: ${ i + 1 }/${ plusServers.length }: ${ server }${ path } 响应成功，状态码: ${ response.status }`)
+        return response
+      }
+
+      // 尝试下一个服务器
+      if (i < plusServers.length - 1) {
+        consola.info(`Plus服务: ${ i + 1 }/${ plusServers.length }: ${ server }${ path } 响应状态码 ${ response.status }，尝试下一个服务器`)
+        continue
+      }
+
+      // 最后一个服务失败了
+      throw new Error(`Plus服务: 所有服务器请求失败: ${ response.status }`)
+
+    } catch (error) {
+      // 如果不是最后一个服务，尝试下一个服务器[防止异常报错]
+      if (i < plusServers.length - 1) {
+        consola.info(`Plus服务: ${ i + 1 }/${ plusServers.length }: ${ server }${ path } 请求失败: ${ error.message }，尝试下一个服务器`)
+        continue
+      }
+      // 如果是最后一个服务器，抛出错误
+      consola.error(`Plus服务: 所有服务器请求失败: ${ error.message }`)
+      throw error
+    }
+  }
+}
+
 module.exports = {
   getNetIPInfo,
   getLocalNetIP,
@@ -322,5 +366,6 @@ module.exports = {
   shellThrottle,
   isProd,
   isAllowedIp,
-  ping
+  ping,
+  requestWithFailover
 }
