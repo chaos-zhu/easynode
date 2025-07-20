@@ -62,6 +62,7 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 - v3.1.0版本开始用户名密码不再是admin/admin. 需查看**终端日志**，另外登录后请及时修改，避免日志残留敏感信息。请牢记账号密码，出于安全原因，不提供一键重置密码的脚本
 - 默认web端口：**8082**
 
+<!-- 
 ### docker-compose部署-自动更新（推荐）
 
 ```shell
@@ -74,6 +75,7 @@ wget https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode
 # 3. 启动服务
 docker-compose up -d
 ```
+-->
 
 ### docker镜像
 
