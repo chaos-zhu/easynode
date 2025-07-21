@@ -9,6 +9,14 @@
       >
         {{ isExecuting ? `执行中，剩余${timeRemaining}秒` : '批量下发指令' }}
       </el-button>
+      <!-- <el-button
+        v-show="recordList.length"
+        :disabled="isExecuting"
+        type="primary"
+        @click="handleRefresh"
+      >
+        刷新列表
+      </el-button> -->
       <el-button
         v-show="recordList.length"
         :disabled="isExecuting"
@@ -22,7 +30,7 @@
     <el-table
       v-loading="loading"
       :data="tableData"
-      row-key="id"
+      row-key="startDate"
       :expand-row-keys="expandRows"
     >
       <el-table-column type="expand">
@@ -52,6 +60,26 @@
       >
         <template #default="{ row }">
           <span> {{ row.command }} </span>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="startDate"
+        label="开始时间"
+        show-overflow-tooltip
+        min-width="150px"
+      >
+        <template #default="{ row }">
+          <span> {{ $tools.formatTimestamp(row.startDate) }} </span>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="endDate"
+        label="结束时间"
+        show-overflow-tooltip
+        min-width="150px"
+      >
+        <template #default="{ row }">
+          <span> {{ $tools.formatTimestamp(row.endDate) }} </span>
         </template>
       </el-table-column>
       <el-table-column
@@ -183,7 +211,7 @@ import { useRoute } from 'vue-router'
 
 const { io } = socketIo
 
-const { proxy: { $api, $notification,$messageBox, $message, $router, $serviceURI, $store } } = getCurrentInstance()
+const { proxy: { $api, $notification,$messageBox, $message, $router, $serviceURI, $store, $tools } } = getCurrentInstance()
 const route = useRoute()
 
 const loading = ref(false)
@@ -216,7 +244,7 @@ const tableData = computed(() => {
   })
 })
 const expandRows = computed(() => {
-  let rows = tableData.value.filter(item => item.pending).map(item => item.id)
+  let rows = tableData.value.filter(item => item.pending).map(item => item.startDate)
   return rows
 })
 
@@ -281,11 +309,7 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
         message: reason,
         type: 'error'
       })
-      if (Array.isArray(result) && result.length > 0) {
-        // console.log('output', result)
-        result = result.map(item => ({ ...item, pending: true }))
-        pendingRecord.value = result
-      }
+      getOnekeyRecord()
     })
 
     socket.value.on('token_verify_fail', () => {
@@ -299,6 +323,7 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
         message: '执行完成',
         type: 'success'
       })
+      getOnekeyRecord()
     })
   })
 
@@ -365,6 +390,7 @@ let getOnekeyRecord = async () => {
   loading.value = true
   let { data } = await $api.getOnekeyRecord()
   recordList.value = data
+  pendingRecord.value = []
   loading.value = false
 }
 
@@ -443,9 +469,6 @@ onActivated(async () => {
     display: flex;
     align-items: center;
     justify-content: end;
-    position: sticky;
-    top: 0;
-    z-index: 1;
   }
   .detail_content_box {
     max-height: 200px;

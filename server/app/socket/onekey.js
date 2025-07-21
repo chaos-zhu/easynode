@@ -52,7 +52,7 @@ function execShell(socket, sshClient, curRes, resolve) {
     //   arrayBuffers: (memoryUsage.arrayBuffers / 1024 / 1024).toFixed(2) + ' MB' // Memory allocated for ArrayBuffer and SharedArrayBuffer, including all Node.js Buffers
     // }
     // console.log(formattedMemoryUsage)
-  }, 500) // 防止内存爆破
+  }, 1000) // 防止内存爆破
   sshClient.exec(curRes.command, function(err, stream) {
     if (err) {
       console.log(curRes.host, '命令执行失败:', err)
@@ -134,7 +134,7 @@ module.exports = (httpServer) => {
         return new Promise(async (resolve, reject) => {
           setTimeout(() => reject('执行超时'), timeout * 1000)
           let { host, port, jumpHosts } = hostInfo
-          let curRes = { command, host, port, name: hostInfo.name, result: '', status: execStatusEnum.connecting, date: Date.now() - (targetHostsInfo.length - index) }
+          let curRes = { command, host, port, name: hostInfo.name, result: '', status: execStatusEnum.connecting, startDate: Date.now() + index }
           execResult.push(curRes)
           let jumpSshClients = []
           try {
@@ -218,6 +218,7 @@ module.exports = (httpServer) => {
         if (reason !== 'server namespace disconnect' && ![execSuccess, execFail, execTimeout, connectFail].includes(item.status)) {
           item.status = execStatusEnum.socketInterrupt
         }
+        item.endDate = Date.now()
       })
       await onekeyDB.insertAsync(execResult)
       isExecuting = false

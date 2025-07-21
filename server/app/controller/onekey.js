@@ -6,7 +6,7 @@ async function getOnekeyRecord({ res }) {
   data = data.map(item => {
     return { ...item, id: item._id }
   })
-  data?.sort((a, b) => Number(b.date) - Number(a.date))
+  data?.sort((a, b) => Number(b.startDate) - Number(a.startDate))
   res.success({ data })
 }
 
