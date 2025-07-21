@@ -31,7 +31,6 @@
       <el-table-column
         prop="ports"
         label="端口"
-        show-overflow-tooltip
       >
         <template #default="{ row }">
           <div v-if="Array.isArray(row.ports)">
@@ -86,7 +85,12 @@
         </template>
       </el-table-column>
       <el-table-column prop="uptime" label="运行时长" />
-      <el-table-column label="操作" align="center" width="230">
+      <el-table-column
+        label="操作"
+        align="center"
+        width="230"
+        fixed="right"
+      >
         <template #header>
           <div class="header_buttons">
             <div v-if="dockerServerErr" style="margin-right: 6px;">
@@ -445,12 +449,9 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .docker_container {
-  overflow: auto;
-  height: 100%;
   display: flex;
   gap: 10px;
   padding: 10px;
-  min-width: 0;
   position: relative;
 
   .resource_usage {
@@ -476,7 +477,7 @@ onUnmounted(() => {
   }
 
   :deep(.el-table tr), :deep(.el-table th.el-table__cell) {
-    background-color: transparent;
+    //background-color: transparent;
   }
 
   :deep(.el-tag) {

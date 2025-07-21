@@ -357,7 +357,13 @@
             />
           </div>
         </div>
-        <el-dialog v-model="showDockerDialog" :title="`Docker容器管理-${ item.name }`" width="50%">
+        <el-dialog
+          v-model="showDockerDialog"
+          top="20vh"
+          :title="`Docker容器管理-${ item.name }`"
+          :width="isMobileScreen ? '100vw' : '80vw'"
+          :style="isMobileScreen ? 'max-width: 100vw;' : 'max-width: 1300px;'"
+        >
           <Docker :host-id="item.id" />
         </el-dialog>
       </el-tab-pane>
