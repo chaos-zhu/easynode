@@ -41,14 +41,14 @@
           autocomplete="off"
         />
       </el-form-item>
-      <!-- <el-form-item label="描述" prop="description">
+      <el-form-item label="描述" prop="description">
         <el-input
           v-model="formData.description"
           clearable
           placeholder=""
           autocomplete="off"
         />
-      </el-form-item> -->
+      </el-form-item>
       <el-form-item label="序号" prop="index">
         <el-input
           v-model.trim.number="formData.index"

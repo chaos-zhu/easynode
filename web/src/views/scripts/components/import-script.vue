@@ -3,12 +3,22 @@
     v-model="visible"
     width="600px"
     top="225px"
-    modal-class="import_form_dialog"
+    modal-class="import_script_dialog"
     append-to-body
     title="导入脚本配置"
     :close-on-click-modal="false"
   >
-    <h2>选择要导入的文件类型</h2>
+    <h2>1. 选择要导入的分组</h2>
+    <el-select v-model="targetGroup" placeholder="请选择分组" style="width: 50%;margin-bottom: 10px;">
+      <el-option
+        v-for="item in groupList"
+        :key="item.id"
+        :label="item.name"
+        :value="item.id"
+      />
+    </el-select>
+
+    <h2>2. 选择要导入的文件类型</h2>
     <ul class="type_list">
       <li @click="handleFromJson">
         <svg-icon name="icon-json" class="icon" />
@@ -23,7 +33,7 @@
           @change="handleJsonFile"
         >
       </li>
-      <li @click="manualInputVisible = true">
+      <li @click="() => manualInputVisible = true">
         <svg-icon name="icon-bianji1" class="icon" />
         <span class="from">手动输入</span>
       </li>
@@ -70,6 +80,7 @@ const emit = defineEmits(['update:show', 'update-list',])
 const jsonInputRef = ref(null)
 const manualInputVisible = ref(false)
 const manualInput = ref('')
+const targetGroup = ref('default')
 
 let visible = computed({
   get: () => props.show,
@@ -77,6 +88,7 @@ let visible = computed({
 })
 
 let scriptList = computed(() => $store.scriptList)
+const groupList = computed(() => $store.scriptGroupList.filter(item => item.id !== 'builtin'))
 
 function handleFromJson() {
   jsonInputRef.value.click()
@@ -114,6 +126,12 @@ const handleJsonFile = (event) => {
         return !existCommand.includes(command) && !existId.includes(_id)
       })
       if (formatJson.length === 0) return $message.warning('导入的脚本已存在')
+      formatJson = formatJson.map((item) => {
+        return {
+          ...item,
+          group: targetGroup.value
+        }
+      })
       try {
         let { data: { len } } = await $api.importScript({ scripts: formatJson })
         $message({ type: 'success', center: true, message: `成功导入脚本: ${ len }条` })
@@ -158,7 +176,8 @@ const handleManualImport = async () => {
         ...item,
         name: `${ item.command.slice(0, 15) || `脚本${ index + 1 }` }`,
         index: scriptList.value.length + index + 1,
-        description: '手动输入'
+        description: '手动输入',
+        group: targetGroup.value
       }
     })
 
@@ -175,11 +194,10 @@ const handleManualImport = async () => {
 </script>
 
 <style lang="scss">
-.import_form_dialog {
+.import_script_dialog {
   h2 {
     font-size: 14px;
     font-weight: 600;
-    text-align: center;
     margin: 15px 0 25px 0;
   }
   .type_list {
@@ -194,7 +212,7 @@ const handleManualImport = async () => {
       align-items: center;
       justify-content: center;
       width: 150px;
-      height: 150px;
+      height: 120px;
       cursor: pointer;
       border-radius: 3px;
       &:hover {
