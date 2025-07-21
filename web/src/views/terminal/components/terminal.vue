@@ -300,7 +300,10 @@ const createLocalTerminal = () => {
   !isMobileScreen.value && terminalInstance.loadAddon(canvasAddon)
   terminalInstance.writeln('\x1b[1;32mWelcome to EasyNode terminal\x1b[0m.')
   terminalInstance.writeln('\x1b[1;32mAn experimental Web-SSH Terminal\x1b[0m.')
-  if (props.autoFocus) terminalInstance.focus()
+  if (props.autoFocus) {
+    terminalInstance.focus()
+    emit('tab-focus', uid)
+  }
   onFindText()
   onWebLinks()
   onResize()
@@ -668,6 +671,7 @@ const focusTab = () => {
   term.value.blur()
   setTimeout(() => {
     term.value.focus()
+    emit('tab-focus', uid)
   }, 200)
 }
 

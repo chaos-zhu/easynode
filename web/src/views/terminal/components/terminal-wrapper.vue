@@ -333,13 +333,13 @@
             >
               <SftpV2
                 :host-id="item.id"
-                @exec-command="handleInputCommand"
+                @exec-script="handleExecScript"
               />
             </el-drawer>
             <div v-else :class="['tab_content_main_sftp', { 'show_sftp': showSftpSide }]">
               <SftpV2
                 :host-id="item.id"
-                @exec-command="handleInputCommand"
+                @exec-script="handleExecScript"
               />
             </div>
           </div>
@@ -352,7 +352,7 @@
               :show="showFooterBar"
               :height="footerBarHeight"
               @resize="resizeTerminal"
-              @exec-command="handleInputCommand"
+              @exec-script="handleExecScript"
               @height-change="handleFooterBarHeightChange"
             />
           </div>
@@ -698,13 +698,19 @@ const handleLinkHost = (hostDescObj) => {
   }, 100)
 }
 
+// scriptDescObj: 脚本库对象或脚本命令
 const handleExecScript = async (scriptDescObj) => {
   if (!scriptDescObj) return // clearCheckedNodes二次触发change事件
-  const id = Array.isArray(scriptDescObj) ? scriptDescObj.slice(-1)[0] : scriptDescObj.id
-  const script = scriptList.value.find((item) => item.id === id)
-  if (!script) return $message.warning('未找到对应的脚本')
+  let command = ''
+  const id = Array.isArray(scriptDescObj) ? scriptDescObj.slice(-1)[0] : scriptDescObj?.id
+  if (id) {
+    const script = scriptList.value.find((item) => item.id === id)
+    command = script?.command
+  } else {
+    command = scriptDescObj
+  }
+  if (!command) return $message.warning('未找到对应的脚本')
 
-  const command = script.command
   if (!isSyncAllSession.value) {
     // 不同步时，使用 handleInputCommand（会处理分屏同步）
     await handleInputCommand(command, 'script')

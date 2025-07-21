@@ -33,7 +33,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['resize', 'exec-command', 'height-change',])
+const emit = defineEmits(['resize', 'exec-script', 'height-change',])
 
 // 拖拽相关状态
 const isResizing = ref(false)
@@ -73,7 +73,7 @@ const stopResize = () => {
 }
 
 const execCommand = (command) => {
-  emit('exec-command', command, 'script')
+  emit('exec-script', command)
 }
 
 // 清理事件监听

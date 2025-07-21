@@ -542,7 +542,7 @@ import { useContextMenu } from '@/composables/useContextMenu'
 import TextEditor from '@/components/text-editor/index.vue'
 import ImagePreview from '@/components/image-preview/index.vue'
 
-const emit = defineEmits(['exec-command', ])
+const emit = defineEmits(['exec-script', ])
 
 const props = defineProps({
   hostId: {
@@ -1594,7 +1594,7 @@ const onRowContextMenu = (row, _column, event) => {
     items.push({
       label: '发送cd指令到终端',
       onClick: () => {
-        emit('exec-command', cdCommand, 'script')
+        emit('exec-script', cdCommand)
       }
     })
   }
