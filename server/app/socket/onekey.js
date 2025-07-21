@@ -1,13 +1,14 @@
+const rawPath = require('path')
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
 const { sendNoticeAsync } = require('../utils/notify')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { shellThrottle } = require('../utils/tools')
-const { AESDecryptAsync } = require('../utils/encrypt')
 const { isAllowedIp } = require('../utils/tools')
-const { HostListDB, CredentialsDB, OnekeyDB } = require('../utils/db-class')
+const { HostListDB, OnekeyDB } = require('../utils/db-class')
+const { getConnectionOptions } = require('./terminal')
+const decryptAndExecuteAsync = require('../utils/decrypt-file')
 const hostListDB = new HostListDB().getInstance()
-const credentialsDB = new CredentialsDB().getInstance()
 const onekeyDB = new OnekeyDB().getInstance()
 
 const execStatusEnum = {
@@ -23,6 +24,7 @@ const execStatusEnum = {
 let isExecuting = false
 let execResult = []
 let execClient = []
+let jumpSshClientsPool = []
 
 function disconnectAllExecClient() {
   execClient.forEach((sshClient) => {
@@ -32,6 +34,10 @@ function disconnectAllExecClient() {
       sshClient = null
     }
   })
+  jumpSshClientsPool.forEach(jumpSshClients => {
+    jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
+  })
+  jumpSshClientsPool = []
 }
 
 function execShell(socket, sshClient, curRes, resolve) {
@@ -138,32 +144,37 @@ module.exports = (httpServer) => {
       if (!targetHostsInfo.length) return socket.emit('create_fail', `未找到【${ hostIds }】服务器信息`)
       // 查找 hostInfo -> 并发执行
       socket.emit('ready')
+      // 获取跳板机连接函数
+      let { connectByJumpHosts = null } = (await decryptAndExecuteAsync(rawPath.join(__dirname, 'plus.js'))) || {}
+
       let execPromise = targetHostsInfo.map((hostInfo, index) => {
         // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve, reject) => {
           setTimeout(() => reject('执行超时'), timeout * 1000)
-          let { authType, host, port, username } = hostInfo
-          let authInfo = { host, port, username }
-          let curRes = { command, host, port, name: hostInfo.name, result: '', status: execStatusEnum.connecting, date: Date.now() - (targetHostsInfo.length - index) } // , execStatusEnum
+          let { host, port, jumpHosts } = hostInfo
+          let curRes = { command, host, port, name: hostInfo.name, result: '', status: execStatusEnum.connecting, date: Date.now() - (targetHostsInfo.length - index) }
           execResult.push(curRes)
+          let jumpSshClients = []
           try {
-            if (authType === 'credential') {
-              let credentialId = await AESDecryptAsync(hostInfo['credential'])
-              const sshRecordList = await credentialsDB.findAsync({})
-              const sshRecord = sshRecordList.find(item => item._id === credentialId)
-              authInfo.authType = sshRecord.authType
-              authInfo[authInfo.authType] = await AESDecryptAsync(sshRecord[authInfo.authType])
-            } else {
-              authInfo[authType] = await AESDecryptAsync(hostInfo[authType])
+            let { authInfo: targetConnectionOptions } = await getConnectionOptions(hostInfo._id)
+
+            // 处理跳板机连接
+            let jumpHostResult = connectByJumpHosts && (await connectByJumpHosts(jumpHosts, targetConnectionOptions.host, targetConnectionOptions.port, socket))
+            if (jumpHostResult) {
+              targetConnectionOptions.sock = jumpHostResult.sock
+              jumpSshClients = jumpHostResult.sshClients
+              jumpSshClientsPool.push(jumpSshClients)
+              consola.success('Onekey跳板机连接成功')
             }
+
             consola.info('准备连接终端执行一次性指令：', host)
-            consola.log('连接信息', { username, port, authType })
+            consola.log('连接信息', { username: targetConnectionOptions.username, port: targetConnectionOptions.port, authType: hostInfo.authType })
+
             let sshClient = new SSHClient()
             execClient.push(sshClient)
             sshClient
               .on('ready', () => {
                 consola.success('连接终端成功：', host)
-                // socket.emit('connect_success', `已连接到终端：${ host }`)
                 execShell(socket, sshClient, curRes, resolve)
               })
               .on('error', (err) => {
@@ -172,17 +183,24 @@ module.exports = (httpServer) => {
                 curRes.status = execStatusEnum.connectFail
                 curRes.result += err.message
                 socket.emit('output', execResult)
+                // 清理跳板机连接
+                jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
                 resolve(curRes)
               })
+              .on('keyboard-interactive', function (name, instructions, instructionsLang, prompts, finish) {
+                finish([targetConnectionOptions[hostInfo.authType]])
+              })
               .connect({
-                ...authInfo
-              // debug: (info) => console.log(info)
+                tryKeyboard: true,
+                ...targetConnectionOptions
               })
           } catch (err) {
             consola.error('创建终端错误:', err.message)
             curRes.status = execStatusEnum.connectFail
             curRes.result += err.message
             socket.emit('output', execResult)
+            // 清理跳板机连接
+            jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
             resolve(curRes)
           }
         })
@@ -212,6 +230,7 @@ module.exports = (httpServer) => {
       isExecuting = false
       execResult = []
       execClient = []
+      jumpSshClientsPool = []
     })
   })
 }
