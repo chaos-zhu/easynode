@@ -336,8 +336,16 @@ const renderMarkdown = (content) => {
       codeBlocks.forEach(pre => {
         if (pre.classList.contains('code-block-processed')) return
         pre.classList.add('code-block-processed')
-        pre.style.position = 'relative'
-        if (!pre.querySelector('.code_copy_btn')) {
+
+        if (!pre.parentElement.classList.contains('code-block-container')) {
+          const container = document.createElement('div')
+          container.classList.add('code-block-container')
+          pre.parentNode.insertBefore(container, pre)
+          container.appendChild(pre)
+
+          const buttonsWrapper = document.createElement('div')
+          buttonsWrapper.classList.add('code-buttons-wrapper')
+
           const copyBtn = document.createElement('div')
           copyBtn.classList.add('code_btn')
           copyBtn.classList.add('code_copy_btn')
@@ -350,9 +358,7 @@ const renderMarkdown = (content) => {
               copyContent(codeText)
             }
           })
-          pre.appendChild(copyBtn)
-        }
-        if (!pre.querySelector('.code_exec_btn')) {
+
           const execBtn = document.createElement('div')
           execBtn.classList.add('code_btn')
           execBtn.classList.add('code_exec_btn')
@@ -362,34 +368,31 @@ const renderMarkdown = (content) => {
             const codeElement = pre.querySelector('code')
             if (codeElement) {
               const codeText = codeElement.textContent?.trim() || ''
-              // console.log(codeText)
               EventBus.$emit('exec_external_command', codeText)
             }
           })
-          pre.appendChild(execBtn)
+
+          buttonsWrapper.appendChild(copyBtn)
+          buttonsWrapper.appendChild(execBtn)
+          container.appendChild(buttonsWrapper)
         }
 
-        pre.addEventListener('mouseenter', () => {
-          const copyBtn = pre.querySelector('.code_copy_btn')
-          if (copyBtn) {
-            copyBtn.style.opacity = '1'
-          }
-          const execBtn = pre.querySelector('.code_exec_btn')
-          if (execBtn) {
-            execBtn.style.opacity = '1'
-          }
-        })
+        const container = pre.parentElement
+        if (container && container.classList.contains('code-block-container')) {
+          container.addEventListener('mouseenter', () => {
+            const wrapper = container.querySelector('.code-buttons-wrapper')
+            if (wrapper) {
+              wrapper.style.opacity = '1'
+            }
+          })
 
-        pre.addEventListener('mouseleave', () => {
-          const copyBtn = pre.querySelector('.code_copy_btn')
-          if (copyBtn) {
-            copyBtn.style.opacity = '0'
-          }
-          const execBtn = pre.querySelector('.code_exec_btn')
-          if (execBtn) {
-            execBtn.style.opacity = '0'
-          }
-        })
+          container.addEventListener('mouseleave', () => {
+            const wrapper = container.querySelector('.code-buttons-wrapper')
+            if (wrapper) {
+              wrapper.style.opacity = '0'
+            }
+          })
+        }
       })
     })
   }
@@ -725,37 +728,44 @@ const handleChangeChat = (id) => {
   }
 }
 
-.code_btn {
-  position: absolute;
-  top: 5px;
-  opacity: 0;
-  color: var(--el-color-primary);
-  padding: 0 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  font-size: 12px;
-  transition: all 0.5s;
-  &:hover {
-    opacity: 1;
-    color: var(--el-color-success);
+.code-block-container {
+  position: relative;
+
+  .code-buttons-wrapper {
+    position: absolute;
+    top: 0px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10;
+
+    .code_btn {
+      color: var(--el-color-primary);
+      padding: 2px 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      background-color: v-bind('isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"');
+      border-radius: 3px;
+      white-space: nowrap;
+      &:hover {
+        color: var(--el-color-success);
+        background-color: v-bind('isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"');
+      }
+    }
   }
-}
 
-.code_copy_btn {
-  right: 35px;
-}
-
-.code_exec_btn {
-  right: 0px;
+  pre {
+    margin: 0;
+    overflow: auto;
+  }
 }
 
 .markdown-body {
   font-size: 14px!important;
-  pre {
-    position: relative;
-  }
 }
 </style>
