@@ -41,7 +41,7 @@
       </li>
       <li @click="handleFromJson(true)">
         <svg-icon name="icon-json" class="icon" />
-        <span class="from">EadyNode</span>
+        <span class="from">EasyNode</span>
         <span class="type">(json)</span>
       </li>
     </ul>

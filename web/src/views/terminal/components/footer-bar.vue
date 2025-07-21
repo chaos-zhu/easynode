@@ -73,7 +73,7 @@ const stopResize = () => {
 }
 
 const execCommand = (command) => {
-  emit('exec-command', command)
+  emit('exec-command', command, 'script')
 }
 
 // 清理事件监听

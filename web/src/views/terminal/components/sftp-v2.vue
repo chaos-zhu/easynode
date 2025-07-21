@@ -541,7 +541,8 @@ import unknowIcon from '@/assets/image/system/unknow.png'
 import { useContextMenu } from '@/composables/useContextMenu'
 import TextEditor from '@/components/text-editor/index.vue'
 import ImagePreview from '@/components/image-preview/index.vue'
-import { EventBus } from '@/utils'
+
+const emit = defineEmits(['exec-command', ])
 
 const props = defineProps({
   hostId: {
@@ -1593,7 +1594,7 @@ const onRowContextMenu = (row, _column, event) => {
     items.push({
       label: '发送cd指令到终端',
       onClick: () => {
-        EventBus.$emit('exec_external_command', cdCommand)
+        emit('exec-command', cdCommand, 'script')
       }
     })
   }
