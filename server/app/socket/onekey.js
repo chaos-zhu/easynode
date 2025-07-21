@@ -120,27 +120,9 @@ module.exports = (httpServer) => {
         socket.disconnect()
         return
       }
-      setTimeout(() => {
-        // 超时未执行完成，强制断开连接
-        const { connecting, executing } = execStatusEnum
-        execResult.forEach(item => {
-          // 连接中和执行中的状态设定为超时
-          if ([connecting, executing].includes(item.status)) {
-            item.status = execStatusEnum.execTimeout
-          }
-        })
-        let reason = `执行超时,已强制终止执行 - 超时时间${ timeout }秒`
-        sendNoticeAsync('onekey_complete', '批量指令执行超时', reason)
-        socket.emit('timeout', { reason, result: execResult })
-        socket.disconnect()
-        disconnectAllExecClient()
-      }, timeout * 1000)
-      console.log('hostIds:', hostIds)
-      // console.log('token:', token)
-      console.log('command:', command)
+      console.log('onekey command:', command)
       const hostList = await hostListDB.findAsync({})
       const targetHostsInfo = hostList.filter(item => hostIds.some(id => item._id === id)) || {}
-      // console.log('targetHostsInfo:', targetHostsInfo)
       if (!targetHostsInfo.length) return socket.emit('create_fail', `未找到【${ hostIds }】服务器信息`)
       // 查找 hostInfo -> 并发执行
       socket.emit('ready')
@@ -210,9 +192,20 @@ module.exports = (httpServer) => {
         consola.success('onekey执行完成')
         socket.emit('exec_complete')
         sendNoticeAsync('onekey_complete', '批量指令执行完成', '请登录面板查看执行结果')
-        socket.disconnect()
       } catch (error) {
-        consola.error('onekey执行失败', error)
+        consola.error('onekey执行超时:', error)
+        const { connecting, executing } = execStatusEnum
+        execResult.forEach(item => {
+          // 连接中和执行中的状态变更为超时状态
+          if ([connecting, executing].includes(item.status)) {
+            item.status = execStatusEnum.execTimeout
+          }
+        })
+        const reason = `执行超时,已强制终止执行 - 超时时间${ timeout }秒`
+        sendNoticeAsync('onekey_complete', '批量指令执行超时', reason)
+        socket.emit('exec_timeout', { reason, result: execResult })
+      } finally {
+        socket.disconnect()
       }
     })
 

@@ -275,7 +275,7 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
       }
     })
 
-    socket.value.on('timeout', ({ reason, result }) => {
+    socket.value.on('exec_timeout', ({ reason, result }) => {
       $notification({
         title: '批量指令执行超时',
         message: reason,
@@ -286,13 +286,6 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
         result = result.map(item => ({ ...item, pending: true }))
         pendingRecord.value = result
       }
-    })
-    socket.value.on('create_fail', (reason) => {
-      $notification({
-        title: '批量指令执行失败',
-        message: reason,
-        type: 'error'
-      })
     })
 
     socket.value.on('token_verify_fail', () => {
