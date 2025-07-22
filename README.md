@@ -40,7 +40,7 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
   <a href="#Plus功能">Plus版功能</a> -->
 </p>
 
-![RGzTVT3xClmBXFAzfg2dRYnbc9TjiXct.webp](https://cdn.nodeimage.com/i/RGzTVT3xClmBXFAzfg2dRYnbc9TjiXct.webp)
+[![RGzTVT3xClmBXFAzfg2dRYnbc9TjiXct.webp](https://cdn.nodeimage.com/i/RGzTVT3xClmBXFAzfg2dRYnbc9TjiXct.webp)](https://www.thordata.com/?ls=github&lk=EasyNode)
 
 ## 功能
 
