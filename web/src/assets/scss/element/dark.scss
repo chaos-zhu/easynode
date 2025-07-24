@@ -59,12 +59,10 @@ html.dark {
       }
     }
   }
-  .info_box {
-    border-right: 1px solid #454242;
-    .el-progress-bar__innerText {
-      span {
-        color: #fff !important;
-      }
+  .el-progress-bar__innerText {
+    span {
+      color: #ffffff !important; // 强制白色文字，确保在各种背景下都能看清
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); // 添加文字阴影增强可读性
     }
   }
 

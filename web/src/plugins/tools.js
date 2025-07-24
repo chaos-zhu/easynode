@@ -5,11 +5,18 @@ export default {
     value = Number(value)
     return isNaN(value) ? '--' : value.toFixed(count)
   },
-  formatTime(second = 0) {
+  formatTime(second = 0, target = 'day') {
     let day = Math.floor(second / 60 / 60 / 24)
     let hour = Math.floor(second / 60 / 60 % 24)
     let minute = Math.floor(second / 60 % 60)
-    return `${ day }天${ hour }时${ minute }分`
+    if (target === 'day') {
+      return `${ day }天`
+    } else if (target === 'hour') {
+      return `${ day }天${ hour }时`
+    } else if (target === 'minute') {
+      return `${ day }天${ hour }时${ minute }分`
+    }
+    return `${ day }天${ hour }时${ minute }分${ second }秒`
   },
   formatNetSpeed(netSpeedMB) {
     netSpeedMB = Number(netSpeedMB) || 0

@@ -83,7 +83,7 @@ const useStore = defineStore('global', {
       await this.getPlusInfo()
       this.getAIConfig()
       this.getChatHistory()
-      this.wsClientsStatus()
+      // this.wsClientsStatus()
     },
     async getHostList() {
       let { data: newHostList } = await $api.getHostList()

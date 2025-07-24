@@ -282,20 +282,18 @@
               direction="ltr"
               class="mobile_menu_drawer"
             >
-              <InfoSide
+              <ServerStatus
                 ref="infoSideRef"
-                :host-info="curHost"
-                :visible="visible"
-                :ping-data="pingData"
+                :host-id="item.id"
+                :visible="showInfoSide"
               />
             </el-drawer>
             <!-- PC端 -->
             <div v-else :class="['tab_content_main_info_side', { 'show_info_side': showInfoSide }]">
-              <InfoSide
+              <ServerStatus
                 ref="infoSideRef"
-                :host-info="curHost"
-                :visible="visible"
-                :ping-data="pingData"
+                :host-id="item.id"
+                :visible="showInfoSide"
               />
             </div>
             <div
@@ -393,7 +391,8 @@ import { ArrowDown } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { terminalStatusList } from '@/utils/enum'
 import Terminal from './terminal.vue'
-import InfoSide from './info-side.vue'
+// import InfoSide from './info-side.vue'
+import ServerStatus from './server-status.vue'
 import HostForm from '../../server/components/host-form.vue'
 import TerminalSetting from './terminal-setting.vue'
 import FooterBar from './footer-bar.vue'
