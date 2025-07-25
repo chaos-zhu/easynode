@@ -40,6 +40,8 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
   <a href="#Plus功能">Plus版功能</a> -->
 </p>
 
+[![RGzTVT3xClmBXFAzfg2dRYnbc9TjiXct.webp](https://cdn.nodeimage.com/i/RGzTVT3xClmBXFAzfg2dRYnbc9TjiXct.webp)](https://www.thordata.com/?ls=github&lk=EasyNode)
+
 ## 功能
 
 + [x] 功能完善的**SSH终端**&**SFTP**
@@ -133,7 +135,7 @@ webssh与监控服务都将以`该服务器作为中转`。中国大陆用户建
 
 - [QA](./Q%26A.md)
 
-## 项目赞助
+## 测试服务由以下服务器赞助
 
 CDN acceleration and security protection for this project are sponsored by Tencent EdgeOne.
 [![EdgeOne Logo](https://edgeone.ai/media/34fe3a45-492d-4ea4-ae5d-ea1087ca7b4b.png)](https://edgeone.ai/?from=github)
