@@ -4,6 +4,7 @@ const { verifyAuthSync } = require('../utils/verify-auth')
 const { isAllowedIp } = require('../utils/tools')
 const { createTerminal } = require('./terminal')
 const monitorMap = new Map() // key -> { sockets: Set, statusData, stop }
+const pendingConnections = new Map() // key -> Promise，跟踪正在创建的连接
 const { HostListDB } = require('../utils/db-class')
 const hostListDB = new HostListDB().getInstance()
 
@@ -185,6 +186,7 @@ module.exports = (httpServer) => {
           return
         }
         monitorKey = `${ targetHostInfo.host }:${ targetHostInfo.port }`
+
         // 如果已有监控，直接复用
         if (monitorMap.has(monitorKey)) {
           const entry = monitorMap.get(monitorKey)
@@ -202,38 +204,84 @@ module.exports = (httpServer) => {
           return // 不再往下创建新的 SSH
         }
 
-        targetSSHClient = new SSHClient()
-        let { jumpSshClients: statusJumpSshClients } = await createTerminal(hostId, socket, targetSSHClient, false)
-        jumpSshClients.push(...statusJumpSshClients || [])
-
-        await initPersistentShell()
-
-        // 开始监控
-        startMonitoring()
-
-        // 将当前监控放入全局 map
-        const stopAll = () => {
-          if (monitorTimer) clearInterval(monitorTimer)
-          if (sendDataTimer) clearInterval(sendDataTimer)
-          targetSSHClient && targetSSHClient.end()
-          jumpSshClients?.forEach(c => c && c.end())
-        }
-        const entryObj = { sockets: new Set([socket]), statusData, stop: stopAll }
-        monitorMap.set(monitorKey, entryObj)
-
-        // 处理当前 socket 断连
-        socket.on('disconnect', (reason) => {
-          entryObj.sockets.delete(socket)
-          if (entryObj.sockets.size === 0) {
-            stopAll()
-            monitorMap.delete(monitorKey)
+        // 如果有正在创建的连接，等待它完成
+        if (pendingConnections.has(monitorKey)) {
+          try {
+            consola.info(`等待现有连接创建完成: ${ monitorKey }`)
+            await pendingConnections.get(monitorKey)
+            // 连接创建完成后，应该能在monitorMap中找到了
+            if (monitorMap.has(monitorKey)) {
+              const entry = monitorMap.get(monitorKey)
+              entry.sockets.add(socket)
+              socket.emit('server_status_data', entry.statusData)
+              socket.on('disconnect', () => {
+                entry.sockets.delete(socket)
+                if (entry.sockets.size === 0) {
+                  entry.stop()
+                  monitorMap.delete(monitorKey)
+                }
+              })
+              return
+            }
+          } catch (error) {
+            consola.error(`等待连接创建失败，继续创建: ${ error.message }`)
           }
-          consola.info(`server-status socket断开: ${ reason }`) // 原日志
-        })
+        }
+
+        // 创建新连接的Promise
+        const createConnectionPromise = (async () => {
+          try {
+            targetSSHClient = new SSHClient()
+            let { jumpSshClients: statusJumpSshClients } = await createTerminal(hostId, socket, targetSSHClient, false)
+            jumpSshClients.push(...statusJumpSshClients || [])
+
+            await initPersistentShell()
+
+            // 开始监控
+            startMonitoring()
+
+            // 将当前监控放入全局 map
+            const stopAll = () => {
+              if (monitorTimer) clearInterval(monitorTimer)
+              if (sendDataTimer) clearInterval(sendDataTimer)
+              targetSSHClient && targetSSHClient.end()
+              jumpSshClients?.forEach(c => c && c.end())
+            }
+            const entryObj = { sockets: new Set([socket]), statusData, stop: stopAll }
+            monitorMap.set(monitorKey, entryObj)
+
+            // 处理当前 socket 断连
+            socket.on('disconnect', (reason) => {
+              entryObj.sockets.delete(socket)
+              if (entryObj.sockets.size === 0) {
+                stopAll()
+                monitorMap.delete(monitorKey)
+              }
+              consola.info(`server-status socket断开: ${ reason }`)
+            })
+
+            consola.success(`成功创建服务器监控: ${ monitorKey }`)
+            return entryObj
+
+          } finally {
+            // 无论成功失败，都要从pending中移除
+            pendingConnections.delete(monitorKey)
+          }
+        })()
+
+        // 将Promise放入pending map
+        pendingConnections.set(monitorKey, createConnectionPromise)
+
+        // 等待连接创建完成
+        await createConnectionPromise
 
       } catch (error) {
         consola.error('ws_server_status 事件处理失败:', error.message)
         socket.emit('server_status_error', `连接失败: ${ error.message }`)
+        // 确保从pending中移除
+        if (monitorKey) {
+          pendingConnections.delete(monitorKey)
+        }
       }
     })
 
