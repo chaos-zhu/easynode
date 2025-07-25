@@ -7,6 +7,7 @@
           trigger="click"
           max-height="50vh"
           class="dropdown_menu"
+          :teleported="false"
         >
           <span class="link_text">连接<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
@@ -43,6 +44,7 @@
           trigger="click"
           max-height="50vh"
           class="dropdown_menu"
+          :teleported="false"
         >
           <span class="link_text">脚本库<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
@@ -67,7 +69,7 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-dropdown trigger="click">
+        <el-dropdown trigger="click" :teleported="false">
           <span class="link_text">功能项<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -161,7 +163,6 @@
         :long-press-alt="longPressAlt"
         :layout-mode="layoutMode"
         @close-terminal="handleCloseTerminalSingle"
-        @terminal-input="handleTerminalInput"
         @ping-data="getPingData"
         @reset-long-press="resetLongPress"
       />
@@ -385,7 +386,9 @@ import {
   computed,
   getCurrentInstance,
   watch,
-  nextTick
+  nextTick,
+  onMounted,
+  onUnmounted
 } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
@@ -419,7 +422,6 @@ const pingData = ref({})
 const terminalRefs = ref([])
 // const sftpRefs = ref([])
 const activeTabIndex = ref(0)
-const visible = ref(true)
 const isSyncAllSession = ref(false)
 const isSingleWindowMode = ref(isMobileScreen.value ? false : localStorage.getItem('isSingleWindowMode') !== 'false')
 const layoutMode = ref(localStorage.getItem('terminalLayoutMode') || 'grid')
@@ -787,7 +789,6 @@ watch(
     // console.log('add tab:', len)
     if (len > 0) {
       activeTabIndex.value = len - 1
-      // registryDbClick()
       tabChange(activeTabIndex.value)
     }
   },
@@ -827,7 +828,7 @@ const removeTab = (index) => {
 
 const handleFullScreen = () => {
   document
-    .getElementsByClassName('terminal_and_sftp_wrap')[0]
+    .getElementsByClassName('terminal_wrap')[0]
     .requestFullscreen()
 }
 
@@ -858,21 +859,6 @@ const handleVerticalScreen = () => {
     ref?.focusTab ? ref.focusTab() : terminalRefs.value?.[0]?.focusTab()
   })
 }
-
-// const registryDbClick = () => {
-//   $nextTick(() => {
-//     let tabItems = Array.from(document.getElementsByClassName('el-tabs__item'))
-//     tabItems.forEach(item => {
-//       item.removeEventListener('dblclick', handleDblclick)
-//       item.addEventListener('dblclick', handleDblclick)
-//     })
-//   })
-// }
-
-// const handleDblclick = (e) => {
-//   let key = e.target.id.substring(4)
-//   removeTab(key)
-// }
 
 const resizeTerminal = () => {
   for (let terminalTabRef of terminalRefs.value) {
@@ -930,16 +916,55 @@ const handleCloseTerminalSingle = (terminalKey) => {
   }
 }
 
-const handleTerminalInput = (command, uid, terminalKey) => {
-  // 单窗口模式下的同步输入已经在 TerminalSingleWindow 组件内部处理
-  // 这里主要是处理从单窗口模式向外传递的输入事件
-  console.log('Terminal input:', command, uid, terminalKey)
+const handleToFullScreen = () => {
+  if (isSingleWindowMode.value) {
+    const singleWindowWrapper = document.querySelector('.single_window_wrapper')
+    singleWindowWrapper.style.height = 'calc(100vh - 32px)'
+  } else {
+    const terminalWraps = document.querySelectorAll('.tab_content_wrap')
+    terminalWraps.forEach(wrap => {
+      wrap.style.height = 'calc(100vh - 62px)'
+    })
+  }
 }
+const handleToNormal = () => {
+  if (isSingleWindowMode.value) {
+    const singleWindowWrapper = document.querySelector('.single_window_wrapper')
+    singleWindowWrapper.style.height = 'calc(100vh - 115px)'
+  } else {
+    const terminalWraps = document.querySelectorAll('.tab_content_wrap')
+    terminalWraps.forEach(wrap => {
+      wrap.style.height = 'calc(100vh - 142px)'
+    })
+  }
+}
+
+const fullScreenCb = () => {
+  if (document.fullscreenElement) {
+    handleToFullScreen()
+  } else {
+    handleToNormal()
+  }
+  setTimeout(() => {
+    resizeTerminal()
+  }, 210)
+}
+
+watch(isSingleWindowMode, async() => {
+  await $nextTick()
+  if (document.fullscreenElement) fullScreenCb()
+})
+
+onMounted(() => {
+  document.addEventListener('fullscreenchange', fullScreenCb)
+})
+onUnmounted(() => {
+  document.removeEventListener('fullscreenchange', fullScreenCb)
+})
 </script>
 
 <style lang="scss" scoped>
 .terminal_wrap {
-  // height: 100%;
 
   :deep(.el-tabs__content) {
     padding: 0;
