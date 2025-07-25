@@ -3,6 +3,9 @@ const { Client: SSHClient } = require('ssh2')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { isAllowedIp } = require('../utils/tools')
 const { createTerminal } = require('./terminal')
+const monitorMap = new Map() // key -> { sockets: Set, statusData, stop }
+const { HostListDB } = require('../utils/db-class')
+const hostListDB = new HostListDB().getInstance()
 
 module.exports = (httpServer) => {
   const serverIo = new Server(httpServer, {
@@ -32,6 +35,122 @@ module.exports = (httpServer) => {
     let serverError = false // 服务器错误标志
     let previousCpuStats = null // 用于计算CPU使用率
     let defaultNetInterface = null // 默认网络接口
+    let monitorKey = null // 全连接生命周期的主机键
+
+    // 新增持久化 shell相关变量与函数  -----------
+    let persistentShell = null // SSH shell stream
+    let shellReady = false
+    let cmdQueue = [] // [{command, resolve, reject, marker, output}]
+    let cmdCounter = 0
+
+    // 初始化持久化 shell
+    const initPersistentShell = async () => {
+      return new Promise((resolve, reject) => {
+        if (shellReady) return resolve()
+        if (!targetSSHClient) return reject(new Error('SSH client not ready'))
+
+        targetSSHClient.shell({ term: 'bash' }, (err, stream) => {
+          if (err) {
+            consola.error('创建持久化 shell 失败:', err.message)
+            return reject(err)
+          }
+          persistentShell = stream
+          shellReady = true
+
+          // 关闭 shell 回显并清空提示符，避免输出干扰
+          persistentShell.write('export PS1=""\n')
+          // 某些发行版可能没有 stty，忽略报错
+          persistentShell.write('stty -echo 2>/dev/null || true\n')
+          persistentShell.write('export HISTFILE=/dev/null\n')
+          persistentShell.write('set +o history\n')
+          // 亦启用 ignorespace，后续命令前加空格
+          persistentShell.write('export HISTCONTROL=ignorespace\n')
+          consola.info('server-status: 持久化 shell 已就绪')
+
+          let buffer = ''
+          const handleData = (data) => {
+            buffer += data.toString()
+            // 逐行处理，防止分包
+            let index
+            while ((index = buffer.indexOf('\n')) !== -1) {
+              const line = buffer.slice(0, index).trimEnd()
+              buffer = buffer.slice(index + 1)
+              if (!cmdQueue.length) continue // 无待解析命令
+              const current = cmdQueue[0]
+              // 判断是否到达结束标记
+              if (line === current.marker) {
+                // 完整输出拿到了
+                cmdQueue.shift()
+                current.resolve(current.output.trim())
+                // 继续处理下一个命令
+                if (cmdQueue.length) {
+                  sendNextCommand()
+                }
+              } else {
+                current.output += (line + '\n')
+              }
+            }
+          }
+
+          stream.on('data', handleData)
+          stream.on('close', () => {
+            shellReady = false
+            persistentShell = null
+            consola.warn('server-status: 持久化 shell 已关闭')
+          })
+          resolve()
+        })
+      })
+    }
+
+    // 向 shell 发送下一个队列中的命令
+    const sendNextCommand = () => {
+      if (!cmdQueue.length || !shellReady || !persistentShell) return
+      const current = cmdQueue[0]
+      persistentShell.write(` ${ current.command }; echo ${ current.marker }\n`) // 每条命令后回显标记
+    }
+
+    // --- 修改 executeCommand，使之优先使用持久化 shell -----
+    const executeCommand = (command, maxRetries = 2) => {
+      // 如果 shell 已就绪，则走队列逻辑
+      if (shellReady && persistentShell) {
+        return new Promise((resolve, reject) => {
+          const marker = `__EZCMD_END_${ ++cmdCounter }__`
+          const task = { command, resolve, reject, marker, output: '' }
+          cmdQueue.push(task)
+          // 如果这是队列里唯一任务，则立即发送
+          if (cmdQueue.length === 1) {
+            sendNextCommand()
+          }
+        })
+      }
+      // fallback: 原来的 exec 方式
+      return new Promise((resolve, reject) => {
+        const attemptExecution = (retryCount) => {
+          if (!targetSSHClient || !targetSSHClient._sock || !targetSSHClient._sock.writable) {
+            reject(new Error('SSH 连接已断开'))
+            return
+          }
+          targetSSHClient.exec(command, (err, stream) => {
+            if (err) {
+              if (err.message.includes('Channel open failure') && retryCount < maxRetries) {
+                setTimeout(() => attemptExecution(retryCount + 1), 100 * (retryCount + 1))
+                return
+              }
+              reject(err)
+              return
+            }
+            let stdout = ''
+            stream.on('data', (data) => { stdout += data.toString() })
+              .on('close', (code) => {
+                resolve(stdout.trim())
+              })
+              .on('error', (error) => reject(error))
+          })
+        }
+        attemptExecution(0)
+      })
+    }
 
     // 系统信息缓存（只获取一次的信息）
     let staticSystemInfo = {
@@ -46,7 +165,7 @@ module.exports = (httpServer) => {
       cpuInfo: {},
       memInfo: {},
       swapInfo: {},
-      driveInfo: {},
+      drivesInfo: [],
       netstatInfo: {},
       osInfo: {}
     }
@@ -60,12 +179,58 @@ module.exports = (httpServer) => {
           return
         }
 
+        const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
+        if (!targetHostInfo) {
+          socket.emit('server_status_error', '主机信息不存在')
+          return
+        }
+        monitorKey = `${ targetHostInfo.host }:${ targetHostInfo.port }`
+        // 如果已有监控，直接复用
+        if (monitorMap.has(monitorKey)) {
+          const entry = monitorMap.get(monitorKey)
+          entry.sockets.add(socket)
+          // 立即推送现有数据
+          socket.emit('server_status_data', entry.statusData)
+          // 处理断连
+          socket.on('disconnect', () => {
+            entry.sockets.delete(socket)
+            if (entry.sockets.size === 0) {
+              entry.stop() // 停止监控并关闭 SSH
+              monitorMap.delete(monitorKey)
+            }
+          })
+          return // 不再往下创建新的 SSH
+        }
+
         targetSSHClient = new SSHClient()
         let { jumpSshClients: statusJumpSshClients } = await createTerminal(hostId, socket, targetSSHClient, false)
         jumpSshClients.push(...statusJumpSshClients || [])
 
+        await initPersistentShell()
+
         // 开始监控
         startMonitoring()
+
+        // 将当前监控放入全局 map
+        const stopAll = () => {
+          if (monitorTimer) clearInterval(monitorTimer)
+          if (sendDataTimer) clearInterval(sendDataTimer)
+          targetSSHClient && targetSSHClient.end()
+          jumpSshClients?.forEach(c => c && c.end())
+        }
+        const entryObj = { sockets: new Set([socket]), statusData, stop: stopAll }
+        monitorMap.set(monitorKey, entryObj)
+
+        // 处理当前 socket 断连
+        socket.on('disconnect', (reason) => {
+          entryObj.sockets.delete(socket)
+          if (entryObj.sockets.size === 0) {
+            stopAll()
+            monitorMap.delete(monitorKey)
+          }
+          consola.info(`server-status socket断开: ${ reason }`) // 原日志
+        })
+
       } catch (error) {
         consola.error('ws_server_status 事件处理失败:', error.message)
         socket.emit('server_status_error', `连接失败: ${ error.message }`)
@@ -106,58 +271,9 @@ module.exports = (httpServer) => {
         cpuInfo: {},
         memInfo: {},
         swapInfo: {},
-        driveInfo: {},
+        drivesInfo: [],
         netstatInfo: {},
         osInfo: {}
-      })
-    }
-
-    // 执行SSH命令的通用函数（带重试机制）
-    const executeCommand = (command, maxRetries = 2) => {
-      return new Promise((resolve, reject) => {
-        const attemptExecution = (retryCount) => {
-          if (!targetSSHClient || !targetSSHClient._sock || !targetSSHClient._sock.writable) {
-            reject(new Error('SSH 连接已断开'))
-            return
-          }
-
-          targetSSHClient.exec(command, (err, stream) => {
-            if (err) {
-              if (err.message.includes('Channel open failure') && retryCount < maxRetries) {
-                // 通道打开失败，等待一段时间后重试
-                setTimeout(() => {
-                  attemptExecution(retryCount + 1)
-                }, 100 * (retryCount + 1)) // 递增延迟
-                return
-              }
-              reject(err)
-              return
-            }
-
-            let stdout = ''
-            let stderr = ''
-
-            stream
-              .on('data', (data) => {
-                stdout += data.toString()
-              })
-              .stderr.on('data', (data) => {
-                stderr += data.toString()
-              })
-              .on('close', (code) => {
-                if (code !== 0 && stderr) {
-                  reject(new Error(stderr))
-                } else {
-                  resolve(stdout.trim())
-                }
-              })
-              .on('error', (error) => {
-                reject(error)
-              })
-          })
-        }
-
-        attemptExecution(0)
       })
     }
 
@@ -402,39 +518,35 @@ module.exports = (httpServer) => {
       }
     }
 
-    // 获取内存信息（兼容性包装函数）
-    const getMemInfo = async () => {
-      const { memInfo } = await getMemoryInfo()
-      return memInfo
-    }
-
-    // 获取Swap信息（兼容性包装函数）
-    const getSwapInfo = async () => {
-      const { swapInfo } = await getMemoryInfo()
-      return swapInfo
-    }
-
-    // 获取磁盘信息
-    const getDriveInfo = async () => {
+    // 获取所有磁盘信息
+    const getDrivesInfo = async () => {
       try {
-        const driveInfo = await executeCommand('df -kP / | tail -1')
-        const driveLine = driveInfo.split(/\s+/)
-
-        const totalKb = parseInt(driveLine[1])
-        const usedKb = parseInt(driveLine[2])
-        const freeKb = parseInt(driveLine[3])
-        const usedPercentage = parseFloat(driveLine[4].replace('%', ''))
-
-        return {
-          totalGb: (totalKb / 1024 / 1024).toFixed(1),
-          usedGb: (usedKb / 1024 / 1024).toFixed(1),
-          freeGb: (freeKb / 1024 / 1024).toFixed(1),
-          usedPercentage: usedPercentage.toFixed(1),
-          freePercentage: (100 - usedPercentage).toFixed(1)
-        }
+        const dfOutput = await executeCommand('df -kP -x tmpfs -x devtmpfs -x proc -x sysfs -x overlay')
+        const lines = dfOutput.split('\n').slice(1) // 去掉表头
+        const drives = []
+        lines.forEach(line => {
+          const parts = line.trim().split(/\s+/)
+          if (parts.length >= 6) {
+            const [filesystem, totalKb, usedKb, freeKb, usedPerc, mountedOn] = parts
+            if (!filesystem.startsWith('/dev')) return // 仅物理磁盘
+            const totalGb = parseInt(totalKb) / 1024 / 1024
+            if (totalGb < 3) return // 过滤掉小于3GB的挂载
+            const usedPercentage = parseFloat(usedPerc.replace('%', ''))
+            drives.push({
+              totalGb: totalGb.toFixed(1),
+              filesystem,
+              mountedOn,
+              usedGb: (parseInt(usedKb) / 1024 / 1024).toFixed(1),
+              freeGb: (parseInt(freeKb) / 1024 / 1024).toFixed(1),
+              usedPercentage: usedPercentage.toFixed(1),
+              freePercentage: (100 - usedPercentage).toFixed(1)
+            })
+          }
+        })
+        return drives
       } catch (error) {
         consola.error('获取磁盘信息失败:', error.message)
-        return { totalGb: '0', usedGb: '0', freeGb: '0', usedPercentage: '0', freePercentage: '0' }
+        return []
       }
     }
 
@@ -759,14 +871,14 @@ module.exports = (httpServer) => {
     }
 
     // 更新磁盘信息到全局statusData
-    const updateDriveInfo = async () => {
+    const updateDrivesInfo = async () => {
       try {
-        const driveInfo = await getDriveInfo()
-        statusData.driveInfo = driveInfo
+        const drives = await getDrivesInfo()
+        statusData.drivesInfo = drives
         statusData.connect = true
       } catch (error) {
         consola.error('更新磁盘信息失败:', error.message)
-        statusData.driveInfo = {}
+        statusData.drivesInfo = []
       }
     }
 
@@ -801,7 +913,7 @@ module.exports = (httpServer) => {
         const updateTasks = [
           updateCpuInfo(),
           updateMemoryInfo(),
-          updateDriveInfo(),
+          updateDrivesInfo(),
           updateNetworkInfo(),
           updateOsInfo()
         ]
@@ -823,13 +935,10 @@ module.exports = (httpServer) => {
     }
 
     // 开始监控（解耦数据收集和数据发送，提升及时性）
-    let isCollecting = false
     const startMonitoring = () => {
       // 数据收集函数 - 每2秒执行一次
       const collectData = async () => {
         try {
-          if (isCollecting) return
-          isCollecting = true
           // 如果已经检测到服务器错误，停止监控
           if (serverError) {
             if (monitorTimer) {
@@ -848,8 +957,6 @@ module.exports = (httpServer) => {
           await updateServerStatus()
         } catch (error) {
           consola.error('数据收集过程中出错:', error.message)
-        } finally {
-          isCollecting = false
         }
       }
 
@@ -865,8 +972,14 @@ module.exports = (httpServer) => {
             return
           }
 
-          // 发送当前statusData给前端
-          socket.emit('server_status_data', statusData)
+          // 广播给所有监听该主机的 socket
+          const entry = monitorMap.get(monitorKey)
+          if (entry) {
+            entry.statusData = statusData // 保持引用最新
+            for (const s of entry.sockets) {
+              s.emit('server_status_data', statusData)
+            }
+          }
         } catch (error) {
           consola.error('数据发送过程中出错:', error.message)
         }
@@ -878,10 +991,10 @@ module.exports = (httpServer) => {
       // 启动定时器（如果没有错误）
       if (!serverError) {
         // 每2秒收集一次数据
-        monitorTimer = setInterval(collectData, 3000)
+        monitorTimer = setInterval(collectData, 2500)
         // 每1秒发送一次数据（1秒后开始，避免与首次收集冲突）
         if (!serverError) {
-          sendDataTimer = setInterval(sendData, 1500)
+          sendDataTimer = setInterval(sendData, 1000)
         }
       }
     }
@@ -889,43 +1002,20 @@ module.exports = (httpServer) => {
     socket.on('disconnect', (reason) => {
       connectionCount--
 
-      // 清理所有定时器
-      if (monitorTimer) {
-        clearInterval(monitorTimer)
-        monitorTimer = null
-      }
-      if (sendDataTimer) {
-        clearInterval(sendDataTimer)
-        sendDataTimer = null
-      }
-
-      targetSSHClient && targetSSHClient.end()
-      jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
-
-      // 清理所有状态变量
-      targetSSHClient = null
-      jumpSshClients = null
-      lastNetStats = null
-      previousCpuStats = null
-      defaultNetInterface = null
-      serverError = false
-
-      // 清理系统信息缓存
-      staticSystemInfo = {
-        cpuCount: null,
-        cpuModel: null,
-        osInfo: null
-      }
-
-      // 重置状态数据
-      statusData = {
-        connect: false,
-        cpuInfo: {},
-        memInfo: {},
-        swapInfo: {},
-        driveInfo: {},
-        netstatInfo: {},
-        osInfo: {}
+      // 如果监控key存在，按照 monitorMap 中的逻辑移除 socket；由之前注册的 stopAll 负责真正清理
+      if (monitorKey && monitorMap.has(monitorKey)) {
+        const entry = monitorMap.get(monitorKey)
+        entry.sockets.delete(socket)
+        if (entry.sockets.size === 0) {
+          entry.stop()
+          monitorMap.delete(monitorKey)
+        }
+      } else {
+        // 非监控socket或尚未建立监控的情况，按旧流程清理
+        if (monitorTimer) clearInterval(monitorTimer)
+        if (sendDataTimer) clearInterval(sendDataTimer)
+        targetSSHClient && targetSSHClient.end()
+        jumpSshClients?.forEach(c => c && c.end())
       }
 
       consola.info(`server-status websocket 连接断开: ${ reason } - 当前连接数: ${ connectionCount }`)

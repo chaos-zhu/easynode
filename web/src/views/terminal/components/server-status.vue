@@ -9,8 +9,8 @@
     >
       <el-descriptions-item>
         <template #label>
-          <div class="item-title">
-            IP
+          <div class="item_title">
+            主机
           </div>
         </template>
         <span class="host-info-ip" :title="host">{{ host }}</span>
@@ -24,12 +24,12 @@
 
       <el-descriptions-item>
         <template #label>
-          <div class="item-title">
+          <div class="item_title">
             在线
           </div>
         </template>
         <div size="small">
-          {{ $tools.formatTime(osInfo.uptime, 'day') }}
+          {{ $tools.formatTime(osInfo.uptime, 'minute') }}
         </div>
       </el-descriptions-item>
     </el-descriptions>
@@ -45,7 +45,7 @@
     >
       <el-descriptions-item>
         <template #label>
-          <div class="item-title">
+          <div class="item_title">
             CPU
           </div>
         </template>
@@ -58,7 +58,7 @@
       </el-descriptions-item>
       <el-descriptions-item>
         <template #label>
-          <div class="item-title">
+          <div class="item_title">
             负载
           </div>
         </template>
@@ -76,7 +76,7 @@
       </el-descriptions-item>
       <el-descriptions-item>
         <template #label>
-          <div class="item-title">
+          <div class="item_title">
             内存
           </div>
         </template>
@@ -86,13 +86,13 @@
           :percentage="usedMemPercentage"
           :color="handleUsedColor(usedMemPercentage)"
         />
-        <div class="position-right">
+        <div class="position_right">
           {{ $tools.toFixed(memInfo.usedMemMb / 1024) }}/{{ $tools.toFixed(memInfo.totalMemMb / 1024) }}G
         </div>
       </el-descriptions-item>
       <el-descriptions-item>
         <template #label>
-          <div class="item-title">
+          <div class="item_title">
             交换
           </div>
         </template>
@@ -102,33 +102,43 @@
           :percentage="swapPercentage"
           :color="handleUsedColor(swapPercentage)"
         />
-        <div class="position-right">
+        <div class="position_right">
           {{ $tools.toFixed(swapInfo.swapUsed / 1024) }}/{{ $tools.toFixed(swapInfo.swapTotal / 1024) }}G
         </div>
       </el-descriptions-item>
-      <el-descriptions-item>
+      <el-descriptions-item v-for="(d,idx) in drivesInfo" :key="d.filesystem + idx">
         <template #label>
-          <div class="item-title">
-            硬盘
+          <div class="item_title">
+            {{ drivesInfo.length > 1 ? `硬盘${idx+1}` : '硬盘' }}
           </div>
         </template>
-        <el-progress
-          :text-inside="true"
-          :stroke-width="18"
-          :percentage="usedPercentage"
-          :color="handleUsedColor(usedPercentage)"
-        />
-        <div class="position-right">
-          {{ driveInfo.usedGb || '--' }}/{{ driveInfo.totalGb || '--' }}G
-        </div>
+        <el-tooltip effect="dark" :content="`文件系统：${d.filesystem} 挂载点：${d.mountedOn}`" placement="bottom">
+          <el-progress
+            :text-inside="true"
+            :stroke-width="18"
+            :percentage="Number(d.usedPercentage)"
+            :color="handleUsedColor(Number(d.usedPercentage))"
+          />
+          <div class="position_right">
+            {{ d.usedGb }}/{{ d.totalGb }}G
+          </div>
+        </el-tooltip>
       </el-descriptions-item>
-      <el-descriptions-item>
+    </el-descriptions>
+
+    <el-descriptions
+      class="margin-top"
+      :column="1"
+      size="small"
+      border
+    >
+      <el-descriptions-item key="netstat_item">
         <template #label>
-          <div class="item-title">
+          <div class="item_title">
             网络
           </div>
         </template>
-        <div class="netstat-info">
+        <div class="netstat_info">
           <div class="count_wrap">
             <div class="wrap">
               <img src="@/assets/upload.png" alt="">
@@ -157,7 +167,7 @@
     >
       <el-descriptions-item>
         <template #label>
-          <div class="item-title">
+          <div class="item_title">
             名称
           </div>
         </template>
@@ -167,7 +177,7 @@
       </el-descriptions-item>
       <el-descriptions-item>
         <template #label>
-          <div class="item-title">
+          <div class="item_title">
             核心
           </div>
         </template>
@@ -177,7 +187,7 @@
       </el-descriptions-item>
       <el-descriptions-item>
         <template #label>
-          <div class="item-title">
+          <div class="item_title">
             型号
           </div>
         </template>
@@ -187,7 +197,7 @@
       </el-descriptions-item>
       <el-descriptions-item>
         <template #label>
-          <div class="item-title">
+          <div class="item_title">
             类型
           </div>
         </template>
@@ -226,7 +236,15 @@ const serverData = ref({
   cpuInfo: {},
   memInfo: {},
   swapInfo: {},
-  driveInfo: {},
+  drivesInfo: [{
+    filesystem: '',
+    mountedOn: '',
+    totalGb: '--',
+    usedGb: '--',
+    freeGb: '--',
+    usedPercentage: 0,
+    freePercentage: 0
+  },],
   netstatInfo: {},
   osInfo: {}
 })
@@ -259,7 +277,7 @@ const cpuInfo = computed(() => serverData.value.cpuInfo || {})
 const memInfo = computed(() => serverData.value.memInfo || {})
 const swapInfo = computed(() => serverData.value.swapInfo || {})
 const osInfo = computed(() => serverData.value.osInfo || {})
-const driveInfo = computed(() => serverData.value.driveInfo || {})
+const drivesInfo = computed(() => serverData.value.drivesInfo || [])
 const netstatInfo = computed(() => {
   let { total: netTotal, ...netCards } = serverData.value.netstatInfo || {}
   return { netTotal, netCards: netCards || {} }
@@ -286,7 +304,6 @@ const swapPercentage = computed(() => {
   let isNaN = swapPercentage === 'NaN' || Number.isNaN(swapInfo.value?.swapPercentage)
   return isNaN ? 0 : Number(swapPercentage || 0)
 })
-const usedPercentage = computed(() => Number(driveInfo.value?.usedPercentage) || 0)
 
 const output = computed(() => {
   let outputMb = Number(netstatInfo.value.netTotal?.outputMb) || 0
@@ -747,7 +764,7 @@ onBeforeUnmount(() => {
     }
   }
 
-  .item-title {
+  .item_title {
     user-select: none;
     white-space: nowrap;
     text-align: center;
@@ -825,7 +842,7 @@ onBeforeUnmount(() => {
         }
 
         // 进度条右边参数定位
-        .position-right {
+        .position_right {
           position: absolute;
           right: 15px;
         }
@@ -848,7 +865,7 @@ onBeforeUnmount(() => {
   }
 
   // 网络
-  .netstat-info {
+  .netstat_info {
     width: 100%;
     height: 100%;
 
