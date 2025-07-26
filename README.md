@@ -36,8 +36,6 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
   <a href="#安全与建议">安全与建议</a>
   ·
   <a href="#常见问题">常见问题</a>
-  <!-- ·
-  <a href="#Plus功能">Plus版功能</a> -->
 </p>
 
 [![RGzTVT3xClmBXFAzfg2dRYnbc9TjiXct.webp](https://cdn.nodeimage.com/i/RGzTVT3xClmBXFAzfg2dRYnbc9TjiXct.webp)](https://www.thordata.com/?ls=github&lk=EasyNode)
@@ -45,8 +43,8 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 ## 功能
 
 + [x] 功能完善的**SSH终端**&**SFTP**
-+ [x] 跳板机功能,拯救被墙实例与龟速终端输入
-+ [x] AI对话组件，终端对话联动
++ [x] 跳板机功能,拯救被墙实例与加速跨国终端输入
++ [x] AI对话组件，对话联动终端
 + [x] 批量导入、导出、编辑服务器配置、脚本等
 + [x] 脚本库
 + [x] 实例分组
@@ -64,7 +62,7 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 - v3.1.0版本开始用户名密码不再是admin/admin. 需查看**终端日志**，另外登录后请及时修改，避免日志残留敏感信息。请牢记账号密码，出于安全原因，不提供一键重置密码的脚本
 - 默认web端口：**8082**
 
-<!-- 
+
 ### docker-compose部署-自动更新（推荐）
 
 ```shell
@@ -77,7 +75,7 @@ wget https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode
 # 3. 启动服务
 docker-compose up -d
 ```
--->
+
 
 ### docker镜像
 
@@ -92,34 +90,8 @@ docker run -d -p 8082:8082 --restart=always -v /root/easynode/db:/easynode/app/d
 
 ## 监控服务安装
 
-- 监控服务用于实时向面板推送**系统、公网IP、CPU、内存、硬盘、网卡**等基础信息
-
-- 默认端口：**22022**
-
-> 安装
-
-```shell
-# 使用默认端口22022安装
-curl -o- https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash
-
-# 使用自定义端口安装, 例如54321
-curl -o- https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash -s -- 54321
-```
-
-> 卸载
-
-```shell
-curl -o- https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash
-```
-
-> 查看监控服务状态：`systemctl status easynode-client`
->
-> 查看监控服务日志: `journalctl --follow -u easynode-client`
->
-> 查看详细日志：`journalctl -xe`
-
----
-
+！v3.2.0开始不再需要安装监控服务端，低于此版本的面板不再提供客户端下载，建议升级到此版本。
+已经安装过监控服务的服务器建议使用内置一键脚本卸载：`脚本库 -> easynode监控服务卸载`
 
 ## 安全与建议
 
