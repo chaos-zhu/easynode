@@ -10,7 +10,11 @@
       <div
         v-for="(panel, index) in layoutPanels"
         :key="panel.terminal.key"
-        :class="['terminal_panel', { 'active': focusedTerminalKey === panel.terminal.key }]"
+        :class="[
+          'terminal_panel',
+          { 'active': focusedTerminalKey === panel.terminal.key },
+          { 'maximized': maximizedTerminalKey === panel.terminal.key }
+        ]"
         :style="panel.style"
       >
         <!-- 终端标题栏 -->
@@ -26,8 +30,21 @@
               <svg-icon name="icon-daima" class="icon" />
             </span>
           </div>
-          <div class="terminal_close" @click.stop="handleCloseTerminal(panel.terminal.key)">
-            <el-icon class="close_icon"><Close /></el-icon>
+          <div class="terminal_actions">
+            <!-- 最大化/最小化图标，只在终端数量>=2时显示且布局模式为一屏展示时显示 -->
+            <div
+              v-if="props.terminalTabs.length >= 2 "
+              class="terminal_maximize"
+              @click.stop="handleToggleMaximize(panel.terminal.key)"
+            >
+              <span class="maximize_icon">
+                <svg-icon v-if="maximizedTerminalKey !== panel.terminal.key" name="icon-fangdachuangkou" class="icon" />
+                <svg-icon v-else name="icon-suoxiaochuangkou" class="icon" />
+              </span>
+            </div>
+            <div class="terminal_close" @click.stop="handleCloseTerminal(panel.terminal.key)">
+              <el-icon class="close_icon"><Close /></el-icon>
+            </div>
           </div>
         </div>
 
@@ -80,7 +97,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import { Close } from '@element-plus/icons-vue'
+import { Close, FullScreen, Aim } from '@element-plus/icons-vue'
 import Terminal from './terminal.vue'
 import { terminalStatusList } from '@/utils/enum'
 import ScriptInput from './script-input.vue'
@@ -120,6 +137,7 @@ const emit = defineEmits(['close-terminal', 'terminal-input', 'ping-data', 'rese
 
 // 响应式数据
 const focusedTerminalKey = ref(null)
+const maximizedTerminalKey = ref(null) // 新增：存储当前最大化的终端key
 const terminalRefs = ref({})
 const isDragging = ref(false)
 const dragInfo = ref(null)
@@ -549,6 +567,11 @@ const handlePanelClick = (terminalKey) => {
 }
 
 const handleCloseTerminal = (terminalKey) => {
+  // 如果关闭的是当前最大化的终端，重置最大化状态
+  if (maximizedTerminalKey.value === terminalKey) {
+    maximizedTerminalKey.value = null
+  }
+
   emit('close-terminal', terminalKey)
 
   // 关闭终端后，延迟触发resize确保布局重新计算
@@ -709,7 +732,20 @@ const handleMouseUp = () => {
   })
 }
 
-// 同步输入处理已移至 handleInputCommand 中
+// 最大化/最小化功能
+const handleToggleMaximize = (terminalKey) => {
+  if (maximizedTerminalKey.value === terminalKey) {
+    maximizedTerminalKey.value = null // 取消最大化
+  } else {
+    maximizedTerminalKey.value = terminalKey // 最大化
+    // 设置焦点到最大化的终端
+    focusedTerminalKey.value = terminalKey
+  }
+  nextTick(() => {
+    terminalRefs.value[terminalKey]?.focusTab()
+    terminalRefs.value[terminalKey]?.handleResize()
+  })
+}
 
 // 生命周期
 onMounted(() => {
@@ -727,6 +763,16 @@ onBeforeUnmount(() => {
 watch(() => props.terminalTabs, (newTabs, oldTabs) => {
   if (newTabs.length > 0 && !focusedTerminalKey.value) {
     focusedTerminalKey.value = newTabs[0].key
+  }
+
+  // 检查最大化的终端是否仍然存在
+  if (maximizedTerminalKey.value && !newTabs.find(tab => tab.key === maximizedTerminalKey.value)) {
+    maximizedTerminalKey.value = null
+  }
+
+  // 如果终端数量小于2，取消最大化状态
+  if (newTabs.length < 2 && maximizedTerminalKey.value) {
+    maximizedTerminalKey.value = null
   }
 
   // 清理已关闭终端的引用和脚本输入状态
@@ -885,6 +931,18 @@ defineExpose({
   &.active {
     border-color: var(--el-color-primary);
   }
+
+  &.maximized {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 9 !important; /* 确保最大化终端在最上层 */
+    border: none !important; /* 移除边框，因为它是全屏的 */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) !important;
+    pointer-events: auto !important; /* 允许点击 */
+  }
 }
 
 .terminal_panels_wrapper.scroll_mode .terminal_panel {
@@ -950,6 +1008,23 @@ defineExpose({
   &:hover {
     color: var(--el-color-primary);
   }
+}
+
+.terminal_actions {
+  display: flex;
+  align-items: center;
+}
+
+.terminal_maximize {
+  cursor: pointer;
+  margin-right: 8px;
+  &:hover {
+    color: var(--el-color-primary);
+  }
+}
+
+.maximize_icon {
+  font-size: 16px;
 }
 
 .terminal_close {
