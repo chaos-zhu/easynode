@@ -4,7 +4,6 @@ consola.info('debug日志：', process.env.DEBUG === '1' ? '开启' : '关闭')
 
 module.exports = {
   httpPort: 8082,
-  defaultClientPort: 22022,
   uploadDir: path.join(process.cwd(),'app/db'),
   staticDir: path.join(process.cwd(),'app/static'),
   sftpCacheDir: path.join(process.cwd(),'app/socket/sftp-cache'),

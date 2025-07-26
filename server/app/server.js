@@ -5,10 +5,8 @@ const { httpPort } = require('./config')
 const middlewares = require('./middlewares')
 const wsTerminal = require('./socket/terminal')
 const wsTerminalSingleWindow = require('./socket/terminal-single-window')
-const wsSftp = require('./socket/sftp')
 const wsSftpV2 = require('./socket/sftp-v2')
 const wsDocker = require('./socket/docker')
-const wsClientInfo = require('./socket/clients')
 const wsOnekey = require('./socket/onekey')
 const wsServerStatus = require('./socket/server-status')
 const { throwError } = require('./utils/tools')
@@ -28,11 +26,9 @@ function serverHandler(app, server) {
   app.proxy = true // 用于nginx反代时获取真实客户端ip
   wsTerminal(server) // 终端
   wsTerminalSingleWindow(server) // 终端-单窗口
-  wsSftp(server) // sftp
   wsSftpV2(server) // sftp-v2
   wsDocker(server) // docker
   wsOnekey(server) // 一键指令
-  wsClientInfo(server) // 客户端信息
   wsServerStatus(server) // 服务器状态监控
   app.context.throwError = throwError // 常用方法挂载全局ctx上
   app.use(compose(middlewares))

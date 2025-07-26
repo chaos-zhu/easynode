@@ -8,46 +8,6 @@
       @sort-change="handleSortChange"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column type="expand">
-        <template #default="{ row }">
-          <!-- { monitorData: { connect, cpuInfo, memInfo, driveInfo, ipInfo, netstatInfo } } -->
-          <el-descriptions
-            v-if="row.monitorData?.connect"
-            title=""
-            :column="5"
-            direction="vertical"
-            class="host_info"
-          >
-            <el-descriptions-item label="CPU" width="35%">
-              {{ `${row.monitorData?.cpuInfo?.cpuModel}-${row.monitorData?.cpuInfo?.cpuCount}-(${row.monitorData?.cpuInfo?.cpuUsage}%)` }}
-            </el-descriptions-item>
-            <el-descriptions-item label="内存" width="15%">
-              {{ `${$tools.toFixed(row.monitorData?.memInfo?.usedMemMb / 1024)}GB / ${$tools.toFixed(row.monitorData?.memInfo?.totalMemMb / 1024)}GB-(${row.monitorData?.memInfo?.usedMemPercentage}%)` }}
-            </el-descriptions-item>
-            <el-descriptions-item label="硬盘" width="15%">
-              {{ `${$tools.toFixed(row.monitorData?.driveInfo?.usedGb)}GB / ${$tools.toFixed(row.monitorData?.driveInfo?.totalGb)}GB-(${row.monitorData?.driveInfo?.usedPercentage}%)` }}
-            </el-descriptions-item>
-            <el-descriptions-item label="网络" width="15%">
-              <el-icon><Upload /></el-icon>
-              {{ `${$tools.formatNetSpeed(row.monitorData?.netstatInfo.total?.outputMb)}` }}
-              <el-icon><Download /></el-icon>
-              {{ `${$tools.formatNetSpeed(row.monitorData?.netstatInfo.total?.inputMb)}` }}
-            </el-descriptions-item>
-            <el-descriptions-item label="位置" width="20%">
-              {{ row.monitorData?.ipInfo.country || '--' }} {{ row.monitorData?.ipInfo.regionName }}
-            </el-descriptions-item>
-            <el-descriptions-item v-show="row.expired" label="到期时间" width="20%">
-              <span>{{ row.expired }}</span>
-            </el-descriptions-item>
-            <el-descriptions-item v-show="row.consoleUrl" label="服务商控制台" width="20%">
-              <span class="link" @click="handleToConsole(row)">服务商控制台</span>
-            </el-descriptions-item>
-          </el-descriptions>
-          <div v-else class="no_client_data">
-            客户端监控服务未安装或连接失败，无法获取实例监控数据。<span class="link" @click="handleOnekey(row)">去安装</span>
-          </div>
-        </template>
-      </el-table-column>
       <el-table-column type="selection" reserve-selection />
       <el-table-column
         property="index"
@@ -70,22 +30,9 @@
         </template>
       </el-table-column>
       <el-table-column property="port" label="端口" />
-      <!-- <el-table-column property="port" label="认证类型">
+      <el-table-column property="port" label="认证类型">
         <template #default="scope">{{ scope.row.authType === 'password' ? '密码' : '密钥' }}</template>
-      </el-table-column> -->
-      <el-table-column
-        label="监控服务"
-        property="monitorData"
-        sortable
-        :sort-method="(a, b) => a.monitorData?.connect - b.monitorData?.connect"
-      >
-        <template #default="scope">
-          <el-tag v-if="typeof(scope.row.monitorData?.connect) !== 'boolean'" type="info">连接中</el-tag>
-          <el-tag v-else-if="scope.row.monitorData?.connect" type="success">已连接</el-tag>
-          <el-tag v-else type="warning">未连接</el-tag>
-        </template>
       </el-table-column>
-      <!-- <el-table-column property="isConfig" label="登录配置" /> -->
       <el-table-column label="操作" fixed="right" :width="isMobileScreen ? 'auto' : '260px'">
         <template #default="{ row }">
           <el-dropdown v-if="isMobileScreen" trigger="click">

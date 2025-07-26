@@ -982,7 +982,7 @@ module.exports = (httpServer) => {
 
     // 开始监控（解耦数据收集和数据发送，提升及时性）
     const startMonitoring = () => {
-      // 数据收集函数 - 每2秒执行一次
+      // 数据收集函数
       const collectData = async () => {
         try {
           // 更新全局statusData
@@ -992,7 +992,7 @@ module.exports = (httpServer) => {
         }
       }
 
-      // 数据发送函数 - 每1秒执行一次
+      // 数据发送函数
       const sendData = () => {
         try {
           // 广播给所有监听该主机的 socket
@@ -1011,9 +1011,9 @@ module.exports = (httpServer) => {
       // 立即执行一次数据收集
       collectData()
 
-      // 每2秒收集一次数据
+      // 每n秒收集一次数据
       monitorTimer = setInterval(collectData, 2500)
-      // 每1秒发送一次数据（1秒后开始，避免与首次收集冲突）
+      // 每n秒发送一次数据
       sendDataTimer = setInterval(sendData, 1000)
     }
 

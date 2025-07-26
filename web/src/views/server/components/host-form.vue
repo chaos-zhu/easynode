@@ -245,14 +245,6 @@
           @keyup.enter="handleSave"
         />
       </el-form-item>
-      <el-form-item key="clientPort" label="客户端端口" prop="clientPort">
-        <el-input
-          v-model.trim.number="hostForm.clientPort"
-          clearable
-          placeholder="客户端上报信息端口(默认22022)"
-          autocomplete="off"
-        />
-      </el-form-item>
       <el-form-item
         v-if="!isBatchModify"
         key="index"
@@ -329,7 +321,6 @@ const formField = {
   password: '',
   privateKey: '',
   credential: '', // credentials -> _id
-  clientPort: 22022,
   index: 0,
   expired: null,
   expiredNotify: false,
@@ -352,7 +343,6 @@ const rules = computed(() => {
     name: { required: !isBatchModify.value, message: '输入实例别名', trigger: 'change' },
     host: { required: !isBatchModify.value, message: '输入IP/域名', trigger: 'change' },
     port: { required: !isBatchModify.value, type: 'number', message: '输入ssh端口', trigger: 'change' },
-    clientPort: { required: false, type: 'number' },
     jumpHosts: { required: false, type: 'array' },
     index: { required: !isBatchModify.value, type: 'number', message: '输入数字', trigger: 'change' },
     // password: [{ required: hostForm.authType === 'password', trigger: 'change' },],
@@ -398,7 +388,7 @@ const setDefaultData = () => {
 
 const setBatchDefaultData = () => {
   if (!isBatchModify.value) return
-  Object.assign(hostForm.value, { ...formField }, { group: '', port: '', username: '', authType: '', clientPort: '', jumpHosts: [] })
+  Object.assign(hostForm.value, { ...formField }, { group: '', port: '', username: '', authType: '', jumpHosts: [] })
 }
 const handleOpen = async () => {
   if (isBatchModify.value) {
