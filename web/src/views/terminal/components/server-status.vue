@@ -109,20 +109,24 @@
       <el-descriptions-item v-for="(d,idx) in drivesInfo" :key="d.filesystem + idx">
         <template #label>
           <div class="item_title">
-            {{ drivesInfo.length > 1 ? `硬盘${idx+1}` : '硬盘' }}
+            {{ drivesInfo.length > 1 ? `硬盘(${idx+1})` : '硬盘' }}
           </div>
         </template>
-        <el-tooltip effect="dark" :content="`文件系统：${d.filesystem} 挂载点：${d.mountedOn}`" placement="bottom">
+        <el-tooltip
+          effect="dark"
+          placement="top"
+          :content="`文件系统：${d.filesystem} 挂载点：${d.mountedOn}`"
+        >
           <el-progress
             :text-inside="true"
             :stroke-width="18"
             :percentage="Number(d.usedPercentage)"
             :color="handleUsedColor(Number(d.usedPercentage))"
           />
-          <div class="position_right">
-            {{ d.usedGb }}/{{ d.totalGb }}G
-          </div>
         </el-tooltip>
+        <div class="position_right">
+          {{ d.usedGb }}/{{ d.totalGb }}G
+        </div>
       </el-descriptions-item>
     </el-descriptions>
 
@@ -768,8 +772,8 @@ onBeforeUnmount(() => {
     user-select: none;
     white-space: nowrap;
     text-align: center;
-    min-width: 30px;
-    max-width: 30px;
+    min-width: 34px;
+    max-width: 34px;
   }
 
   .host-info-ip {
