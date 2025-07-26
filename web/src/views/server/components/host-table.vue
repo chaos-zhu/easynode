@@ -8,6 +8,26 @@
       @sort-change="handleSortChange"
       @selection-change="handleSelectionChange"
     >
+      <el-table-column type="expand">
+        <template #default="{ row }">
+          <el-descriptions
+            title=""
+            :column="5"
+            class="host_info"
+          >
+            <el-descriptions-item label="到期时间:" width="20%">
+              <span>{{ row.expired || '--' }}</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="服务商控制台:" width="20%">
+              <span v-if="row.consoleUrl" class="link" @click="handleToConsole(row)">服务商控制台</span>
+              <span v-else>--</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="备注:" width="20%">
+              <span>{{ row.remark || '--' }}</span>
+            </el-descriptions-item>
+          </el-descriptions>
+        </template>
+      </el-table-column>
       <el-table-column type="selection" reserve-selection />
       <el-table-column
         property="index"

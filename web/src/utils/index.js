@@ -171,3 +171,7 @@ export const isDockerComposeYml = (str) => {
   return /^docker-compose\.yml$/.test(str)
 }
 
+export const isValidDate = (dateString) => {
+  const date = new Date(dateString)
+  return !isNaN(date.getTime()) && date instanceof Date
+}

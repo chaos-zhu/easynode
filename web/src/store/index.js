@@ -1,6 +1,7 @@
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import dayjs from 'dayjs'
 import $api from '@/api'
+import { isValidDate } from '@/utils'
 
 const useStore = defineStore('global', {
   state: () => ({
@@ -81,7 +82,8 @@ const useStore = defineStore('global', {
     async getHostList() {
       let { data: newHostList } = await $api.getHostList()
       newHostList = newHostList.map(newHostObj => {
-        newHostObj.expired = dayjs(newHostObj.expired).format('YYYY-MM-DD')
+        let { expired = null } = newHostObj
+        newHostObj.expired = (isValidDate(expired)) ? dayjs(expired).format('YYYY-MM-DD') : null
         const oldHostObj = this.hostList.find(({ id }) => id === newHostObj.id)
         return oldHostObj ? Object.assign({}, { ...oldHostObj }, { ...newHostObj }) : newHostObj
       })
