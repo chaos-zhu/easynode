@@ -1,8 +1,11 @@
 <template>
   <div class="terminal_container">
     <div v-if="showLinkTips" class="terminal_link_tips">
-      <h2 class="quick_link_text">快速连接</h2>
-      <el-table :data="hostList" :show-header="false">
+      <h2 class="quick_link_text">最近连接</h2>
+      <el-table :data="recentHostList" :show-header="false">
+        <template #empty>
+          <span class="link" @click="handleToServer">去连接</span>
+        </template>
         <el-table-column prop="name" label="name" />
         <el-table-column>
           <template #default="{ row }">
@@ -13,6 +16,7 @@
             </span>
           </template>
         </el-table-column>
+        <el-table-column prop="lastTime" label="lastTime" />
         <el-table-column fixed="right" width="80px">
           <template #default="{ row }">
             <div class="actios_btns">
@@ -36,6 +40,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <span v-show="recentHostList.length" class="link clear_host" @click="handleClearRecentHostList">清空</span>
     </div>
     <div v-else>
       <TerminalWrapper
@@ -56,7 +61,8 @@
 
 <script setup>
 import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import dayjs from 'dayjs'
 import TerminalWrapper from './components/terminal-wrapper.vue'
 import HostForm from '../server/components/host-form.vue'
 import { randomStr } from '@utils/index.js'
@@ -64,19 +70,38 @@ import { terminalStatus } from '@/utils/enum'
 const { CONNECTING } = terminalStatus
 
 const { proxy: { $store, $message } } = getCurrentInstance()
+const router = useRouter()
+const route = useRoute()
 
 let terminalTabs = reactive([])
 let hostFormVisible = ref(false)
 let updateHostData = ref(null)
-const route = useRoute()
 
 let showLinkTips = computed(() => !Boolean(terminalTabs.length))
 let hostList = computed(() => $store.hostList)
+let recentHostList = ref(JSON.parse(localStorage.getItem('recentHostList')) || [])
+
+function updateRecentHostList(targetHost) {
+  if (!targetHost) return
+  targetHost.lastTime = dayjs().format('YYYY-MM-DD HH:mm:ss')
+  if (recentHostList.value.some(item => item.id === targetHost.id)) {
+    // 如果在最近列表中存在，则移动到首位
+    let index = recentHostList.value.findIndex(item => item.id === targetHost.id)
+    recentHostList.value.splice(index, 1)
+    recentHostList.value.unshift(targetHost)
+  } else {
+    // 如果不在最近列表中，则添加到首位
+    recentHostList.value.unshift(targetHost)
+  }
+  recentHostList.value = recentHostList.value.slice(0, 20)
+  localStorage.setItem('recentHostList', JSON.stringify(recentHostList.value))
+}
 
 function linkTerminal(hostInfo) {
   let targetHost = hostList.value.find(item => item.id === hostInfo.id)
-  const { id, host, name } = targetHost
-  terminalTabs.push({ key: randomStr(16), id, name, host, status: CONNECTING })
+  const { id, host, name, isConfig } = targetHost
+  terminalTabs.push({ key: randomStr(16), id, name, host, status: CONNECTING, isConfig })
+  updateRecentHostList(targetHost)
 }
 
 function handleUpdateHost(row) {
@@ -103,21 +128,33 @@ const handleUpdateList = async ({ host }) => {
   }
 }
 
+const handleToServer = () => {
+  router.push({ path: '/server' })
+}
+
 onActivated(async () => {
   await nextTick()
   const { hostIds } = route.query
   if (!hostIds) return
   let targetHosts = hostList.value.filter(item => hostIds.includes(item.id)).map(item => {
-    const { id, name, host } = item
-    return { key: randomStr(16), id, name, host, status: CONNECTING }
+    const { id, name, host, isConfig } = item
+    return { key: randomStr(16), id, name, host, status: CONNECTING, isConfig }
   })
   if (!targetHosts || !targetHosts.length) return
   terminalTabs.push(...targetHosts)
+  targetHosts.forEach(item => {
+    updateRecentHostList(item)
+  })
 })
 
 const handleCopy = async (host) => {
   await navigator.clipboard.writeText(host)
   $message.success({ message: '复制成功', center: true })
+}
+
+const handleClearRecentHostList = () => {
+  recentHostList.value = []
+  localStorage.removeItem('recentHostList')
 }
 
 </script>
@@ -143,10 +180,22 @@ const handleCopy = async (host) => {
       margin-bottom: 15px;
     }
 
+    .clear_host {
+      color: #409EFF;
+      cursor: pointer;
+      margin-top: 20px;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 18px;
+    }
+
     .actios_btns {
       display: flex;
       justify-content: flex-end;
     }
+  }
+  ::v-deep(.el-table__empty-text) {
+    width: 100%;
   }
 }
 </style>

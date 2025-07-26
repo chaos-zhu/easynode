@@ -103,11 +103,10 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance, nextTick } from 'vue'
-import { Download, Upload } from '@element-plus/icons-vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 
-const { proxy: { $message, $messageBox, $api, $router, $tools } } = getCurrentInstance()
+const { proxy: { $message, $messageBox, $api, $router } } = getCurrentInstance()
 
 const props = defineProps({
   hosts: {
@@ -137,20 +136,6 @@ const handleToConsole = ({ consoleUrl }) => {
 const handleSSH = async (row) => {
   let { id } = row
   $router.push({ path: '/terminal', query: { hostIds: id } })
-}
-
-const handleOnekey = async (row) => {
-  let { id, isConfig } = row
-  if (!isConfig) {
-    $message({
-      message: '请先配置SSH连接信息',
-      type: 'warning',
-      center: true
-    })
-    handleUpdate(row)
-    return
-  }
-  $router.push({ path: '/onekey', query: { hostIds: id, execClientInstallScript: 'true' } })
 }
 
 let defaultSortLocal = localStorage.getItem('host_table_sort')
