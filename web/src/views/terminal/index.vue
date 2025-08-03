@@ -2,7 +2,7 @@
   <div class="terminal_container">
     <div v-if="showLinkTips" class="terminal_link_tips">
       <h2 class="quick_link_text">最近连接</h2>
-      <el-table :data="recentHostList" :show-header="false">
+      <el-table :data="displayHostList" :show-header="false">
         <template #empty>
           <span class="link" @click="handleToServer">去连接</span>
         </template>
@@ -40,7 +40,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <span v-show="recentHostList.length" class="link clear_host" @click="handleClearRecentHostList">清空</span>
+      <span v-show="displayHostList.length" class="link clear_host" @click="handleClearRecentHostList">清空</span>
     </div>
     <div v-else>
       <TerminalWrapper
@@ -80,6 +80,9 @@ let updateHostData = ref(null)
 let showLinkTips = computed(() => !Boolean(terminalTabs.length))
 let hostList = computed(() => $store.hostList)
 let recentHostList = ref(JSON.parse(localStorage.getItem('recentHostList')) || [])
+const displayHostList = computed(() => {
+  return recentHostList.value.filter(item => hostList.value.some(host => host.id === item.id))
+})
 
 function updateRecentHostList(targetHost) {
   if (!targetHost) return

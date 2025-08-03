@@ -85,7 +85,7 @@ const useStore = defineStore('global', {
       let { data: newHostList } = await $api.getHostList()
       newHostList = newHostList.map(newHostObj => {
         let { expired = null } = newHostObj
-        newHostObj.expired = (isValidDate(expired)) ? dayjs(expired).format('YYYY-MM-DD') : null
+        newHostObj.expired = (isValidDate(expired)) ? dayjs(expired).format('YYYY-MM-DD') : '--'
         const oldHostObj = this.hostList.find(({ id }) => id === newHostObj.id)
         return oldHostObj ? Object.assign({}, { ...oldHostObj }, { ...newHostObj }) : newHostObj
       })

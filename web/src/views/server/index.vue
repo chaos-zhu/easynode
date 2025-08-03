@@ -12,21 +12,20 @@
             <el-dropdown-item @click="handleBatchSSH">连接终端</el-dropdown-item>
             <el-dropdown-item @click="handleBatchModify">批量修改</el-dropdown-item>
             <el-dropdown-item @click="handleBatchRemove">批量删除</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-      <el-dropdown trigger="click">
-        <el-button type="primary" class="group_action_btn">
-          导入导出<el-icon class="el-icon--right"><arrow-down /></el-icon>
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
+            <el-dropdown-item @click="handleSelectAll">反选所有</el-dropdown-item>
             <el-dropdown-item @click="importVisible = true">导入实例</el-dropdown-item>
             <el-dropdown-item @click="handleBatchExport">导出实例</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
       <el-button type="primary" @click="groupDialogVisible = true">分组管理</el-button>
+      <el-button
+        type="primary"
+        class="table_header_setting_btn"
+        @click="columnSettingsVisible = true"
+      >
+        表头设置
+      </el-button>
     </div>
     <div class="server_group_collapse">
       <div v-if="isNoHost">
@@ -46,6 +45,7 @@
           <HostTable
             ref="hostTableRefs"
             :hosts="hosts"
+            :column-settings="rawColumnSettings"
             @update-host="handleUpdateHost"
             @update-list="handleUpdateList"
           />
@@ -65,6 +65,31 @@
       @update-list="handleUpdateList"
     />
     <GroupDialog v-model:show="groupDialogVisible" />
+
+    <!-- 表头设置弹窗 -->
+    <el-dialog
+      v-model="columnSettingsVisible"
+      title="表头设置"
+      width="400px"
+      append-to-body
+    >
+      <div class="column-settings">
+        <div v-for="(item, key) in columnConfig" :key="key" class="column-item">
+          <el-checkbox
+            v-model="columnSettings[key]"
+            :disabled="item.disabled"
+          >
+            {{ item.label }}
+          </el-checkbox>
+        </div>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="resetColumnSettings">重置默认</el-button>
+          <el-button type="primary" @click="saveColumnSettings">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -89,6 +114,61 @@ const hostTableRefs = ref([])
 const activeGroup = ref([])
 const groupDialogVisible = ref(false)
 
+// 列设置相关
+const columnSettingsVisible = ref(false)
+
+// 列配置定义
+const columnConfig = {
+  selection: { label: '选择', disabled: false },
+  index: { label: '序号', disabled: false },
+  name: { label: '名称', disabled: false },
+  username: { label: '用户名', disabled: false },
+  host: { label: 'IP', disabled: false },
+  port: { label: '端口', disabled: false },
+  authType: { label: '认证类型', disabled: false },
+  proxyType: { label: '代理类型', disabled: false },
+  expired: { label: '到期时间', disabled: false },
+  consoleUrl: { label: '控制台URL', disabled: false },
+  remark: { label: '备注', disabled: false }
+}
+
+// 默认列设置
+const defaultColumnSettings = {
+  selection: true,
+  index: true,
+  name: true,
+  username: true,
+  host: true,
+  port: true,
+  authType: true,
+  proxyType: false,
+  expired: false,
+  consoleUrl: false,
+  remark: false
+}
+
+// 从localStorage获取列设置
+const getColumnSettings = () => {
+  const saved = localStorage.getItem('host_table_column_settings')
+  return saved ? { ...defaultColumnSettings, ...JSON.parse(saved) } : { ...defaultColumnSettings }
+}
+
+// 列设置状态
+const columnSettings = ref(getColumnSettings())
+const rawColumnSettings = ref({ ...columnSettings.value })
+
+// 保存列设置到localStorage
+const saveColumnSettings = () => {
+  localStorage.setItem('host_table_column_settings', JSON.stringify(columnSettings.value))
+  rawColumnSettings.value = { ...columnSettings.value }
+  columnSettingsVisible.value = false
+}
+
+// 重置列设置
+const resetColumnSettings = () => {
+  columnSettings.value = { ...defaultColumnSettings }
+}
+
 const handleUpdateList = async () => {
   try {
     await $store.getHostList()
@@ -99,7 +179,7 @@ const handleUpdateList = async () => {
 }
 
 // 收集选中的实例
-let collectSelectHost = () => {
+const collectSelectHost = () => {
   let allSelectHosts = []
   hostTableRefs.value.map(item => {
     if (item) allSelectHosts = allSelectHosts.concat(item.getSelectHosts())
@@ -107,7 +187,7 @@ let collectSelectHost = () => {
   selectHosts.value = allSelectHosts
 }
 
-let handleBatchSSH = () => {
+const handleBatchSSH = () => {
   collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
   let ids = selectHosts.value.filter(item => item.isConfig).map(item => item.id)
@@ -116,14 +196,18 @@ let handleBatchSSH = () => {
   $router.push({ path: '/terminal', query: { hostIds: ids.join(',') } })
 }
 
-let handleBatchModify = async () => {
+const handleBatchModify = async () => {
   collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
   isBatchModify.value = true
   hostFormVisible.value = true
 }
 
-let handleBatchRemove = async () => {
+const handleSelectAll = () => {
+  hostTableRefs.value.forEach(item => item.selectAll())
+}
+
+const handleBatchRemove = async () => {
   collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
   let ids = selectHosts.value.map(item => item.id)
@@ -142,12 +226,12 @@ let handleBatchRemove = async () => {
   })
 }
 
-let handleUpdateHost = (defaultData) => {
+const handleUpdateHost = (defaultData) => {
   hostFormVisible.value = true
   updateHostData.value = defaultData
 }
 
-let handleBatchExport = () => {
+const handleBatchExport = () => {
   collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
   let exportData = JSON.parse(JSON.stringify(selectHosts.value))
@@ -160,9 +244,9 @@ let handleBatchExport = () => {
   hostTableRefs.value.forEach(item => item.clearSelection())
 }
 
-let hostList = computed(() => $store.hostList)
+const hostList = computed(() => $store.hostList)
 
-let groupHostList = computed(() => {
+const groupHostList = computed(() => {
   let res = {}
   let groupList = $store.groupList
   groupList.forEach(group => {
@@ -189,9 +273,9 @@ watch(groupHostList, () => {
   deep: false
 })
 
-let isNoHost = computed(() => Object.keys(groupHostList.value).length === 0)
+const isNoHost = computed(() => Object.keys(groupHostList.value).length === 0)
 
-let hostFormClosed = () => {
+const hostFormClosed = () => {
   updateHostData.value = null
   isBatchModify.value = false
   selectHosts.value = []
@@ -227,6 +311,9 @@ let hostFormClosed = () => {
       flex-shrink: 0;
       min-width: fit-content;
     }
+    .table_header_setting_btn {
+      margin-left: 0px;
+    }
 
     > :last-child {
       margin-right: 0;
@@ -253,5 +340,20 @@ let hostFormClosed = () => {
       margin: 0 25px;
     }
   }
+}
+
+.column-settings {
+  .column-item {
+    margin-bottom: 12px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: space-between;
 }
 </style>

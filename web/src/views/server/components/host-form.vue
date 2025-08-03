@@ -251,36 +251,6 @@
           </el-option>
         </el-select>
       </el-form-item>
-      <!-- <el-form-item
-        key="jumpHosts"
-        prop="jumpHosts"
-        label="跳板机"
-      >
-        <PlusSupportTip>
-          <el-select
-            v-model="hostForm.jumpHosts"
-            placeholder="支持多选,跳板机连接顺序从前到后"
-            multiple
-            :disabled="!isPlusActive"
-          >
-            <template #empty>
-              <div class="empty_text">
-                <span>无可用跳板机器</span>
-              </div>
-            </template>
-            <el-option
-              v-for="item in confHostList"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id"
-            >
-              <div class="select_wrap">
-                <span>{{ item.name }}</span>
-              </div>
-            </el-option>
-          </el-select>
-        </PlusSupportTip>
-      </el-form-item> -->
       <el-form-item key="command" prop="command" label="登录指令">
         <el-input
           v-model="hostForm.command"
@@ -316,7 +286,7 @@
         <el-input
           v-model.trim="hostForm.consoleUrl"
           clearable
-          placeholder="用于直达云服务商控制台"
+          placeholder="用于直达云服务控制台"
           autocomplete="off"
           @keyup.enter="handleSave"
         />

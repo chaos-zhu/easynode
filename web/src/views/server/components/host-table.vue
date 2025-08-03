@@ -8,34 +8,16 @@
       @sort-change="handleSortChange"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column type="expand">
-        <template #default="{ row }">
-          <el-descriptions
-            title=""
-            :column="5"
-            class="host_info"
-          >
-            <el-descriptions-item label="到期时间:" width="20%">
-              <span>{{ row.expired || '--' }}</span>
-            </el-descriptions-item>
-            <el-descriptions-item label="服务商控制台:" width="20%">
-              <span v-if="row.consoleUrl" class="link" @click="handleToConsole(row)">服务商控制台</span>
-              <span v-else>--</span>
-            </el-descriptions-item>
-            <el-descriptions-item label="备注:" width="20%">
-              <span>{{ row.remark || '--' }}</span>
-            </el-descriptions-item>
-          </el-descriptions>
-        </template>
-      </el-table-column>
-      <el-table-column type="selection" reserve-selection />
+      <el-table-column v-if="props.columnSettings.selection" type="selection" reserve-selection />
       <el-table-column
+        v-if="props.columnSettings.index"
         property="index"
         label="序号"
         sortable
         width="100px"
       />
       <el-table-column
+        v-if="props.columnSettings.name"
         label="名称"
         property="name"
         sortable
@@ -43,15 +25,45 @@
       >
         <template #default="scope">{{ scope.row.name }}</template>
       </el-table-column>
-      <el-table-column property="username" label="用户名" />
-      <el-table-column property="host" label="IP">
+      <el-table-column v-if="props.columnSettings.username" property="username" label="用户名" />
+      <el-table-column v-if="props.columnSettings.host" property="host" label="IP">
         <template #default="scope">
           <span @click="handleCopy(scope.row.host)">{{ scope.row.host }}</span>
         </template>
       </el-table-column>
-      <el-table-column property="port" label="端口" />
-      <el-table-column property="port" label="认证类型">
+      <el-table-column v-if="props.columnSettings.port" property="port" label="端口" />
+      <el-table-column v-if="props.columnSettings.authType" property="port" label="认证类型">
         <template #default="scope">{{ scope.row.authType === 'password' ? '密码' : '密钥' }}</template>
+      </el-table-column>
+      <el-table-column
+        v-if="props.columnSettings.proxyType"
+        property="port"
+        show-overflow-tooltip
+        label="代理类型"
+      >
+        <template #default="scope">{{ formatProxyType(scope.row) }}</template>
+      </el-table-column>
+      <el-table-column v-if="props.columnSettings.expired" property="expired" label="到期时间" />
+      <el-table-column
+        v-if="props.columnSettings.consoleUrl"
+        property="consoleUrl"
+        show-overflow-tooltip
+        label="控制台URL"
+      >
+        <template #default="scope">
+          <span v-if="scope.row.consoleUrl" class="link" @click="handleToConsole(scope.row)">{{ scope.row.consoleUrl }}</span>
+          <span v-else>--</span>
+        </template>
+      </el-table-column>
+      <el-table-column
+        v-if="props.columnSettings.remark"
+        show-overflow-tooltip
+        property="remark"
+        label="备注"
+      >
+        <template #default="scope">
+          <span>{{ scope.row.remark || '--' }}</span>
+        </template>
       </el-table-column>
       <el-table-column label="操作" fixed="right" :width="isMobileScreen ? 'auto' : '260px'">
         <template #default="{ row }">
@@ -106,23 +118,39 @@ import { ref, computed, getCurrentInstance, nextTick } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 
-const { proxy: { $message, $messageBox, $api, $router } } = getCurrentInstance()
+const { proxy: { $message, $messageBox, $api, $router, $store } } = getCurrentInstance()
 
 const props = defineProps({
   hosts: {
     required: true,
     type: Array
+  },
+  columnSettings: {
+    type: Object,
+    default: () => ({
+      selection: true,
+      index: true,
+      name: true,
+      username: true,
+      host: true,
+      port: true,
+      authType: true,
+      proxyType: true,
+      expired: true,
+      consoleUrl: true,
+      remark: true
+    })
   }
 })
 
 const emit = defineEmits(['update-list', 'update-host', 'select-change',])
 
 const { isMobileScreen } = useMobileWidth()
-let tableRef = ref(null)
+const tableRef = ref(null)
 
-let hosts = computed(() => {
-  return props.hosts
-})
+const hosts = computed(() => props.hosts)
+const hostList = computed(() => $store.hostList)
+const proxyList = computed(() => $store.proxyList)
 
 const handleUpdate = (hostInfo) => {
   emit('update-host', hostInfo)
@@ -138,16 +166,15 @@ const handleSSH = async (row) => {
   $router.push({ path: '/terminal', query: { hostIds: id } })
 }
 
-let defaultSortLocal = localStorage.getItem('host_table_sort')
-defaultSortLocal = defaultSortLocal ? JSON.parse(defaultSortLocal) : { prop: 'index', order: null } // 'ascending' or 'descending'
-let defaultSort = ref(defaultSortLocal)
+const defaultSortLocal = localStorage.getItem('host_table_sort')
+const defaultSort = ref(defaultSortLocal ? JSON.parse(defaultSortLocal) : { prop: 'index', order: null }) // 'ascending' or 'descending'
 
 const handleSortChange = (sortObj) => {
   defaultSort.value = sortObj
   localStorage.setItem('host_table_sort', JSON.stringify(sortObj))
 }
 
-let selectHosts = ref([])
+const selectHosts = ref([])
 const handleSelectionChange = (val) => {
   // console.log('select: ', val)
   selectHosts.value = val
@@ -162,9 +189,14 @@ const clearSelection = () => {
   nextTick(() => tableRef.value.clearSelection())
 }
 
+const selectAll = () => {
+  nextTick(() => tableRef.value.toggleAllSelection())
+}
+
 defineExpose({
   getSelectHosts,
-  clearSelection
+  clearSelection,
+  selectAll
 })
 
 const handleRemoveHost = async ({ id }) => {
@@ -187,6 +219,22 @@ const handleRemoveHost = async ({ id }) => {
 const handleCopy = async (host) => {
   await navigator.clipboard.writeText(host)
   $message.success({ message: '复制成功', center: true })
+}
+
+const formatProxyType = ({ proxyType, jumpHosts, proxyServer }) => {
+  if (!proxyType) return '--'
+  if (proxyType === 'jumpHosts' && jumpHosts?.length > 0) {
+    const jumpHostsName = jumpHosts.map(item => {
+      const hostInfo = hostList.value.find(host => host.id === item)
+      return hostInfo?.name || 'Error'
+    }).join('>>>')
+    return `[跳板机]${ jumpHostsName }`
+  }
+  if (proxyType === 'proxyServer' && proxyList.value.some(item => item.id === proxyServer)) {
+    const proxyServerInfo = proxyList.value.find(item => item.id === proxyServer)
+    return `[${ proxyServerInfo.type }]${ proxyServerInfo.name }`
+  }
+  return '--'
 }
 </script>
 
