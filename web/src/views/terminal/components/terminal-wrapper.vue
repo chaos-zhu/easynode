@@ -285,16 +285,18 @@
             >
               <ServerStatus
                 ref="infoSideRef"
-                :host-id="item.id"
                 :visible="showInfoSide"
+                :host-id="item.id"
+                :ping-ms="pingData[item.host] || 0"
               />
             </el-drawer>
             <!-- PC端 -->
             <div v-else :class="['tab_content_main_info_side', { 'show_info_side': showInfoSide }]">
               <ServerStatus
                 ref="infoSideRef"
-                :host-id="item.id"
                 :visible="showInfoSide"
+                :host-id="item.id"
+                :ping-ms="pingData[item.host] || 0"
               />
             </div>
             <div
@@ -394,7 +396,6 @@ import { ArrowDown } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { terminalStatusList } from '@/utils/enum'
 import Terminal from './terminal.vue'
-// import InfoSide from './info-side.vue'
 import ServerStatus from './server-status.vue'
 import HostForm from '../../server/components/host-form.vue'
 import TerminalSetting from './terminal-setting.vue'
@@ -773,8 +774,8 @@ const terminalInput = (command, uid) => {
 //   }
 // }
 
-const getPingData = (data) => {
-  pingData.value[data.ip] = data
+const getPingData = ({ host, time }) => {
+  pingData.value[host] = time
 }
 
 const tabChange = async (index) => {

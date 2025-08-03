@@ -231,6 +231,10 @@ const props = defineProps({
   visible: {
     required: true,
     type: Boolean
+  },
+  pingMs: {
+    required: true,
+    type: [Number, String,]
   }
 })
 
@@ -319,12 +323,6 @@ const input = computed(() => {
   let inputMb = Number(netstatInfo.value.netTotal?.inputMb) || 0
   if (inputMb >= 1) return `${ inputMb.toFixed(2) } MB/s`
   return `${ (inputMb * 1024).toFixed(1) } KB/s`
-})
-
-const pingMs = computed(() => {
-  let curPingData = pingData.value[host.value] || {}
-  if (!curPingData?.success) return false
-  return Number(curPingData?.time).toFixed(0)
 })
 
 // 清理重连定时器

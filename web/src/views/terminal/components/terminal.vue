@@ -187,7 +187,8 @@ const connectIO = () => {
     }, 3000)
     socket.value.emit('get_ping', host.value) // 获取服务端到客户端的ping值
     socket.value.on('ping_data', (pingMs) => {
-      emit('ping-data', Object.assign({ ip: host.value }, pingMs))
+      const time = pingMs?.time || 0
+      emit('ping-data', { host: host.value, time })
     })
 
     socket.value.on('token_verify_fail', () => {
