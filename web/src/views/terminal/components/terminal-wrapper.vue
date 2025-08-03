@@ -7,7 +7,7 @@
           trigger="click"
           max-height="50vh"
           class="dropdown_menu"
-          :teleported="false"
+          :teleported="isMobileScreen"
         >
           <span class="link_text">连接<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
@@ -44,7 +44,7 @@
           trigger="click"
           max-height="50vh"
           class="dropdown_menu"
-          :teleported="false"
+          :teleported="isMobileScreen"
         >
           <span class="link_text">脚本库<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
@@ -69,12 +69,15 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-dropdown trigger="click" :teleported="false">
+        <el-dropdown
+          trigger="click"
+          :teleported="isMobileScreen"
+        >
           <span class="link_text">功能项<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="handleFullScreen">
-                <span>启用全屏</span>
+                <span>全屏</span>
               </el-dropdown-item>
               <el-dropdown-item @click="showSetting = true">
                 <span>本地设置</span>
@@ -828,6 +831,8 @@ const removeTab = (index) => {
 }
 
 const handleFullScreen = () => {
+  if (isMobileScreen.value) return
+  if (document.fullscreenElement) document?.exitFullscreen()
   document
     .getElementsByClassName('terminal_wrap')[0]
     .requestFullscreen()
