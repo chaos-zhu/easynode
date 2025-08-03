@@ -5,10 +5,11 @@ const { verifyAuthSync } = require('../utils/verify-auth')
 const { sendNoticeAsync } = require('../utils/notify')
 const { isAllowedIp, ping } = require('../utils/tools')
 const { AESDecryptAsync } = require('../utils/encrypt')
-const { HostListDB, CredentialsDB } = require('../utils/db-class')
+const { HostListDB, CredentialsDB, ProxyDB } = require('../utils/db-class')
 const decryptAndExecuteAsync = require('../utils/decrypt-file')
 const hostListDB = new HostListDB().getInstance()
 const credentialsDB = new CredentialsDB().getInstance()
+const proxyDB = new ProxyDB().getInstance()
 
 async function getConnectionOptions(hostId) {
   const hostInfo = await hostListDB.findOneAsync({ _id: hostId })
@@ -73,20 +74,131 @@ function createInteractiveShell(socket, targetSSHClient) {
   })
 }
 
+// 获取代理配置信息
+async function getProxyConfig(proxyId) {
+  if (!proxyId) return null
+  try {
+    const proxyInfo = await proxyDB.findOneAsync({ _id: proxyId })
+    if (!proxyInfo) {
+      throw new Error(`代理配置 ID ${ proxyId } 未找到`)
+    }
+
+    return {
+      id: proxyInfo._id,
+      name: proxyInfo.name,
+      type: proxyInfo.type, // 'socks5' 或 'http'
+      host: proxyInfo.host,
+      port: proxyInfo.port,
+      username: proxyInfo.username || '',
+      password: proxyInfo.password || ''
+    }
+  } catch (error) {
+    consola.error('获取代理配置失败:', error.message)
+    throw error
+  }
+}
+
+// 通用的代理和跳板机连接处理函数
+async function handleProxyAndJumpHostConnection(options) {
+  const {
+    hostInfo,
+    targetConnectionOptions,
+    socket,
+    logPrefix = ''
+  } = options
+
+  const { proxyType, proxyServer, jumpHosts, host } = hostInfo
+  let jumpSshClients = []
+
+  try {
+    // 代理连接
+    if (proxyType === 'proxyServer' && proxyServer) {
+      const proxyConfig = await getProxyConfig(proxyServer)
+      if (proxyConfig) {
+        const logMsg = `${ logPrefix }使用代理服务器: ${ proxyConfig.name } (${ proxyConfig.type.toUpperCase() }) - ${ proxyConfig.host }:${ proxyConfig.port }`
+        consola.info(logMsg)
+
+        // 向前端发送代理信息（如果socket存在且有对应方法）
+        if (socket && socket.emit) {
+          if (typeof socket.emit === 'function') {
+            try {
+              socket.emit('terminal_print_info', `使用代理服务器: ${ proxyConfig.name } (${ proxyConfig.type.toUpperCase() }) - ${ proxyConfig.host }:${ proxyConfig.port }`)
+            } catch (emitError) {
+              // 忽略emit错误，因为不同socket可能有不同的事件
+            }
+          }
+        }
+
+        let proxySocket
+        if (proxyConfig.type === 'socks5') {
+          const { createSocks5Connection = null } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+          if (!createSocks5Connection) throw new Error('Plus功能解锁失败: createSocks5Connection')
+          proxySocket = await createSocks5Connection(proxyConfig, targetConnectionOptions.host, targetConnectionOptions.port)
+        } else if (proxyConfig.type === 'http') {
+          const { createHttpConnection = null } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+          if (!createHttpConnection) throw new Error('Plus功能解锁失败: createHttpConnection')
+          proxySocket = await createHttpConnection(proxyConfig, targetConnectionOptions.host, targetConnectionOptions.port)
+        } else {
+          throw new Error(`不支持的代理类型: ${ proxyConfig.type }`)
+        }
+
+        targetConnectionOptions.sock = proxySocket
+        consola.success(`${ logPrefix }代理连接建立成功: ${ host }`)
+
+        // 向前端发送成功信息
+        if (socket && socket.emit && typeof socket.emit === 'function') {
+          try {
+            socket.emit('terminal_print_info', '代理连接建立成功，准备通过代理连接目标服务器')
+          } catch (emitError) {
+            // 忽略emit错误
+          }
+        }
+      }
+    }
+    // 跳板机连接
+    else if (proxyType === 'jumpHosts' && Array.isArray(jumpHosts) && jumpHosts.length > 0) {
+      const { connectByJumpHosts = null } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+      if (!connectByJumpHosts) throw new Error('Plus功能解锁失败: connectByJumpHosts')
+      const jumpHostResult = await connectByJumpHosts(jumpHosts, targetConnectionOptions.host, targetConnectionOptions.port, socket)
+      if (jumpHostResult) {
+        targetConnectionOptions.sock = jumpHostResult.sock
+        jumpSshClients = jumpHostResult.sshClients
+        consola.success(`${ logPrefix }跳板机连接成功`)
+      }
+    }
+
+    return {
+      targetConnectionOptions,
+      jumpSshClients
+    }
+  } catch (error) {
+    consola.error(`${ logPrefix }连接失败:`, error.message)
+    throw error
+  }
+}
+
 async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShell = true) {
   consola.info(`准备创建${ isInteractiveShell ? '交互式' : '非交互式' }终端：${ hostId }`)
   return new Promise(async (resolve) => {
     const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
     if (!targetHostInfo) return socket.emit('create_fail', `查找hostId【${ hostId }】凭证信息失败`)
-    let { connectByJumpHosts = null } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
-    let { authType, host, port, username, name, jumpHosts } = targetHostInfo
+    let { authType, host, port, username, name } = targetHostInfo
     try {
       let { authInfo: targetConnectionOptions } = await getConnectionOptions(hostId)
-      let jumpHostResult = connectByJumpHosts && (await connectByJumpHosts(jumpHosts, targetConnectionOptions.host, targetConnectionOptions.port, socket))
+
+      // 使用通用的代理和跳板机连接处理函数
       let jumpSshClients = []
-      if (jumpHostResult) {
-        targetConnectionOptions.sock = jumpHostResult.sock
-        jumpSshClients = jumpHostResult.sshClients
+      try {
+        const result = await handleProxyAndJumpHostConnection({
+          hostInfo: targetHostInfo,
+          targetConnectionOptions,
+          socket,
+          logPrefix: 'Terminal '
+        })
+        jumpSshClients = result.jumpSshClients
+      } catch (proxyError) {
+        socket.emit('terminal_connect_fail', `代理连接失败: ${ proxyError.message }`)
+        return
       }
 
       socket.emit('terminal_print_info', `准备连接目标终端: ${ name } - ${ host }`)
@@ -231,3 +343,5 @@ module.exports = (httpServer) => {
 module.exports.getConnectionOptions = getConnectionOptions
 module.exports.createTerminal = createTerminal
 module.exports.createServerIo = createServerIo
+module.exports.getProxyConfig = getProxyConfig
+module.exports.handleProxyAndJumpHostConnection = handleProxyAndJumpHostConnection

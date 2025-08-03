@@ -21,6 +21,7 @@ module.exports = {
   aiConfigDBPath: path.join(process.cwd(),'app/db/ai-config.db'),
   chatHistoryDBPath: path.join(process.cwd(),'app/db/chat-history.db'),
   favoriteSftpDBPath: path.join(process.cwd(),'app/db/favorite-sftp.db'),
+  proxyDBPath: path.join(process.cwd(),'app/db/proxy.db'),
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/db/logs'),

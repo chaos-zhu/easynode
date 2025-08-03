@@ -1,4 +1,3 @@
-const rawPath = require('path')
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
 const { sendNoticeAsync } = require('../utils/notify')
@@ -6,8 +5,7 @@ const { verifyAuthSync } = require('../utils/verify-auth')
 const { shellThrottle } = require('../utils/tools')
 const { isAllowedIp } = require('../utils/tools')
 const { HostListDB, OnekeyDB } = require('../utils/db-class')
-const { getConnectionOptions } = require('./terminal')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
+const { getConnectionOptions, handleProxyAndJumpHostConnection } = require('./terminal')
 const hostListDB = new HostListDB().getInstance()
 const onekeyDB = new OnekeyDB().getInstance()
 
@@ -126,27 +124,35 @@ module.exports = (httpServer) => {
       if (!targetHostsInfo.length) return socket.emit('create_fail', `未找到【${ hostIds }】服务器信息`)
       // 查找 hostInfo -> 并发执行
       socket.emit('ready')
-      // 获取跳板机连接函数
-      let { connectByJumpHosts = null } = (await decryptAndExecuteAsync(rawPath.join(__dirname, 'plus.js'))) || {}
-
       let execPromise = targetHostsInfo.map((hostInfo, index) => {
         // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve, reject) => {
           setTimeout(() => reject('执行超时'), timeout * 1000)
-          let { host, port, jumpHosts } = hostInfo
+          let { host, port } = hostInfo
           let curRes = { command, host, port, name: hostInfo.name, result: '', status: execStatusEnum.connecting, startDate: Date.now() + index }
           execResult.push(curRes)
           let jumpSshClients = []
           try {
             let { authInfo: targetConnectionOptions } = await getConnectionOptions(hostInfo._id)
 
-            // 处理跳板机连接
-            let jumpHostResult = connectByJumpHosts && (await connectByJumpHosts(jumpHosts, targetConnectionOptions.host, targetConnectionOptions.port, socket))
-            if (jumpHostResult) {
-              targetConnectionOptions.sock = jumpHostResult.sock
-              jumpSshClients = jumpHostResult.sshClients
-              jumpSshClientsPool.push(jumpSshClients)
-              consola.success('Onekey跳板机连接成功')
+            // 使用通用的代理和跳板机连接处理函数
+            try {
+              const result = await handleProxyAndJumpHostConnection({
+                hostInfo,
+                targetConnectionOptions,
+                socket: null, // Onekey不需要发送terminal_print_info事件
+                logPrefix: 'Onekey '
+              })
+              jumpSshClients = result.jumpSshClients
+              if (jumpSshClients.length > 0) {
+                jumpSshClientsPool.push(jumpSshClients)
+              }
+            } catch (proxyError) {
+              curRes.status = execStatusEnum.connectFail
+              curRes.result += `代理连接失败: ${ proxyError.message }`
+              socket.emit('output', execResult)
+              resolve(curRes)
+              return
             }
 
             consola.info('准备连接终端执行一次性指令：', host)

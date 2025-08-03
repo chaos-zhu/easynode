@@ -12,7 +12,6 @@
             <el-dropdown-item @click="handleBatchSSH">连接终端</el-dropdown-item>
             <el-dropdown-item @click="handleBatchModify">批量修改</el-dropdown-item>
             <el-dropdown-item @click="handleBatchRemove">批量删除</el-dropdown-item>
-            <el-dropdown-item @click="handleBatchOnekey">安装客户端</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -146,13 +145,6 @@ let handleBatchRemove = async () => {
 let handleUpdateHost = (defaultData) => {
   hostFormVisible.value = true
   updateHostData.value = defaultData
-}
-
-let handleBatchOnekey = async () => {
-  collectSelectHost()
-  if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
-  let ids = selectHosts.value.map(item => item.id).join(',')
-  $router.push({ path: '/onekey', query: { hostIds: ids, execClientInstallScript: 'true' } })
 }
 
 let handleBatchExport = () => {

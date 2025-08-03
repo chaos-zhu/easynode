@@ -11,6 +11,7 @@ const useStore = defineStore('global', {
     sshList: [],
     scriptList: [],
     scriptGroupList: [],
+    proxyList: [],
     localScriptList: [],
     user: localStorage.getItem('user') || null,
     token: localStorage.getItem('token') || sessionStorage.getItem('token') || null,
@@ -76,6 +77,7 @@ const useStore = defineStore('global', {
       await this.getScriptList()
       await this.getScriptGroupList()
       await this.getPlusInfo()
+      await this.getProxyList()
       this.getAIConfig()
       this.getChatHistory()
     },
@@ -116,6 +118,10 @@ const useStore = defineStore('global', {
     async getLocalScriptList() {
       const { data: localScriptList } = await $api.getLocalScriptList()
       this.$patch({ localScriptList })
+    },
+    async getProxyList() {
+      const { data: proxyList } = await $api.getProxyList()
+      this.$patch({ proxyList })
     },
     async getPlusInfo() {
       const { data: plusInfo = {} } = await $api.getPlusInfo()

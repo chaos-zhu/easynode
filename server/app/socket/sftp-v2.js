@@ -6,8 +6,7 @@ const { sftpCacheDir } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { isAllowedIp } = require('../utils/tools')
 const { HostListDB, FavoriteSftpDB } = require('../utils/db-class')
-const { getConnectionOptions } = require('./terminal')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
+const { getConnectionOptions, handleProxyAndJumpHostConnection } = require('./terminal')
 const hostListDB = new HostListDB().getInstance()
 const favoriteSftpDB = new FavoriteSftpDB().getInstance()
 const { Client: SSHClient } = require('ssh2')
@@ -1355,15 +1354,21 @@ module.exports = (httpServer) => {
         const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
         if (!targetHostInfo) throw new Error(`Host with ID ${ hostId } not found`)
 
-        let { connectByJumpHosts = null } = (await decryptAndExecuteAsync(rawPath.join(__dirname, 'plus.js'))) || {}
-        let { authType, host, port, username, jumpHosts } = targetHostInfo
-
+        let { authType, host, port, username } = targetHostInfo
         let { authInfo: targetConnectionOptions } = await getConnectionOptions(hostId)
-        let jumpHostResult = connectByJumpHosts && (await connectByJumpHosts(jumpHosts, targetConnectionOptions.host, targetConnectionOptions.port, socket))
-        if (jumpHostResult) {
-          targetConnectionOptions.sock = jumpHostResult.sock
-          jumpSshClients = jumpHostResult.sshClients
-          consola.success('sftp-v2 跳板机连接成功')
+
+        // 使用通用的代理和跳板机连接处理函数
+        try {
+          const result = await handleProxyAndJumpHostConnection({
+            hostInfo: targetHostInfo,
+            targetConnectionOptions,
+            socket: null, // SFTP不需要发送terminal_print_info事件
+            logPrefix: 'SFTP '
+          })
+          jumpSshClients = result.jumpSshClients
+        } catch (proxyError) {
+          socket.emit('connect_fail', `代理连接失败: ${ proxyError.message }`)
+          return
         }
 
         consola.info('准备连接sftp-v2 面板：', host)
@@ -1406,17 +1411,17 @@ module.exports = (httpServer) => {
         })
 
         // 添加未处理异常捕获
-        sftpClient.client.on('timeout', () => {
-          consola.warn('SSH连接超时')
-          try {
-            socket.emit('shell_connection_error', {
-              message: 'SSH连接超时',
-              code: 'CONNECTION_TIMEOUT'
-            })
-          } catch (emitError) {
-            consola.error('发送超时事件失败:', emitError.message)
-          }
-        })
+        // sftpClient.client.on('timeout', () => {
+        //   consola.warn('SSH连接超时')
+        //   try {
+        //     socket.emit('shell_connection_error', {
+        //       message: 'SSH连接超时',
+        //       code: 'CONNECTION_TIMEOUT'
+        //     })
+        //   } catch (emitError) {
+        //     consola.error('发送超时事件失败:', emitError.message)
+        //   }
+        // })
 
         sftpClient.client.on('keyboard-interactive', function (name, instructions, instructionsLang, prompts, finish) {
           finish([targetConnectionOptions[authType]])

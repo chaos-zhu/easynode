@@ -175,7 +175,83 @@
           </el-option>
         </el-select>
       </el-form-item>
+      <PlusSupportTip>
+        <el-form-item
+          key="proxyType"
+          label="代理类型"
+          prop="proxyType"
+        >
+          <el-radio-group v-model="hostForm.proxyType" :disabled="!isPlusActive">
+            <el-radio value="">不使用代理</el-radio>
+            <el-radio value="proxyServer">代理服务</el-radio>
+            <el-radio value="jumpHosts">跳板机</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </PlusSupportTip>
       <el-form-item
+        v-if="hostForm.proxyType === 'jumpHosts'"
+        key="jumpHosts"
+        prop="jumpHosts"
+        label="跳板机"
+      >
+        <el-select
+          v-model="hostForm.jumpHosts"
+          placeholder="支持多选,跳板机连接顺序从前到后"
+          multiple
+          :disabled="!isPlusActive"
+        >
+          <template #empty>
+            <div class="empty_text">
+              <span>无可用跳板机器</span>
+            </div>
+          </template>
+          <el-option
+            v-for="item in confHostList"
+            :key="item.id"
+            :label="item.name"
+            :value="item.id"
+          >
+            <div class="select_wrap">
+              <span>{{ item.name }}</span>
+            </div>
+          </el-option>
+        </el-select>
+      </el-form-item>
+      <el-form-item
+        v-if="hostForm.proxyType === 'proxyServer'"
+        key="proxyServer"
+        prop="proxyServer"
+        label="代理服务"
+      >
+        <el-select
+          v-model="hostForm.proxyServer"
+          placeholder=""
+          :disabled="!isPlusActive"
+        >
+          <template #empty>
+            <div class="empty_text">
+              <span>无可用代理服务,</span>
+              <el-button type="primary" link @click="toProxy">
+                去添加
+              </el-button>
+            </div>
+          </template>
+          <el-option
+            v-for="item in proxyList"
+            :key="item.id"
+            :label="item.name"
+            :value="item.id"
+          >
+            <div class="select_warp">
+              <span>{{ item.name }}</span>
+              <span class="auth_type_text">
+                {{ item.type === 'socks5' ? 'SOCKS5' : 'HTTP' }}
+              </span>
+            </div>
+          </el-option>
+        </el-select>
+      </el-form-item>
+      <!-- <el-form-item
         key="jumpHosts"
         prop="jumpHosts"
         label="跳板机"
@@ -204,7 +280,7 @@
             </el-option>
           </el-select>
         </PlusSupportTip>
-      </el-form-item>
+      </el-form-item> -->
       <el-form-item key="command" prop="command" label="登录指令">
         <el-input
           v-model="hostForm.command"
@@ -327,16 +403,18 @@ const formField = {
   consoleUrl: '',
   remark: '',
   command: '',
-  jumpHosts: []
+  proxyType: '', // , jumpHosts, proxyServer
+  jumpHosts: [],
+  proxyServer: ''
 }
 
-let hostForm = ref({ ...formField })
-let privateKeyRef = ref(null)
-let formRef = ref(null)
+const hostForm = ref({ ...formField })
+const privateKeyRef = ref(null)
+const formRef = ref(null)
 
-let isBatchModify = computed(() => props.isBatchModify)
-let batchHosts = computed(() => props.batchHosts)
-let defaultData = computed(() => props.defaultData)
+const isBatchModify = computed(() => props.isBatchModify)
+const batchHosts = computed(() => props.batchHosts)
+const defaultData = computed(() => props.defaultData)
 const rules = computed(() => {
   return {
     group: { required: !isBatchModify.value, message: '选择一个分组' },
@@ -364,12 +442,11 @@ const title = computed(() => {
   return isBatchModify.value ? '批量修改实例' : (defaultData.value ? '修改实例' : '添加实例')
 })
 
-let groupList = computed(() => $store.groupList)
-let sshList = computed(() => $store.sshList)
-let hostList = computed(() => $store.hostList)
-let confHostList = computed(() => {
-  return hostList.value?.filter(item => item.isConfig)
-})
+const groupList = computed(() => $store.groupList)
+const sshList = computed(() => $store.sshList)
+const hostList = computed(() => $store.hostList)
+const confHostList = computed(() => hostList.value?.filter(item => item.isConfig))
+const proxyList = computed(() => $store.proxyList)
 
 const setDefaultData = () => {
   if (!defaultData.value) {
@@ -388,7 +465,7 @@ const setDefaultData = () => {
 
 const setBatchDefaultData = () => {
   if (!isBatchModify.value) return
-  Object.assign(hostForm.value, { ...formField }, { group: '', port: '', username: '', authType: '', jumpHosts: [] })
+  Object.assign(hostForm.value, { ...formField }, { group: '', port: '', username: '', authType: '', proxyType: '', jumpHosts: [], proxyServer: '' })
 }
 const handleOpen = async () => {
   if (isBatchModify.value) {
@@ -436,6 +513,11 @@ const userSearch = (keyword, cb) => {
     ? defaultUsers.filter((item) => item.value.includes(keyword))
     : defaultUsers
   cb(res)
+}
+
+const toProxy = () => {
+  visible.value = false
+  $router.push({ path: '/setting', query: { tabKey: 'proxy' } })
 }
 
 const toCredentials = () => {

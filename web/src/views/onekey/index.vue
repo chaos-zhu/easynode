@@ -440,25 +440,6 @@ const handleRemoveAll = async () => {
     })
 }
 
-onActivated(async () => {
-  await nextTick()
-  const { hostIds, execClientInstallScript } = route.query
-  if (!hostIds) return
-  if (execClientInstallScript === 'true') {
-    let clientInstallScript = 'curl -o- https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash\n'
-    console.log(hostIds.split(','))
-    createExecShell(hostIds.split(','), clientInstallScript, 300)
-    // $messageBox.confirm(`准备安装客户端服务监控应用：${ host }`, 'Warning', {
-    //   confirmButtonText: '确定',
-    //   cancelButtonText: '取消',
-    //   type: 'warning'
-    // })
-    //   .then(async () => {
-    //     let clientInstallScript = 'curl -o- https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-install.sh | bash\n'
-    //     createExecShell([host,], clientInstallScript, 300)
-    //   })
-  }
-})
 </script>
 
 <style lang="scss" scoped>

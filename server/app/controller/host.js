@@ -94,7 +94,8 @@ async function importHost({ res, request }) {
   } else {
     let extraFiels = {
       expired: null, expiredNotify: false, group: 'default', consoleUrl: '', remark: '',
-      authType: 'privateKey', password: '', privateKey: '', credential: '', command: ''
+      authType: 'privateKey', password: '', privateKey: '', credential: '', command: '',
+      proxyType: '', jumpHosts: [], proxyServer: ''
     }
     newHostList = newHostList.map((item, index) => {
       item.port = Number(item.port) || 0

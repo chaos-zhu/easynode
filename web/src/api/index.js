@@ -168,5 +168,17 @@ export default {
   },
   removeSomeLoginRecords() {
     return axios({ url: '/remove-some-login-records', method: 'delete' })
+  },
+  getProxyList() {
+    return axios({ url: '/proxy', method: 'get' })
+  },
+  addProxy(data) {
+    return axios({ url: '/proxy', method: 'post', data })
+  },
+  updateProxy(id, data) {
+    return axios({ url: `/proxy/${ id }`, method: 'put', data })
+  },
+  removeProxy(id) {
+    return axios({ url: `/proxy/${ id }`, method: 'delete' })
   }
 }

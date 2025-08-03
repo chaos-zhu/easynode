@@ -153,7 +153,7 @@ const getCommand = async () => {
 const connectIO = () => {
   curStatus.value = CONNECTING
   socket.value = io($serviceURI, {
-    path: props.isSingleWindow ? '/terminal-single-window' : '/terminal',
+    path: '/terminal',
     forceNew: false,
     reconnection: false,
     reconnectionAttempts: 0
@@ -165,6 +165,7 @@ const connectIO = () => {
     socket.value.emit('ws_terminal', { hostId: hostId.value, token: token.value })
     socket.value.on('terminal_connect_success', () => {
       socket.value.on('output', (str) => {
+        if (props.isSingleWindow && !isPlusActive.value) return
         term.value.write(str)
         terminalText.value += str
       })

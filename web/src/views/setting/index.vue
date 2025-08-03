@@ -13,6 +13,9 @@
       <el-tab-pane label="通知配置" name="notify-config">
         <NotifyConfig />
       </el-tab-pane>
+      <el-tab-pane label="代理服务" name="proxy">
+        <Proxy />
+      </el-tab-pane>
       <el-tab-pane label="Plus激活" name="plus">
         <UserPlus />
       </el-tab-pane>
@@ -28,6 +31,7 @@ import Record from './components/record.vue'
 import User from './components/user.vue'
 import NotifyConfig from './components/notify-config.vue'
 import UserPlus from './components/user-plus.vue'
+import Proxy from './components/proxy.vue'
 
 const route = useRoute()
 const router = useRouter()
