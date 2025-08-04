@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     width="600px"
-    top="45px"
+    top="65px"
     :append-to-body="false"
     :title="title"
     :close-on-click-modal="false"
@@ -44,24 +44,41 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item
-        v-if="!isBatchModify"
-        key="name"
-        label="名称"
-        prop="name"
-      >
-        <el-input
-          v-model="hostForm.name"
-          clearable
-          placeholder=""
-          autocomplete="off"
-        />
-      </el-form-item>
+      <div key="instance_info" class="instance_info">
+        <el-form-item
+          v-if="!isBatchModify"
+          key="name"
+          class="form_item_left"
+          label="名称"
+          prop="name"
+        >
+          <el-input
+            v-model="hostForm.name"
+            clearable
+            placeholder=""
+            autocomplete="off"
+          />
+        </el-form-item>
+        <el-form-item
+          v-if="!isBatchModify"
+          key="index"
+          class="form_item_right"
+          label="序号"
+          prop="index"
+        >
+          <el-input
+            v-model.trim.number="hostForm.index"
+            clearable
+            placeholder="用于实例列表中排序(填写数字)"
+            autocomplete="off"
+          />
+        </el-form-item>
+      </div>
       <div key="instance_info" class="instance_info">
         <el-form-item
           v-if="!isBatchModify"
           key="host"
-          class="form_item_host"
+          class="form_item_left"
           label="主机"
           prop="host"
         >
@@ -74,7 +91,7 @@
         </el-form-item>
         <el-form-item
           key="port"
-          class="form_item_port"
+          class="form_item_right"
           label="端口"
           prop="port"
         >
@@ -175,136 +192,130 @@
           </el-option>
         </el-select>
       </el-form-item>
-      <PlusSupportTip>
-        <el-form-item
-          key="proxyType"
-          label="代理类型"
-          prop="proxyType"
-        >
-          <el-radio-group v-model="hostForm.proxyType" :disabled="!isPlusActive">
-            <el-radio value="">不使用代理</el-radio>
-            <el-radio value="proxyServer">代理服务</el-radio>
-            <el-radio value="jumpHosts">跳板机</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </PlusSupportTip>
-      <el-form-item
-        v-if="hostForm.proxyType === 'jumpHosts'"
-        key="jumpHosts"
-        prop="jumpHosts"
-        label="跳板机"
-      >
-        <el-select
-          v-model="hostForm.jumpHosts"
-          placeholder="支持多选,跳板机连接顺序从前到后"
-          multiple
-          :disabled="!isPlusActive"
-        >
-          <template #empty>
-            <div class="empty_text">
-              <span>无可用跳板机器</span>
-            </div>
-          </template>
-          <el-option
-            v-for="item in confHostList"
-            :key="item.id"
-            :label="item.name"
-            :value="item.id"
+      <el-collapse v-model="advancedSettingsCollapsed" accordion>
+        <el-collapse-item name="advanced" title="其他设置">
+          <PlusSupportTip>
+            <el-form-item
+              key="proxyType"
+              label="代理类型"
+              prop="proxyType"
+            >
+              <el-radio-group v-model="hostForm.proxyType" :disabled="!isPlusActive">
+                <el-radio value="">不使用代理</el-radio>
+                <el-radio value="proxyServer">代理服务</el-radio>
+                <el-radio value="jumpHosts">跳板机</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </PlusSupportTip>
+          <el-form-item
+            v-if="hostForm.proxyType === 'jumpHosts'"
+            key="jumpHosts"
+            prop="jumpHosts"
+            label="跳板机"
           >
-            <div class="select_wrap">
-              <span>{{ item.name }}</span>
-            </div>
-          </el-option>
-        </el-select>
-      </el-form-item>
-      <el-form-item
-        v-if="hostForm.proxyType === 'proxyServer'"
-        key="proxyServer"
-        prop="proxyServer"
-        label="代理服务"
-      >
-        <el-select
-          v-model="hostForm.proxyServer"
-          placeholder=""
-          :disabled="!isPlusActive"
-        >
-          <template #empty>
-            <div class="empty_text">
-              <span>无可用代理服务,</span>
-              <el-button type="primary" link @click="toProxy">
-                去添加
-              </el-button>
-            </div>
-          </template>
-          <el-option
-            v-for="item in proxyList"
-            :key="item.id"
-            :label="item.name"
-            :value="item.id"
+            <el-select
+              v-model="hostForm.jumpHosts"
+              placeholder="支持多选,跳板机连接顺序从前到后"
+              multiple
+              :disabled="!isPlusActive"
+            >
+              <template #empty>
+                <div class="empty_text">
+                  <span>无可用跳板机器</span>
+                </div>
+              </template>
+              <el-option
+                v-for="item in confHostList"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              >
+                <div class="select_wrap">
+                  <span>{{ item.name }}</span>
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item
+            v-if="hostForm.proxyType === 'proxyServer'"
+            key="proxyServer"
+            prop="proxyServer"
+            label="代理服务"
           >
-            <div class="select_warp">
-              <span>{{ item.name }}</span>
-              <span class="auth_type_text">
-                {{ item.type === 'socks5' ? 'SOCKS5' : 'HTTP' }}
-              </span>
-            </div>
-          </el-option>
-        </el-select>
-      </el-form-item>
-      <el-form-item key="command" prop="command" label="登录指令">
-        <el-input
-          v-model="hostForm.command"
-          type="textarea"
-          :rows="3"
-          clearable
-          autocomplete="off"
-          placeholder="连接服务器后自动执行的指令(例如: sudo -i)"
-        />
-      </el-form-item>
+            <el-select
+              v-model="hostForm.proxyServer"
+              placeholder=""
+              :disabled="!isPlusActive"
+            >
+              <template #empty>
+                <div class="empty_text">
+                  <span>无可用代理服务,</span>
+                  <el-button type="primary" link @click="toProxy">
+                    去添加
+                  </el-button>
+                </div>
+              </template>
+              <el-option
+                v-for="item in proxyList"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              >
+                <div class="select_warp">
+                  <span>{{ item.name }}</span>
+                  <span class="auth_type_text">
+                    {{ item.type === 'socks5' ? 'SOCKS5' : 'HTTP' }}
+                  </span>
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item key="command" prop="command" label="登录指令">
+            <el-input
+              v-model="hostForm.command"
+              type="textarea"
+              :rows="3"
+              clearable
+              autocomplete="off"
+              placeholder="连接服务器后自动执行的指令(例如: sudo -i)"
+            />
+          </el-form-item>
 
-      <el-form-item key="expired" label="到期时间" prop="expired">
-        <el-date-picker
-          v-model="hostForm.expired"
-          type="date"
-          :editable="false"
-          style="width: 100%;"
-          value-format="x"
-          placeholder="实例到期时间"
-        />
-      </el-form-item>
-      <el-form-item
-        v-if="hostForm.expired"
-        key="expiredNotify"
-        label="到期提醒"
-        prop="expiredNotify"
-      >
-        <el-tooltip content="将在实例到期前7、3、1天发送提醒(需在设置中绑定有效邮箱)" placement="right">
-          <el-switch v-model="hostForm.expiredNotify" :active-value="true" :inactive-value="false" />
-        </el-tooltip>
-      </el-form-item>
-      <el-form-item key="consoleUrl" label="控制台URL" prop="consoleUrl">
-        <el-input
-          v-model.trim="hostForm.consoleUrl"
-          clearable
-          placeholder="用于直达云服务控制台"
-          autocomplete="off"
-          @keyup.enter="handleSave"
-        />
-      </el-form-item>
-      <el-form-item
-        v-if="!isBatchModify"
-        key="index"
-        label="序号"
-        prop="index"
-      >
-        <el-input
-          v-model.trim.number="hostForm.index"
-          clearable
-          placeholder="用于实例列表中排序(填写数字)"
-          autocomplete="off"
-        />
-      </el-form-item>
-      <el-form-item key="remark" label="备注" prop="remark">
+          <el-form-item key="expired" label="到期时间" prop="expired">
+            <el-date-picker
+              v-model="hostForm.expired"
+              type="date"
+              :editable="false"
+              style="width: 100%;"
+              value-format="x"
+              placeholder="实例到期时间"
+            />
+          </el-form-item>
+          <el-form-item
+            v-if="isValidDate(hostForm.expired)"
+            key="expiredNotify"
+            label="到期提醒"
+            prop="expiredNotify"
+          >
+            <el-tooltip content="将在实例到期前7、3、1天发送提醒(需在设置中绑定有效邮箱)" placement="right">
+              <el-switch v-model="hostForm.expiredNotify" :active-value="true" :inactive-value="false" />
+            </el-tooltip>
+          </el-form-item>
+          <el-form-item key="consoleUrl" label="控制台URL" prop="consoleUrl">
+            <el-input
+              v-model.trim="hostForm.consoleUrl"
+              clearable
+              placeholder="用于直达云服务控制台"
+              autocomplete="off"
+              @keyup.enter="handleSave"
+            />
+          </el-form-item>
+          <el-form-item key="tag" label="标签" prop="tag">
+            <el-input-tag v-model="hostForm.tag" tag-type="success" tag-effect="plain" />
+          </el-form-item>
+        </el-collapse-item>
+      </el-collapse>
+      <!-- <el-form-item key="remark" label="备注" prop="remark">
         <el-input
           v-model="hostForm.remark"
           type="textarea"
@@ -313,7 +324,7 @@
           autocomplete="off"
           placeholder="简单记录实例用途"
         />
-      </el-form-item>
+      </el-form-item> -->
     </el-form>
     <template #footer>
       <span class="dialog-footer">
@@ -328,9 +339,10 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance, nextTick } from 'vue'
+import { ref, computed, getCurrentInstance, nextTick, watch } from 'vue'
 import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 import { RSAEncrypt, AESEncrypt, randomStr } from '@utils/index.js'
+import { isValidDate } from '@/utils'
 
 const { proxy: { $api, $router, $message, $store } } = getCurrentInstance()
 
@@ -371,7 +383,7 @@ const formField = {
   expired: null,
   expiredNotify: false,
   consoleUrl: '',
-  remark: '',
+  tag: [],
   command: '',
   proxyType: '', // , jumpHosts, proxyServer
   jumpHosts: [],
@@ -381,6 +393,13 @@ const formField = {
 const hostForm = ref({ ...formField })
 const privateKeyRef = ref(null)
 const formRef = ref(null)
+
+// 折叠状态，从localStorage中读取
+const advancedSettingsCollapsed = ref(
+  JSON.parse(localStorage.getItem('hostFormAdvancedSettingsCollapsed') || 'false')
+    ? ['advanced',]
+    : []
+)
 
 const isBatchModify = computed(() => props.isBatchModify)
 const batchHosts = computed(() => props.batchHosts)
@@ -398,7 +417,7 @@ const rules = computed(() => {
     expired: { required: false },
     expiredNotify: { required: false, type: 'boolean' },
     consoleUrl: { required: false },
-    remark: { required: false }
+    tag: { required: false, type: 'array' }
   }
 })
 const isPlusActive = computed(() => $store.isPlusActive)
@@ -417,6 +436,11 @@ const sshList = computed(() => $store.sshList)
 const hostList = computed(() => $store.hostList)
 const confHostList = computed(() => hostList.value?.filter(item => item.isConfig))
 const proxyList = computed(() => $store.proxyList)
+
+// 监听折叠状态变化，保存到localStorage
+watch(advancedSettingsCollapsed, (newVal) => {
+  localStorage.setItem('hostFormAdvancedSettingsCollapsed', JSON.stringify(newVal.includes('advanced')))
+}, { deep: true })
 
 const setDefaultData = () => {
   if (!defaultData.value) {
@@ -559,11 +583,11 @@ const handleSave = () => {
   display: flex;
   justify-content: space-between;
 
-  .form_item_host {
+  .form_item_left {
     width: 60%;
   }
 
-  .form_item_port {
+  .form_item_right {
     flex: 1;
   }
 }

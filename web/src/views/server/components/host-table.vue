@@ -56,13 +56,24 @@
         </template>
       </el-table-column>
       <el-table-column
-        v-if="props.columnSettings.remark"
+        v-if="props.columnSettings.tag"
         show-overflow-tooltip
-        property="remark"
-        label="备注"
+        property="tag"
+        label="标签"
       >
         <template #default="scope">
-          <span>{{ scope.row.remark || '--' }}</span>
+          <span v-if="scope.row.tag?.length">
+            <el-tag
+              v-for="tag in scope.row.tag"
+              :key="tag"
+              type="success"
+              effect="plain"
+              size="small"
+            >
+              {{ tag }}
+            </el-tag>
+          </span>
+          <span v-else>--</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" fixed="right" :width="isMobileScreen ? 'auto' : '260px'">
@@ -138,7 +149,7 @@ const props = defineProps({
       proxyType: true,
       expired: true,
       consoleUrl: true,
-      remark: true
+      tag: true
     })
   }
 })

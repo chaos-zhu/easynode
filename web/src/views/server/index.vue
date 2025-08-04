@@ -129,7 +129,7 @@ const columnConfig = {
   proxyType: { label: '代理类型', disabled: false },
   expired: { label: '到期时间', disabled: false },
   consoleUrl: { label: '控制台URL', disabled: false },
-  remark: { label: '备注', disabled: false }
+  tag: { label: 'Tag', disabled: false }
 }
 
 // 默认列设置
@@ -144,7 +144,7 @@ const defaultColumnSettings = {
   proxyType: false,
   expired: false,
   consoleUrl: false,
-  remark: false
+  tag: false
 }
 
 // 从localStorage获取列设置

@@ -93,7 +93,7 @@ async function importHost({ res, request }) {
     })
   } else {
     let extraFiels = {
-      expired: null, expiredNotify: false, group: 'default', consoleUrl: '', remark: '',
+      expired: null, expiredNotify: false, group: 'default', consoleUrl: '', tag: [],
       authType: 'privateKey', password: '', privateKey: '', credential: '', command: '',
       proxyType: '', jumpHosts: [], proxyServer: ''
     }
