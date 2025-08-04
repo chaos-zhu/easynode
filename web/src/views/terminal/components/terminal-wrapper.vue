@@ -427,7 +427,7 @@ const terminalRefs = ref([])
 // const sftpRefs = ref([])
 const activeTabIndex = ref(0)
 const isSyncAllSession = ref(false)
-const isSingleWindowMode = ref(isMobileScreen.value ? false : localStorage.getItem('isSingleWindowMode') !== 'false')
+const isSingleWindowMode = ref(isMobileScreen.value ? false : localStorage.getItem('isSingleWindowMode') === 'true')
 const layoutMode = ref(localStorage.getItem('terminalLayoutMode') || 'grid')
 
 // 监听布局模式变化
