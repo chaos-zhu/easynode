@@ -111,7 +111,7 @@ const updatePwd = async ({ res, request }) => {
   newPwd = SHA1Encrypt(await RSADecryptAsync(newPwd))
   keyObj.user = newLoginName
   keyObj.pwd = newPwd
-  await keyDB.updateAsync({}, keyObj)
+  await keyDB.updateAsync({ _id: keyObj._id }, { $set: keyObj })
   sendNoticeAsync('updatePwd', '用户密码修改提醒', `原用户名：${ user }\n更新用户名: ${ newLoginName }`)
   res.success({ data: true, msg: 'success' })
 }
@@ -152,9 +152,10 @@ const enableMFA2 = async ({ res, request }) => {
     keyConfig.enableMFA2 = true
     keyConfig.secret = tempSecret
     tempSecret = null
-    await keyDB.updateAsync({}, keyConfig)
+    await keyDB.updateAsync({ _id: keyConfig._id }, { $set: keyConfig })
     res.success({ msg: '验证成功' })
   } catch (error) {
+    consola.error('MFA2验证失败:', error.message)
     res.fail({ msg: `验证失败: ${ error.message }` })
   }
 }
@@ -163,7 +164,7 @@ const disableMFA2 = async ({ res }) => {
   const keyConfig = await keyDB.findOneAsync({})
   keyConfig.enableMFA2 = false
   keyConfig.secret = null
-  await keyDB.updateAsync({}, keyConfig)
+  await keyDB.updateAsync({ _id: keyConfig._id }, { $set: keyConfig })
   res.success({ msg: 'success' })
 }
 

@@ -132,9 +132,9 @@ const getMFA2Status = async () => {
   isEnableMFA2.value = data
 }
 const handleMFA2 = async () => {
-  startEnableMFA2.value = false
   let { data } = await $api.getMFA2QR()
   MFA2Data.value = data
+  startEnableMFA2.value = false
 }
 
 const handleEnableMFA2 = async () => {
