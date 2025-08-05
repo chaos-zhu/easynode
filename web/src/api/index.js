@@ -73,8 +73,8 @@ export default {
   enableMFA2(data) {
     return axios({ url: '/mfa2-enable', method: 'post', data })
   },
-  disableMFA2() {
-    return axios({ url: '/mfa2-disable', method: 'post' })
+  disableMFA2(data) {
+    return axios({ url: '/mfa2-disable', method: 'post', data })
   },
   getNotifyConfig() {
     return axios({ url: '/notify-config', method: 'get' })

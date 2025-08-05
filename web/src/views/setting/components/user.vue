@@ -144,16 +144,34 @@ const handleEnableMFA2 = async () => {
   getMFA2Status()
 }
 const handleDisableMFA2 = async () => {
-  $messageBox.confirm('确认禁用MFA2', 'Warning', {
+  $messageBox.prompt('请输入MFA2应用上的6位验证码来确认禁用', '禁用MFA2', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
-    type: 'warning'
+    inputPlaceholder: '请输入6位数字',
+    inputType: 'text',
+    inputPattern: /^\d{6}$/,
+    inputErrorMessage: '请输入6位数字',
+    beforeClose: (action, instance, done) => {
+      if (action === 'confirm') {
+        instance.confirmButtonLoading = true
+        instance.confirmButtonText = '验证中...'
+        $api.disableMFA2({ token: instance.inputValue })
+          .then(({ msg }) => {
+            $message({ type: 'success', center: true, message: msg })
+            getMFA2Status()
+            done()
+            startEnableMFA2.value = true
+            mfa2Token.value = ''
+          })
+          .finally(() => {
+            instance.confirmButtonLoading = false
+            instance.confirmButtonText = '确定'
+          })
+      } else {
+        done()
+      }
+    }
   })
-    .then(async () => {
-      let { msg } = await $api.disableMFA2()
-      $message({ type: 'success', center: true, message: msg })
-      getMFA2Status()
-    })
 }
 
 onMounted(() => {

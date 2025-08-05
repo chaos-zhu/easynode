@@ -160,12 +160,27 @@ const enableMFA2 = async ({ res, request }) => {
   }
 }
 
-const disableMFA2 = async ({ res }) => {
-  const keyConfig = await keyDB.findOneAsync({})
-  keyConfig.enableMFA2 = false
-  keyConfig.secret = null
-  await keyDB.updateAsync({ _id: keyConfig._id }, { $set: keyConfig })
-  res.success({ msg: 'success' })
+const disableMFA2 = async ({ res, request }) => {
+  const { body: { token } } = request
+  if (!token) return res.fail({ data: false, msg: '请输入MFA2验证码' })
+
+  try {
+    const keyConfig = await keyDB.findOneAsync({})
+    const { secret } = keyConfig
+
+    // 验证MFA2 token
+    const isValid = speakeasy.totp.verify({ secret, encoding: 'base32', token: String(token), window: 1 })
+    if (!isValid) return res.fail({ msg: '验证码错误' })
+
+    // 验证通过，禁用MFA2
+    keyConfig.enableMFA2 = false
+    keyConfig.secret = null
+    await keyDB.updateAsync({ _id: keyConfig._id }, { $set: keyConfig })
+    res.success({ msg: '禁用成功' })
+  } catch (error) {
+    consola.error('禁用MFA2失败:', error.message)
+    res.fail({ msg: `禁用失败: ${ error.message }` })
+  }
 }
 
 const getPlusInfo = async ({ res }) => {
