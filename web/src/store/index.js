@@ -17,6 +17,7 @@ const useStore = defineStore('global', {
     token: localStorage.getItem('token') || sessionStorage.getItem('token') || null,
     title: '',
     isDark: false,
+    menuPosition: localStorage.getItem('menuPosition') || 'left', // left | top
     menuCollapse: localStorage.getItem('menuCollapse') === 'true',
     defaultBackgroundImages: [
       'linear-gradient(-225deg, #CBBACC 0%, #2580B3 100%)',
@@ -202,10 +203,16 @@ const useStore = defineStore('global', {
       }
       this.setTheme(isDark, false)
     },
-    setMenuCollapse() {
-      let newState = !this.menuCollapse
+    setMenuCollapse(newState = null) {
+      if (newState === null) {
+        newState = !this.menuCollapse
+      }
       localStorage.setItem('menuCollapse', newState)
       this.$patch({ menuCollapse: newState })
+    },
+    setMenuPosition(position) {
+      localStorage.setItem('menuPosition', position)
+      this.$patch({ menuPosition: position })
     }
   }
 })

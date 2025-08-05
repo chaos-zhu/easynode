@@ -6,7 +6,22 @@
           <Fold />
         </el-icon>
       </div>
-      <h2>{{ title }}</h2>
+
+      <!-- 左侧菜单模式：显示标题 -->
+      <h2 v-if="menuPosition === 'left'">{{ title }}</h2>
+
+      <!-- 顶部菜单模式：显示logo和菜单 -->
+      <div v-if="menuPosition === 'top' && !isMobileScreen" class="top_logo_wrap" @click="toggleMenuPosition">
+        <img src="/logo_v2_01.png" alt="logo">
+        <h1>EasyNode</h1>
+      </div>
+
+      <MenuList
+        v-if="menuPosition === 'top' && !isMobileScreen"
+        mode="horizontal"
+        class="top_menu_list"
+        @select="() => {}"
+      />
 
       <AiButton />
 
@@ -117,6 +132,7 @@ import { User, Fold, Document } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 import MenuList from './menuList.vue'
 import AiButton from './ai-chat/ai-button.vue'
+import useMobileWidth from '@/composables/useMobileWidth'
 
 const { proxy: { $router, $store, $api, $message } } = getCurrentInstance()
 const router = useRouter()
@@ -128,10 +144,13 @@ const features = ref([])
 const menuCollapse = ref(false)
 const discount = ref(false)
 
+const { isMobileScreen } = useMobileWidth()
+
 const isNew = computed(() => latestVersion.value && latestVersion.value !== currentVersion.value)
 const user = computed(() => $store.user)
 const title = computed(() => $store.title)
 const isPlusActive = computed(() => $store.isPlusActive)
+const menuPosition = computed(() => $store.menuPosition)
 
 const handleCollapse = () => {
   menuCollapse.value = !menuCollapse.value
@@ -145,6 +164,11 @@ const handleLogout = () => {
 
 const gotoPlusPage = () => {
   router.push('/setting?tabKey=plus')
+}
+
+const toggleMenuPosition = () => {
+  const newPosition = menuPosition.value === 'top' ? 'left' : 'top'
+  $store.setMenuPosition(newPosition)
 }
 
 async function checkLatestVersionByGitRelease() {
@@ -265,6 +289,53 @@ onBeforeUnmount(() => {
     h2 {
       font-size: 18px;
       margin-right: auto;
+    }
+
+    .top_logo_wrap {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+
+      img {
+        height: 30px;
+        width: 30px;
+      }
+
+      h1 {
+        font-size: 14px;
+        background: linear-gradient(to right, #ffc021, #e4d1a1);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 600;
+        user-select: none;
+      }
+    }
+
+    .top_menu_list {
+      flex: 1;
+      margin: 0 20px;
+      border-bottom: none;
+
+      :deep(.el-menu) {
+        border-bottom: none;
+        background-color: transparent;
+
+        .el-menu-item {
+          padding: 0 16px;
+          border-bottom: none;
+
+          &.is-active {
+            background-color: rgba(64, 158, 255, 0.1);
+            border-radius: 4px;
+          }
+
+          &:hover {
+            background-color: rgba(64, 158, 255, 0.05);
+            border-radius: 4px;
+          }
+        }
+      }
     }
 
     .about_btn {

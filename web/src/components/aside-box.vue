@@ -1,6 +1,6 @@
 <template>
   <div class="aside_container">
-    <div class="logo_wrap">
+    <div class="logo_wrap" @click="toggleMenuPosition">
       <img src="/logo_v2_01.png" alt="logo">
       <Transition name="el-fade-in-linear">
         <h1 v-show="!menuCollapse">EasyNode</h1>
@@ -42,7 +42,12 @@ const isDark = computed({
 })
 
 const handleCollapse = () => {
-  $store.setMenuCollapse(!menuCollapse.value)
+  $store.setMenuCollapse()
+}
+
+const toggleMenuPosition = () => {
+  const newPosition = 'top' // 从左侧模式切换到顶部模式
+  $store.setMenuPosition(newPosition)
 }
 </script>
 
@@ -60,21 +65,21 @@ const handleCollapse = () => {
     display: flex;
     align-items: center;
     padding: 15px 0 15px 20px;
-    position: relative;
+    cursor: pointer;
+
     img {
       height: 30px;
       width: 30px;
     }
+
     h1 {
-      position: absolute;
-      left: 52px;
       font-size: 14px;
-      // color: var(--el-menu-active-color);
-      // color: #ffc021;
       background: linear-gradient(to right, #ffc021, #e4d1a1);
+      background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       font-weight: 600;
+      user-select: none;
     }
   }
   .aside_footer {

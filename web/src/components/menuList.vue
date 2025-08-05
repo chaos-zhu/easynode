@@ -2,7 +2,9 @@
   <el-menu
     :default-active="defaultActiveMenu"
     :collapse="menuCollapse"
+    :mode="mode"
     class="menu"
+    :class="{ 'horizontal_menu': mode === 'horizontal' }"
     :collapse-transition="true"
     @select="handleSelect"
   >
@@ -29,6 +31,14 @@ import {
   Pointer
   // FolderOpened
 } from '@element-plus/icons-vue'
+
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'vertical'
+  }
+})
+
 const { proxy: { $router, $store } } = getCurrentInstance()
 
 const emit = defineEmits(['select',])
@@ -73,7 +83,7 @@ const list = reactive([
   },
 ])
 
-const menuCollapse = computed(() => $store.menuCollapse)
+const menuCollapse = computed(() => props.mode === 'horizontal' ? false : $store.menuCollapse)
 
 // eslint-disable-next-line no-useless-escape
 const regex = /^\/([^\/]+)/
@@ -94,3 +104,13 @@ const handleSelect = (path) => {
   emit('select', path)
 }
 </script>
+
+<style lang="scss" scoped>
+.horizontal_menu {
+  :deep(.el-menu-item) {
+    .el-icon {
+      margin-right: 8px;
+    }
+  }
+}
+</style>

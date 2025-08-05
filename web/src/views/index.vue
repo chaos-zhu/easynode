@@ -1,6 +1,6 @@
 <template>
-  <div class="view_container">
-    <AsideBox />
+  <div class="view_container" :class="{ 'top_menu': menuPosition === 'top' }">
+    <AsideBox v-if="menuPosition === 'left'" />
     <div class="main_container">
       <TopBar />
       <router-view
@@ -18,12 +18,13 @@
 </template>
 
 <script setup>
-import { ref, onBeforeMount, getCurrentInstance } from 'vue'
+import { ref, onBeforeMount, getCurrentInstance, computed } from 'vue'
 import AsideBox from '@/components/aside-box.vue'
 import TopBar from '@/components/top-bar.vue'
 
 const { proxy: { $store, $route } } = getCurrentInstance()
 const loading = ref(true)
+const menuPosition = computed(() => $store.menuPosition)
 
 const getMainData = async () => {
   try {
@@ -44,6 +45,16 @@ onBeforeMount(async () => {
 .view_container {
   display: flex;
   height: 100vh;
+
+  &.top_menu {
+    flex-direction: column;
+
+    .main_container {
+      flex: 1;
+      width: 100%;
+    }
+  }
+
   .main_container {
     flex: 1;
     height: 100%;
