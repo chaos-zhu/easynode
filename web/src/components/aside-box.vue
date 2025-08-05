@@ -69,7 +69,11 @@ const handleCollapse = () => {
       position: absolute;
       left: 52px;
       font-size: 14px;
-      color: var(--el-menu-active-color);
+      // color: var(--el-menu-active-color);
+      // color: #ffc021;
+      background: linear-gradient(to right, #ffc021, #e4d1a1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
       font-weight: 600;
     }
   }

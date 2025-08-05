@@ -7,11 +7,8 @@
       <el-tab-pane label="登录日志" name="record" lazy>
         <Record />
       </el-tab-pane>
-      <el-tab-pane label="全局通知" name="notify">
-        <GlobalNotify />
-      </el-tab-pane>
-      <el-tab-pane label="通知配置" name="notify-config">
-        <NotifyConfig />
+      <el-tab-pane label="通知配置" name="notify">
+        <Notify />
       </el-tab-pane>
       <el-tab-pane label="代理服务" name="proxy">
         <Proxy />
@@ -26,10 +23,9 @@
 <script setup>
 import { watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import GlobalNotify from './components/global-notify.vue'
 import Record from './components/record.vue'
 import User from './components/user.vue'
-import NotifyConfig from './components/notify-config.vue'
+import Notify from './components/notify.vue'
 import UserPlus from './components/user-plus.vue'
 import Proxy from './components/proxy.vue'
 
