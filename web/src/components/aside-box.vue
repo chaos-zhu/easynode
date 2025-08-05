@@ -1,7 +1,7 @@
 <template>
   <div class="aside_container">
     <div class="logo_wrap">
-      <img src="@/assets/logo.png" alt="logo">
+      <img src="/logo_v2_01.png" alt="logo">
       <Transition name="el-fade-in-linear">
         <h1 v-show="!menuCollapse">EasyNode</h1>
       </Transition>
