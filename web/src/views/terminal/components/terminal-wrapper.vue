@@ -113,7 +113,6 @@
             placement="bottom"
           >
             <el-switch
-
               v-model="showFooterBar"
               class="swtich"
               inline-prompt

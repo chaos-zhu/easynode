@@ -726,7 +726,7 @@ defineExpose({
   .terminal_container {
     background-size: 100% 100%;
     background-repeat: no-repeat;
-
+    // padding: 10px;
     :deep(.xterm) {
       height: 100%;
     }
