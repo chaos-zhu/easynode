@@ -28,7 +28,8 @@ import {
   Setting,
   ScaleToOriginal,
   ArrowRight,
-  Pointer
+  Pointer,
+  FolderOpened
   // FolderOpened
 } from '@element-plus/icons-vue'
 
@@ -57,15 +58,15 @@ const list = reactive([
     index: '/terminal'
   },
   {
+    name: '文件对传',
+    icon: markRaw(FolderOpened),
+    index: '/file'
+  },
+  {
     name: '凭据管理',
     icon: markRaw(Key),
     index: '/credentials'
   },
-  // {
-  //   name: '分组管理',
-  //   icon: markRaw(FolderOpened),
-  //   index: '/group'
-  // },
   {
     name: '脚本库',
     icon: markRaw(ArrowRight),

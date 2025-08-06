@@ -5,7 +5,7 @@ import Container from '@views/index.vue'
 import Server from '@views/server/index.vue'
 import Terminal from '@views/terminal/index.vue'
 import Credentials from '@views/credentials/index.vue'
-// import Group from '@views/group/index.vue'
+import File from '@views/file/index.vue'
 import Onekey from '@views/onekey/index.vue'
 import Scripts from '@views/scripts/index.vue'
 import Setting from '@views/setting/index.vue'
@@ -15,7 +15,6 @@ import Setting from '@views/setting/index.vue'
 // const Server = () => import('@views/server/index.vue')
 // const Terminal = () => import('@views/terminal/index.vue')
 // const Credentials = () => import('@views/credentials/index.vue')
-// const Group = () => import('@views/group/index.vue')
 // const Onekey = () => import('@views/onekey/index.vue')
 // const Scripts = () => import('@views/scripts/index.vue')
 // const Setting = () => import('@views/setting/index.vue')
@@ -29,7 +28,7 @@ const routes = [
       { path: '/server', component: Server },
       { path: '/terminal', component: Terminal },
       { path: '/credentials', component: Credentials },
-      // { path: '/group', component: Group },
+      { path: '/file', component: File },
       { path: '/onekey', component: Onekey },
       { path: '/scripts', component: Scripts },
       { path: '/setting', component: Setting },
@@ -40,10 +39,6 @@ const routes = [
     path: '/:pathMatch(.*)*',
     redirect: '/server'
   },
-  // { path: '/server', component: Server },
-  // { path: '/', component: HostList },
-  // { path: '/terminal', component: Terminal },
-  // { path: '/test', component: test },
 ]
 
 export default createRouter({
