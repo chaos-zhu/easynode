@@ -567,7 +567,7 @@ function parseRsyncProgress(output, taskId, socket) {
   let transferred = 0
 
   // 模式1: 标准格式 - 1,024,000 100% 1.23MB/s 0:00:30 (xfr#1, to-chk=0/1)
-  let match = outputLine.match(/(\d+(?:,\d+)*)\s+(\d+)%\s+([\d.]+)([KMGT]?B\/s)\s+(\d+):(\d+):(\d+)/)
+  let match = outputLine.match(/(\d+(?:,\d+)*)\s+(\d+)%\s+([\d.]+)([kKmMgGtT]?B\/s)\s+(\d+):(\d+):(\d+)/)
   if (match) {
     const [, transferredStr, percentage, speedVal, speedUnit, hours, minutes, seconds] = match
     fileProgress = parseInt(percentage)
