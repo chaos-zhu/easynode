@@ -1,6 +1,5 @@
 ## TODO
 
-* 服务器文件对传
 * 批量下发后台定时任务
 * AI对话收藏
 * 移动端Ctrl、Tab的按键面板
@@ -8,7 +7,19 @@
 * 进程管理
 * 当前会话连接|w
 * 日志打印优化
-*
+* rdp
+* 探针接入
+
+## [3.4.0](https://github.com/chaos-zhu/easynode/releases) (2025-08-04)
+* 🎉新增文件对传功能
+* SFTP面板支持手动断开重连
+* SFTP loading ui修复
+* 禁用MFA2添加验证
+* 支持openssh加密密钥
+* 点击Logo切换菜单位置
+* 换了个新Logo
+* 合并通知配置tab
+
 ## [3.3.0](https://github.com/chaos-zhu/easynode/releases) (2025-08-04)
 
 * 🎉新增终端连接代理服务

@@ -22,6 +22,9 @@ async function getConnectionOptions(hostId) {
       const sshRecord = await credentialsDB.findOneAsync({ _id: credentialId })
       authInfo.authType = sshRecord.authType
       authInfo[authInfo.authType] = await AESDecryptAsync(sshRecord[authInfo.authType])
+      if (authInfo.authType === 'privateKey' && sshRecord.openSSHKeyPassword) {
+        authInfo.passphrase = sshRecord.openSSHKeyPassword
+      }
     } else {
       authInfo[authType] = await AESDecryptAsync(hostInfo[authType])
     }

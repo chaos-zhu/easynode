@@ -67,6 +67,19 @@
             placeholder="-----BEGIN RSA PRIVATE KEY-----"
           />
         </el-form-item>
+        <el-form-item v-if="sshForm.authType === 'privateKey' && showOpenSSHKeyField" label="私钥密码">
+          <PlusSupportTip>
+            <el-input
+              v-model="sshForm.openSSHKeyPassword"
+              type="password"
+              :disabled="!isPlusActive"
+              placeholder="请输入openssh私钥密码"
+              show-password
+              autocomplete="off"
+              clearable
+            />
+          </PlusSupportTip>
+        </el-form-item>
         <el-form-item v-if="sshForm.authType === 'password'" prop="password" label="密码">
           <el-input
             v-model.trim="sshForm.password"
@@ -129,7 +142,8 @@ const sshForm = reactive({
   name: '',
   authType: 'privateKey',
   privateKey: '',
-  password: ''
+  password: '',
+  openSSHKeyPassword: ''
 })
 
 const rules = computed(() => {
@@ -203,6 +217,7 @@ const handleClickUploadBtn = () => {
 const keyPasswordVisible = ref(false)
 const keyPassword = ref('')
 const tempPrivateKey = ref('')
+const showOpenSSHKeyField = ref(false)
 
 const handleSelectPrivateKeyFile = (event) => {
   let file = event.target.files[0]
@@ -213,6 +228,9 @@ const handleSelectPrivateKeyFile = (event) => {
     if (content.includes('ENCRYPTED')) {
       tempPrivateKey.value = content
       keyPasswordVisible.value = true
+    } else if (content.includes('OPENSSH PRIVATE KEY')) {
+      sshForm.privateKey = content
+      showOpenSSHKeyField.value = true
     } else {
       sshForm.privateKey = content
     }

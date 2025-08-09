@@ -9,15 +9,16 @@ async function getSSHList({ res }) {
   let data = await credentialsDB.findAsync({})
   data = data?.map(item => {
     const { name, authType, _id: id, date } = item
-    return { id, name, authType, privateKey: '', password: '', date }
+    return { id, name, authType, privateKey: '', password: '', openSSHKeyPassword: '', date }
   }) || []
   data.sort((a, b) => b.date - a.date)
   res.success({ data })
 }
 
 const addSSH = async ({ res, request }) => {
-  let { body: { name, authType, password, privateKey, tempKey } } = request
+  let { body: { name, authType, password, privateKey, openSSHKeyPassword, tempKey } } = request
   let record = { name, authType, password, privateKey }
+  if (openSSHKeyPassword) record.openSSHKeyPassword = openSSHKeyPassword
   if (!name || !record[authType]) return res.fail({ data: false, msg: '参数错误' })
   let count = await credentialsDB.countAsync({ name })
   if (count > 0) return res.fail({ data: false, msg: '已存在同名凭证' })
@@ -34,8 +35,9 @@ const addSSH = async ({ res, request }) => {
 }
 
 const updateSSH = async ({ res, request }) => {
-  let { body: { id, name, authType, password, privateKey, date, tempKey } } = request
+  let { body: { id, name, authType, password, privateKey, openSSHKeyPassword, date, tempKey } } = request
   let record = { name, authType, password, privateKey, date }
+  if (openSSHKeyPassword) record.openSSHKeyPassword = openSSHKeyPassword
   if (!id || !name) return res.fail({ data: false, msg: '请输入凭据名称' })
   let oldRecord = await credentialsDB.findOneAsync({ _id: id })
   if (!oldRecord) return res.fail({ data: false, msg: '凭证不存在' })
