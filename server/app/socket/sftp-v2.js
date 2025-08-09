@@ -1362,7 +1362,7 @@ module.exports = (httpServer) => {
           const result = await handleProxyAndJumpHostConnection({
             hostInfo: targetHostInfo,
             targetConnectionOptions,
-            socket: null, // SFTP不需要发送terminal_print_info事件
+            socket,
             logPrefix: 'SFTP '
           })
           jumpSshClients = result.jumpSshClients
