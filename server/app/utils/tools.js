@@ -259,6 +259,17 @@ let shellThrottle = (fn, delay = 1000) => {
   return throttled
 }
 
+const fileTransferThrottle = (fn, delay = 1500) => {
+  let lastCall = 0
+  return function (...args) {
+    const now = Date.now()
+    if (now - lastCall >= delay) {
+      lastCall = now
+      fn(...args)
+    }
+  }
+}
+
 const isProd = () => {
   const EXEC_ENV = process.env.EXEC_ENV || 'production'
   return EXEC_ENV === 'production'
@@ -364,6 +375,7 @@ module.exports = {
   formatTimestamp,
   resolvePath,
   shellThrottle,
+  fileTransferThrottle,
   isProd,
   isAllowedIp,
   ping,

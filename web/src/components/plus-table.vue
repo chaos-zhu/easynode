@@ -95,6 +95,7 @@ const basicFeatures = [
 const plusFeatures = [
   'AI Chat对话组件',
   '服务器代理&跳板机功能',
+  '文件对传',
   '终端单窗口模式',
   '批量修改实例配置',
   '脚本库批量导出导入',
@@ -102,7 +103,6 @@ const plusFeatures = [
   '终端功能栏docker容器管理',
   '凭据管理支持解密带密码保护的密钥',
   '通知方式无限制',
-  '本地socket断开自动重连',
 ]
 </script>
 

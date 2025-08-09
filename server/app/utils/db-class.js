@@ -14,7 +14,8 @@ const {
   aiConfigDBPath,
   chatHistoryDBPath,
   favoriteSftpDBPath,
-  proxyDBPath
+  proxyDBPath,
+  fileTransferDBPath
 } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
@@ -188,5 +189,16 @@ module.exports.ProxyDB = class ProxyDB {
   }
   getInstance() {
     return ProxyDB.instance
+  }
+}
+
+module.exports.FileTransferDB = class FileTransferDB {
+  constructor() {
+    if (!FileTransferDB.instance) {
+      FileTransferDB.instance = new Datastore({ filename: fileTransferDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return FileTransferDB.instance
   }
 }

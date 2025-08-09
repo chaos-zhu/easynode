@@ -13,7 +13,7 @@
       <div v-else-if="connectionStatus === 'failed'" class="status_failed">
         <el-icon class="error_icon"><WarningFilled /></el-icon>
         <div class="error_content">
-          <h3>SFTP连接失败</h3>
+          <h3>SFTP连接断开</h3>
           <p>{{ connectionError || '请检查服务端状态或网络连接' }}</p>
           <el-button type="primary" size="small" @click="connectSftp">重新连接</el-button>
         </div>
@@ -81,6 +81,11 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+
+        <!-- 连接控制按钮 -->
+        <span class="disconnect_btn" @click="toggleConnection">
+          <el-icon><SwitchButton /></el-icon>
+        </span>
       </div>
 
       <!-- 路径栏：当前路径 + 操作按钮 -->
@@ -532,7 +537,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, getCurrentInstance, nextTick } from 'vue'
-import { ArrowDown, ArrowLeft, Refresh, View, Hide, Edit, ArrowRight, HomeFilled, Check, Close as CloseIcon, Download, Upload, DocumentCopy, Loading, WarningFilled, Star, StarFilled, Delete } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowLeft, Refresh, View, Hide, Edit, ArrowRight, HomeFilled, Check, Close as CloseIcon, Download, Upload, DocumentCopy, Loading, WarningFilled, Star, StarFilled, Delete, SwitchButton } from '@element-plus/icons-vue'
 import socketIo from 'socket.io-client'
 import dirIcon from '@/assets/image/system/dir.png'
 import linkIcon from '@/assets/image/system/link.png'
@@ -548,6 +553,10 @@ const props = defineProps({
   hostId: {
     type: String,
     required: true
+  },
+  showCdCommand: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -1097,6 +1106,39 @@ const connectSftp = () => {
   })
 }
 
+// 断开连接
+const disconnectSftp = () => {
+  if (socket.value) {
+    socket.value.removeAllListeners()
+    socket.value.close()
+    socket.value = null
+  }
+
+  connectionStatus.value = 'failed'
+  connectionError.value = '手动断开连接'
+  loading.value = false
+
+  // 清理状态
+  fileListRaw.value = []
+  selectedRows.value = []
+  downloadTasks.value.clear()
+  uploadTasks.value.clear()
+  favoriteList.value = []
+
+  // 清空路径状态
+  previousPath.value = ''
+  pendingPath.value = ''
+}
+
+// 切换连接状态
+const toggleConnection = () => {
+  if (connectionStatus.value === 'connected') {
+    disconnectSftp()
+  } else {
+    connectSftp()
+  }
+}
+
 const openDir = (path = currentPath.value, tips = true) => {
   if (!socket.value) return
   socket.value.emit('open_dir', path, tips)
@@ -1589,7 +1631,7 @@ const onRowContextMenu = (row, _column, event) => {
   })
 
   // 发送cd指令到终端
-  if (row.type === 'd') {
+  if (row.type === 'd' && props.showCdCommand) {
     const cdCommand = `cd ${ currentPath.value }/${ row.name }`.replace(/\/+/g, '/')
     items.push({
       label: '发送cd指令到终端',
@@ -2161,7 +2203,7 @@ const removeUploadTask = (taskId) => {
 
 const clearCompletedTasks = () => {
   const completedTasks = Array.from(uploadTasks.value.entries())
-    .filter(([_, task,]) => task.status === 'completed')
+    .filter(([, task,]) => task.status === 'completed')
 
   completedTasks.forEach(([taskId,]) => {
     uploadTasks.value.delete(taskId)
@@ -2171,6 +2213,15 @@ const clearCompletedTasks = () => {
     $message.success(`已清空 ${ completedTasks.length } 个完成任务`)
   }
 }
+
+// 暴露状态和方法供父组件使用（用于文件传输功能）
+defineExpose({
+  currentPath: computed(() => currentPath.value),
+  selectedRows: computed(() => selectedRows.value),
+  connectionStatus: computed(() => connectionStatus.value),
+  refresh,
+  openDir
+})
 </script>
 
 <style lang="scss" scoped>
@@ -2185,6 +2236,14 @@ const clearCompletedTasks = () => {
     gap: 8px;
     padding: 5px 10px;
     border-bottom: 1px solid var(--el-border-color);
+    .disconnect_btn {
+      margin-left: auto;
+      color: var(--el-color-warning);
+      cursor: pointer;
+      &:hover {
+        color: var(--el-color-danger);
+      }
+    }
   }
 
   .path_bar {
