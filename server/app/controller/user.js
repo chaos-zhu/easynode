@@ -60,7 +60,7 @@ const login = async ({ res, request }) => {
   // 登录流程
   try {
     let loginPwd = await RSADecryptAsync(ciphertext)
-    let { user, pwd, enableMFA2, secret } = await keyDB.findOneAsync({})
+    let { user, pwd, enableMFA2, secret, _id } = await keyDB.findOneAsync({})
     if (enableMFA2) {
       const isValid = speakeasy.totp.verify({ secret, encoding: 'base32', token: String(mfa2Token), window: 1 })
       console.log('MFA2 verfify:', isValid)
@@ -72,7 +72,7 @@ const login = async ({ res, request }) => {
     if (loginName !== user || loginPwd !== pwd) return res.fail({ msg: `用户名或密码错误 ${ loginErrTotal }/${ allowErrCount }` })
 
     const token = await beforeLoginHandler(clientIp, jwtExpires)
-    return res.success({ data: { token, jwtExpires }, msg: '登录成功' })
+    return res.success({ data: { token, uid: _id, jwtExpires }, msg: '登录成功' })
   } catch (error) {
     console.log('登录失败：', error.message)
     res.fail({ msg: '登录失败, 请查看服务端日志' })
@@ -84,8 +84,8 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
 
   // consola.success('登录成功, 准备生成token', new Date())
   // 生产token
-  let { commonKey } = await keyDB.findOneAsync({})
-  let token = jwt.sign({ date: Date.now() }, commonKey, { expiresIn: jwtExpires }) // 生成token
+  let { commonKey, user } = await keyDB.findOneAsync({})
+  let token = jwt.sign({ date: Date.now() }, `${ user }-${ commonKey }`, { expiresIn: jwtExpires }) // 生成token
   token = await AESEncryptAsync(token) // 对称加密token后再传输给前端
 
   // 记录客户端登录IP(用于判断是否异地且只保留最近10次)

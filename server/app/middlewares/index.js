@@ -15,7 +15,7 @@ module.exports = [
   useSftpCacheStatic, // SFTP缓存文件服务
   compress,
   history,
-  useStatic, // staic先注册，不然会被jwt拦截
+  useStatic, // staic先注册，不然会被useAuth拦截
   // useCors,
   responseHandler,
   useKoaBody, // 先处理body，log和router都要用到

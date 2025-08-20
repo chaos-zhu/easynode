@@ -15,6 +15,7 @@ const useStore = defineStore('global', {
     localScriptList: [],
     user: localStorage.getItem('user') || null,
     token: localStorage.getItem('token') || sessionStorage.getItem('token') || null,
+    uid: localStorage.getItem('uid') || sessionStorage.getItem('uid') || null,
     title: '',
     isDark: false,
     menuPosition: localStorage.getItem('menuPosition') || 'left', // left | top
@@ -59,17 +60,21 @@ const useStore = defineStore('global', {
       else localStorage.setItem('token', token)
       this.$patch({ token })
     },
-    async setUser(username) {
+    async setUser(username, uid) {
       localStorage.setItem('user', username)
-      this.$patch({ user: username })
+      localStorage.setItem('uid', uid)
+      this.$patch({ user: username, uid })
     },
     async setTitle(title) {
       this.$patch({ title })
     },
-    async removeJwtToken() {
+    async removeLoginInfo() {
       localStorage.removeItem('token')
       sessionStorage.removeItem('token')
-      this.$patch({ token: null })
+      sessionStorage.removeItem('uid')
+      localStorage.removeItem('uid')
+      localStorage.removeItem('user')
+      this.$patch({ token: null, uid: null, user: null })
     },
     async getMainData() {
       await this.getGroupList()

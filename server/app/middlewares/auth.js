@@ -1,5 +1,5 @@
 const { apiPrefix } = require('../config')
-const { verifyAuthSync } = require('../utils/verify-auth')
+const { verifyAuthSync, enumLoginCode } = require('../utils/verify-auth')
 
 let whitePath = [
   '/login',
@@ -8,19 +8,24 @@ let whitePath = [
 consola.info('路由白名单：', whitePath)
 
 const useAuth = async ({ request, res }, next) => {
-  const { path, headers: { token } } = request
+  const { path, headers: { token, uid } } = request
   // consola.info('verify path: ', path)
   if (whitePath.includes(path)) return next()
-  if (!token) return res.fail({ msg: '未登录', status: 403 })
+  if (!token) return res.fail({ msg: '未登录(token)', status: 401 })
+  if (!uid) return res.fail({ msg: '未登录(uid)', status: 401 })
   // 验证token
-  const { code, msg } = await verifyAuthSync(token, request.ip)
+  const { code } = await verifyAuthSync(token, uid)
   switch (code) {
-    case 1:
+    case enumLoginCode.SUCCESS:
       return await next()
-    case -1:
-      return res.fail({ msg, status: 401 })
-    case -2:
-      return res.fail({ msg: '登录态错误, 请重新登录', status: 401, data: msg })
+    case enumLoginCode.EXPIRES:
+      return res.fail({ msg: '登录态已过期, 请重新登录', status: 401 })
+    case enumLoginCode.ERROR_TOKEN:
+      consola.warn('TOKEN校验错误(可能存在外部攻击): ', path)
+      return res.fail({ msg: 'TOKEN错误!!!', status: 403 })
+    case enumLoginCode.ERROR_UID:
+      consola.warn('用户id校验失败(可能存在外部攻击): ', path)
+      return res.fail({ msg: 'UID错误!!!', status: 403 })
   }
 }
 

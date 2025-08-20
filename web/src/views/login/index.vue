@@ -130,9 +130,9 @@ const handleLogin = () => {
     loading.value = true
     try {
       let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, mfa2Token })
-      const { token } = data
+      const { token, uid } = data
       $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
-      $store.setUser(loginName)
+      $store.setUser(loginName, uid)
       $message.success({ message: msg || 'success', center: true })
       $router.push('/')
     } finally {
@@ -144,9 +144,11 @@ const handleLogin = () => {
 onMounted(async () => {
   if (localStorage.getItem('jwtExpires')) loginForm.jwtExpires = Number(localStorage.getItem('jwtExpires'))
   const { data } = await $api.getPubPem()
-  if (!data) return (notKey.value = true)
+  if (!data) {
+    notKey.value = true
+    return}
   localStorage.setItem('publicKey', data)
-  $store.removeJwtToken()
+  $store.removeLoginInfo()
 })
 </script>
 

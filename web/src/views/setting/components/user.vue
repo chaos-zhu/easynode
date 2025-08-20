@@ -85,7 +85,7 @@
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { RSAEncrypt } from '@utils/index.js'
 
-const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
+const { proxy: { $api, $message, $messageBox, $store, $router } } = getCurrentInstance()
 
 const loading = ref(false)
 const formRef = ref(null)
@@ -113,17 +113,35 @@ const mfa2Token = ref('')
 const handleUpdate = () => {
   formRef.value.validate()
     .then(async () => {
-      let { oldLoginName, oldPwd, newLoginName, newPwd } = formData
-      oldPwd = RSAEncrypt(oldPwd)
-      newPwd = RSAEncrypt(newPwd)
-      let { msg } = await $api.updatePwd({ oldLoginName, oldPwd, newLoginName, newPwd })
-      $message({ type: 'success', center: true, message: msg })
-      $store.setUser(newLoginName)
-      formData.oldLoginName = ''
-      formData.oldPwd = ''
-      formData.newLoginName = ''
-      formData.newPwd = ''
-      formRef.value.resetFields()
+      $messageBox.confirm(
+        '修改用户名后会清除所有登录态，需重新登录',
+        '修改提示',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+          showCancelButton: true,
+          cancelButtonClass: 'el-button--info',
+          confirmButtonClass: 'el-button--warning'
+        }
+      ).then(async () => {
+        let { oldLoginName, oldPwd, newLoginName, newPwd } = formData
+        oldPwd = RSAEncrypt(oldPwd)
+        newPwd = RSAEncrypt(newPwd)
+        let { msg } = await $api.updatePwd({ oldLoginName, oldPwd, newLoginName, newPwd })
+        $message({ type: 'success', center: true, message: msg })
+        $store.setUser(newLoginName)
+        formData.oldLoginName = ''
+        formData.oldPwd = ''
+        formData.newLoginName = ''
+        formData.newPwd = ''
+        formRef.value.resetFields()
+        if (oldLoginName !== newLoginName) {
+          $message({ type: 'success', center: true, message: '用户名修改成功, 请重新登录' })
+          $store.removeLoginInfo()
+          $router.push('/login')
+        }
+      })
     })
 }
 

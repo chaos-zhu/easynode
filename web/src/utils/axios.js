@@ -11,6 +11,7 @@ const instance = axios.create()
 
 instance.interceptors.request.use((config) => {
   config.headers.token = useStore().token
+  config.headers.uid = useStore().uid
   return config
 }, (error) => {
   ElMessage.error({ message: '请求超时！' })
@@ -25,22 +26,12 @@ instance.interceptors.response.use((response) => {
     ElMessage({ message: '请求超时', type: 'error', center: true })
     return Promise.reject(error)
   }
-  switch (response?.data.status) {
+  switch (response?.data?.status) {
     case 401: // token过期
-      // ElMessageBox.alert(
-      //   '<strong>登录态已失效</strong>',
-      //   'Error',
-      //   {
-      //     dangerouslyUseHTMLString: true,
-      //     confirmButtonText: '重新登录'
-      //   }
-      // ).then(() => {
-      //   router.push('login')
-      // })
-      // ElMessage({ message: '登录态已失效', type: 'error', center: true })
       router.push('login')
       return Promise.reject(error)
-    case 403: // 无token 不提示
+    case 403:
+      ElMessage({ message: `${ response?.data?.msg || '登录错误' }`, type: 'error', center: true })
       router.push('login')
       return Promise.reject(error)
   }
