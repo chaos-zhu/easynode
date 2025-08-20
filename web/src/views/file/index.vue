@@ -138,15 +138,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, getCurrentInstance } from 'vue'
-import { List, Setting, ArrowRight, ArrowLeft, Warning } from '@element-plus/icons-vue'
-import socketIo from 'socket.io-client'
+import { List, Setting, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
 import SftpPanel from '@/components/file-transfer/sftp-panel.vue'
 import TransferTaskManager from '@/components/file-transfer/transfer-task-manager.vue'
-import { EventBus } from '@/utils'
+import { EventBus, generateSocketInstance } from '@/utils'
 
 defineEmits(['exec-script',])
 
-const { proxy: { $store, $message, $serviceURI } } = getCurrentInstance()
+const { proxy: { $message, $router } } = getCurrentInstance()
 
 // 传输配置（仅支持Rsync）
 const transferOptions = ref({
@@ -174,7 +173,6 @@ const activeTaskCount = computed(() => {
 
 // Socket连接
 const socket = ref(null)
-const token = computed(() => $store.token)
 
 // 计算属性
 const canTransferToRight = computed(() => {
@@ -207,10 +205,7 @@ onUnmounted(() => {
 
 // Socket连接
 const initializeSocket = () => {
-  socket.value = socketIo($serviceURI, {
-    path: '/file-transfer',
-    forceNew: true
-  })
+  socket.value = generateSocketInstance('/file-transfer')
 
   socket.value.on('connect', () => {
     console.log('文件传输WebSocket已连接')
@@ -249,8 +244,9 @@ const initializeSocket = () => {
     $message.error(`${ message }: ${ error }`)
   })
 
-  socket.value.on('token_verify_fail', () => {
-    $message.error('登录已过期，请重新登录')
+  socket.value.on('user_verify_fail', () => {
+    $message.error('登录态校验失败，请重新登录')
+    $router.push('/login')
   })
 
   socket.value.on('task_deleted', ({ message }) => {
@@ -306,8 +302,7 @@ const performTransfer = (fromSide, toSide) => {
     })),
     targetPath,
     method: 'rsync',
-    options: transferOptions.value,
-    token: token.value
+    options: transferOptions.value
   }
 
   isTransferring.value = true
@@ -322,29 +317,29 @@ const showTaskManager = () => {
 
 const refreshTasks = () => {
   if (socket.value) {
-    socket.value.emit('get_tasks', { token: token.value })
+    socket.value.emit('get_tasks')
   }
 }
 
 const cancelTask = (taskId) => {
-  socket.value.emit('cancel_task', { taskId, token: token.value })
+  socket.value.emit('cancel_task', { taskId })
 }
 
 const retryTask = (taskId) => {
-  socket.value.emit('retry_task', { taskId, token: token.value })
+  socket.value.emit('retry_task', { taskId })
 }
 
 const clearCompletedTasks = () => {
   // 发送清空请求到后端
   if (socket.value) {
-    socket.value.emit('clear_completed_tasks', { token: token.value })
+    socket.value.emit('clear_completed_tasks')
   }
 }
 
 const deleteTask = (taskId) => {
   // 发送删除请求到后端
   if (socket.value) {
-    socket.value.emit('delete_task', { taskId, token: token.value })
+    socket.value.emit('delete_task', { taskId })
   }
 }
 

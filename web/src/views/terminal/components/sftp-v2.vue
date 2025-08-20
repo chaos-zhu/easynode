@@ -538,7 +538,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, getCurrentInstance, nextTick } from 'vue'
 import { ArrowDown, ArrowLeft, Refresh, View, Hide, Edit, ArrowRight, HomeFilled, Check, Close as CloseIcon, Download, Upload, DocumentCopy, Loading, WarningFilled, Star, StarFilled, Delete, SwitchButton } from '@element-plus/icons-vue'
-import socketIo from 'socket.io-client'
+import { generateSocketInstance } from '@/utils'
 import dirIcon from '@/assets/image/system/dir.png'
 import linkIcon from '@/assets/image/system/link.png'
 import fileIcon from '@/assets/image/system/file.png'
@@ -561,7 +561,7 @@ const props = defineProps({
 })
 
 // 组件实例上下文
-const { proxy: { $store, $message, $serviceURI, $messageBox } } = getCurrentInstance()
+const { proxy: { $message, $messageBox } } = getCurrentInstance()
 
 // 路径 & 隐藏文件显示
 const currentPath = ref('/')
@@ -574,7 +574,6 @@ watch(showHidden, (val) => {
 
 // Socket & 列表
 const socket = ref(null)
-const token = computed(() => $store.token)
 const loading = ref(false)
 
 // 连接状态管理
@@ -707,8 +706,6 @@ onUnmounted(() => {
 //----------------------------------
 
 const connectSftp = () => {
-  const { io } = socketIo
-
   // 清理旧的socket连接
   if (socket.value) {
     socket.value.removeAllListeners()
@@ -720,14 +717,13 @@ const connectSftp = () => {
   connectionError.value = ''
   loading.value = true
 
-  socket.value = io($serviceURI, {
-    path: '/sftp-v2',
+  socket.value = generateSocketInstance('/sftp-v2', {
     forceNew: true,
-    reconnectionAttempts: 0 // 禁用socket.io自带的重连，我们自己控制
+    reconnectionAttempts: 0
   })
 
   socket.value.on('connect', () => {
-    socket.value.emit('ws_sftp', { hostId: props.hostId, token: token.value })
+    socket.value.emit('ws_sftp', { hostId: props.hostId })
 
     socket.value.on('connect_success', ({ rootList, isRootUser, currentPath: serverCurrentPath }) => {
       fileListRaw.value = rootList

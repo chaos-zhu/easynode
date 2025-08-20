@@ -1327,10 +1327,19 @@ module.exports = (httpServer) => {
       origin: '*'
     }
   })
-  serverIo.on('connection', (socket) => {
-    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+  serverIo.on('connection', async (socket) => {
+    // IP白名单检查
+    const requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
     if (!isAllowedIp(requestIP)) {
       socket.emit('ip_forbidden', 'IP地址不在白名单中')
+      socket.disconnect()
+      return
+    }
+    // 登录态校验
+    const { token, uid } = socket.handshake.query
+    const { success } = await verifyAuthSync(token, uid)
+    if (!success) {
+      socket.emit('user_verify_fail')
       socket.disconnect()
       return
     }
@@ -1343,14 +1352,8 @@ module.exports = (httpServer) => {
       consola.error('SFTP-v2 Socket连接错误:', err.message)
     })
 
-    socket.on('ws_sftp', async ({ hostId, token }) => {
+    socket.on('ws_sftp', async ({ hostId }) => {
       try {
-        const { code } = await verifyAuthSync(token, requestIP)
-        if (code !== 1) {
-          socket.emit('token_verify_fail')
-          socket.disconnect()
-          return
-        }
         const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
         if (!targetHostInfo) throw new Error(`Host with ID ${ hostId } not found`)
 

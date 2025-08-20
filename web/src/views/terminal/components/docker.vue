@@ -213,11 +213,9 @@ import { ref, onMounted, onUnmounted, computed, watch, getCurrentInstance } from
 import { VideoPlay, VideoPause, RefreshRight, Delete, MoreFilled } from '@element-plus/icons-vue'
 import CodeEdit from '@/components/code-edit/index.vue'
 import PlusLimitTip from '@/components/common/PlusLimitTip.vue'
-import socketIo from 'socket.io-client'
-import { EventBus } from '@/utils'
+import { EventBus, generateSocketInstance } from '@/utils'
 
-const { io } = socketIo
-const { proxy: { $store, $serviceURI, $message, $messageBox } } = getCurrentInstance()
+const { proxy: { $store, $message, $messageBox } } = getCurrentInstance()
 
 const props = defineProps({
   hostId: {
@@ -256,7 +254,6 @@ const makeImageRules = ref({
     { required: false, message: '请输入提交说明', trigger: 'blur' },
   ]
 })
-const token = computed(() => $store.token)
 const hostId = computed(() => props.hostId)
 const containerName = computed(() => `${ currentContainer.value?.name }.log(自动刷新)` || '')
 const isPlusActive = computed(() => $store.isPlusActive)
@@ -310,16 +307,11 @@ const getStatusType = (status) => {
 }
 
 const connectDocker = () => {
-  socket.value = io($serviceURI, {
-    path: '/docker',
-    forceNew: false,
-    reconnection: false,
-    reconnectionAttempts: 0
-  })
+  socket.value = generateSocketInstance('/docker')
   socket.value.on('connect', () => {
     console.log('/docker socket已连接：', hostId.value)
     loading.value = true
-    socket.value.emit('ws_docker', { hostId: hostId.value, token: token.value })
+    socket.value.emit('ws_docker', { hostId: hostId.value })
     socket.value.on('docker_containers_data', (data) => {
       // console.log('docker_containers_data:', data)
       dockerServerErr.value = false

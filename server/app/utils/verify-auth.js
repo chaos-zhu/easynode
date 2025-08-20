@@ -15,13 +15,13 @@ const enumLoginCode = {
 const verifyAuthSync = async (token, userId) => {
   try {
     const { commonKey, user, _id: uid } = await keyDB.findOneAsync({ _id: userId })
-    if (uid !== userId) return { code: enumLoginCode.ERROR_UID, msg: '用户id校验失败' }
+    if (uid !== userId) return { code: enumLoginCode.ERROR_UID }
     token = await AESDecryptAsync(token)
     const { exp } = jwt.verify(token, `${ user }-${ commonKey }`)
     if (Date.now() > (exp * 1000)) {
       return { code: enumLoginCode.EXPIRES } // 过期
     }
-    return { code: enumLoginCode.SUCCESS } // 验证成功
+    return { code: enumLoginCode.SUCCESS, success: true } // 验证成功
   } catch (err) {
     consola.error('用户身份校验失败: ', err.message)
     return { code: enumLoginCode.ERROR_TOKEN }

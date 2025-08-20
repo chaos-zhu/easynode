@@ -23,10 +23,4 @@ app.config.globalProperties.$tools = tools
 app.config.globalProperties.$http = axios
 app.config.globalProperties.$store = useStore()
 
-const serviceURI = import.meta.env.DEV ? process.env.serviceURI : location.origin
-app.config.globalProperties.$serviceURI = serviceURI
-app.config.globalProperties.$store.$patch({ serviceURI })
-console.warn('ISDEV: ', import.meta.env.DEV)
-console.warn('serviceURI: ', serviceURI)
-
 app.mount('#app')

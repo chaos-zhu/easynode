@@ -18,15 +18,25 @@ module.exports = (httpServer) => {
 
   let connectionCount = 0
 
-  serverIo.on('connection', (socket) => {
-    connectionCount++
-    consola.success(`server-status websocket 已连接 - 当前连接数: ${ connectionCount }`)
+  serverIo.on('connection', async (socket) => {
+    // IP白名单检查
     let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
     if (!isAllowedIp(requestIP)) {
       socket.emit('ip_forbidden', 'IP地址不在白名单中')
       socket.disconnect()
       return
     }
+    // 登录态校验
+    const { token, uid } = socket.handshake.query
+    const { success } = await verifyAuthSync(token, uid)
+    if (!success) {
+      socket.emit('user_verify_fail')
+      socket.disconnect()
+      return
+    }
+
+    connectionCount++
+    consola.success(`server-status websocket 已连接 - 当前连接数: ${ connectionCount }`)
 
     let targetSSHClient = null
     let jumpSshClients = []
@@ -43,15 +53,8 @@ module.exports = (httpServer) => {
     let cmdQueue = [] // [{command, resolve, reject, marker, output}]
     let cmdCounter = 0
 
-    socket.on('ws_server_status', async ({ hostId, token }) => {
+    socket.on('ws_server_status', async ({ hostId }) => {
       try {
-        const { code } = await verifyAuthSync(token, requestIP)
-        if (code !== 1) {
-          socket.emit('token_verify_fail')
-          socket.disconnect()
-          return
-        }
-
         const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
         if (!targetHostInfo) {
           socket.emit('server_status_error', '主机信息不存在')

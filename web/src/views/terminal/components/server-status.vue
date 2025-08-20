@@ -215,8 +215,8 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance, watch, onBeforeUnmount, nextTick, onMounted, toRaw, shallowRef } from 'vue'
-import { io } from 'socket.io-client'
 import { Chart, registerables } from 'chart.js'
+import { generateSocketInstance } from '@/utils'
 
 // 注册Chart.js所有组件
 Chart.register(...registerables)
@@ -366,12 +366,7 @@ const connectWebSocket = () => {
   }
 
   try {
-    socket.value = io($store.serviceURI, {
-      path: '/server-status',
-      forceNew: true,
-      timeout: 10000, // 10秒连接超时
-      reconnection: false // 禁用socket.io自带重连，使用自定义重连
-    })
+    socket.value = generateSocketInstance('/server-status')
 
     socket.value.on('connect', () => {
       console.log('server-status websocket 已连接:', socket.value.id)
@@ -379,8 +374,7 @@ const connectWebSocket = () => {
       reconnectAttempts.value = 0 // 重置重连计数器
       clearReconnectTimer()
 
-      const token = $store.token
-      socket.value.emit('ws_server_status', { hostId: props.hostId, token })
+      socket.value.emit('ws_server_status', { hostId: props.hostId })
     })
 
     socket.value.on('server_status_data', (data) => {
@@ -404,7 +398,7 @@ const connectWebSocket = () => {
       }
     })
 
-    socket.value.on('token_verify_fail', (message) => {
+    socket.value.on('user_verify_fail', (message) => {
       console.log('token 验证失败:', message)
       isConnecting.value = false
       // token失败不重连，需要重新登录
