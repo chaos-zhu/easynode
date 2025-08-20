@@ -206,13 +206,9 @@
 <script setup>
 import { ref, reactive, onMounted, computed, watch, nextTick, getCurrentInstance, onActivated } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
-import socketIo from 'socket.io-client'
-import { useRoute } from 'vue-router'
+import { generateSocketInstance } from '@/utils'
 
-const { io } = socketIo
-
-const { proxy: { $api, $notification,$messageBox, $message, $router, $serviceURI, $store, $tools } } = getCurrentInstance()
-const route = useRoute()
+const { proxy: { $api, $notification,$messageBox, $message, $router, $store, $tools } } = getCurrentInstance()
 
 const loading = ref(false)
 const formVisible = ref(false)
@@ -272,11 +268,7 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
   loading.value = true
   timeRemaining.value = Number(formData.timeout)
   let timer = null
-  socket.value = io($serviceURI, {
-    path: '/onekey',
-    forceNew: false,
-    reconnectionAttempts: 1
-  })
+  socket.value = generateSocketInstance('/onekey')
   socket.value.on('connect', () => {
     timer = setInterval(() => {
       timeRemaining.value -= 1
@@ -312,8 +304,8 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
       getOnekeyRecord()
     })
 
-    socket.value.on('token_verify_fail', () => {
-      $message.error('token验证失败，请重新登录')
+    socket.value.on('user_verify_fail', () => {
+      $message.error('登录态校验失败，请重新登录')
       $router.push('/login')
     })
 

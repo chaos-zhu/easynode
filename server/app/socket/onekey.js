@@ -96,11 +96,19 @@ module.exports = (httpServer) => {
       origin: '*'
     }
   })
-  serverIo.on('connection', (socket) => {
-    // 前者兼容nginx反代, 后者兼容nodejs自身服务
-    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+  serverIo.on('connection', async (socket) => {
+    // IP白名单检查
+    const requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
     if (!isAllowedIp(requestIP)) {
       socket.emit('ip_forbidden', 'IP地址不在白名单中')
+      socket.disconnect()
+      return
+    }
+    // 登录态校验
+    const { token, uid } = socket.handshake.query
+    const { success } = await verifyAuthSync(token, uid)
+    if (!success) {
+      socket.emit('user_verify_fail')
       socket.disconnect()
       return
     }
@@ -111,13 +119,7 @@ module.exports = (httpServer) => {
       return
     }
     isExecuting = true
-    socket.on('ws_onekey', async ({ hostIds, token, command, timeout }) => {
-      const { code } = await verifyAuthSync(token, requestIP)
-      if (code !== 1) {
-        socket.emit('token_verify_fail')
-        socket.disconnect()
-        return
-      }
+    socket.on('ws_onekey', async ({ hostIds, command, timeout }) => {
       console.log('onekey command:', command)
       const hostList = await hostListDB.findAsync({})
       const targetHostsInfo = hostList.filter(item => hostIds.some(id => item._id === id)) || {}

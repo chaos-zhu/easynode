@@ -64,27 +64,29 @@ module.exports = (httpServer) => {
   let connectionCount = 0
   const connectedSockets = new Set() // 跟踪所有连接的socket
 
-  transferIo.on('connection', (socket) => {
+  transferIo.on('connection', async (socket) => {
     connectionCount++
     connectedSockets.add(socket)
     consola.success(`file-transfer websocket 已连接 - 当前连接数: ${ connectionCount }`)
 
     // IP白名单检查
-    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+    const requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
     if (!isAllowedIp(requestIP)) {
       socket.emit('ip_forbidden', 'IP地址不在白名单中')
       socket.disconnect()
       return
     }
+    // 登录态校验
+    const { token, uid } = socket.handshake.query
+    const { success } = await verifyAuthSync(token, uid)
+    if (!success) {
+      socket.emit('user_verify_fail')
+      socket.disconnect()
+      return
+    }
 
     // 连接时发送当前所有任务状态
-    socket.on('get_tasks', async ({ token }) => {
-      const { code } = await verifyAuthSync(token, requestIP)
-      if (code !== 1) {
-        socket.emit('token_verify_fail')
-        return
-      }
-
+    socket.on('get_tasks', async () => {
       try {
         const sortedTasks = await getSortedTasksList()
         socket.emit('tasks_list', sortedTasks)
@@ -92,7 +94,7 @@ module.exports = (httpServer) => {
         // 检查是否有运行中的任务，如果有则启动定时推送
         const runningTasks = sortedTasks.filter(task => task.status === 'running')
         if (runningTasks.length > 0) {
-          startProgressBroadcast(socket, token, requestIP)
+          startProgressBroadcast(socket)
         }
       } catch (error) {
         socket.emit('error', { message: '获取任务列表失败', error: error.message })
@@ -101,13 +103,6 @@ module.exports = (httpServer) => {
 
     // 启动传输任务
     socket.on('start_transfer', async (transferConfig) => {
-      const { token } = transferConfig
-      const { code } = await verifyAuthSync(token, requestIP)
-      if (code !== 1) {
-        socket.emit('token_verify_fail')
-        return
-      }
-
       try {
         const { createTransferTask = null } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
         if (!createTransferTask) throw new Error('Plus功能解锁失败: createTransferTask')
@@ -127,13 +122,7 @@ module.exports = (httpServer) => {
     })
 
     // 取消任务
-    socket.on('cancel_task', async ({ taskId, token }) => {
-      const { code } = await verifyAuthSync(token, requestIP)
-      if (code !== 1) {
-        socket.emit('token_verify_fail')
-        return
-      }
-
+    socket.on('cancel_task', async ({ taskId }) => {
       try {
         await cancelTransferTask(taskId)
         socket.emit('task_cancelled', { taskId, message: '任务已取消' })
@@ -143,13 +132,7 @@ module.exports = (httpServer) => {
     })
 
     // 重试任务
-    socket.on('retry_task', async ({ taskId, token }) => {
-      const { code } = await verifyAuthSync(token, requestIP)
-      if (code !== 1) {
-        socket.emit('token_verify_fail')
-        return
-      }
-
+    socket.on('retry_task', async ({ taskId }) => {
       try {
         const task = await fileTransferDB.findOneAsync({ taskId })
         if (!task) {
@@ -179,13 +162,7 @@ module.exports = (httpServer) => {
     })
 
     // 删除单个任务
-    socket.on('delete_task', async ({ taskId, token }) => {
-      const { code } = await verifyAuthSync(token, requestIP)
-      if (code !== 1) {
-        socket.emit('token_verify_fail')
-        return
-      }
-
+    socket.on('delete_task', async ({ taskId }) => {
       try {
         const task = await fileTransferDB.findOneAsync({ taskId })
         if (!task) {
@@ -211,13 +188,7 @@ module.exports = (httpServer) => {
     })
 
     // 清空已完成任务
-    socket.on('clear_completed_tasks', async ({ token }) => {
-      const { code } = await verifyAuthSync(token, requestIP)
-      if (code !== 1) {
-        socket.emit('token_verify_fail')
-        return
-      }
-
+    socket.on('clear_completed_tasks', async () => {
       try {
         // 删除所有已完成、失败、取消的任务
         const result = await fileTransferDB.removeAsync(
@@ -918,7 +889,7 @@ function cleanupRemoteKeyFile(sshClient, keyFile) {
 const progressBroadcastTimers = new Map() // socket -> timer
 
 // 启动进度广播
-function startProgressBroadcast(socket, token, requestIP) {
+function startProgressBroadcast(socket) {
   // 如果该socket已经有定时器，先清除
   if (progressBroadcastTimers.has(socket)) {
     clearInterval(progressBroadcastTimers.get(socket))
@@ -927,14 +898,6 @@ function startProgressBroadcast(socket, token, requestIP) {
   // 启动新的定时器，每秒检查并推送运行中任务的进度
   const timer = setInterval(async () => {
     try {
-      // 验证token是否仍然有效
-      const { code } = await verifyAuthSync(token, requestIP)
-      if (code !== 1) {
-        // token失效，停止广播
-        stopProgressBroadcast(socket)
-        return
-      }
-
       // 检查是否还有运行中的任务
       const runningTasks = Array.from(activeTasks.values()).filter(task => task.status === 'running')
       if (runningTasks.length === 0) {

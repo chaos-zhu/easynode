@@ -1,6 +1,8 @@
 import { reactive } from 'vue'
 import JSRsaEncrypt from 'jsencrypt'
 import CryptoJS from 'crypto-js'
+import socketIo from 'socket.io-client'
+import useStore from '../store'
 
 export const EventBus = reactive({})
 
@@ -175,4 +177,17 @@ export const isValidDate = (dateString) => {
   if (!dateString) return false
   const date = new Date(dateString)
   return !isNaN(date.getTime()) && date instanceof Date
+}
+
+const serviceURI = import.meta.env.DEV ? process.env.serviceURI : location.origin
+export const generateSocketInstance = (path, query = {}, config = { forceNew: false, reconnection: true, reconnectionAttempts: 3 }) => {
+  return socketIo(serviceURI, {
+    path,
+    query: {
+      uid: useStore().uid,
+      token: useStore().token,
+      ...query
+    },
+    ...config
+  })
 }

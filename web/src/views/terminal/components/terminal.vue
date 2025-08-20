@@ -23,20 +23,17 @@ import { FitAddon } from '@xterm/addon-fit'
 import { SearchAddon } from '@xterm/addon-search'
 // import { SearchBarAddon } from 'xterm-addon-search-bar'
 import { WebLinksAddon } from '@xterm/addon-web-links'
-import socketIo from 'socket.io-client'
 import themeList from 'xterm-theme'
 import { terminalStatus } from '@/utils/enum'
 import { useContextMenu } from '@/composables/useContextMenu'
-import { EventBus, isDockerId, isDockerComposeYml } from '@/utils'
+import { EventBus, isDockerId, isDockerComposeYml, generateSocketInstance } from '@/utils'
 import useMobileWidth from '@/composables/useMobileWidth'
 
 const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
 
 const instance = getCurrentInstance()
 const { uid } = instance
-const { proxy: { $api, $store, $serviceURI, $notification, $router, $message, $messageBox } } = instance
-
-const { io } = socketIo
+const { proxy: { $api, $store, $notification, $router, $message, $messageBox } } = instance
 
 const { isMobileScreen } = useMobileWidth()
 
@@ -79,7 +76,6 @@ const cursorTheme = {
   cursorAccent: '#000000'
 }
 
-const token = computed(() => $store.token)
 const theme = computed(() => themeList[$store.terminalConfig.themeName])
 const fontSize = computed(() => $store.terminalConfig.fontSize)
 const background = computed(() => $store.terminalConfig.background)
@@ -153,8 +149,7 @@ const getCommand = async () => {
 
 const connectIO = () => {
   curStatus.value = CONNECTING
-  socket.value = io($serviceURI, {
-    path: '/terminal',
+  socket.value = generateSocketInstance('/terminal', {
     forceNew: false,
     reconnection: false,
     reconnectionAttempts: 0
@@ -163,7 +158,7 @@ const connectIO = () => {
     console.log('/terminal socket已连接：', hostId.value)
 
     socketConnected.value = true
-    socket.value.emit('ws_terminal', { hostId: hostId.value, token: token.value })
+    socket.value.emit('ws_terminal', { hostId: hostId.value })
     socket.value.on('terminal_connect_success', () => {
       socket.value.on('output', (str) => {
         if (props.isSingleWindow && !isPlusActive.value) return
@@ -192,8 +187,8 @@ const connectIO = () => {
       emit('ping-data', { host: host.value, time })
     })
 
-    socket.value.on('token_verify_fail', () => {
-      $notification({ title: 'Error', message: 'token校验失败，请重新登录', type: 'error' })
+    socket.value.on('user_verify_fail', () => {
+      $notification({ title: 'Error', message: '登录态校验失败，请重新登录', type: 'error' })
       $router.push('/login')
     })
 

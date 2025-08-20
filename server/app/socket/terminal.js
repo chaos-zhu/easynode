@@ -261,27 +261,28 @@ async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShel
 function createServerIo(serverIo) {
   let connectionCount = 0
 
-  serverIo.on('connection', (socket) => {
-    connectionCount++
-    consola.success(`terminal websocket 已连接 - 当前连接数: ${ connectionCount }`)
-    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+  serverIo.on('connection', async (socket) => {
+    // IP白名单检查
+    const requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
     if (!isAllowedIp(requestIP)) {
       socket.emit('ip_forbidden', 'IP地址不在白名单中')
       socket.disconnect()
       return
     }
-    consola.success('terminal websocket 已连接')
+    // 登录态校验
+    const { token, uid } = socket.handshake.query
+    const { success } = await verifyAuthSync(token, uid)
+    if (!success) {
+      socket.emit('user_verify_fail')
+      socket.disconnect()
+      return
+    }
+    connectionCount++
+    consola.success(`terminal websocket 已连接 - 当前连接数: ${ connectionCount }`)
     let targetSSHClient = null
     let jumpSshClients = []
-    socket.on('ws_terminal', async ({ hostId, token }) => {
+    socket.on('ws_terminal', async ({ hostId }) => {
       try {
-        const { code } = await verifyAuthSync(token, requestIP)
-        if (code !== 1) {
-          socket.emit('token_verify_fail')
-          socket.disconnect()
-          return
-        }
-
         targetSSHClient = new SSHClient()
         let result = await createTerminal(hostId, socket, targetSSHClient, true)
 

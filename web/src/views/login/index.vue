@@ -2,7 +2,7 @@
   <div class="login_container">
     <div class="login_box">
       <div>
-        <h2>EasyNode</h2>
+        <h2>EasyNode-{{ version }}</h2>
       </div>
       <div v-if="notKey">
         <el-alert title="Error: 用于加密的公钥获取失败，请尝试重新启动或部署服务" type="error" show-icon />
@@ -83,8 +83,9 @@
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { RSAEncrypt } from '@utils/index.js'
+import { version } from '../../../package.json'
 
-const { proxy: { $store, $api, $message, $router } } = getCurrentInstance()
+const { proxy: { $store, $api, $message, $router, $messageBox } } = getCurrentInstance()
 
 const expireEnum = reactive({
   ONE_SESSION: 'one_session',
@@ -96,6 +97,8 @@ const expireTime = ref(expireEnum.CURRENT_DAY)
 const loginFormRefs = ref(null)
 const notKey = ref(false)
 const loading = ref(false)
+const isHttps = location.protocol.includes('https')
+const notHttpsTips = localStorage.getItem('notHttpsTips') === 'true'
 const loginForm = reactive({
   loginName: '',
   pwd: '',
@@ -134,7 +137,26 @@ const handleLogin = () => {
       $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
       $store.setUser(loginName, uid)
       $message.success({ message: msg || 'success', center: true })
-      $router.push('/')
+      if (isHttps) return $router.push('/')
+      if (notHttpsTips) return $router.push('/')
+      $messageBox.confirm(
+        'http协议下存在数据劫持风险，外网使用请配置https协议',
+        '安全提示',
+        {
+          confirmButtonText: '我知道了',
+          cancelButtonText: '不再提示',
+          type: 'warning',
+          showCancelButton: true,
+          cancelButtonClass: 'el-button--info',
+          confirmButtonClass: 'el-button--warning'
+        }
+      )
+        .catch(() => {
+          localStorage.setItem('notHttpsTips', 'true')
+        })
+        .finally(async () => {
+          $router.push('/')
+        })
     } finally {
       loading.value = false
     }
@@ -177,6 +199,11 @@ onMounted(async () => {
       margin: 25px;
       color: #409eff;
       font-size: 25px;
+      background: linear-gradient(to right, #ffc021, #e4d1a1);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 600;
     }
 
     .footer_btns {
