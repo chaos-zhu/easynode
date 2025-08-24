@@ -9,8 +9,15 @@
 * 日志打印优化
 * rdp
 * 探针接入
+* 通知模块重构，支持webhook
+* 支持csv模板特定格式导入
 
-## [3.4.0](https://github.com/chaos-zhu/easynode/releases) (2025-08-04)
+## [3.4.2](https://github.com/chaos-zhu/easynode/releases) (2025-08-24)
+* 🔒鉴权增强
+* SFTP连接优化、支持搜索文件(夹)、新建文件(夹)功能名称缓存建议
+* 实例列表出现滚动条时出现回到顶部按钮
+
+## [3.4.0](https://github.com/chaos-zhu/easynode/releases) (2025-08-09)
 * 🎉新增文件对传功能
 * SFTP面板支持手动断开重连
 * SFTP loading ui修复
