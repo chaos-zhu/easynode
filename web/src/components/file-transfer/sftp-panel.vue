@@ -50,11 +50,12 @@
       <template v-if="selectedServerId">
         <!-- SFTP组件总是渲染，但可能被遮罩层覆盖 -->
         <div class="sftp_wrapper" :class="{ 'is-loading': connectionStatus !== 'connected' }">
-          <sftp-v2
+          <SftpV2
             ref="sftpRef"
             :key="selectedServerId"
             :host-id="selectedServerId"
             :show-cd-command="false"
+            :init-connect="true"
             @exec-script="$emit('exec-script', $event)"
           />
         </div>

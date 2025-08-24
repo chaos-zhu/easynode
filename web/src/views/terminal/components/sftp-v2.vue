@@ -120,6 +120,14 @@
           />
         </template>
         <el-icon class="action_icon" title="编辑路径" @click="toggleEditPath"><Edit /></el-icon>
+        <el-icon
+          ref="searchPopoverRef"
+          class="action_icon"
+          title="搜索"
+          @click="search"
+        >
+          <Search />
+        </el-icon>
         <el-icon class="action_icon" title="复制当前路径" @click="copyCurrentPath"><DocumentCopy /></el-icon>
         <el-icon class="action_icon" title="刷新" @click="refresh"><Refresh /></el-icon>
         <el-icon class="action_icon" :title="showHidden ? '隐藏隐藏文件' : '显示隐藏文件'" @click="toggleHidden">
@@ -220,17 +228,61 @@
         popper-class="sftp_create_popover"
       >
         <template #default>
-          <el-input
-            ref="createInputRef"
-            v-model="createName"
-            size="small"
-            :placeholder="createType === 'folder' ? '输入文件夹名称' : '输入文件名称'"
-            @keyup.enter="confirmCreate"
-          />
-          <div class="sftp_popover_actions">
-            <el-button size="small" @click="showCreatePopover = false">取消</el-button>
-            <el-button size="small" type="primary" @click="confirmCreate">确认</el-button>
+          <div class="custom_suggest_autocomplete">
+            <div style="display: flex; align-items: center;">
+              <el-input
+                ref="createInputRef"
+                v-model.trim="createName"
+                size="small"
+                :placeholder="createType === 'folder' ? '输入文件夹名称' : '输入文件名称'"
+                clearable
+                @keyup.enter="confirmCreate"
+                @input="handleInputChange"
+                @focus="handleInputFocus"
+              />
+              <el-button
+                size="small"
+                type="primary"
+                style="margin-left: 10px;"
+                @click="confirmCreate"
+              >
+                确认
+              </el-button>
+            </div>
+            <div v-if="showSuggestions && filteredSuggestions.length > 0" class="suggestions_dropdown">
+              <div
+                v-for="(item, index) in filteredSuggestions"
+                :key="index"
+                class="suggestion_item"
+                @click="selectSuggestion(item)"
+              >
+                {{ item }}
+              </div>
+            </div>
           </div>
+        </template>
+      </el-popover>
+
+      <!-- 搜索 Popover -->
+      <el-popover
+        v-model:visible="showSearchPopover"
+        :virtual-ref="searchPopoverRef"
+        width="300"
+        trigger="manual"
+        placement="left"
+      >
+        <template #default>
+          <el-input
+            ref="searchInputRef"
+            v-model.trim="searchKeyword"
+            size="small"
+            placeholder="输入文件名进行过滤..."
+            clearable
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
         </template>
       </el-popover>
 
@@ -537,7 +589,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, getCurrentInstance, nextTick } from 'vue'
-import { ArrowDown, ArrowLeft, Refresh, View, Hide, Edit, ArrowRight, HomeFilled, Check, Close as CloseIcon, Download, Upload, DocumentCopy, Loading, WarningFilled, Star, StarFilled, Delete, SwitchButton } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowLeft, Refresh, View, Hide, Edit, Search, ArrowRight, HomeFilled, Check, Close as CloseIcon, Download, Upload, DocumentCopy, Loading, WarningFilled, Star, StarFilled, Delete, SwitchButton } from '@element-plus/icons-vue'
 import { generateSocketInstance } from '@/utils'
 import dirIcon from '@/assets/image/system/dir.png'
 import linkIcon from '@/assets/image/system/link.png'
@@ -557,6 +609,10 @@ const props = defineProps({
   showCdCommand: {
     type: Boolean,
     default: true
+  },
+  initConnect: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -599,7 +655,14 @@ function getRank(item) {
 }
 
 const fileList = computed(() => {
-  const base = showHidden.value ? fileListRaw.value.slice() : fileListRaw.value.filter(it => !it.name.startsWith('.'))
+  let base = showHidden.value ? fileListRaw.value.slice() : fileListRaw.value.filter(it => !it.name.startsWith('.'))
+
+  // 应用搜索过滤
+  if (searchKeyword.value.trim()) {
+    const keyword = searchKeyword.value.trim().toLowerCase()
+    base = base.filter(item => item.name.toLowerCase().includes(keyword))
+  }
+
   return base.sort((a, b) => {
     const r = getRank(a) - getRank(b)
     if (r !== 0) return r
@@ -683,13 +746,6 @@ const failedUploadTasks = computed(() => {
 // 计算属性：是否有收藏
 const hasFavorites = computed(() => favoriteList.value.length > 0)
 
-//----------------------------------
-// 初始化
-//----------------------------------
-onMounted(() => {
-  connectSftp()
-})
-
 onUnmounted(() => {
   if (socket.value) {
     socket.value.removeAllListeners()
@@ -699,6 +755,86 @@ onUnmounted(() => {
   // 清空路径状态
   previousPath.value = ''
   pendingPath.value = ''
+})
+
+const defaultFiles = [
+  'docker-compose.yml',
+  'Dockerfile',
+  '.env',
+  'k8s-deployment.yaml',
+  'config.json',
+  'config.yaml',
+  'authorized_keys',
+  'access.log',
+  'error.log',
+  'shell.sh',
+  'README.md',
+  'LICENSE',
+  'notes.txt',
+]
+const suggestionCacheFiles = JSON.parse(localStorage.getItem('sftp_create_file_cache') ?? '[]')
+const suggestionFiles = ref([...new Set([...suggestionCacheFiles, ...defaultFiles,]),])
+
+const defaultFolders = [
+  'easynode',
+  'docker',
+  'k8s',
+  'nginx',
+  'mysql',
+  'redis',
+  'kafka',
+]
+const suggestionCacheFolders = JSON.parse(localStorage.getItem('sftp_create_folder_cache') ?? '[]')
+const suggestionFolders = ref([...new Set([...suggestionCacheFolders, ...defaultFolders,]),])
+
+// 自定义建议功能
+const showSuggestions = ref(false)
+const filteredSuggestions = ref([])
+
+const handleInputChange = (value) => {
+  if (createType.value === 'folder') {
+    filteredSuggestions.value = suggestionFolders.value.filter(item =>
+      item.toLowerCase().includes(value.toLowerCase())
+    )
+  } else {
+    filteredSuggestions.value = suggestionFiles.value.filter(item =>
+      item.toLowerCase().includes(value.toLowerCase())
+    )
+  }
+  showSuggestions.value = filteredSuggestions.value.length > 0
+}
+
+const handleInputFocus = () => {
+  if (createName.value) {
+    handleInputChange(createName.value)
+  } else {
+    filteredSuggestions.value = createType.value === 'folder' ? suggestionFolders.value : suggestionFiles.value
+  }
+  showSuggestions.value = true
+}
+
+const selectSuggestion = (item) => {
+  createName.value = item
+  showSuggestions.value = false
+  nextTick(() => {
+    createInputRef.value?.focus()
+  })
+}
+
+// 监听点击外部关闭建议
+const handleClickOutside = (event) => {
+  const customAutocomplete = event.target.closest('.custom_suggest_autocomplete')
+  if (!customAutocomplete) {
+    showSuggestions.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 
 //----------------------------------
@@ -817,7 +953,29 @@ const connectSftp = () => {
     socket.value.on('create_success', (msg) => {
       $message.success(msg || '创建成功')
       loading.value = false
-      refresh()
+
+      // 如果创建的是文件夹，自动进入该文件夹
+      if (createType.value === 'folder' && createName.value.trim()) {
+        const newFolderName = createName.value.trim()
+        let newPath
+        const currentPathValue = currentPath.value
+
+        if (currentPathValue === '/') {
+          newPath = `/${ newFolderName }`
+        } else if (currentPathValue === '~') {
+          newPath = `~/${ newFolderName }`
+        } else if (currentPathValue.endsWith('/')) {
+          newPath = `${ currentPathValue }${ newFolderName }`
+        } else {
+          newPath = `${ currentPathValue }/${ newFolderName }`
+        }
+        // 清理可能存在的多余斜杠
+        newPath = newPath.replace(/\/+/g, '/')
+        switchToPath(newPath, true)
+      } else {
+        // 如果不是文件夹或者没有文件夹名称，只刷新当前目录
+        refresh()
+      }
     })
 
     socket.value.on('create_fail', (msg) => {
@@ -1126,6 +1284,23 @@ const disconnectSftp = () => {
   pendingPath.value = ''
 }
 
+// 初始化连接(sftp面板展示且未连接时)
+const initConnect = computed(() => props.initConnect)
+watch(initConnect, (val) => {
+  if (val && !socket.value) {
+    connectSftp()
+  }
+}, {
+  immediate: true
+})
+
+//----------------------------------
+// 初始化
+//----------------------------------
+// onMounted(() => {
+//   connectSftp()
+// })
+
 // 切换连接状态
 const toggleConnection = () => {
   if (connectionStatus.value === 'connected') {
@@ -1152,6 +1327,9 @@ const switchToPath = (newPath, tips = true) => {
   // 发送路径切换请求
   socket.value.emit('open_dir', newPath, tips)
   loading.value = true
+
+  // 切换目录,清空过滤条件
+  searchKeyword.value = ''
 }
 
 //----------------------------------
@@ -1283,6 +1461,19 @@ const toggleEditPath = () => {
   })
 }
 
+// 搜索功能相关
+const showSearchPopover = ref(false)
+const searchKeyword = ref('')
+const searchInputRef = ref(null)
+const searchPopoverRef = ref(null)
+
+const search = () => {
+  showSearchPopover.value = true
+  setTimeout(() => {
+    searchInputRef.value?.focus()
+  }, 100)
+}
+
 const confirmPathInput = () => {
   if (!pathInput.value) return
   isEditingPath.value = false
@@ -1319,9 +1510,7 @@ const handleNew = (type) => {
 
   // 等待 Popover 完全显示后再聚焦
   setTimeout(() => {
-    if (createInputRef.value) {
-      createInputRef.value.focus()
-    }
+    createInputRef.value?.focus()
   }, 100)
 }
 
@@ -1337,6 +1526,14 @@ const confirmCreate = () => {
     name: createName.value.trim(),
     type: createType.value // 'folder' or 'file'
   })
+
+  if (createType.value === 'folder') {
+    suggestionFolders.value.unshift(createName.value.trim())
+    localStorage.setItem('sftp_create_folder_cache', JSON.stringify(suggestionFolders.value))
+  } else {
+    suggestionFiles.value.unshift(createName.value.trim())
+    localStorage.setItem('sftp_create_file_cache', JSON.stringify(suggestionFiles.value))
+  }
 }
 
 //----------------------------------
@@ -2697,4 +2894,43 @@ defineExpose({
     line-height: 1.5;
   }
 }
+
+/* 自定义建议下拉菜单样式 */
+.custom_suggest_autocomplete {
+  position: relative;
+
+  .suggestions_dropdown {
+    width: 80%;
+    position: absolute;
+    top: 130%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 4px;
+    box-shadow: var(--el-box-shadow-light);
+    z-index: 9999;
+
+    .suggestion_item {
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      word-break: break-all;
+
+      &:hover {
+        background-color: var(--el-color-primary-light-9);
+      }
+
+      &:not(:last-child) {
+        border-bottom: 1px solid var(--el-border-color-lighter);
+      }
+    }
+  }
+}
+
 </style>

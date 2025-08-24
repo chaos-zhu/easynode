@@ -335,12 +335,14 @@
               class="mobile_menu_drawer"
             >
               <SftpV2
+                :init-connect="showSftpSide"
                 :host-id="item.id"
                 @exec-script="handleExecScript"
               />
             </el-drawer>
             <div v-else :class="['tab_content_main_sftp', { 'show_sftp': showSftpSide }]">
               <SftpV2
+                :init-connect="showSftpSide"
                 :host-id="item.id"
                 @exec-script="handleExecScript"
               />
