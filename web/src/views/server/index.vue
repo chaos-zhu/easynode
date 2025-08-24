@@ -51,6 +51,17 @@
           />
         </el-collapse-item>
       </el-collapse>
+
+      <!-- 滚动到顶部按钮 -->
+      <Transition name="scroll-to-top">
+        <div
+          v-show="showScrollToTop"
+          class="scroll-to-top-btn"
+          @click="scrollToTop"
+        >
+          <el-icon><ArrowUp /></el-icon>
+        </div>
+      </Transition>
     </div>
     <HostForm
       v-model:show="hostFormVisible"
@@ -94,13 +105,13 @@
 </template>
 
 <script setup>
-import { h, ref, getCurrentInstance, computed, watch } from 'vue'
+import { h, ref, getCurrentInstance, computed, watch, onMounted, onUnmounted } from 'vue'
 // import HostCard from './components/host-card.vue'
 import HostTable from './components/host-table.vue'
 import HostForm from './components/host-form.vue'
 import ImportHost from './components/import-host.vue'
 import GroupDialog from './components/group.vue'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 import { exportFile } from '@/utils'
 
 const { proxy: { $api, $store, $router, $message, $messageBox, $tools } } = getCurrentInstance()
@@ -116,6 +127,10 @@ const groupDialogVisible = ref(false)
 
 // 列设置相关
 const columnSettingsVisible = ref(false)
+
+// 滚动到顶部相关
+const showScrollToTop = ref(false)
+const scrollContainer = ref(null)
 
 // 列配置定义
 const columnConfig = {
@@ -282,10 +297,45 @@ const hostFormClosed = () => {
   hostTableRefs.value.forEach(item => item.clearSelection())
 }
 
+// 滚动监听处理
+const handleScroll = () => {
+  if (scrollContainer.value) {
+    const scrollTop = scrollContainer.value.scrollTop
+    showScrollToTop.value = scrollTop > 100
+  }
+}
+
+// 滚动到顶部
+const scrollToTop = () => {
+  if (scrollContainer.value) {
+    scrollContainer.value.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  }
+}
+
+// 组件挂载时添加滚动监听
+onMounted(() => {
+  const container = document.querySelector('.server_group_collapse')
+  if (container) {
+    scrollContainer.value = container
+    container.addEventListener('scroll', handleScroll)
+  }
+})
+
+// 组件卸载时移除滚动监听
+onUnmounted(() => {
+  if (scrollContainer.value) {
+    scrollContainer.value.removeEventListener('scroll', handleScroll)
+  }
+})
+
 </script>
 
 <style lang="scss" scoped>
 .server_group_container {
+  height: 100%;
   .server_group_header {
     padding: 10px;
     display: flex;
@@ -321,6 +371,9 @@ const hostFormClosed = () => {
   }
 
   .server_group_collapse {
+    position: relative;
+    height: calc(100% - 55px);
+    overflow-y: auto;
     :deep(.el-card__body) {
       padding: 0;
     }
@@ -339,6 +392,34 @@ const hostFormClosed = () => {
       font-size: var(--el-font-size-base);
       margin: 0 25px;
     }
+
+    .scroll-to-top-btn {
+      position: fixed;
+      right: 15px;
+      bottom: 10px;
+      width: 40px;
+      height: 40px;
+      background: var(--el-color-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: var(--el-color-primary-light-3);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
+      }
+
+      .el-icon {
+        color: white;
+        font-size: 18px;
+      }
+    }
   }
 }
 
@@ -355,5 +436,17 @@ const hostFormClosed = () => {
 .dialog-footer {
   display: flex;
   justify-content: space-between;
+}
+
+// 滚动到顶部按钮的过渡动画
+.scroll-to-top-enter-active,
+.scroll-to-top-leave-active {
+  transition: all 0.3s ease;
+}
+
+.scroll-to-top-enter-from,
+.scroll-to-top-leave-to {
+  opacity: 0;
+  transform: translateY(20px) scale(0.8);
 }
 </style>
