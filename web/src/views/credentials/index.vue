@@ -258,7 +258,7 @@ const handleDecryptKey = async () => {
 .credentials_container {
   padding: 0 20px 20px 20px;
   .header {
-    padding: 15px;
+    padding: 10px;
     display: flex;
     align-items: center;
     justify-content: end;

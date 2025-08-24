@@ -287,7 +287,7 @@ const hostFormClosed = () => {
 <style lang="scss" scoped>
 .server_group_container {
   .server_group_header {
-    padding: 15px;
+    padding: 10px;
     display: flex;
     align-items: center;
     gap: 12px;

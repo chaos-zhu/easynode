@@ -244,7 +244,7 @@ const handleEditSuccess = () => {
 .scripts_container {
   padding: 0 20px 20px 20px;
   .header {
-    padding: 15px;
+    padding: 10px;
     display: flex;
     align-items: center;
     justify-content: end;
@@ -257,9 +257,6 @@ const handleEditSuccess = () => {
     }
   }
 
-  .script-tabs {
-    margin-top: 20px;
-  }
 }
 
 .host_count {

@@ -141,7 +141,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['confirm', 'cancel'])
+const emit = defineEmits(['confirm', 'cancel',])
 
 const getMethodType = (method) => {
   return method === 'rsync' ? 'success' : 'primary'
@@ -153,7 +153,7 @@ const getFileName = (fullPath) => {
 
 const formatSize = (bytes) => {
   if (!bytes || bytes === 0) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const units = ['B', 'KB', 'MB', 'GB', 'TB',]
   let size = bytes
   let unitIndex = 0
 
@@ -162,7 +162,7 @@ const formatSize = (bytes) => {
     unitIndex++
   }
 
-  return `${size.toFixed(1)} ${units[unitIndex]}`
+  return `${ size.toFixed(1) } ${ units[unitIndex] }`
 }
 </script>
 

@@ -588,11 +588,11 @@ const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
 const hostGroupList = computed(() => $store.groupList)
 const hostList = computed(() => $store.hostList)
-const curHost = computed(() =>
-  hostList.value.find(
-    (item) => item.host === terminalTabs.value[activeTabIndex.value]?.host
-  )
-)
+// const curHost = computed(() =>
+//   hostList.value.find(
+//     (item) => item.host === terminalTabs.value[activeTabIndex.value]?.host
+//   )
+// )
 const scriptGroupList = computed(() => $store.scriptGroupList)
 const scriptList = computed(() => $store.scriptList)
 const scriptLibrary = computed(() => $store.menuSetting.scriptLibrary)
