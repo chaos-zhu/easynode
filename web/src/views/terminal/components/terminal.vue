@@ -184,7 +184,7 @@ const connectIO = () => {
     socket.value.emit('get_ping', host.value) // 获取服务端到客户端的ping值
     socket.value.on('ping_data', (pingMs) => {
       const time = Number(pingMs?.time)?.toFixed(0) || 0
-      emit('ping-data', { host: host.value, time })
+      emit('ping-data', { host: host.value, time: Number.isNaN(time) ? '--' : time })
     })
 
     socket.value.on('user_verify_fail', () => {
