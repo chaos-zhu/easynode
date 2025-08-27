@@ -38,8 +38,6 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
   <a href="#常见问题">常见问题</a>
 </p>
 
-[![RGzTVT3xClmBXFAzfg2dRYnbc9TjiXct.webp](https://cdn.nodeimage.com/i/RGzTVT3xClmBXFAzfg2dRYnbc9TjiXct.webp)](https://www.thordata.com/?ls=github&lk=EasyNode)
-
 ## 功能
 
 + [x] 功能完善的**SSH终端**&**SFTP**
@@ -119,5 +117,6 @@ CDN acceleration and security protection for this project are sponsored by Tence
 ![Image](https://github.com/user-attachments/assets/a50409e4-9394-4a59-a125-18ffe64c5fb0)
 
 [![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
+
 
 
