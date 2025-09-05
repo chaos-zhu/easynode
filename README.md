@@ -110,14 +110,11 @@ webssh与监控服务都将以`该服务器作为中转`。中国大陆用户建
 CDN acceleration and security protection for this project are sponsored by Tencent EdgeOne: EdgeOne offers a long-term free plan with unlimited traffic and requests, covering Mainland China nodes, with no overage charges. Interested friends can click the link below to claim it. [Best Asian CDN, Edge, and Secure Solutions - Tencent EdgeOne](https://edgeone.ai/zh?from=github)
 [![EdgeOne Logo](https://edgeone.ai/media/34fe3a45-492d-4ea4-ae5d-ea1087ca7b4b.png)](https://edgeone.ai/?from=github)
 
-[![image](https://img.shields.io/badge/NodeSupport-YXVM-red)](https://yxvm.com/)
-
-[![image](https://img.shields.io/badge/VPS-ZMTO-red)](https://zmto.com/)
-
-![Image](https://github.com/user-attachments/assets/a50409e4-9394-4a59-a125-18ffe64c5fb0)
-
 [![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
 
 
+[![image](https://img.shields.io/badge/NodeSupport-YXVM-red)](https://yxvm.com/)
+
+![Image](https://github.com/user-attachments/assets/a50409e4-9394-4a59-a125-18ffe64c5fb0)
 
 
