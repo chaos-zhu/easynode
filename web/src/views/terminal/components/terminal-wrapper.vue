@@ -73,14 +73,33 @@
           trigger="click"
           :teleported="isMobileScreen"
         >
+          <span class="link_text">终端设置<el-icon class="link_icon"><arrow-down /></el-icon></span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="showSetting = true">
+                <span>基础设置</span>
+              </el-dropdown-item>
+              <el-dropdown-item @click="showHighlightSettings = true">
+                <span>高亮设置</span>
+              </el-dropdown-item>
+              <el-dropdown-item @click="showOtherSettings = true">
+                <span>其他设置</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-dropdown
+          trigger="click"
+          :teleported="isMobileScreen"
+        >
           <span class="link_text">功能项<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="handleFullScreen">
                 <span>全屏</span>
               </el-dropdown-item>
-              <el-dropdown-item @click="showSetting = true">
-                <span>本地设置</span>
+              <el-dropdown-item @click="showMenuOptions = true">
+                <span>菜单选项</span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -95,7 +114,7 @@
           >
             <el-switch
               v-model="isSyncAllSession"
-              class="swtich"
+              class="switch"
               inline-prompt
               style="
                 --el-switch-on-color: #13ce66;
@@ -114,7 +133,7 @@
           >
             <el-switch
               v-model="showFooterBar"
-              class="swtich"
+              class="switch"
               inline-prompt
               style="
                 --el-switch-on-color: #13ce66;
@@ -134,7 +153,7 @@
           >
             <el-switch
               v-model="isSingleWindowMode"
-              class="swtich"
+              class="switch"
               inline-prompt
               style="
                 --el-switch-on-color: #409eff;
@@ -340,7 +359,19 @@
                 @exec-script="handleExecScript"
               />
             </el-drawer>
-            <div v-else :class="['tab_content_main_sftp', { 'show_sftp': showSftpSide }]">
+            <div
+              v-else
+              :class="['tab_content_main_sftp', { 'show_sftp': showSftpSide }]"
+              :style="showSftpSide ? { width: sftpWidth + 'px', minWidth: sftpWidth + 'px', maxWidth: sftpWidth + 'px' } : {}"
+            >
+              <!-- 拖拽调整条 -->
+              <div
+                v-if="showSftpSide"
+                class="sftp_resize_handle"
+                @mousedown="startResizeSftp"
+              >
+                <div class="sftp_resize_handle_line" />
+              </div>
               <SftpV2
                 :init-connect="showSftpSide"
                 :host-id="item.id"
@@ -382,6 +413,9 @@
     />
 
     <TerminalSetting v-model:show="showSetting" />
+    <TerminalHighlightSettings v-model:show="showHighlightSettings" />
+    <OtherSettings v-model:show="showOtherSettings" />
+    <MenuOptions v-model:show="showMenuOptions" />
   </div>
 </template>
 
@@ -403,6 +437,9 @@ import Terminal from './terminal.vue'
 import ServerStatus from './server-status.vue'
 import HostForm from '../../server/components/host-form.vue'
 import TerminalSetting from './terminal-setting.vue'
+import TerminalHighlightSettings from './terminal-highlight-settings.vue'
+import OtherSettings from './other-settings.vue'
+import MenuOptions from './menu-options.vue'
 import FooterBar from './footer-bar.vue'
 import SftpV2 from './sftp-v2.vue'
 import TerminalSingleWindow from './terminal-single-window.vue'
@@ -438,10 +475,14 @@ watch(layoutMode, (newMode) => {
 const hostFormVisible = ref(false)
 const updateHostData = ref(null)
 const showSetting = ref(false)
+const showHighlightSettings = ref(false)
+const showOtherSettings = ref(false)
+const showMenuOptions = ref(false)
 const showInfoSide = ref(isMobileScreen.value ? false : localStorage.getItem('showInfoSide') !== 'false')
 const showSftpSide = ref(isMobileScreen.value ? false : localStorage.getItem('showSftpSide') !== 'false')
 const showFooterBar = ref(localStorage.getItem('showFooterBar') === 'true')
 const footerBarHeight = ref(parseInt(localStorage.getItem('footerBarHeight')) || 250)
+const sftpWidth = ref(parseInt(localStorage.getItem(SFTP_WIDTH_KEY)) || 450)
 const longPressCtrl = ref(false)
 const longPressAlt = ref(false)
 const scriptDropdownRef = ref(null)
@@ -550,6 +591,44 @@ const handleFooterBarHeightChange = (height) => {
   debouncedSaveToStorage(height)
 
   // 防抖触发终端尺寸重计算
+  debouncedResizeTerminal()
+}
+
+// SFTP宽度调整相关
+const SFTP_WIDTH_KEY = 'easynode_sftp_width'
+const isResizingSftp = ref(false)
+const startX = ref(0)
+const startWidth = ref(0)
+
+const startResizeSftp = (e) => {
+  isResizingSftp.value = true
+  startX.value = e.clientX
+  startWidth.value = sftpWidth.value
+
+  document.addEventListener('mousemove', handleResizeSftp)
+  document.addEventListener('mouseup', stopResizeSftp)
+  document.body.style.cursor = 'ew-resize'
+  document.body.style.userSelect = 'none'
+  e.preventDefault()
+}
+
+const handleResizeSftp = (e) => {
+  if (!isResizingSftp.value) return
+
+  const deltaX = startX.value - e.clientX // 向左拖拽为正值（增大宽度）
+  const newWidth = Math.max(200, Math.min(800, startWidth.value + deltaX)) // 最小200px，最大800px
+
+  sftpWidth.value = newWidth
+}
+
+const stopResizeSftp = () => {
+  isResizingSftp.value = false
+  document.removeEventListener('mousemove', handleResizeSftp)
+  document.removeEventListener('mouseup', stopResizeSftp)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  // 保存宽度到 localStorage
+  localStorage.setItem(SFTP_WIDTH_KEY, sftpWidth.value.toString())
   debouncedResizeTerminal()
 }
 
@@ -714,28 +793,32 @@ const handleLinkHost = (hostDescObj) => {
 const handleExecScript = async (scriptDescObj) => {
   if (!scriptDescObj) return // clearCheckedNodes二次触发change事件
   let command = ''
+  let useBase64 = false
+
   const id = Array.isArray(scriptDescObj) ? scriptDescObj.slice(-1)[0] : scriptDescObj?.id
   if (id) {
     const script = scriptList.value.find((item) => item.id === id)
     command = script?.command
+    useBase64 = script?.useBase64 || false // 读取脚本的base64配置
   } else {
     command = scriptDescObj
+    useBase64 = false // 外部传入的命令默认不用base64
   }
   if (!command) return $message.warning('未找到对应的脚本')
 
   if (!isSyncAllSession.value) {
     // 不同步时，使用 handleInputCommand（会处理分屏同步）
-    await handleInputCommand(command, 'script')
+    await handleInputCommand(command, 'script', useBase64)
   } else {
     // 同步输入到所有终端
     if (isSingleWindowMode.value) {
       // 单窗口模式：inputCommand 方法内部会处理同步逻辑
       await $nextTick()
-      singleWindowRef.value?.inputCommandToTerminal(command, 'script')
+      singleWindowRef.value?.inputCommandToTerminal(command, 'script', useBase64)
     } else {
       // 多窗口模式：遍历所有终端引用
       terminalRefs.value.forEach((terminalRef) => {
-        terminalRef.inputCommand(command, 'script')
+        terminalRef.inputCommand(command, 'script', useBase64)
       })
     }
   }
@@ -874,11 +957,11 @@ const resizeTerminal = () => {
   }
 }
 
-const handleInputCommand = async (command, type = 'input') => {
+const handleInputCommand = async (command, type = 'input', useBase64 = false) => {
   if (isSingleWindowMode.value) {
     // 单窗口模式下，使用 singleWindowRef 来执行命令
     await $nextTick()
-    singleWindowRef.value?.inputCommandToTerminal(command, type)
+    singleWindowRef.value?.inputCommandToTerminal(command, type, useBase64)
   } else {
     // 多窗口模式下，优先使用当前聚焦的终端
     let targetTerminalRef = null
@@ -895,7 +978,7 @@ const handleInputCommand = async (command, type = 'input') => {
 
     await $nextTick()
     targetTerminalRef?.focusTab()
-    targetTerminalRef?.inputCommand(command, type)
+    targetTerminalRef?.inputCommand(command, type, useBase64)
 
     // 处理分屏同步逻辑
     const curTabKey = getTabKeyByIndex(activeTabIndex.value)
@@ -908,7 +991,7 @@ const handleInputCommand = async (command, type = 'input') => {
 
       tabTerminalRefs.forEach((terminalRef) => {
         if (terminalRef?.$?.uid !== targetUid) {
-          terminalRef.inputCommand(command, type)
+          terminalRef.inputCommand(command, type, useBase64)
         }
       })
     }
@@ -967,6 +1050,8 @@ onMounted(() => {
 })
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', fullScreenCb)
+  document.removeEventListener('mousemove', handleResizeSftp)
+  document.removeEventListener('mouseup', stopResizeSftp)
 })
 </script>
 
@@ -1208,12 +1293,36 @@ onUnmounted(() => {
           overflow: hidden;
           transition: all 0.2s;
           flex-shrink: 0;
+          position: relative;
           &.show_sftp {
-            width: 450px;
-            min-width: 450px;
-            max-width: 450px;
             overflow-y: auto;
             overflow-x: hidden;
+          }
+
+          .sftp_resize_handle {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            cursor: ew-resize;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &:hover .sftp_resize_handle_line {
+              opacity: 1;
+            }
+
+            .sftp_resize_handle_line {
+              width: 2px;
+              height: 40px;
+              background: var(--el-color-primary);
+              border-radius: 1px;
+              opacity: 0;
+              transition: opacity 0.2s;
+            }
           }
         }
       }
