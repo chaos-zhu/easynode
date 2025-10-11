@@ -13,7 +13,8 @@ const DEFAULT_TERMINAL_CONFIG = {
   highlightDebugMode: false,
   customHighlightRules: null, // null表示使用默认规则
   autoExecuteScript: false, // 脚本执行模式
-  autoReconnect: false // 自动重连
+  autoReconnect: false, // 自动重连
+  autoShowContextMenu: true // 选中文本后自动显示右键菜单
 }
 
 const terminalConfigDB = new TerminalConfigDB().getInstance()

@@ -177,7 +177,8 @@ const useStore = defineStore('global', {
           highlightDebugMode: false,
           customHighlightRules: null,
           autoExecuteScript: false,
-          autoReconnect: false
+          autoReconnect: false,
+          autoShowContextMenu: true
         } })
       }
     },

@@ -36,7 +36,16 @@ export function useContextMenu() {
     contextMenuApp.use(ElementPlus)
 
     const container = document.createElement('div')
-    document.body.appendChild(container)
+
+    // 检测全屏状态，决定挂载位置
+    const fullscreenElement = document.fullscreenElement
+    if (fullscreenElement) {
+      // 在全屏模式下，挂载到全屏元素中
+      fullscreenElement.appendChild(container)
+    } else {
+      // 非全屏模式，挂载到body
+      document.body.appendChild(container)
+    }
 
     contextMenuInstance = contextMenuApp.mount(container)
     menuRef.value = contextMenuInstance
@@ -75,8 +84,10 @@ export function useContextMenu() {
         if (contextMenuInstance && contextMenuInstance._container) {
           try {
             contextMenuApp?.unmount()
-            if (document.body.contains(contextMenuInstance._container)) {
-              document.body.removeChild(contextMenuInstance._container)
+            // 检查容器的父元素，从正确的父元素中移除
+            const container = contextMenuInstance._container
+            if (container && container.parentNode) {
+              container.parentNode.removeChild(container)
             }
           } catch (error) {
             console.warn('清理菜单时出错:', error)
@@ -103,8 +114,10 @@ export function useContextMenu() {
 
       try {
         contextMenuApp?.unmount()
-        if (document.body.contains(contextMenuInstance._container)) {
-          document.body.removeChild(contextMenuInstance._container)
+        // 检查容器的父元素，从正确的父元素中移除
+        const container = contextMenuInstance._container
+        if (container && container.parentNode) {
+          container.parentNode.removeChild(container)
         }
       } catch (error) {
         console.warn('同步清理菜单时出错:', error)

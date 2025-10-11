@@ -92,6 +92,7 @@ const autoReconnect = computed(() => $store.terminalConfig.autoReconnect)
 const keywordHighlight = computed(() => $store.terminalConfig.keywordHighlight)
 const customHighlightRules = computed(() => $store.terminalConfig.customHighlightRules)
 const highlightDebugMode = computed(() => $store.terminalConfig.highlightDebugMode)
+const autoShowContextMenu = computed(() => $store.terminalConfig.autoShowContextMenu)
 const isPlusActive = computed(() => $store.isPlusActive)
 const isLongPressCtrl = computed(() => props.longPressCtrl)
 const isLongPressAlt = computed(() => props.longPressAlt)
@@ -546,7 +547,10 @@ const handleMouseUp = async (e) => {
   if (e.button === 0) {
     let str = term.value.getSelection().trim()
     if (!str) return closeMenu()
-    handleRightClick(e)
+    // 根据配置决定是否自动显示右键菜单
+    if (autoShowContextMenu.value) {
+      handleRightClick(e)
+    }
   }
 }
 

@@ -47,6 +47,22 @@
           />
         </el-tooltip>
       </el-form-item>
+      <el-form-item label="右键菜单" prop="autoShowContextMenu">
+        <el-tooltip
+          effect="dark"
+          content="启用后选中文本时自动弹出右键菜单"
+          placement="right"
+        >
+          <el-switch
+            v-model="autoShowContextMenu"
+            class="switch"
+            inline-prompt
+            style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+            active-text="自动"
+            inactive-text="手动"
+          />
+        </el-tooltip>
+      </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog_footer">
@@ -86,6 +102,11 @@ const autoReconnect = computed({
 const autoExecuteScript = computed({
   get: () => $store.terminalConfig.autoExecuteScript,
   set: (newVal) => $store.setTerminalSetting({ autoExecuteScript: newVal })
+})
+
+const autoShowContextMenu = computed({
+  get: () => $store.terminalConfig.autoShowContextMenu,
+  set: (newVal) => $store.setTerminalSetting({ autoShowContextMenu: newVal })
 })
 
 const isPlusActive = computed(() => $store.isPlusActive)
