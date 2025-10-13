@@ -20,24 +20,14 @@ const DEFAULT_TERMINAL_CONFIG = {
 const terminalConfigDB = new TerminalConfigDB().getInstance()
 
 // 获取用户的终端配置
-async function getTerminalConfig(ctx) {
-  const { uid } = ctx.request.query
-
-  if (!uid || typeof uid !== 'string' || uid.trim() === '') {
-    ctx.body = { success: false, message: '无效的uid参数' }
-    return
-  }
-
+async function getTerminalConfig({ res }) {
   try {
     // 查找用户配置
-    let userConfig = await terminalConfigDB.findOneAsync({ uid, isDefault: { $ne: true } })
+    let userConfig = await terminalConfigDB.findOneAsync({ isDefault: { $ne: true } })
 
     if (!userConfig) {
       // 如果没有用户配置，直接返回默认配置
-      userConfig = {
-        ...DEFAULT_TERMINAL_CONFIG,
-        uid
-      }
+      userConfig = DEFAULT_TERMINAL_CONFIG
     } else {
       // 合并默认配置和用户配置
       userConfig = {
@@ -46,28 +36,22 @@ async function getTerminalConfig(ctx) {
       }
     }
 
-    ctx.body = { success: true, data: userConfig }
+    res.success({ data: userConfig })
   } catch (error) {
     console.error('Error in getTerminalConfig:', error)
-    ctx.body = { success: false, message: '服务器内部错误，请稍后重试' }
+    res.fail({ msg: '服务器内部错误，请稍后重试' })
   }
 }
 
 // 保存用户的终端配置
-async function saveTerminalConfig(ctx) {
-  const { uid, isDefault, name, _id, createTime, ...configData } = ctx.request.body
-
-  if (!uid || typeof uid !== 'string' || uid.trim() === '') {
-    ctx.body = { success: false, message: '无效的uid参数' }
-    return
-  }
+async function saveTerminalConfig({ res, request }) {
+  const { isDefault, name, _id, createTime, ...configData } = request.body
 
   try {
-    const existingConfig = await terminalConfigDB.findOneAsync({ uid, isDefault: { $ne: true } })
+    const existingConfig = await terminalConfigDB.findOneAsync({ isDefault: { $ne: true } })
 
     const updateData = {
       ...configData,
-      uid,
       updateTime: new Date().toISOString()
     }
 
@@ -83,10 +67,10 @@ async function saveTerminalConfig(ctx) {
       await terminalConfigDB.insertAsync(updateData)
     }
 
-    ctx.body = { success: true, message: '配置保存成功' }
+    res.success({ msg: '配置保存成功' })
   } catch (error) {
     console.error('Error in saveTerminalConfig:', error)
-    ctx.body = { success: false, message: '服务器内部错误，请稍后重试' }
+    res.fail({ msg: '服务器内部错误，请稍后重试' })
   }
 }
 

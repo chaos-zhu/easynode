@@ -204,17 +204,6 @@ module.exports.FileTransferDB = class FileTransferDB {
   }
 }
 
-module.exports.HighlightConfigDB = class HighlightConfigDB {
-  constructor() {
-    if (!HighlightConfigDB.instance) {
-      HighlightConfigDB.instance = new Datastore({ filename: terminalConfigDBPath, autoload: true })
-    }
-  }
-  getInstance() {
-    return HighlightConfigDB.instance
-  }
-}
-
 module.exports.TerminalConfigDB = class TerminalConfigDB {
   constructor() {
     if (!TerminalConfigDB.instance) {

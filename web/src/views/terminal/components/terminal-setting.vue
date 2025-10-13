@@ -16,7 +16,7 @@
       :show-message="false"
     >
       <el-form-item label="终端主题" prop="theme">
-        <el-select v-model="theme" placeholder="" style="width: 100%;">
+        <el-select v-model="theme" placeholder="" style="width: 100%;" :teleported="false">
           <el-option
             v-for="(value, key) in themeList"
             :key="key"
@@ -26,7 +26,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="终端字体" prop="fontFamily">
-        <el-select v-model="fontFamily" placeholder="选择字体" style="width: 100%;">
+        <el-select v-model="fontFamily" placeholder="选择字体" style="width: 100%;" :teleported="false">
           <el-option
             v-for="font in commonFonts"
             :key="font.value"
@@ -47,6 +47,7 @@
             <el-color-picker
               v-model="customFontColor"
               show-alpha
+              :teleported="false"
               :predefine="predefineColors"
               @change="handleColorChange"
             />
@@ -62,6 +63,7 @@
             <el-color-picker
               v-model="customCursorColor"
               show-alpha
+              :teleported="false"
               :predefine="predefineColors"
               @change="handleCursorColorChange"
             />
@@ -74,6 +76,7 @@
             <el-color-picker
               v-model="selectionColor"
               show-alpha
+              :teleported="false"
               :predefine="predefineColors"
             />
           </div>

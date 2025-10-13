@@ -768,7 +768,7 @@ const inputCommand = (command, type = 'input', useBase64 = false) => {
       const encodedScript = btoa(String.fromCharCode(...utf8Bytes))
       command = `echo '${ encodedScript }' | base64 -d | bash${ autoExecuteScript.value ? '\n' : '' }`
     } else {
-      // 直接执行模式：根据配置添加换行符
+      // 直接发送模式：根据脚本执行模式添加换行符
       command = command + (autoExecuteScript.value ? '\n' : '')
     }
   }
@@ -788,7 +788,7 @@ const execExternalCommand = (command, useBase64 = false) => {
     const encodedScript = btoa(String.fromCharCode(...utf8Bytes))
     command = `echo '${ encodedScript }' | base64 -d | bash${ autoExecuteScript.value ? '\n' : '' }`
   } else {
-    // 直接执行模式：根据配置添加换行符
+    // 直接发送模式：根据脚本执行模式添加换行符
     command = command + (autoExecuteScript.value ? '\n' : '')
   }
 

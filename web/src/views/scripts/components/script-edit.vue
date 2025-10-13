@@ -68,10 +68,10 @@
           placeholder="shell script"
         />
       </el-form-item>
-      <el-form-item label="执行模式" prop="useBase64">
+      <el-form-item label="编码方式" prop="useBase64">
         <el-radio-group v-model="formData.useBase64">
           <el-radio :value="false">
-            <span>直接执行</span>
+            <span>直接发送</span>
             <el-tooltip placement="right">
               <template #content>
                 <div style="max-width: 300px;">
@@ -84,12 +84,12 @@
             </el-tooltip>
           </el-radio>
           <el-radio :value="true">
-            <span>Base64编码执行</span>
+            <span>Base64编码</span>
             <el-tooltip placement="right">
               <template #content>
                 <div style="max-width: 300px;">
                   适用于多行复杂脚本。<br>
-                  脚本通过Base64编码后执行，可以避免：<br>
+                  脚本通过Base64编码后发送，可以避免：<br>
                   • 特殊字符转义问题<br>
                   • heredoc标记冲突<br>
                   • 换行符兼容问题<br>

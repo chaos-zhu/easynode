@@ -1,11 +1,13 @@
 <template>
-  <el-dialog
-    v-model="dialogVisible"
-    title="编辑高亮规则"
-    width="900px"
-    :close-on-click-modal="false"
-    :before-close="handleBeforeClose"
-  >
+  <Teleport :to="teleportTarget">
+    <el-dialog
+      v-model="dialogVisible"
+      title="编辑高亮规则"
+      width="900px"
+      :append-to-body="false"
+      :close-on-click-modal="false"
+      :before-close="handleBeforeClose"
+    >
     <div class="rule-edit">
       <el-form
         ref="formRef"
@@ -30,6 +32,7 @@
               <el-color-picker
                 v-model="formData.displayColor"
                 size="small"
+                :teleported="false"
                 :predefine="getTextColorPredefines()"
                 @change="handleColorChange"
               />
@@ -40,6 +43,7 @@
                 v-model="formData.backgroundColor"
                 size="small"
                 show-alpha
+                :teleported="false"
                 :predefine="getBackgroundColorPredefines()"
                 @change="handleBackgroundColorChange"
               />
@@ -123,7 +127,8 @@
         <el-button type="primary" @click="handleSave">保存</el-button>
       </div>
     </template>
-  </el-dialog>
+    </el-dialog>
+  </Teleport>
 </template>
 
 <script setup>
@@ -131,6 +136,11 @@ import { ref, computed, watch, getCurrentInstance, nextTick } from 'vue'
 import { HIGHLIGHT_RULES, TerminalHighlighter } from '@/utils/highlighter'
 
 const { proxy: { $message, $messageBox } } = getCurrentInstance()
+
+// 全屏时teleport到fullscreenElement，否则teleport到body
+const teleportTarget = computed(() => {
+  return document.fullscreenElement || 'body'
+})
 
 // 检查颜色是否已被使用
 const isColorUsed = (color, rules, excludeKey = null) => {

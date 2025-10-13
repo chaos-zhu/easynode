@@ -789,20 +789,26 @@ const handleLinkHost = (hostDescObj) => {
   }, 100)
 }
 
-// scriptDescObj: 脚本库对象或脚本命令
+// scriptDescObj: 脚本库对象、脚本命令或者包含command和useBase64的对象
 const handleExecScript = async (scriptDescObj) => {
   if (!scriptDescObj) return // clearCheckedNodes二次触发change事件
   let command = ''
   let useBase64 = false
 
-  const id = Array.isArray(scriptDescObj) ? scriptDescObj.slice(-1)[0] : scriptDescObj?.id
-  if (id) {
-    const script = scriptList.value.find((item) => item.id === id)
-    command = script?.command
-    useBase64 = script?.useBase64 || false // 读取脚本的base64配置
+  // 处理从footerbar传来的对象格式{command,useBase64}
+  if (scriptDescObj.command !== undefined) {
+    command = scriptDescObj.command
+    useBase64 = scriptDescObj.useBase64 || false
   } else {
-    command = scriptDescObj
-    useBase64 = false // 外部传入的命令默认不用base64
+    const id = Array.isArray(scriptDescObj) ? scriptDescObj.slice(-1)[0] : scriptDescObj?.id
+    if (id) {
+      const script = scriptList.value.find((item) => item.id === id)
+      command = script?.command
+      useBase64 = script?.useBase64 || false // 读取脚本的base64配置
+    } else {
+      command = scriptDescObj
+      useBase64 = false // 外部传入的命令默认不用base64
+    }
   }
   if (!command) return $message.warning('未找到对应的脚本')
 

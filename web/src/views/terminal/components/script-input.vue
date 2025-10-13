@@ -92,6 +92,27 @@
           :rows="10"
           placeholder="请输入脚本内容..."
         />
+
+        <!-- 脚本编辑器中的脚本编码模式选项 -->
+        <div class="execution_mode_selector">
+          <el-tooltip placement="top">
+            <template #content>
+              <div style="max-width: 300px;">
+                <strong>直接发送：</strong>适用于单行简单脚本，内容直接发送到终端<br><br>
+                <strong>Base64编码：</strong>适用于多行复杂脚本，通过Base64编码后发送，可避免特殊字符转义、heredoc标记冲突等问题
+              </div>
+            </template>
+            <el-select
+              v-model="editorUseBase64"
+              size="small"
+              style="width: 100px;"
+              :teleported="false"
+            >
+              <el-option :value="false" label="直接发送" />
+              <el-option :value="true" label="Base64编码" />
+            </el-select>
+          </el-tooltip>
+        </div>
         <div class="action_btn">
           <el-dropdown
             split-button
@@ -99,6 +120,7 @@
             type="primary"
             size="small"
             :disabled="!scriptContent"
+            :teleported="false"
             @click="handleSendToTerminal"
           >
             <template #dropdown>
@@ -155,6 +177,7 @@ const scriptEditVisible = ref(false)
 const editScriptData = ref(null)
 const scriptGroupVisible = ref(false)
 const isClearContent = ref(false)
+const editorUseBase64 = ref(false)
 
 const isPlusActive = computed(() => $store.isPlusActive)
 const scriptGroupList = computed(() => $store.scriptGroupList || [])
@@ -175,7 +198,7 @@ const handleSelectGroup = (group) => {
 
 const handleExecScript = (script) => {
   if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
-  emit('exec-command', script.command)
+  emit('exec-command', { command: script.command, useBase64: script.useBase64 || false })
 }
 
 const handleEditScript = (script) => {
@@ -191,7 +214,7 @@ const handleSendToEditor = (script) => {
 
 const handleSendToTerminal = () => {
   if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
-  emit('exec-command', scriptContent.value)
+  emit('exec-command', { command: scriptContent.value, useBase64: editorUseBase64.value })
   if (isClearContent.value) {
     scriptContent.value = ''
   }
@@ -488,6 +511,15 @@ if (scriptGroupList.value.length) {
           height: 100%;
           resize: none;
         }
+      }
+
+      .execution_mode_selector {
+        position: absolute;
+        right: 140px;
+        bottom: 20px;
+        z-index: 1;
+        display: flex;
+        gap: 10px;
       }
 
       .action_btn {

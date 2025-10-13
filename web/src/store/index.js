@@ -159,7 +159,7 @@ const useStore = defineStore('global', {
     },
     async getTerminalConfig() {
       try {
-        const { data: terminalConfig } = await $api.getTerminalConfig({ uid: this.uid })
+        const { data: terminalConfig } = await $api.getTerminalConfig()
         this.$patch({ terminalConfig })
       } catch (error) {
         console.error('获取终端配置失败:', error)
@@ -185,7 +185,7 @@ const useStore = defineStore('global', {
     async setTerminalSetting(setTarget = {}) {
       const newConfig = { ...this.terminalConfig, ...setTarget }
       try {
-        await $api.saveTerminalConfig({ ...newConfig, uid: this.uid })
+        await $api.saveTerminalConfig(newConfig)
         this.$patch({ terminalConfig: newConfig })
       } catch (error) {
         console.error('保存终端配置失败:', error)
