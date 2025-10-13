@@ -30,17 +30,27 @@ const useStore = defineStore('global', {
       'linear-gradient(-20deg, #2b5876 0%, #4e4376 100%)',
       'linear-gradient(to top, #1e3c72 0%, #1e3c72 1%, #2a5298 100%)',
       'linear-gradient(to right, #243949 0%, #517fa4 100%)',
+
+      // 深色背景
+      'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)', // 深蓝紫
+      'linear-gradient(to right, #1a1a2e 0%, #16213e 100%)', // 深夜蓝
+      'linear-gradient(to right, #0f2027 0%, #203a43 50%, #2c5364 100%)', // 深青蓝
+      'linear-gradient(135deg, #141e30 0%, #243b55 100%)', // 深靛蓝
+      'linear-gradient(to bottom, #000000 0%, #2c2c2c 100%)', // 纯黑到灰
+      'linear-gradient(135deg, #2c1810 0%, #3d2817 100%)', // 深褐
+      'linear-gradient(to bottom, #1e3a2e 0%, #0f2922 100%)', // 深绿
+      'linear-gradient(to right, #2b1b3d 0%, #3a2449 100%)', // 深紫
+
+      // 浅色背景
+      'linear-gradient(120deg, #ffffff 0%, #f5f5f5 100%)', // 纯白
+      'linear-gradient(120deg, #faf8f3 0%, #f0ebe1 100%)', // 柔和浅米白
+      'linear-gradient(120deg, #d4e4f7 0%, #b5d3e7 100%)', // 柔和浅蓝
+      'linear-gradient(to top, #e8dff5 0%, #d5c6e0 100%)', // 柔和浅紫
+      'linear-gradient(135deg, #e8d5c4 0%, #d4c4b0 100%)', // 柔和浅褐
+      'linear-gradient(120deg, #d5e5d5 0%, #c8dcc8 100%)', // 柔和浅绿
     ],
-    terminalConfig: {
-      ...{
-        fontSize: 16,
-        themeName: 'Afterglow',
-        background: 'linear-gradient(-225deg, #CBBACC 0%, #2580B3 100%)',
-        autoReconnect: true,
-        autoExecuteScript: false
-      },
-      ...(localStorage.getItem('terminalConfig') ? JSON.parse(localStorage.getItem('terminalConfig')) : {})
-    },
+    // 终端配置占位
+    terminalConfig: {},
     menuSetting: {
       ...{
         scriptLibrary: true,
@@ -84,6 +94,7 @@ const useStore = defineStore('global', {
       await this.getScriptGroupList()
       await this.getPlusInfo()
       await this.getProxyList()
+      await this.getTerminalConfig() // 添加终端配置获取
       this.getAIConfig()
       this.getChatHistory()
     },
@@ -135,7 +146,7 @@ const useStore = defineStore('global', {
         const isPlusActive = new Date(plusInfo.expiryDate) > new Date()
         this.$patch({ isPlusActive })
         if (!isPlusActive) {
-          this.setTerminalSetting({ autoReconnect: false })
+          localStorage.setItem('autoReconnect', 'false')
           return
         }
         plusInfo.expiryDate = dayjs(plusInfo.expiryDate).format('YYYY-MM-DD')
@@ -146,10 +157,39 @@ const useStore = defineStore('global', {
       }
       this.$patch({ plusInfo })
     },
-    setTerminalSetting(setTarget = {}) {
-      let newConfig = { ...this.terminalConfig, ...setTarget }
-      localStorage.setItem('terminalConfig', JSON.stringify(newConfig))
-      this.$patch({ terminalConfig: newConfig })
+    async getTerminalConfig() {
+      try {
+        const { data: terminalConfig } = await $api.getTerminalConfig()
+        this.$patch({ terminalConfig })
+      } catch (error) {
+        console.error('获取终端配置失败:', error)
+        // Fallback
+        // 默认配置信息位于: server/app/controller/terminal-config.js
+        this.$patch({ terminalConfig: {
+          themeName: 'Afterglow',
+          fontFamily: 'monospace',
+          fontSize: 16,
+          fontColor: '',
+          cursorColor: '',
+          selectionColor: '#264f78',
+          background: '',
+          keywordHighlight: true,
+          highlightDebugMode: false,
+          customHighlightRules: null,
+          autoExecuteScript: false,
+          autoReconnect: false,
+          autoShowContextMenu: true
+        } })
+      }
+    },
+    async setTerminalSetting(setTarget = {}) {
+      const newConfig = { ...this.terminalConfig, ...setTarget }
+      try {
+        await $api.saveTerminalConfig(newConfig)
+        this.$patch({ terminalConfig: newConfig })
+      } catch (error) {
+        console.error('保存终端配置失败:', error)
+      }
     },
     setMenuSetting(setTarget = {}) {
       let newConfig = { ...this.menuSetting, ...setTarget }

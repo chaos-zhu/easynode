@@ -15,7 +15,8 @@ const {
   chatHistoryDBPath,
   favoriteSftpDBPath,
   proxyDBPath,
-  fileTransferDBPath
+  fileTransferDBPath,
+  terminalConfigDBPath
 } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
@@ -200,5 +201,16 @@ module.exports.FileTransferDB = class FileTransferDB {
   }
   getInstance() {
     return FileTransferDB.instance
+  }
+}
+
+module.exports.TerminalConfigDB = class TerminalConfigDB {
+  constructor() {
+    if (!TerminalConfigDB.instance) {
+      TerminalConfigDB.instance = new Datastore({ filename: terminalConfigDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return TerminalConfigDB.instance
   }
 }

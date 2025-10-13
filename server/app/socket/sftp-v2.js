@@ -11,6 +11,52 @@ const hostListDB = new HostListDB().getInstance()
 const favoriteSftpDB = new FavoriteSftpDB().getInstance()
 const { Client: SSHClient } = require('ssh2')
 
+/**
+ * https://github.com/theophilusx/ssh2-sftp-client#readme
+ * The objects in the array returned by list() have the following properties:
+ * {
+ *   type: '-', // file type(-, d, l)
+ *   name: 'example.txt', // file name
+ *   size: 43, // file size
+ *   modifyTime: 1675645360000, // file timestamp of modified time
+ *   accessTime: 1675645360000, // file timestamp of access time
+ *   rights: {
+ *     user: 'rw',
+ *     group: 'r',
+ *     other: 'r',
+ *   },
+ *   owner: 1000, // user ID
+ *   group: 1000, // group ID
+ *   longname: '-rw-r--r--  1 fred  fred  43 Feb 6 12:02 exaple.txt', // like ls -l line
+ * }
+ */
+
+
+// 格式化文件列表数据，添加权限字符串和用户名/组名
+function formatFileList(fileList) {
+  return fileList.map(file => {
+    const formatted = { ...file }
+
+    // 从 rights 对象生成权限字符串
+    if (file.rights) {
+      const { user, group, other } = file.rights
+      formatted.permissions = `${user}${group}${other}`
+    }
+
+    // 从 longname 中提取ownerName和groupName
+    if (file.longname) {
+      const parts = file.longname.trim().split(/\s+/)
+      if (parts.length >= 4) {
+        // parts[2] 是所有者用户名, parts[3] 是组名
+        formatted.ownerName = parts[2]
+        formatted.groupName = parts[3]
+      }
+    }
+
+    return formatted
+  })
+}
+
 const listenAction = (sftpClient, socket) => {
   // 下载任务管理
   const downloadTasks = new Map() // taskId -> { abortController, startTime, totalSize, downloadedSize }
@@ -23,7 +69,8 @@ const listenAction = (sftpClient, socket) => {
     try {
       const dirLs = await sftpClient.list(path)
       console.log('dirLs:', dirLs.length)
-      socket.emit('dir_ls', dirLs, path)
+      const formattedDirLs = formatFileList(dirLs)
+      socket.emit('dir_ls', formattedDirLs, path)
     } catch (err) {
       socket.emit('not_exists_dir', err.message)
     }
@@ -39,7 +86,8 @@ const listenAction = (sftpClient, socket) => {
       socket.emit('rename_success', { oldName, newName })
       // 返回最新目录列表
       const dirLs = await sftpClient.list(dirPath)
-      socket.emit('dir_ls', dirLs, dirPath)
+      const formattedDirLs = formatFileList(dirLs)
+      socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
       socket.emit('rename_fail', err.message)
     }
@@ -56,7 +104,8 @@ const listenAction = (sftpClient, socket) => {
       }
       socket.emit('delete_success')
       const dirLs = await sftpClient.list(dirPath)
-      socket.emit('dir_ls', dirLs, dirPath)
+      const formattedDirLs = formatFileList(dirLs)
+      socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
       socket.emit('delete_fail', err.message)
     }
@@ -74,7 +123,8 @@ const listenAction = (sftpClient, socket) => {
       }
       socket.emit('delete_success')
       const dirLs = await sftpClient.list(dirPath)
-      socket.emit('dir_ls', dirLs, dirPath)
+      const formattedDirLs = formatFileList(dirLs)
+      socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
       socket.emit('delete_fail', err.message)
     }
@@ -89,7 +139,8 @@ const listenAction = (sftpClient, socket) => {
       await sftpClient.rename(src, dest)
       socket.emit('move_success')
       const dirLs = await sftpClient.list(dirPath)
-      socket.emit('dir_ls', dirLs, dirPath)
+      const formattedDirLs = formatFileList(dirLs)
+      socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
       socket.emit('move_fail', err.message)
     }
@@ -105,7 +156,8 @@ const listenAction = (sftpClient, socket) => {
       }
       socket.emit('move_success')
       const dirLs = await sftpClient.list(dirPath)
-      socket.emit('dir_ls', dirLs, dirPath)
+      const formattedDirLs = formatFileList(dirLs)
+      socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
       socket.emit('move_fail', err.message)
     }
@@ -250,7 +302,8 @@ const listenAction = (sftpClient, socket) => {
 
       socket.emit('copy_success')
       const dirLs = await sftpClient.list(dirPath)
-      socket.emit('dir_ls', dirLs, dirPath)
+      const formattedDirLs = formatFileList(dirLs)
+      socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
       consola.error('copy error:', err.message)
       socket.emit('copy_fail', err.message)
@@ -296,7 +349,8 @@ const listenAction = (sftpClient, socket) => {
 
       // 返回最新目录列表
       const dirLs = await sftpClient.list(dirPath)
-      socket.emit('dir_ls', dirLs, dirPath)
+      const formattedDirLs = formatFileList(dirLs)
+      socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
       consola.error('create error:', err.message)
       socket.emit('create_fail', err.message)
@@ -344,7 +398,8 @@ const listenAction = (sftpClient, socket) => {
 
       // 返回最新目录列表
       const dirLs = await sftpClient.list(dirPath)
-      socket.emit('dir_ls', dirLs, dirPath)
+      const formattedDirLs = formatFileList(dirLs)
+      socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
       consola.error('compress error:', err.message)
       socket.emit('compress_fail', err.message)
@@ -426,7 +481,8 @@ const listenAction = (sftpClient, socket) => {
 
       // 返回最新目录列表
       const dirLs = await sftpClient.list(dirPath)
-      socket.emit('dir_ls', dirLs, dirPath)
+      const formattedDirLs = formatFileList(dirLs)
+      socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
       consola.error('decompress error:', err.message)
       socket.emit('decompress_fail', err.message)
@@ -1462,9 +1518,12 @@ module.exports = (httpServer) => {
             }
           }
 
+          // 格式化文件列表
+          const formattedRootList = formatFileList(rootList)
+
           // 普通文件-、目录文件d、链接文件l
           socket.emit('connect_success', {
-            rootList,
+            rootList: formattedRootList,
             isRootUser,
             currentPath: currentWorkingDir
           })

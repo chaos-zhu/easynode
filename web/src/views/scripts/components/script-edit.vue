@@ -68,6 +68,39 @@
           placeholder="shell script"
         />
       </el-form-item>
+      <el-form-item label="编码方式" prop="useBase64">
+        <el-radio-group v-model="formData.useBase64">
+          <el-radio :value="false">
+            <span>直接发送</span>
+            <el-tooltip placement="right">
+              <template #content>
+                <div style="max-width: 300px;">
+                  适用于单行简单脚本。<br>
+                  脚本内容会直接发送到终端。<br>
+                  注意：多行脚本会逐行自动执行。
+                </div>
+              </template>
+              <el-icon style="margin-left: 4px; cursor: help;"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </el-radio>
+          <el-radio :value="true">
+            <span>Base64编码</span>
+            <el-tooltip placement="right">
+              <template #content>
+                <div style="max-width: 300px;">
+                  适用于多行复杂脚本。<br>
+                  脚本通过Base64编码后发送，可以避免：<br>
+                  • 特殊字符转义问题<br>
+                  • heredoc标记冲突<br>
+                  • 换行符兼容问题<br>
+                  命令格式: echo '&lt;script&gt;' | base64 -d | bash
+                </div>
+              </template>
+              <el-icon style="margin-left: 4px; cursor: help;"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </el-radio>
+        </el-radio-group>
+      </el-form-item>
     </el-form>
     <template #footer>
       <span>
@@ -81,6 +114,7 @@
 <script setup>
 import { ref, computed, reactive, watch } from 'vue'
 import { getCurrentInstance } from 'vue'
+import { QuestionFilled } from '@element-plus/icons-vue'
 
 const props = defineProps({
   show: {
@@ -122,7 +156,8 @@ const formData = reactive({
   name: '',
   description: '',
   index: nextIndex.value || 0,
-  command: ''
+  command: '',
+  useBase64: false
 })
 const isModify = computed(() => Boolean(formData.id))
 
@@ -164,7 +199,8 @@ const handleClose = () => {
     name: '',
     description: '',
     index: nextIndex.value,
-    command: props.defaultScript || ''
+    command: props.defaultScript || '',
+    useBase64: false
   })
 }
 

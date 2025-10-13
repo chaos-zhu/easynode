@@ -24,19 +24,21 @@ async function getLocalScriptList({ res }) {
 }
 
 const addScript = async ({ res, request }) => {
-  let { body: { name, description, command, index, group } } = request
+  // useBase64 默认为false
+  let { body: { name, description, command, index, group, useBase64 = false } } = request
   if (!name || !command) return res.fail({ data: false, msg: '参数错误' })
   index = Number(index) || 0
-  let record = { name, description, command, index, group }
+  let record = { name, description, command, index, group, useBase64 }
   await scriptsDB.insertAsync(record)
   res.success({ data: '添加成功' })
 }
 
 const updateScriptList = async ({ res, request }) => {
   let { params: { id } } = request
-  let { body: { name, description, command, index, group } } = request
+  // useBase64 默认为false
+  let { body: { name, description, command, index, group, useBase64 = false } } = request
   if (!name || !command) return res.fail({ data: false, msg: '参数错误' })
-  await scriptsDB.updateAsync({ _id: id }, { name, description, command, index, group })
+  await scriptsDB.updateAsync({ _id: id }, { name, description, command, index, group, useBase64 })
   res.success({ data: '修改成功' })
 }
 

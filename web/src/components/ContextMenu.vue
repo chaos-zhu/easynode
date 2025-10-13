@@ -1,75 +1,73 @@
 <template>
-  <teleport to="body">
-    <!-- 遮罩层，用于点击外部关闭菜单 -->
-    <div
-      v-if="visible"
-      class="context_menu_overlay"
-      @click="closeMenu"
-      @contextmenu.prevent="closeMenu"
-    />
+  <!-- 遮罩层，用于点击外部关闭菜单 -->
+  <div
+    v-if="visible"
+    class="context_menu_overlay"
+    @click="closeMenu"
+    @contextmenu.prevent="closeMenu"
+  />
 
-    <!-- 主菜单 -->
-    <div
-      v-if="visible"
-      ref="contextMenuRef"
-      class="custom_context_menu"
-      :style="menuStyle"
-      @contextmenu.prevent
-    >
-      <div class="context_menu_content">
-        <template v-for="(item, index) in menuItems" :key="index">
-          <!-- 有子菜单的项 -->
-          <div
-            v-if="item.children && item.children.length > 0"
-            :ref="el => setMenuItemRef(el, index)"
-            class="context_menu_item has_children"
-            :class="{ disabled: item.disabled }"
-            @mouseenter="handleSubMenuHover(index, $event)"
-            @mouseleave="handleSubMenuLeave"
-            @click="!item.disabled && handleItemClick(item)"
-          >
-            <span class="menu_label">{{ item.label }}</span>
-            <el-icon class="sub_menu_arrow">
-              <ArrowRight />
-            </el-icon>
-          </div>
-
-          <!-- 普通菜单项 -->
-          <div
-            v-else
-            class="context_menu_item"
-            :class="{ disabled: item.disabled }"
-            @click="!item.disabled && handleItemClick(item)"
-          >
-            <span class="menu_label">{{ item.label }}</span>
-          </div>
-        </template>
-      </div>
-    </div>
-
-    <!-- 子菜单 -->
-    <div
-      v-if="visible && activeSubMenuIndex >= 0"
-      ref="subMenuRef"
-      class="custom_context_menu context_submenu"
-      :style="subMenuStyle"
-      @contextmenu.prevent
-      @mouseenter="keepSubMenuOpen = true"
-      @mouseleave="handleSubMenuLeave"
-    >
-      <div class="context_menu_content">
+  <!-- 主菜单 -->
+  <div
+    v-if="visible"
+    ref="contextMenuRef"
+    class="custom_context_menu"
+    :style="menuStyle"
+    @contextmenu.prevent
+  >
+    <div class="context_menu_content">
+      <template v-for="(item, index) in menuItems" :key="index">
+        <!-- 有子菜单的项 -->
         <div
-          v-for="(child, childIndex) in currentSubMenuItems"
-          :key="childIndex"
-          class="context_menu_item"
-          :class="{ disabled: child.disabled }"
-          @click="!child.disabled && handleItemClick(child)"
+          v-if="item.children && item.children.length > 0"
+          :ref="el => setMenuItemRef(el, index)"
+          class="context_menu_item has_children"
+          :class="{ disabled: item.disabled }"
+          @mouseenter="handleSubMenuHover(index, $event)"
+          @mouseleave="handleSubMenuLeave"
+          @click="!item.disabled && handleItemClick(item)"
         >
-          <span class="menu_label">{{ child.label }}</span>
+          <span class="menu_label">{{ item.label }}</span>
+          <el-icon class="sub_menu_arrow">
+            <ArrowRight />
+          </el-icon>
         </div>
+
+        <!-- 普通菜单项 -->
+        <div
+          v-else
+          class="context_menu_item"
+          :class="{ disabled: item.disabled }"
+          @click="!item.disabled && handleItemClick(item)"
+        >
+          <span class="menu_label">{{ item.label }}</span>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- 子菜单 -->
+  <div
+    v-if="visible && activeSubMenuIndex >= 0"
+    ref="subMenuRef"
+    class="custom_context_menu context_submenu"
+    :style="subMenuStyle"
+    @contextmenu.prevent
+    @mouseenter="keepSubMenuOpen = true"
+    @mouseleave="handleSubMenuLeave"
+  >
+    <div class="context_menu_content">
+      <div
+        v-for="(child, childIndex) in currentSubMenuItems"
+        :key="childIndex"
+        class="context_menu_item"
+        :class="{ disabled: child.disabled }"
+        @click="!child.disabled && handleItemClick(child)"
+      >
+        <span class="menu_label">{{ child.label }}</span>
       </div>
     </div>
-  </teleport>
+  </div>
 </template>
 
 <script setup>

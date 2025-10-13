@@ -28,6 +28,7 @@ import { terminalStatus } from '@/utils/enum'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { EventBus, isDockerId, isDockerComposeYml, generateSocketInstance } from '@/utils'
 import useMobileWidth from '@/composables/useMobileWidth'
+import { TerminalHighlighter } from '@/utils/highlighter'
 
 const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
 
@@ -62,6 +63,8 @@ const emit = defineEmits(['inputCommand', 'cdCommand', 'ping-data', 'reset-long-
 const socket = ref(null)
 // const commandHistoryList = ref([])
 const term = ref(null)
+const terminalText = ref('')
+const highlighter = ref(null)
 const initCommand = ref('')
 const timer = ref(null)
 const pingTimer = ref(null)
@@ -71,13 +74,13 @@ const socketConnected = ref(false)
 const curStatus = ref(CONNECTING)
 const terminalRef = ref(null)
 const { showMenu, closeMenu, isVisible } = useContextMenu()
-const cursorTheme = {
-  cursor: '#00ff41',
-  cursorAccent: '#000000'
-}
 
 const theme = computed(() => themeList[$store.terminalConfig.themeName])
 const fontSize = computed(() => $store.terminalConfig.fontSize)
+const fontFamily = computed(() => $store.terminalConfig.fontFamily)
+const fontColor = computed(() => $store.terminalConfig.fontColor)
+const cursorColor = computed(() => $store.terminalConfig.cursorColor)
+const selectionColor = computed(() => $store.terminalConfig.selectionColor)
 const background = computed(() => $store.terminalConfig.background)
 const hostObj = computed(() => props.hostObj)
 const hostId = computed(() => hostObj.value.id)
@@ -86,9 +89,67 @@ const menuCollapse = computed(() => $store.menuCollapse)
 const menuPosition = computed(() => $store.menuPosition)
 const autoExecuteScript = computed(() => $store.terminalConfig.autoExecuteScript)
 const autoReconnect = computed(() => $store.terminalConfig.autoReconnect)
+const keywordHighlight = computed(() => $store.terminalConfig.keywordHighlight)
+const customHighlightRules = computed(() => $store.terminalConfig.customHighlightRules)
+const highlightDebugMode = computed(() => $store.terminalConfig.highlightDebugMode)
+const autoShowContextMenu = computed(() => $store.terminalConfig.autoShowContextMenu)
 const isPlusActive = computed(() => $store.isPlusActive)
 const isLongPressCtrl = computed(() => props.longPressCtrl)
 const isLongPressAlt = computed(() => props.longPressAlt)
+
+// 应用终端主题的公共函数
+const applyTerminalTheme = () => {
+  if (!term.value || !terminalRef.value) return
+
+  // 构建光标主题
+  const cursorTheme = {
+    cursor: cursorColor.value || theme.value.cursor,
+    cursorAccent: '#000000'
+  }
+
+  // 构建完整主题
+  const customTheme = {
+    ...theme.value,
+    ...cursorTheme
+  }
+
+  // 应用自定义字体颜色
+  if (fontColor.value) {
+    customTheme.foreground = fontColor.value
+  }
+
+  // 应用自定义选中颜色
+  if (selectionColor.value) {
+    customTheme.selectionBackground = selectionColor.value
+  }
+
+  // 根据背景设置应用主题
+  if (background.value) {
+    // 有自定义背景：xterm背景透明，使用terminalRef显示背景
+    term.value.options.theme = { ...customTheme, background: 'transparent' }
+    terminalRef.value.style.backgroundImage = background.value?.startsWith('http')
+      ? `url(${ background.value })`
+      : `${ background.value }`
+    terminalRef.value.style.backgroundColor = ''
+
+    // 设置 viewport 为透明以显示自定义背景
+    const viewport = terminalRef.value.querySelector('.xterm-viewport')
+    if (viewport) {
+      viewport.style.setProperty('background-color', 'transparent', 'important')
+    }
+  } else {
+    // 使用主题背景：清除terminalRef背景，使用xterm主题背景色
+    term.value.options.theme = customTheme
+    terminalRef.value.style.backgroundImage = ''
+    terminalRef.value.style.backgroundColor = ''
+
+    // 设置 viewport 背景色为主题背景色
+    const viewport = terminalRef.value.querySelector('.xterm-viewport')
+    if (viewport) {
+      viewport.style.setProperty('background-color', customTheme.background || '#1e1e1e', 'important')
+    }
+  }
+}
 
 watch([menuCollapse, menuPosition,], () => {
   nextTick(() => {
@@ -96,21 +157,11 @@ watch([menuCollapse, menuPosition,], () => {
   })
 })
 
-watch(theme, () => {
-  nextTick(() => {
-    // 自定义光标颜色
-    const customTheme = {
-      ...theme.value,
-      ...cursorTheme
-    }
-
-    if (!background.value) {
-      term.value.options.theme = customTheme
-    } else {
-      term.value.options.theme = { ...customTheme, background: '#00000080' }
-    }
-  })
-})
+watch(theme, () => nextTick(applyTerminalTheme))
+watch(fontColor, () => nextTick(applyTerminalTheme))
+watch(cursorColor, () => nextTick(applyTerminalTheme))
+watch(selectionColor, () => nextTick(applyTerminalTheme))
+watch(background, () => nextTick(applyTerminalTheme), { immediate: true })
 
 watch(fontSize, () => {
   nextTick(() => {
@@ -119,23 +170,35 @@ watch(fontSize, () => {
   })
 })
 
-watch(background, (newVal) => {
+watch(fontFamily, () => {
   nextTick(() => {
-    const customTheme = {
-      ...theme.value,
-      ...cursorTheme
-    }
-
-    if (newVal) {
-      term.value.options.theme = { ...customTheme, background: '#00000080' }
-      terminalRef.value.style.backgroundImage = background.value?.startsWith('http') ? `url(${ background.value })` : `${ background.value }`
-      // terminalRef.value.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15)), url(${ background.value })`
-    } else {
-      term.value.options.theme = customTheme
-      terminalRef.value.style.backgroundImage = null
-    }
+    term.value.options.fontFamily = fontFamily.value
+    handleResize()
   })
-}, { immediate: true })
+})
+
+watch(keywordHighlight, (newVal) => {
+  if (highlighter.value) {
+    highlighter.value.setEnabled(newVal)
+  }
+})
+
+// 监听自定义高亮规则变化
+watch(customHighlightRules, (newRules) => {
+  if (highlighter.value) {
+    if (highlightDebugMode.value) {
+      console.log('自定义高亮规则变化，更新高亮器:', newRules)
+    }
+    highlighter.value.updateCustomRules(newRules)
+  }
+}, { deep: true, immediate: true })
+
+// 监听调试模式变化
+watch(highlightDebugMode, (newVal) => {
+  if (highlighter.value) {
+    highlighter.value.setDebugMode(newVal)
+  }
+})
 
 watch(curStatus, () => {
   console.warn(`status: ${ curStatus.value }`)
@@ -162,7 +225,15 @@ const connectIO = () => {
     socket.value.on('terminal_connect_success', () => {
       socket.value.on('output', (str) => {
         if (props.isSingleWindow && !isPlusActive.value) return
-        term.value.write(str)
+
+        // 使用高亮器处理
+        if (keywordHighlight.value && highlighter.value) {
+          const highlightedStr = highlighter.value.highlightText(str)
+          term.value.write(highlightedStr)
+        } else {
+          term.value.write(str)
+        }
+
         terminalText.value += str
       })
       socket.value.on('terminal_connect_shell_success', () => {
@@ -257,7 +328,7 @@ const reconnectTerminal = (isCommonTips = false, tips) => {
       term.value.write(`\r\n\x1b[91m${ tips },自动重连中...\x1b[0m \r\n`)
       connectIO()
     } else {
-      term.value.write(`\r\n\x1b[91mError: ${ tips },请重新连接。([功能项->本地设置->快捷操作]中开启自动重连)\x1b[0m \r\n`)
+      term.value.write(`\r\n\x1b[91mError: ${ tips },请重新连接。([终端设置->其他设置]中开启自动重连)\x1b[0m \r\n`)
     }
   } else {
     term.value.write(`\n${ tips } \n`)
@@ -271,9 +342,9 @@ const createLocalTerminal = () => {
     convertEol: true,
     cursorBlink: true,
     disableStdin: false,
-    minimumContrastRatio: 7,
+    minimumContrastRatio: 1, // 无对比度要求
     allowTransparency: true,
-    fontFamily: 'Cascadia Code, Menlo, monospace',
+    fontFamily: fontFamily.value,
     fontSize: fontSize.value,
     theme: theme.value,
     scrollback: 5000, // 滚动缓冲区大小
@@ -296,6 +367,14 @@ const createLocalTerminal = () => {
   term.value = terminalInstance
   terminalInstance.open(terminalRef.value)
   !isMobileScreen.value && terminalInstance.loadAddon(canvasAddon)
+
+  // 初始化TerminalHighlighter
+  highlighter.value = new TerminalHighlighter(terminalInstance, {
+    enabled: keywordHighlight.value,
+    debugMode: highlightDebugMode.value || false,
+    customRules: customHighlightRules.value
+  })
+
   terminalInstance.writeln('\x1b[1;32mWelcome to EasyNode terminal\x1b[0m.')
   terminalInstance.writeln('\x1b[1;32mAn experimental Web-SSH Terminal\x1b[0m.')
   if (props.autoFocus) {
@@ -305,6 +384,11 @@ const createLocalTerminal = () => {
   onFindText()
   onWebLinks()
   onResize()
+
+  // 初始化主题设置
+  nextTick(() => {
+    applyTerminalTheme()
+  })
 }
 
 const shellResize = () => {
@@ -351,7 +435,6 @@ const onFindText = () => {
   // term.value.loadAddon(searchBar.value)
 }
 
-const terminalText = ref(null)
 const enterTimer = ref(null)
 
 function filterAnsiSequences(str) {
@@ -464,7 +547,10 @@ const handleMouseUp = async (e) => {
   if (e.button === 0) {
     let str = term.value.getSelection().trim()
     if (!str) return closeMenu()
-    handleRightClick(e)
+    // 根据配置决定是否自动显示右键菜单
+    if (autoShowContextMenu.value) {
+      handleRightClick(e)
+    }
   }
 }
 
@@ -673,19 +759,40 @@ const focusTab = () => {
   }, 200)
 }
 
-const inputCommand = (command, type = 'input') => {
+const inputCommand = (command, type = 'input', useBase64 = false) => {
   if (type === 'script') {
-    command = command + (autoExecuteScript.value ? '\n' : '')
+    if (useBase64) {
+      // 使用Base64管道模式执行
+      // 处理 UTF-8 字符：使用现代浏览器的 TextEncoder API
+      const utf8Bytes = new TextEncoder().encode(command)
+      const encodedScript = btoa(String.fromCharCode(...utf8Bytes))
+      command = `echo '${ encodedScript }' | base64 -d | bash${ autoExecuteScript.value ? '\n' : '' }`
+    } else {
+      // 直接发送模式：根据脚本执行模式添加换行符
+      command = command + (autoExecuteScript.value ? '\n' : '')
+    }
   }
   socket.value.emit('input', command)
 }
 
-const execExternalCommand = (command) => {
+const execExternalCommand = (command, useBase64 = false) => {
   if (!socket.value || !socket.value.connected || curStatus.value !== CONNECT_SUCCESS) {
     $message.error('终端连接已断开,无法执行指令')
     return
   }
-  socket.value.emit('input', command + '\n')
+
+  if (useBase64) {
+    // 使用Base64管道模式执行
+    // 处理 UTF-8 字符：使用现代浏览器的 TextEncoder API
+    const utf8Bytes = new TextEncoder().encode(command)
+    const encodedScript = btoa(String.fromCharCode(...utf8Bytes))
+    command = `echo '${ encodedScript }' | base64 -d | bash${ autoExecuteScript.value ? '\n' : '' }`
+  } else {
+    // 直接发送模式：根据脚本执行模式添加换行符
+    command = command + (autoExecuteScript.value ? '\n' : '')
+  }
+
+  socket.value.emit('input', command)
   term.value?.focus()
 }
 
@@ -721,13 +828,14 @@ defineExpose({
   .terminal_container {
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    // padding: 10px;
     :deep(.xterm) {
       height: 100%;
+      padding: 8px 8px;
     }
 
     :deep(.xterm-viewport) {
       overflow-y: auto;
+      background-color: transparent !important;
     }
 
     :deep(.xterm-screen) {

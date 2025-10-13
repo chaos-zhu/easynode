@@ -135,6 +135,14 @@
           <Hide v-else />
         </el-icon>
         <el-icon
+          ref="columnsConfigPopoverRef"
+          class="action_icon"
+          title="列配置"
+          @click="showColumnsConfig = !showColumnsConfig"
+        >
+          <Setting />
+        </el-icon>
+        <el-icon
           v-if="hasDownloadTasks"
           class="action_icon download_icon"
           :title="`下载管理 - 正在下载 ${activeDownloadTasks.length} 个任务`"
@@ -170,11 +178,27 @@
         <el-table-column
           label="名称"
           width="auto"
-          max-width="200"
+          min-width="120"
           show-overflow-tooltip
         >
           <template #default="{ row }">
-            <div class="file_name_cell">
+            <el-tooltip
+              placement="right"
+              effect="dark"
+              :show-after="500"
+            >
+              <template #content>
+                <div style="font-size: 12px; line-height: 1.6;">
+                  <div><strong>名称:</strong> {{ row.name }}</div>
+                  <div><strong>类型:</strong> {{ row.type === 'd' ? '文件夹' : row.type === 'l' ? '链接' : '文件' }}</div>
+                  <div v-if="row.size"><strong>大小:</strong> {{ sizeFormatter(row, null, row.size) }}</div>
+                  <div v-if="row.modifyTime"><strong>修改时间:</strong> {{ timeFormatter(row, null, row.modifyTime) }}</div>
+                  <div v-if="row.permissions"><strong>权限:</strong> {{ row.permissions }}</div>
+                  <div v-if="row.ownerName"><strong>所有者:</strong> {{ row.ownerName }}</div>
+                  <div v-if="row.groupName"><strong>组:</strong> {{ row.groupName }}</div>
+                </div>
+              </template>
+              <div class="file_name_cell">
               <img :src="getIcon(row.type)" class="file_icon">
               <template v-if="isEditing(row)">
                 <el-input
@@ -201,19 +225,34 @@
                 </el-icon>
               </template>
             </div>
+            </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column
+          v-if="columnsConfig.size"
           prop="size"
           label="大小"
           :formatter="sizeFormatter"
-          width="70"
+          width="55"
         />
         <el-table-column
+          v-if="columnsConfig.modifyTime"
           prop="modifyTime"
           label="修改时间"
           width="80"
           :formatter="timeFormatter"
+        />
+        <el-table-column
+          v-if="columnsConfig.permissions"
+          prop="permissions"
+          label="权限"
+          width="80"
+        />
+        <el-table-column
+          v-if="columnsConfig.owner"
+          prop="ownerName"
+          label="所有者"
+          width="70"
         />
       <!-- 权限列已隐藏，根据需求可再启用 -->
       </el-table>
@@ -283,6 +322,29 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
+        </template>
+      </el-popover>
+
+      <!-- 列配置 Popover -->
+      <el-popover
+        v-model:visible="showColumnsConfig"
+        :virtual-ref="columnsConfigPopoverRef"
+        width="200"
+        trigger="manual"
+        placement="bottom-end"
+      >
+        <template #default>
+          <div style="padding: 8px 0;">
+            <div style="font-weight: 500; margin-bottom: 8px; padding: 0 12px;">显示列</div>
+            <el-checkbox-group v-model="selectedColumns" style="display: flex; flex-direction: column; gap: 8px; padding: 0 12px;">
+              <el-checkbox
+                v-for="col in availableColumns"
+                :key="col.key"
+                :value="col.key"
+                :label="col.label"
+              />
+            </el-checkbox-group>
+          </div>
         </template>
       </el-popover>
 
@@ -589,7 +651,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, getCurrentInstance, nextTick } from 'vue'
-import { ArrowDown, ArrowLeft, Refresh, View, Hide, Edit, Search, ArrowRight, HomeFilled, Check, Close as CloseIcon, Download, Upload, DocumentCopy, Loading, WarningFilled, Star, StarFilled, Delete, SwitchButton } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowLeft, Refresh, View, Hide, Edit, Search, ArrowRight, HomeFilled, Check, Close as CloseIcon, Download, Upload, DocumentCopy, Loading, WarningFilled, Star, StarFilled, Delete, SwitchButton, Setting } from '@element-plus/icons-vue'
 import { generateSocketInstance } from '@/utils'
 import dirIcon from '@/assets/image/system/dir.png'
 import linkIcon from '@/assets/image/system/link.png'
@@ -618,6 +680,30 @@ const props = defineProps({
 
 // 组件实例上下文
 const { proxy: { $message, $messageBox } } = getCurrentInstance()
+
+// 列配置
+const COLUMNS_CONFIG_KEY = 'easynode_sftp_columns_config'
+const availableColumns = [
+  { key: 'size', label: '大小', width: 70, defaultShow: true },
+  { key: 'modifyTime', label: '修改时间', width: 80, defaultShow: true },
+  { key: 'permissions', label: '权限', width: 80, defaultShow: false },
+  { key: 'owner', label: '所有者', width: 70, defaultShow: false },
+]
+
+const defaultColumnsConfig = availableColumns.reduce((acc, col) => {
+  acc[col.key] = col.defaultShow
+  return acc
+}, {})
+
+const columnsConfig = ref(
+  JSON.parse(localStorage.getItem(COLUMNS_CONFIG_KEY) || JSON.stringify(defaultColumnsConfig))
+)
+
+watch(columnsConfig, (val) => {
+  localStorage.setItem(COLUMNS_CONFIG_KEY, JSON.stringify(val))
+}, { deep: true })
+
+const showColumnsConfig = ref(false)
 
 // 路径 & 隐藏文件显示
 const currentPath = ref('/')
@@ -1473,6 +1559,17 @@ const search = () => {
     searchInputRef.value?.focus()
   }, 100)
 }
+
+// 列配置相关
+const columnsConfigPopoverRef = ref(null)
+const selectedColumns = computed({
+  get: () => Object.keys(columnsConfig.value).filter(key => columnsConfig.value[key]),
+  set: (newValue) => {
+    availableColumns.forEach(col => {
+      columnsConfig.value[col.key] = newValue.includes(col.key)
+    })
+  }
+})
 
 const confirmPathInput = () => {
   if (!pathInput.value) return

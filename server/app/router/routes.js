@@ -9,6 +9,7 @@ const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
 const { getLog, saveIpWhiteList, removeSomeLoginRecords } = require('../controller/log')
 const { getAIConfig, saveAIConfig, getAIModels, getChatHistory, saveChatHistory, removeChatHistory } = require('../controller/chat')
 const { getProxyList, addProxy, updateProxy, removeProxy } = require('../controller/proxy')
+const { getTerminalConfig, saveTerminalConfig } = require('../controller/terminal-config')
 
 const ssh = [
   {
@@ -330,6 +331,19 @@ const proxy = [
   }
 ]
 
+const terminalConfig = [
+  {
+    method: 'get',
+    path: '/terminal-config',
+    controller: getTerminalConfig
+  },
+  {
+    method: 'post',
+    path: '/terminal-config',
+    controller: saveTerminalConfig
+  }
+]
+
 module.exports = [].concat(
   ssh,
   host,
@@ -341,5 +355,6 @@ module.exports = [].concat(
   onekey,
   log,
   aiConfig,
-  proxy
+  proxy,
+  terminalConfig
 )

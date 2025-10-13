@@ -180,5 +180,12 @@ export default {
   },
   removeProxy(id) {
     return axios({ url: `/proxy/${ id }`, method: 'delete' })
+  },
+  // 终端配置相关API
+  getTerminalConfig(params = {}) {
+    return axios({ url: '/terminal-config', method: 'get', params })
+  },
+  saveTerminalConfig(data) {
+    return axios({ url: '/terminal-config', method: 'post', data })
   }
 }
