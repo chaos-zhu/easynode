@@ -95,23 +95,15 @@
 
         <!-- 脚本编辑器中的脚本编码模式选项 -->
         <div class="execution_mode_selector">
-          <el-tooltip placement="top">
-            <template #content>
-              <div style="max-width: 300px;">
-                <strong>直接发送：</strong>适用于单行简单脚本，内容直接发送到终端<br><br>
-                <strong>Base64编码：</strong>适用于多行复杂脚本，通过Base64编码后发送，可避免特殊字符转义、heredoc标记冲突等问题
-              </div>
-            </template>
-            <el-select
-              v-model="editorUseBase64"
-              size="small"
-              style="width: 100px;"
-              :teleported="false"
-            >
-              <el-option :value="false" label="直接发送" />
-              <el-option :value="true" label="Base64编码" />
-            </el-select>
-          </el-tooltip>
+          <el-select
+            v-model="editorUseBase64"
+            size="small"
+            style="width: 100px;"
+            :teleported="false"
+          >
+            <el-option :value="false" label="直接发送" />
+            <el-option :value="true" label="Base64编码" />
+          </el-select>
         </div>
         <div class="action_btn">
           <el-dropdown
