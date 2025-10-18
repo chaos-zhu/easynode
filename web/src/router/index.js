@@ -4,6 +4,7 @@ import Login from '@views/login/index.vue'
 import Container from '@views/index.vue'
 import Server from '@views/server/index.vue'
 import Terminal from '@views/terminal/index.vue'
+import Rdp from '@views/rdp/index.vue'
 import Credentials from '@views/credentials/index.vue'
 import File from '@views/file/index.vue'
 import Onekey from '@views/onekey/index.vue'
@@ -27,6 +28,7 @@ const routes = [
     children: [
       { path: '/server', component: Server },
       { path: '/terminal', component: Terminal },
+      { path: '/rdp', component: Rdp },
       { path: '/credentials', component: Credentials },
       { path: '/file', component: File },
       { path: '/onekey', component: Onekey },

@@ -38,7 +38,7 @@ const emit = defineEmits(['update:modelValue', 'change',])
 
 const { proxy: { $store } } = getCurrentInstance()
 
-const serverList = computed(() => $store.hostList?.filter(item => item.isConfig))
+const serverList = computed(() => $store.hostList?.filter(item => item.connectType !== 'rdp' && item.isConfig))
 const isPlusActive = computed(() => $store.isPlusActive)
 
 const selectedServer = computed({

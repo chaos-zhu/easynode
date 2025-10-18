@@ -52,7 +52,7 @@ async function updateHost({ res, request }) {
     delete updateFiled.privateKey
     delete updateFiled.credential
   }
-  console.log('updateFiled: ', updateFiled)
+  // console.log('updateFiled: ', updateFiled)
   await hostListDB.updateAsync({ _id: id }, { $set: { ...updateFiled } })
   res.success({ msg: '修改成功' })
 }

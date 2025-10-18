@@ -1,4 +1,4 @@
-const { getSSHList, addSSH, updateSSH, removeSSH, getCommand, decryptPrivateKey } = require('../controller/ssh')
+const { getSSHList, addSSH, updateSSH, removeSSH, getCommand, decryptPrivateKey, getRdpToken } = require('../controller/ssh')
 const { getHostList, addHost, updateHost, batchUpdateHost, removeHost, importHost } = require('../controller/host')
 const { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2, getPlusInfo, getPlusDiscount, getPlusConf, updatePlusKey } = require('../controller/user')
 const { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } = require('../controller/notify')
@@ -41,6 +41,11 @@ const ssh = [
     method: 'post',
     path: '/decrypt-private-key',
     controller: decryptPrivateKey
+  },
+  {
+    method: 'get',
+    path: '/get-rdp-token',
+    controller: getRdpToken
   }
 ]
 const host = [

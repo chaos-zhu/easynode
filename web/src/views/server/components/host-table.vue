@@ -173,8 +173,8 @@ const handleToConsole = ({ consoleUrl }) => {
 }
 
 const handleSSH = async (row) => {
-  let { id } = row
-  $router.push({ path: '/terminal', query: { hostIds: id } })
+  let { id, connectType } = row
+  $router.push({ path: connectType === 'rdp' ? '/rdp' : '/terminal', query: { hostIds: id } })
 }
 
 const defaultSortLocal = localStorage.getItem('host_table_sort')

@@ -2,6 +2,7 @@ version: '3'
 
 services:
   easynode:
+    container_name: easynode
     image: chaoszhu/easynode
     restart: always
     ports:
@@ -11,14 +12,42 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - DEBUG=0
+      - GUACD_HOST=easynode-guacd
+      - GUACD_PORT=4822
+    depends_on:
+      easynode-guacd:
+        condition: service_healthy
+    networks:
+      - easynode-network
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 
+  easynode-guacd:
+    container_name: easynode-guacd
+    image: docker.1ms.run/guacamole/guacd
+    restart: always
+    expose:
+      - "4822"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -z 127.0.0.1 4822"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+    networks:
+      - easynode-network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
   watchtower:
+    container_name: easynode-watchtower
     image: containrrr/watchtower
+    restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --schedule "0 8 * * *" --label-enable
-    restart: always
     environment:
       - TZ=Asia/Shanghai
+
+networks:
+  easynode-network:
+    driver: bridge

@@ -3,6 +3,7 @@ const compose = require('koa-compose') // 组合中间件，简化写法
 const http = require('http')
 const { httpPort } = require('./config')
 const middlewares = require('./middlewares')
+const wsRdp = require('./socket/rdp')
 const wsTerminal = require('./socket/terminal')
 const wsSftpV2 = require('./socket/sftp-v2')
 const wsDocker = require('./socket/docker')
@@ -24,6 +25,7 @@ const httpServer = () => {
 // 服务
 function serverHandler(app, server) {
   app.proxy = true // 用于nginx反代时获取真实客户端ip
+  wsRdp(server) // RDP
   wsTerminal(server) // 终端
   wsSftpV2(server) // sftp-v2
   wsDocker(server) // docker

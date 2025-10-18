@@ -1,16 +1,22 @@
 ## TODO
 
 * 批量下发后台定时任务
-* AI对话收藏
 * 移动端Ctrl、Tab的按键面板
 * 数据导出(2fa强制)
 * 进程管理
 * 当前会话连接|w
 * 日志打印优化
-* rdp
 * 探针接入
 * 通知模块重构，支持webhook
 * 支持csv模板特定格式导入
+
+## [3.5.0](https://github.com/chaos-zhu/easynode/releases) (2025-10-18)
+* 🖥️ 支持 RDP 远程 Windows 桌面连接（支持移动端交互 & 剪贴板互动）
+* 🧩 脚本库增强：新增脚本执行模式 — 多行脚本@zhanghao-njmu
+* 💻 终端增强：输出高亮自定义、配置持久化管理、样式优化、全屏下 bug 修复@zhanghao-njmu
+* 📂 SFTP增强：宽度拖拽、个性化显示文件信息列(大小、修改时间、权限、拥有者)@zhanghao-njmu
+* ⚙️ 其他优化与bug修复
+* ❤️ 特别感谢 @zhanghao-njmu 的功能PR
 
 ## [3.4.2](https://github.com/chaos-zhu/easynode/releases) (2025-08-24)
 * 🔒鉴权增强

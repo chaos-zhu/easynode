@@ -101,11 +101,21 @@ const decryptPrivateKey = async ({ res, request }) => {
   }
 }
 
+const getRdpToken = async ({ res, request }) => {
+  let { genRdpToken } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  if (genRdpToken) {
+    await genRdpToken({ res, request })
+  } else {
+    return res.fail({ data: false, msg: 'Plus专属功能，无法获取RDP Token!' })
+  }
+}
+
 module.exports = {
   getSSHList,
   addSSH,
   updateSSH,
   removeSSH,
   getCommand,
-  decryptPrivateKey
+  decryptPrivateKey,
+  getRdpToken
 }
