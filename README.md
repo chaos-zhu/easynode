@@ -77,11 +77,29 @@ docker-compose up -d
 
 ### docker镜像
 
+**注意！！！**
+
+**v3.5.0版本新增RDP连接windows服务器功能，此功能依赖单独的guacd服务**
+
+- 如果你不知道guacd服务，请使用上面的 docker-compose.yml 进行部署
+
+- 如果你不想使用 docker-compose.yml 进行部署，请配置环境变量 `GUACD_HOST` 和 `GUACD_PORT`
+
 ```shell
-docker run -d -p 8082:8082 --restart=always -v /root/easynode/db:/easynode/app/db chaoszhu/easynode
+# GUACD_HOST: 自建 guacd 服务 IP【此处127.0.0.1仅为示例,需自建服务】
+# GUACD_PORT: 自建 guacd 服务端口
+docker run -d \
+  -p 8082:8082 \
+  --restart=always \
+  -v /root/easynode/db:/easynode/app/db \
+  -e GUACD_HOST=127.0.0.1 \
+  -e GUACD_PORT=4822 \
+  chaoszhu/easynode
 ```
 
 环境变量：
+- `GUACD_HOST`: 自建guacd服务IP
+- `GUACD_PORT`: 自建guacd服务PORT
 - `DEBUG`: 启动debug日志 0：关闭 1：开启, 默认关闭
 
 注意: **docker默认不启用ipv6，请自行配置或者使用支持ipv6的跳板机中转.**

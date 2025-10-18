@@ -666,7 +666,10 @@ const isPlusActive = computed(() => $store.isPlusActive)
 const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
 const hostGroupList = computed(() => $store.groupList)
-const hostList = computed(() => $store.hostList)
+const hostList = computed(() => {
+  if (!Array.isArray($store.hostList)) return []
+  return $store.hostList.filter(item => item.connectType !== 'rdp')
+})
 // const curHost = computed(() =>
 //   hostList.value.find(
 //     (item) => item.host === terminalTabs.value[activeTabIndex.value]?.host

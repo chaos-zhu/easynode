@@ -9,7 +9,7 @@
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item @click="handleBatchSSH">连接终端</el-dropdown-item>
+            <el-dropdown-item @click="handleBatchConnect">连接终端</el-dropdown-item>
             <el-dropdown-item @click="handleBatchModify">批量修改</el-dropdown-item>
             <el-dropdown-item @click="handleBatchRemove">批量删除</el-dropdown-item>
             <el-dropdown-item @click="handleSelectAll">反选所有</el-dropdown-item>
@@ -202,13 +202,20 @@ const collectSelectHost = () => {
   selectHosts.value = allSelectHosts
 }
 
-const handleBatchSSH = () => {
+const handleBatchConnect = () => {
   collectSelectHost()
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
   let ids = selectHosts.value.filter(item => item.isConfig).map(item => item.id)
   if (!ids.length) return $message.warning('所选实例未配置ssh连接信息')
   if (ids.length < selectHosts.value.length) $message.warning('部分实例未配置ssh连接信息,已忽略')
-  $router.push({ path: '/terminal', query: { hostIds: ids.join(',') } })
+  // $router.push({ path: '/terminal', query: { hostIds: ids.join(',') } })
+  if (selectHosts.value.every(item => item.connectType === 'rdp')) {
+    $router.push({ path: '/rdp', query: { hostIds: ids.join(',') } })
+  } else if (selectHosts.value.every(item => !item.connectType || item.connectType === 'ssh')) {
+    $router.push({ path: '/terminal', query: { hostIds: ids.join(',') } })
+  } else {
+    $message.warning('所选实例包含rdp和ssh连接信息,请选择同一终端类型进行批量连接')
+  }
 }
 
 const handleBatchModify = async () => {

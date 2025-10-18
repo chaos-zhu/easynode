@@ -95,6 +95,7 @@ const basicFeatures = [
 const plusFeatures = [
   'AI Chat对话组件',
   '服务器代理&跳板机功能',
+  'RDP远程win桌面连接',
   '文件对传',
   '终端单窗口模式',
   '批量修改实例配置',

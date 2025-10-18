@@ -1,6 +1,6 @@
 {
   "name": "server",
-  "version": "3.4.2",
+  "version": "3.5.0",
   "description": "easynode-server",
   "bin": "./bin/www",
   "scripts": {
@@ -28,6 +28,7 @@
     "dotenv": "^16.4.5",
     "fs-extra": "^11.2.0",
     "global": "^4.4.0",
+    "guacamole-lite": "^1.2.0",
     "iconv-lite": "^0.6.3",
     "jsonwebtoken": "^9.0.2",
     "koa": "2.16.2",
