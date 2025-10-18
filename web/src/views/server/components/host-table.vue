@@ -23,7 +23,16 @@
         sortable
         :sort-method="(a, b) => a.name - b.name"
       >
-        <template #default="scope">{{ scope.row.name }}</template>
+        <template #default="scope">
+          <span v-if="scope.row.connectType !== 'rdp'">
+            <svg-icon name="icon-linux" class="icon" />
+            {{ scope.row.name }}
+          </span>
+          <span v-else>
+            <svg-icon name="icon-Windows" class="icon" />
+            {{ scope.row.name }}
+          </span>
+        </template>
       </el-table-column>
       <el-table-column v-if="props.columnSettings.username" property="username" label="用户名" />
       <el-table-column v-if="props.columnSettings.host" property="host" label="IP">
