@@ -1,5 +1,16 @@
 [
   {
+    "version": "v3.5.1",
+    "date": "2025-10-20",
+    "features": [
+      "终端默认缓冲区大小提高至10000 @zhanghao-njmu",
+      "支持终端内缓冲区内搜索功能 @zhanghao-njmu",
+      "实例列表-添加实例标识展示(Linux|Win)",
+      "win用户名小于8位字符可能导致连接失败(已添加弹窗提示,暂未定位原因)",
+      "❤️ 特别感谢 @zhanghao-njmu 的功能PR"
+    ]
+  },
+  {
     "version": "v3.5.0",
     "date": "2025-10-18",
     "features": [

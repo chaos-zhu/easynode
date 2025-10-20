@@ -350,7 +350,7 @@ const reconnectTerminal = (isCommonTips = false, tips) => {
 const createLocalTerminal = () => {
   let terminalInstance = new Terminal({
     bellStyle: 'sound',
-    convertEol: true,
+    convertEol: false,
     cursorBlink: true,
     disableStdin: false,
     minimumContrastRatio: 1, // 无对比度要求
@@ -768,10 +768,13 @@ const handleClear = () => {
 
 const handlePaste = async () => {
   let key = await navigator.clipboard.readText()
+  // 规范换行符：无论来自 Windows (\r\n) 还是 Unix (\n)，都统一替换成 \r
+  key = key.replace(/\r\n/g, '\r').replace(/\n/g, '\r')
   // 如果粘贴的内容以换行符结尾则去掉换行符(防止自动执行)
   while (key.endsWith('\n')) {
     key = key.slice(0, -1)
   }
+
   emit('inputCommand', key, uid)
   socket.value.emit('input', key)
   term.value.focus()
