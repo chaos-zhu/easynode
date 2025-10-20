@@ -63,7 +63,10 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 
 ### docker-compose部署-自动更新（推荐）
 
+部署本项目的[docker-compose.yml](https://github.com/chaos-zhu/easynode/blob/main/docker-compose.yml)默认采用[docker.1ms.run加速镜像](https://1ms.run/)，如发现服务不可用请自行替换或移除加速
 ```shell
+# docker compose快速部署
+
 # 1. 创建easynode目录
 mkdir -p /root/easynode && cd /root/easynode
 

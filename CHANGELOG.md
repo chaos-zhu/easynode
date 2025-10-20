@@ -10,6 +10,14 @@
 * 通知模块重构，支持webhook
 * 支持csv模板特定格式导入
 
+## [3.5.1](https://github.com/chaos-zhu/easynode/releases) (2025-10-20)
+* 终端默认缓冲区大小提高至10000@zhanghao-njmu
+* 支持终端内缓冲区内搜索功能@zhanghao-njmu
+* 实例列表-添加实例标识展示(Linux|Win)
+* win用户名小于8位字符可能导致连接失败(已添加弹窗提示,暂未定位原因)
+* ❤️ 特别感谢 @zhanghao-njmu 的功能PR
+
+
 ## [3.5.0](https://github.com/chaos-zhu/easynode/releases) (2025-10-18)
 * 🖥️ 支持 RDP 远程 Windows 桌面连接（支持移动端交互 & 剪贴板互动）
 * 🧩 脚本库增强：新增脚本执行模式 — 多行脚本@zhanghao-njmu
