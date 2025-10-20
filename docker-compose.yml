@@ -3,7 +3,7 @@ version: '3'
 services:
   easynode:
     container_name: easynode
-    image: chaoszhu/easynode
+    image: docker.1ms.run/chaoszhu/easynode
     restart: always
     ports:
       - 8082:8082
@@ -40,7 +40,7 @@ services:
 
   watchtower:
     container_name: easynode-watchtower
-    image: containrrr/watchtower
+    image: docker.1ms.run/containrrr/watchtower
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
