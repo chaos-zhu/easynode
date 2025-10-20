@@ -85,8 +85,8 @@ onActivated(async () => {
   if (!hostIds) return
   if (rdpTabs.some(item => hostIds.includes(item.id))) return $message.warning('已存在该实例的RDP连接')
   let targetHosts = hostList.value.filter(item => hostIds.includes(item.id)).map(item => {
-    const { id, name, host } = item
-    return { show: true, status: rdpStatus.IDLE, id, name, host }
+    const { id, name, host, username } = item
+    return { show: true, status: rdpStatus.IDLE, id, name, host, username }
   })
   if (!targetHosts || !targetHosts.length) return
   rdpTabs.push(...targetHosts)
@@ -135,10 +135,10 @@ const handleRemoveRdpTab = (item) => {
 }
 
 const addRDP = (item) => {
-  const { id, name, host, isConfig } = item
+  const { id, name, host, username, isConfig } = item
   if (!isConfig) return $message.warning('请先配置RDP连接信息')
   if (rdpTabs.some(tab => tab.id === id)) return $message.warning('已存在该实例的RDP连接')
-  rdpTabs.push({ show: true, status: rdpStatus.IDLE, id, name, host })
+  rdpTabs.push({ show: true, status: rdpStatus.IDLE, id, name, host, username })
 }
 
 const handleUpdateList = async ({ host }) => {

@@ -134,6 +134,7 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance, onBeforeUnmount, watch } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { Connection, Loading, Close, Clock } from '@element-plus/icons-vue'
 import Guacamole from 'guacamole-common-js'
 import { rdpStatus, rdpStatusList } from '@/utils/enum'
@@ -156,6 +157,7 @@ let touch
 let keyboard
 
 const host = computed(() => props.host)
+const username = computed(() => props.host?.username || '')
 const hostId = computed(() => props.host.id)
 const name = computed(() => host.value.name)
 const show = computed(() => host.value.show)
@@ -449,37 +451,28 @@ const getStateText = (state) => {
 }
 
 function mapGuacError(status) {
-  const code = status?.code
+  // const code = status?.code
   const msg = (status?.message || '').toLowerCase()
+  console.error('❌ Guac error:', status, 'code:', status?.code, 'msg:', status?.message)
 
-  // 1) 直接从 message 关键词判断（不同版本/系统更稳）
-  if (msg.includes('auth') || msg.includes('credential') || msg.includes('logon') || msg.includes('password'))
-    return '认证失败：用户名或密码错误，或账户被锁定。'
-
-  if (msg.includes('security') && msg.includes('negotiation'))
-    return '安全协商失败：目标主机需要的安全级别不匹配（可能是 NLA/TLS 相关）。'
-
-  // 2) 用状态码兜底（不同版本的码值不完全一致）
-  // 提示：这些常量在不同版本可能有差异，保守用“范围 + 兜底”
-  try {
-    const C = Guacamole.Status.Code // 常量枚举（如果有的话）
-    if (code === C?.CLIENT_UNAUTHORIZED || code === C?.UPSTREAM_UNAUTHORIZED)
-      return '认证失败：用户名或密码错误，或账户被禁用。'
-
-    if (code === C?.UPSTREAM_NOT_FOUND)
-      return '无法连接目标：主机/端口不可达或未开放 RDP。'
-
-    if (code === C?.UPSTREAM_TIMEOUT)
-      return '连接超时：网络不通或目标服务器响应过慢。'
-
-    if (code === C?.UPSTREAM_ERROR)
-      return '上游服务错误：RDP/guacd 发生异常。'
-  } catch (_) {
-    console.error('❌ Guac error:', status, 'code:', status?.code, 'msg:', status?.message)
+  // 坑：windows服务器用户名长度小于8位，会有连接失败的可能，暂未知原因，做弹窗提醒
+  if (
+    username.value?.length < 8 &&
+    (msg.includes('token validation failed') ||
+    msg.includes('authentication failure'))
+  ) {
+    ElMessageBox.confirm(
+      `用户名(${ username.value })长度小于8位，会有连接失败的可能，请使用Administrator或设置用户名大于等于8位。`,
+      '连接失败',
+      {
+        confirmButtonText: '确定',
+        showCancelButton: false,
+        type: 'error'
+      }
+    )
   }
 
-  // 3) 最后兜底
-  return '连接失败：可能是凭证不正确、NLA 要求或网络问题。'
+  return `连接失败：${ msg }`
 }
 
 const setupEventHandlers = () => {
