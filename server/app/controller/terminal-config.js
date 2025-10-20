@@ -22,21 +22,21 @@ const terminalConfigDB = new TerminalConfigDB().getInstance()
 // 获取用户的终端配置
 async function getTerminalConfig({ res }) {
   try {
-    // 查找用户配置
-    let userConfig = await terminalConfigDB.findOneAsync({ isDefault: { $ne: true } })
+    // 查找最新的用户配置
+    let existingConfig = await terminalConfigDB.findOneAsync({}).sort({ updateTime: -1 })
 
-    if (!userConfig) {
+    if (!existingConfig) {
       // 如果没有用户配置，直接返回默认配置
-      userConfig = DEFAULT_TERMINAL_CONFIG
+      existingConfig = DEFAULT_TERMINAL_CONFIG
     } else {
       // 合并默认配置和用户配置
-      userConfig = {
+      existingConfig = {
         ...DEFAULT_TERMINAL_CONFIG,
-        ...userConfig // 用户配置覆盖默认配置
+        ...existingConfig // 用户配置覆盖默认配置
       }
     }
 
-    res.success({ data: userConfig })
+    res.success({ data: existingConfig })
   } catch (error) {
     console.error('Error in getTerminalConfig:', error)
     res.fail({ msg: '服务器内部错误，请稍后重试' })
@@ -45,10 +45,10 @@ async function getTerminalConfig({ res }) {
 
 // 保存用户的终端配置
 async function saveTerminalConfig({ res, request }) {
-  const { isDefault, name, _id, createTime, ...configData } = request.body
+  const configData = request.body || {} // 前端目前只包含纯配置数据，不需要过滤字段
 
   try {
-    const existingConfig = await terminalConfigDB.findOneAsync({ isDefault: { $ne: true } })
+    const existingConfig = await terminalConfigDB.findOneAsync({}).sort({ updateTime: -1 })
 
     const updateData = {
       ...configData,
