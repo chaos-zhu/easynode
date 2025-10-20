@@ -1,5 +1,17 @@
 [
   {
+    "version": "v3.5.0",
+    "date": "2025-10-18",
+    "features": [
+      "🖥️ 支持 RDP 远程 Windows 桌面连接（支持移动端交互 & 剪贴板互动）",
+      "🧩 脚本库增强：新增脚本执行模式 — 多行脚本 @zhanghao-njmu",
+      "💻 终端增强：输出高亮自定义、配置持久化管理、样式优化、全屏下 bug 修复 @zhanghao-njmu",
+      "📂 SFTP增强：宽度拖拽、个性化显示文件信息列(大小、修改时间、权限、拥有者) @zhanghao-njmu",
+      "⚙️ 其他优化与bug修复",
+      "❤️ 特别感谢 @zhanghao-njmu 的功能PR"
+    ]
+  },
+  {
     "version": "v3.4.2",
     "date": "2025-08-24",
     "features": [

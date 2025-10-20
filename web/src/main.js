@@ -18,6 +18,9 @@ globalComponents(app)
 app.use(createPinia())
 app.use(router)
 
+const isDev = import.meta.env.DEV
+app.config.globalProperties.$isDev = isDev
+
 app.config.globalProperties.$api = api
 app.config.globalProperties.$tools = tools
 app.config.globalProperties.$http = axios

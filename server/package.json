@@ -1,6 +1,6 @@
 {
   "name": "server",
-  "version": "3.4.2",
+  "version": "3.5.0",
   "description": "easynode-server",
   "bin": "./bin/www",
   "scripts": {
@@ -21,13 +21,14 @@
   "dependencies": {
     "@koa/cors": "^5.0.0",
     "@seald-io/nedb": "^4.0.4",
-    "axios": "^1.8.3",
+    "axios": "^1.12.0",
     "consola": "^3.2.3",
     "cross-env": "^7.0.3",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.5",
     "fs-extra": "^11.2.0",
     "global": "^4.4.0",
+    "guacamole-lite": "^1.2.0",
     "iconv-lite": "^0.6.3",
     "jsonwebtoken": "^9.0.2",
     "koa": "2.16.2",
@@ -44,7 +45,7 @@
     "node-rsa": "^1.1.1",
     "node-schedule": "^2.1.1",
     "node-telegram-bot-api": "^0.66.0",
-    "nodemailer": "^6.9.14",
+    "nodemailer": "^7.0.7",
     "qrcode": "^1.5.4",
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",

@@ -48,14 +48,19 @@ const route = useRoute()
 
 const list = reactive([
   {
-    name: '实例配置',
+    name: '实例列表',
     icon: markRaw(IconMenu),
     index: '/server'
   },
   {
-    name: '连接终端',
+    name: '远程终端',
     icon: markRaw(ScaleToOriginal),
     index: '/terminal'
+  },
+  {
+    name: '远程桌面',
+    icon: markRaw(ScaleToOriginal),
+    index: '/rdp'
   },
   {
     name: '文件对传',

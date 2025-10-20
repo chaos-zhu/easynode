@@ -199,32 +199,32 @@
                 </div>
               </template>
               <div class="file_name_cell">
-              <img :src="getIcon(row.type)" class="file_icon">
-              <template v-if="isEditing(row)">
-                <el-input
-                  v-model="editingName"
-                  size="small"
-                  class="rename_input"
-                  @click.stop
-                  @keyup.enter.stop="confirmRename(row)"
-                  @keyup.esc.stop="cancelRename"
-                />
-                <el-icon class="rename_icon" @click.stop="confirmRename(row)"><Check /></el-icon>
-                <el-icon class="rename_icon" @click.stop="cancelRename"><CloseIcon /></el-icon>
-              </template>
-              <template v-else>
-                <span class="file_name" v-text="row.name" />
-                <el-icon
-                  class="star_icon"
-                  :class="{ 'favorited': isFavorited(row) }"
-                  :title="isFavorited(row) ? '取消收藏' : '收藏'"
-                  @click.stop="toggleFavorite(row)"
-                >
-                  <StarFilled v-if="isFavorited(row)" />
-                  <Star v-else />
-                </el-icon>
-              </template>
-            </div>
+                <img :src="getIcon(row.type)" class="file_icon">
+                <template v-if="isEditing(row)">
+                  <el-input
+                    v-model="editingName"
+                    size="small"
+                    class="rename_input"
+                    @click.stop
+                    @keyup.enter.stop="confirmRename(row)"
+                    @keyup.esc.stop="cancelRename"
+                  />
+                  <el-icon class="rename_icon" @click.stop="confirmRename(row)"><Check /></el-icon>
+                  <el-icon class="rename_icon" @click.stop="cancelRename"><CloseIcon /></el-icon>
+                </template>
+                <template v-else>
+                  <span class="file_name" v-text="row.name" />
+                  <el-icon
+                    class="star_icon"
+                    :class="{ 'favorited': isFavorited(row) }"
+                    :title="isFavorited(row) ? '取消收藏' : '收藏'"
+                    @click.stop="toggleFavorite(row)"
+                  >
+                    <StarFilled v-if="isFavorited(row)" />
+                    <Star v-else />
+                  </el-icon>
+                </template>
+              </div>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -2379,10 +2379,10 @@ const performFileUpload = async (task) => {
       throw new Error('WebSocket连接未建立')
     }
 
-    // 检查文件大小限制 (1GB)
-    const maxFileSize = 1024 * 1024 * 1024 // 1GB
+    // 检查文件大小限制 (3GB)
+    const maxFileSize = 1024 * 1024 * 1024 * 3 // 3GB
     if (task.totalSize > maxFileSize) {
-      throw new Error(`文件过大（${ formatSize(task.totalSize) }），单个文件不能超过1GB`)
+      throw new Error(`文件过大（${ formatSize(task.totalSize) }），单个文件不能超过3GB`)
     }
 
     // 发送上传开始事件

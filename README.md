@@ -77,11 +77,29 @@ docker-compose up -d
 
 ### docker镜像
 
+**注意！！！**
+
+**v3.5.0版本新增RDP连接windows服务器功能，此功能依赖单独的guacd服务**
+
+- 如果你不知道guacd服务，请使用上面的 docker-compose.yml 进行部署
+
+- 如果你不想使用 docker-compose.yml 进行部署，请配置环境变量 `GUACD_HOST` 和 `GUACD_PORT`
+
 ```shell
-docker run -d -p 8082:8082 --restart=always -v /root/easynode/db:/easynode/app/db chaoszhu/easynode
+# GUACD_HOST: 自建 guacd 服务 IP【此处127.0.0.1仅为示例,需自建服务】
+# GUACD_PORT: 自建 guacd 服务端口
+docker run -d \
+  -p 8082:8082 \
+  --restart=always \
+  -v /root/easynode/db:/easynode/app/db \
+  -e GUACD_HOST=127.0.0.1 \
+  -e GUACD_PORT=4822 \
+  chaoszhu/easynode
 ```
 
 环境变量：
+- `GUACD_HOST`: 自建guacd服务IP
+- `GUACD_PORT`: 自建guacd服务PORT
 - `DEBUG`: 启动debug日志 0：关闭 1：开启, 默认关闭
 
 注意: **docker默认不启用ipv6，请自行配置或者使用支持ipv6的跳板机中转.**
@@ -110,11 +128,7 @@ webssh与监控服务都将以`该服务器作为中转`。中国大陆用户建
 CDN acceleration and security protection for this project are sponsored by Tencent EdgeOne: EdgeOne offers a long-term free plan with unlimited traffic and requests, covering Mainland China nodes, with no overage charges. Interested friends can click the link below to claim it. [Best Asian CDN, Edge, and Secure Solutions - Tencent EdgeOne](https://edgeone.ai/zh?from=github)
 [![EdgeOne Logo](https://edgeone.ai/media/34fe3a45-492d-4ea4-ae5d-ea1087ca7b4b.png)](https://edgeone.ai/?from=github)
 
-[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
 
-
-[![image](https://img.shields.io/badge/NodeSupport-YXVM-red)](https://yxvm.com/)
-
-![Image](https://github.com/user-attachments/assets/a50409e4-9394-4a59-a125-18ffe64c5fb0)
+![Image](https://github.com/user-attachments/assets/a50409e4-9394-4a59-a125-18ffe64c5fb0) [![image](https://img.shields.io/badge/NodeSupport-YXVM-red)](https://yxvm.com/)
 
 

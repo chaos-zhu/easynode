@@ -19,6 +19,9 @@ export default {
   removeSSH(id) {
     return axios({ url: `/remove-ssh/${ id }`, method: 'delete' })
   },
+  getRdpToken(config = {}) {
+    return axios({ url: '/get-rdp-token', method: 'get', params: config })
+  },
   getPlusInfo() {
     return axios({ url: '/plus-info', method: 'get' })
   },

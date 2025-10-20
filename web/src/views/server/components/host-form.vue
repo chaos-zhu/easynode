@@ -29,6 +29,14 @@
       label-width="100px"
       :show-message="false"
     >
+      <el-form-item key="connectType" label="连接类型" prop="connectType">
+        <el-radio-group v-model="hostForm.connectType">
+          <el-radio value="ssh">SSH <svg-icon name="icon-linux" class="icon" /></el-radio>
+          <PlusSupportTip>
+            <el-radio value="rdp" :disabled="!isPlusActive">RDP <svg-icon name="icon-Windows" class="icon" /></el-radio>
+          </PlusSupportTip>
+        </el-radio-group>
+      </el-form-item>
       <el-form-item key="group" label="分组" prop="group">
         <el-select
           v-model="hostForm.group"
@@ -115,13 +123,18 @@
           </template>
         </el-autocomplete>
       </el-form-item>
-      <el-form-item key="authType" label="认证方式" prop="authType">
+      <el-form-item
+        v-if="isSSH"
+        key="authType"
+        label="认证方式"
+        prop="authType"
+      >
         <el-radio v-model="hostForm.authType" value="privateKey">密钥</el-radio>
         <el-radio v-model="hostForm.authType" value="password">密码</el-radio>
         <el-radio v-model="hostForm.authType" value="credential">凭据</el-radio>
       </el-form-item>
       <el-form-item
-        v-if="hostForm.authType === 'privateKey'"
+        v-if="isSSH && hostForm.authType === 'privateKey'"
         key="privateKey"
         prop="privateKey"
         label="密钥"
@@ -148,7 +161,7 @@
         />
       </el-form-item>
       <el-form-item
-        v-if="hostForm.authType === 'password'"
+        v-if="hostForm.authType === 'password' || isRDP"
         key="password"
         prop="password"
         label="密码"
@@ -163,7 +176,7 @@
         />
       </el-form-item>
       <el-form-item
-        v-if="hostForm.authType === 'credential'"
+        v-if="isSSH && hostForm.authType === 'credential'"
         key="credential"
         prop="credential"
         label="凭据"
@@ -196,6 +209,7 @@
         <el-collapse-item name="advanced" title="其他设置">
           <PlusSupportTip>
             <el-form-item
+              v-if="isSSH"
               key="proxyType"
               label="代理类型"
               prop="proxyType"
@@ -208,7 +222,7 @@
             </el-form-item>
           </PlusSupportTip>
           <el-form-item
-            v-if="hostForm.proxyType === 'jumpHosts'"
+            v-if="isSSH && hostForm.proxyType === 'jumpHosts'"
             key="jumpHosts"
             prop="jumpHosts"
             label="跳板机"
@@ -237,7 +251,7 @@
             </el-select>
           </el-form-item>
           <el-form-item
-            v-if="hostForm.proxyType === 'proxyServer'"
+            v-if="isSSH && hostForm.proxyType === 'proxyServer'"
             key="proxyServer"
             prop="proxyServer"
             label="代理服务"
@@ -270,7 +284,12 @@
               </el-option>
             </el-select>
           </el-form-item>
-          <el-form-item key="command" prop="command" label="登录指令">
+          <el-form-item
+            v-if="isSSH"
+            key="command"
+            prop="command"
+            label="登录指令"
+          >
             <el-input
               v-model="hostForm.command"
               type="textarea"
@@ -370,6 +389,7 @@ const props = defineProps({
 const emit = defineEmits(['update:show', 'update-list', 'closed',])
 
 const formField = {
+  connectType: 'ssh', // ssh, rdp
   group: 'default',
   name: '',
   host: '',
@@ -406,6 +426,7 @@ const batchHosts = computed(() => props.batchHosts)
 const defaultData = computed(() => props.defaultData)
 const rules = computed(() => {
   return {
+    connectType: { required: true, message: '选择一个连接类型' },
     group: { required: !isBatchModify.value, message: '选择一个分组' },
     name: { required: !isBatchModify.value, message: '输入实例别名', trigger: 'change' },
     host: { required: !isBatchModify.value, message: '输入IP/域名', trigger: 'change' },
@@ -431,11 +452,31 @@ const title = computed(() => {
   return isBatchModify.value ? '批量修改实例' : (defaultData.value ? '修改实例' : '添加实例')
 })
 
+// 连接类型计算属性
+const isSSH = computed(() => hostForm.value.connectType === 'ssh')
+const isRDP = computed(() => hostForm.value.connectType === 'rdp')
+
 const groupList = computed(() => $store.groupList)
 const sshList = computed(() => $store.sshList)
 const hostList = computed(() => $store.hostList)
 const confHostList = computed(() => hostList.value?.filter(item => item.isConfig))
 const proxyList = computed(() => $store.proxyList)
+
+// 监听连接类型变化，自动修正port&Username
+watch(
+  () => hostForm.value.connectType,
+  (newVal) => {
+    if (defaultData.value || isBatchModify.value) return
+    if (newVal === 'rdp') {
+      hostForm.value.port = 3389
+      hostForm.value.username = 'Administrator'
+    }
+    if (newVal === 'ssh') {
+      hostForm.value.port = 22
+      hostForm.value.username = 'root'
+    }
+  }
+)
 
 // 监听折叠状态变化，保存到localStorage
 watch(advancedSettingsCollapsed, (newVal) => {
@@ -461,6 +502,7 @@ const setBatchDefaultData = () => {
   if (!isBatchModify.value) return
   Object.assign(hostForm.value, { ...formField }, { group: '', port: '', username: '', authType: '', proxyType: '', jumpHosts: [], proxyServer: '' })
 }
+
 const handleOpen = async () => {
   if (isBatchModify.value) {
     setBatchDefaultData()
@@ -502,10 +544,20 @@ const defaultUsers = [
   { value: 'opc' },
   { value: 'admin' },
 ]
+
+const defaultWindowsUsers = [
+  { value: 'Administrator' },
+  { value: 'admin' },
+  { value: 'user' },
+  { value: 'Guest' },
+]
+
 const userSearch = (keyword, cb) => {
+  // 根据连接类型选择不同的用户名建议
+  const users = isRDP.value ? defaultWindowsUsers : defaultUsers
   let res = keyword
-    ? defaultUsers.filter((item) => item.value.includes(keyword))
-    : defaultUsers
+    ? users.filter((item) => item.value.toLowerCase().includes(keyword.toLowerCase()))
+    : users
   cb(res)
 }
 
@@ -529,6 +581,7 @@ const handleSave = () => {
           if (Array.isArray(value)) return value.length > 0
           return Boolean(value)
         })) // 剔除掉未更改的值
+        if (isRDP.value) updateFieldData.authType = 'password'
         let { authType = '' } = updateFieldData
         if (authType && !updateFieldData[authType]) {
           delete updateFieldData.authType
@@ -547,6 +600,7 @@ const handleSave = () => {
         let { msg } = await $api.batchUpdateHost({ updateIds, updateFieldData })
         $message({ type: 'success', center: true, message: msg })
       } else {
+        if (isRDP.value) formData.authType = 'password'
         let { authType } = formData
         if (formData[authType]) {
           let tempKey = randomStr(16)

@@ -34,6 +34,7 @@ module.exports = {
     'vue/singleline-html-element-content-newline': 0,
 
     // js
+    'no-case-declarations': 'off',
     'space-before-blocks': ['error', 'always',],
     'space-in-parens': ['error', 'never',],
     'keyword-spacing': ['error', { 'before': true, 'after': true },],

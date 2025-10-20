@@ -21,8 +21,7 @@ const useAuth = async ({ request, res }, next) => {
     case enumLoginCode.EXPIRES:
       return res.fail({ msg: '登录态已过期, 请重新登录', status: 401 })
     case enumLoginCode.ERROR_TOKEN:
-      consola.warn('TOKEN校验错误(可能存在外部攻击): ', path)
-      return res.fail({ msg: 'TOKEN错误!!!', status: 403 })
+      return res.fail({ msg: 'TOKEN校验失败, 请重新登录', status: 401 })
     case enumLoginCode.ERROR_UID:
       consola.warn('用户id校验失败(可能存在外部攻击): ', path)
       return res.fail({ msg: 'UID错误!!!', status: 403 })
