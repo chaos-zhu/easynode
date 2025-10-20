@@ -71,7 +71,7 @@ mkdir -p /root/easynode && cd /root/easynode
 wget https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/docker-compose.yml
 
 # 3. 启动服务
-docker-compose up -d
+docker compose up -d
 ```
 
 
@@ -130,5 +130,6 @@ CDN acceleration and security protection for this project are sponsored by Tence
 
 
 ![Image](https://github.com/user-attachments/assets/a50409e4-9394-4a59-a125-18ffe64c5fb0) [![image](https://img.shields.io/badge/NodeSupport-YXVM-red)](https://yxvm.com/)
+
 
 
