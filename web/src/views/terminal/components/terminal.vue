@@ -10,12 +10,21 @@
     <!-- <div class="terminal_command_history">
       <CommandHistory :list="commandHistoryList" />
     </div> -->
+    <TerminalSearch
+      v-if="term && searchAddon"
+      ref="searchBarRef"
+      :search-addon="searchAddon"
+      :terminal="term"
+      @close="handleSearchClose"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance, watch, nextTick } from 'vue'
 // import CommandHistory from './command_history.vue'
+// 自定义搜索组件，xterm-addon-search-bar已废弃
+import TerminalSearch from './terminal-search.vue'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { CanvasAddon } from '@xterm/addon-canvas'
@@ -69,6 +78,8 @@ const initCommand = ref('')
 const timer = ref(null)
 const pingTimer = ref(null)
 const fitAddon = ref(null)
+const searchAddon = ref(null)
+const searchBarRef = ref(null) // TerminalSearch组件引用
 // const searchBar = ref(null)
 const socketConnected = ref(false)
 const curStatus = ref(CONNECTING)
@@ -347,7 +358,7 @@ const createLocalTerminal = () => {
     fontFamily: fontFamily.value,
     fontSize: fontSize.value,
     theme: theme.value,
-    scrollback: 5000, // 滚动缓冲区大小
+    scrollback: 10000, // 滚动缓冲区大小，增加至10000行
     tabStopWidth: 4,
     windowsMode: false, // 禁用Windows模式提升性能
     macOptionIsMeta: true, // macOS优化
@@ -427,12 +438,20 @@ const onWebLinks = () => {
   }))
 }
 
-// :TODO: 重写终端搜索功能
+// 终端搜索功能
 const onFindText = () => {
-  const searchAddon = new SearchAddon()
-  // searchBar.value = new SearchBarAddon({ searchAddon })
-  term.value.loadAddon(searchAddon)
-  // term.value.loadAddon(searchBar.value)
+  searchAddon.value = new SearchAddon()
+  term.value.loadAddon(searchAddon.value)
+}
+
+// 显示搜索框
+const showSearchBar = () => {
+  searchBarRef.value?.show()
+}
+
+// 关闭搜索框，重新聚焦终端
+const handleSearchClose = () => {
+  term.value?.focus()
 }
 
 const enterTimer = ref(null)
@@ -499,7 +518,7 @@ const onData = () => {
     let acsiiCode = key.codePointAt()
     // console.log(acsiiCode)
     if (acsiiCode === 22) return handlePaste() // Ctrl + V
-    // if (acsiiCode === 6) return searchBar.value.show() // Ctrl + F
+    if (acsiiCode === 6) return showSearchBar() // Ctrl + F
     enterTimer.value = setTimeout(() => {
       if (enterTimer.value) clearTimeout(enterTimer.value)
       if (key === '\r') { // Enter
@@ -579,6 +598,13 @@ const handleRightClick = async (e) => {
       term.value.clearSelection()
     }
   } : null
+  const search = {
+    label: '查找',
+    onClick: () => {
+      showSearchBar()
+      term.value.clearSelection()
+    }
+  }
   const paste = {
     label: '粘贴',
     onClick: () => {
@@ -726,6 +752,7 @@ const handleRightClick = async (e) => {
     copySelection,
     paste,
     pasteSelection,
+    search,
     clear,
     dockerId,
     dockerComposeYml,
