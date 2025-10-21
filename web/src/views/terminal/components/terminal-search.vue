@@ -145,7 +145,6 @@ const close = () => {
   totalMatches.value = 0
   currentMatchIndex.value = 0
   matchPositions.value = []
-  props.searchAddon?.clearDecorations()
   emit('close')
 }
 
@@ -239,12 +238,22 @@ const performSearch = (isNext = true) => {
     ? props.searchAddon?.findNext(searchKeyword.value, {
       caseSensitive: isCaseSensitive.value,
       regex: isUseRegex.value,
-      wholeWord: false
+      wholeWord: false,
+      decorations: {
+        matchBackground: '#FFFF00', // 所有匹配项
+        activeMatchBackground: '#FF8C00', // 当前匹配项
+        activeMatchBorder: '#FF0000'
+      }
     })
     : props.searchAddon?.findPrevious(searchKeyword.value, {
       caseSensitive: isCaseSensitive.value,
       regex: isUseRegex.value,
-      wholeWord: false
+      wholeWord: false,
+      decorations: {
+        matchBackground: '#FFFF00', // 所有匹配项
+        activeMatchBackground: '#FF8C00', // 当前匹配项
+        activeMatchBorder: '#FF0000'
+      }
     })
 
   // 更新状态和索引值
@@ -303,11 +312,12 @@ const resetSearch = () => {
 
 watch(searchKeyword, (newVal) => {
   if (!newVal) {
-    props.searchAddon?.clearDecorations()
     searchStatus.value = ''
     totalMatches.value = 0
     currentMatchIndex.value = 0
     matchPositions.value = []
+    props.searchAddon?.clearDecorations()
+    props.terminal.refresh(0, props.terminal.rows - 1)
   } else {
     searchStatus.value = ''
     currentMatchIndex.value = 0
@@ -317,6 +327,8 @@ watch(searchKeyword, (newVal) => {
       performSearch(true)
     } else {
       searchStatus.value = 'not-found'
+      props.searchAddon?.clearDecorations()
+      props.terminal.refresh(0, props.terminal.rows - 1)
     }
   }
 })

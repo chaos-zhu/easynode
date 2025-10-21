@@ -6,14 +6,14 @@ const DEFAULT_TERMINAL_CONFIG = {
   fontFamily: 'monospace', // 使用多平台通用的等宽字体
   fontSize: 16,
   fontColor: '', // 使用主题字体颜色
-  cursorColor: '', // 使用主题光标颜色
-  selectionColor: '#264f78', // 深蓝色选中颜色，适合深色主题
+  cursorColor: '#00ff41', // 使用主题光标颜色
+  selectionColor: 'rgb(226, 232, 38)', // 选中颜色
   background: '', // 使用主题背景
-  keywordHighlight: true,
+  keywordHighlight: false, // 关键词高亮
   highlightDebugMode: false,
   customHighlightRules: null, // null表示使用默认规则
-  autoExecuteScript: false, // 脚本执行模式
-  autoReconnect: false, // 自动重连
+  autoExecuteScript: false, // 自动执行脚本
+  autoReconnect: true, // 断线自动重连
   autoShowContextMenu: true // 选中文本后自动显示右键菜单
 }
 

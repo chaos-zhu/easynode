@@ -355,6 +355,7 @@ const createLocalTerminal = () => {
     disableStdin: false,
     minimumContrastRatio: 1, // 无对比度要求
     allowTransparency: true,
+    allowProposedApi: true, // 搜索装饰
     fontFamily: fontFamily.value,
     fontSize: fontSize.value,
     theme: theme.value,

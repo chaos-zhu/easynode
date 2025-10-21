@@ -145,10 +145,6 @@ const useStore = defineStore('global', {
       if (plusInfo?.expiryDate) {
         const isPlusActive = new Date(plusInfo.expiryDate) > new Date()
         this.$patch({ isPlusActive })
-        if (!isPlusActive) {
-          localStorage.setItem('autoReconnect', 'false')
-          return
-        }
         plusInfo.expiryDate = dayjs(plusInfo.expiryDate).format('YYYY-MM-DD')
         plusInfo.expiryDate?.startsWith('9999') && (plusInfo.expiryDate = '永久授权')
         this.$patch({ plusInfo })
@@ -158,38 +154,13 @@ const useStore = defineStore('global', {
       this.$patch({ plusInfo })
     },
     async getTerminalConfig() {
-      try {
-        const { data: terminalConfig } = await $api.getTerminalConfig()
-        this.$patch({ terminalConfig })
-      } catch (error) {
-        console.error('获取终端配置失败:', error)
-        // Fallback
-        // 默认配置信息位于: server/app/controller/terminal-config.js
-        this.$patch({ terminalConfig: {
-          themeName: 'Afterglow',
-          fontFamily: 'monospace',
-          fontSize: 16,
-          fontColor: '',
-          cursorColor: '',
-          selectionColor: '#264f78',
-          background: '',
-          keywordHighlight: true,
-          highlightDebugMode: false,
-          customHighlightRules: null,
-          autoExecuteScript: false,
-          autoReconnect: false,
-          autoShowContextMenu: true
-        } })
-      }
+      const { data: terminalConfig } = await $api.getTerminalConfig()
+      this.$patch({ terminalConfig })
     },
     async setTerminalSetting(setTarget = {}) {
       const newConfig = { ...this.terminalConfig, ...setTarget }
-      try {
-        await $api.saveTerminalConfig(newConfig)
-        this.$patch({ terminalConfig: newConfig })
-      } catch (error) {
-        console.error('保存终端配置失败:', error)
-      }
+      await $api.saveTerminalConfig(newConfig)
+      this.$patch({ terminalConfig: newConfig })
     },
     setMenuSetting(setTarget = {}) {
       let newConfig = { ...this.menuSetting, ...setTarget }
