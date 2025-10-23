@@ -359,7 +359,7 @@ const createLocalTerminal = () => {
     fontFamily: fontFamily.value,
     fontSize: fontSize.value,
     theme: theme.value,
-    scrollback: 10000, // 滚动缓冲区大小，增加至10000行
+    scrollback: 10000, // 缓冲行数
     tabStopWidth: 4,
     windowsMode: false, // 禁用Windows模式提升性能
     macOptionIsMeta: true, // macOS优化

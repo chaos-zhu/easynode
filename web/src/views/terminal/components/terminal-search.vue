@@ -16,12 +16,13 @@
         class="search_input"
         clearable
         @keyup.enter="handleEnterKey"
+        @keyup.esc="close"
       >
         <template #suffix>
           <div class="search_result_info">
             <span v-if="searchKeyword" class="result_status">
               <template v-if="searchStatus === 'found'">
-                <span class="count_text">{{ currentMatchIndex }}/{{ totalMatches }}</span>
+                <span class="count_text">{{ currentMatchIndex }}/{{ isOverLimit ? '999+' : totalMatches }}</span>
               </template>
               <template v-else-if="searchStatus === 'not-found'">
                 <el-icon style="color: var(--el-color-warning)">
@@ -37,7 +38,7 @@
       <el-tooltip placement="bottom">
         <template #content>
           <div style="max-width: 300px;">
-            搜索范围：终端缓冲区内的内容（最多1万行）<br>
+            搜索范围：终端缓冲区内的内容<br>
             超出缓冲区的内容无法搜索
           </div>
         </template>
@@ -121,8 +122,10 @@ const isUseRegex = ref(false)
 const searchStatus = ref('') // 'found','not-found',''
 const totalMatches = ref(0) // 总匹配数
 const currentMatchIndex = ref(0) // 当前匹配索引
-const matchPositions = ref([]) // 缓存所有匹配位置 [{行, 列, 长度}]
+const isOverLimit = ref(false) // 是否超过最大计数限制
 const searchInputRef = ref(null)
+const searchDebounceTimer = ref(null) // 搜索防抖定时器
+const MAX_MATCH_COUNT = 999 // 最大计数限制
 
 const searchBarStyle = computed(() => ({
   position: 'absolute',
@@ -139,12 +142,16 @@ const show = () => {
 }
 
 const close = () => {
+  if (searchDebounceTimer.value) {
+    clearTimeout(searchDebounceTimer.value)
+    searchDebounceTimer.value = null
+  }
   visible.value = false
   searchKeyword.value = ''
   searchStatus.value = ''
   totalMatches.value = 0
   currentMatchIndex.value = 0
-  matchPositions.value = []
+  isOverLimit.value = false
   emit('close')
 }
 
@@ -152,7 +159,7 @@ const close = () => {
 const countMatches = () => {
   if (!searchKeyword.value) {
     totalMatches.value = 0
-    matchPositions.value = []
+    isOverLimit.value = false
     return
   }
 
@@ -160,7 +167,6 @@ const countMatches = () => {
     const buffer = props.terminal.buffer.active
     const searchTerm = searchKeyword.value
     let count = 0
-    const positions = []
 
     // 构建搜索方法
     let searchMethod
@@ -172,14 +178,12 @@ const countMatches = () => {
         const flags = isCaseSensitiveValue ? 'g' : 'gi'
         const searchRegex = new RegExp(searchTerm, flags)
         searchMethod = (text) => {
-          return Array.from(text.matchAll(searchRegex), match => ({
-            index: match.index,
-            length: match[0].length
-          }))
+          const matches = text.matchAll(searchRegex)
+          return Array.from(matches).length
         }
       } catch (e) {
         totalMatches.value = 0
-        matchPositions.value = []
+        isOverLimit.value = false
         return
       }
     } else {
@@ -187,14 +191,14 @@ const countMatches = () => {
       const term = isCaseSensitiveValue ? searchTerm : searchTerm.toLowerCase()
       searchMethod = (text) => {
         const content = isCaseSensitiveValue ? text : text.toLowerCase()
-        const matches = []
+        let count = 0
         let index = content.indexOf(term)
 
         while (index !== -1) {
-          matches.push({ index, length: term.length })
+          count++
           index = content.indexOf(term, index + 1)
         }
-        return matches
+        return count
       }
     }
 
@@ -205,25 +209,24 @@ const countMatches = () => {
       const line = buffer.getLine(i)
       if (!line) continue
 
-      const lineText = line.translateToString(true)
-      const matches = searchMethod(lineText)
+      const lineText = line.translateToString(false)
+      const matchCount = searchMethod(lineText)
+      count += matchCount
 
-      for (const match of matches) {
-        count++
-        positions.push({
-          line: i,
-          col: match.index,
-          length: match.length
-        })
+      // 达到上限时早期退出
+      if (count > MAX_MATCH_COUNT) {
+        totalMatches.value = MAX_MATCH_COUNT
+        isOverLimit.value = true
+        return
       }
     }
 
     totalMatches.value = count
-    matchPositions.value = positions
+    isOverLimit.value = false
   } catch (error) {
     console.warn('计数匹配项报错:', error)
     totalMatches.value = 0
-    matchPositions.value = []
+    isOverLimit.value = false
   }
 }
 
@@ -240,7 +243,7 @@ const performSearch = (isNext = true) => {
       regex: isUseRegex.value,
       wholeWord: false,
       decorations: {
-        matchBackground: '#FFFF00', // 所有匹配项
+        // matchBackground: '#FFFF00', // 所有匹配项
         activeMatchBackground: '#FF8C00', // 当前匹配项
         activeMatchBorder: '#FF0000'
       }
@@ -250,7 +253,7 @@ const performSearch = (isNext = true) => {
       regex: isUseRegex.value,
       wholeWord: false,
       decorations: {
-        matchBackground: '#FFFF00', // 所有匹配项
+        // matchBackground: '#FFFF00', // 所有匹配项
         activeMatchBackground: '#FF8C00', // 当前匹配项
         activeMatchBorder: '#FF0000'
       }
@@ -299,6 +302,10 @@ const toggleRegex = () => {
 }
 
 const resetSearch = () => {
+  if (searchDebounceTimer.value) {
+    clearTimeout(searchDebounceTimer.value)
+    searchDebounceTimer.value = null
+  }
   searchStatus.value = ''
   currentMatchIndex.value = 0
   if (searchKeyword.value) {
@@ -311,25 +318,31 @@ const resetSearch = () => {
 }
 
 watch(searchKeyword, (newVal) => {
+  if (searchDebounceTimer.value) {
+    clearTimeout(searchDebounceTimer.value)
+  }
+
   if (!newVal) {
     searchStatus.value = ''
     totalMatches.value = 0
     currentMatchIndex.value = 0
-    matchPositions.value = []
+    isOverLimit.value = false
     props.searchAddon?.clearDecorations()
     props.terminal.refresh(0, props.terminal.rows - 1)
   } else {
-    searchStatus.value = ''
-    currentMatchIndex.value = 0
-    countMatches()
-    if (totalMatches.value > 0) {
-      currentMatchIndex.value = 1
-      performSearch(true)
-    } else {
-      searchStatus.value = 'not-found'
-      props.searchAddon?.clearDecorations()
-      props.terminal.refresh(0, props.terminal.rows - 1)
-    }
+    searchDebounceTimer.value = setTimeout(() => {
+      searchStatus.value = ''
+      currentMatchIndex.value = 0
+      countMatches()
+      if (totalMatches.value > 0) {
+        currentMatchIndex.value = 1
+        performSearch(true)
+      } else {
+        searchStatus.value = 'not-found'
+        props.searchAddon?.clearDecorations()
+        props.terminal.refresh(0, props.terminal.rows - 1)
+      }
+    }, 150)
   }
 })
 
