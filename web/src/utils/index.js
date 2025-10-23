@@ -180,7 +180,7 @@ export const isValidDate = (dateString) => {
 }
 
 const serviceURI = import.meta.env.DEV ? process.env.serviceURI : location.origin
-export const generateSocketInstance = (path, query = {}, config = { forceNew: false, reconnection: true, reconnectionAttempts: 3 }) => {
+export const generateSocketInstance = (path, config = { forceNew: false, reconnection: true, reconnectionAttempts: 3 }, query = {}) => {
   return socketIo(serviceURI, {
     path,
     query: {
