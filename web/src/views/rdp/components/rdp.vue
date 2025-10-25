@@ -371,7 +371,7 @@ const getRdpWsUrl = async () => {
   const { data } = await $api.getRdpToken({ hostId: hostId.value, width, height })
   if (!data) return $message.error('获取RDP WS URL失败')
   const wsHost = $isDev ? `ws://${ location.hostname }:8082` : location.origin.replace('http', 'ws')
-  return `${ wsHost }/guac?token=${ encodeURIComponent(data) }`
+  return `${ wsHost }/rdp-proxy/guac?token=${ encodeURIComponent(data) }`
 }
 
 const connectRdp = async () => {
