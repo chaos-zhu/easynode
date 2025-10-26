@@ -2379,12 +2379,6 @@ const performFileUpload = async (task) => {
       throw new Error('WebSocket连接未建立')
     }
 
-    // 检查文件大小限制 (3GB)
-    const maxFileSize = 1024 * 1024 * 1024 * 3 // 3GB
-    if (task.totalSize > maxFileSize) {
-      throw new Error(`文件过大（${ formatSize(task.totalSize) }），单个文件不能超过3GB`)
-    }
-
     // 发送上传开始事件
     socket.value.emit('upload_start', {
       taskId: task.taskId,
@@ -2393,73 +2387,83 @@ const performFileUpload = async (task) => {
       targetPath: task.targetPath
     })
 
-    // 读取文件并分片上传
-    const reader = new FileReader()
-    reader.onload = async (e) => {
-      const arrayBuffer = e.target.result
-      const chunkSize = 512 * 1024 // 512KB per chunk
-      const totalChunks = Math.ceil(arrayBuffer.byteLength / chunkSize)
+    // 使用流式读取，逐片读取文件 - 固定2MB分片（平衡性能和稳定性）
+    const chunkSize = 2 * 1024 * 1024 // 2MB per chunk
+    const totalChunks = Math.ceil(task.originalFile.size / chunkSize)
 
-      console.log(`开始分片上传: ${ task.fileName }, 总分片数: ${ totalChunks }`)
+    console.log(`开始分片上传: ${ task.fileName }, 文件大小: ${ formatSize(task.totalSize) }, 总分片数: ${ totalChunks }`)
 
-      // 分片上传
-      for (let i = 0; i < totalChunks; i++) {
-        const start = i * chunkSize
-        const end = Math.min(start + chunkSize, arrayBuffer.byteLength)
-        const chunk = arrayBuffer.slice(start, end)
+    // 逐片读取并上传
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * chunkSize
+      const end = Math.min(start + chunkSize, task.originalFile.size)
 
-        // 发送分片
-        socket.value.emit('upload_chunk', {
-          taskId: task.taskId,
-          chunkIndex: i,
-          chunkData: chunk,
-          totalChunks,
-          isLastChunk: i === totalChunks - 1
-        })
+      // 使用 slice 获取文件片段
+      const fileSlice = task.originalFile.slice(start, end)
 
-        // 等待分片上传确认
-        await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error('分片上传超时'))
-          }, 30000) // 30秒超时
+      // 读取当前片段
+      const chunk = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
 
-          const handleSuccess = ({ taskId: responseTaskId, chunkIndex }) => {
-            if (responseTaskId === task.taskId && chunkIndex === i) {
-              clearTimeout(timeout)
-              socket.value.off('upload_chunk_success', handleSuccess)
-              socket.value.off('upload_chunk_fail', handleFail)
-              resolve()
-            }
+        reader.onload = (e) => {
+          resolve(e.target.result)
+        }
+
+        reader.onerror = () => {
+          reject(new Error(`读取文件分片 ${ i + 1 }/${ totalChunks } 失败`))
+        }
+
+        reader.readAsArrayBuffer(fileSlice)
+      })
+
+      // 发送分片
+      socket.value.emit('upload_chunk', {
+        taskId: task.taskId,
+        chunkIndex: i,
+        chunkData: chunk,
+        totalChunks,
+        isLastChunk: i === totalChunks - 1
+      })
+
+      // 等待分片上传确认
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error(`分片 ${ i + 1 }/${ totalChunks } 上传超时`))
+        }, 30000) // 30秒超时
+
+        const handleSuccess = ({ taskId: responseTaskId, chunkIndex }) => {
+          if (responseTaskId === task.taskId && chunkIndex === i) {
+            clearTimeout(timeout)
+            socket.value.off('upload_chunk_success', handleSuccess)
+            socket.value.off('upload_chunk_fail', handleFail)
+            resolve()
           }
+        }
 
-          const handleFail = ({ taskId: responseTaskId, chunkIndex, error }) => {
-            if (responseTaskId === task.taskId && chunkIndex === i) {
-              clearTimeout(timeout)
-              socket.value.off('upload_chunk_success', handleSuccess)
-              socket.value.off('upload_chunk_fail', handleFail)
-              reject(new Error(error))
-            }
+        const handleFail = ({ taskId: responseTaskId, chunkIndex, error }) => {
+          if (responseTaskId === task.taskId && chunkIndex === i) {
+            clearTimeout(timeout)
+            socket.value.off('upload_chunk_success', handleSuccess)
+            socket.value.off('upload_chunk_fail', handleFail)
+            reject(new Error(error))
           }
+        }
 
-          socket.value.on('upload_chunk_success', handleSuccess)
-          socket.value.on('upload_chunk_fail', handleFail)
-        })
-      }
-
-      console.log(`分片上传完成: ${ task.fileName }`)
+        socket.value.on('upload_chunk_success', handleSuccess)
+        socket.value.on('upload_chunk_fail', handleFail)
+      })
     }
 
-    reader.onerror = () => {
-      throw new Error('文件读取失败')
-    }
-
-    reader.readAsArrayBuffer(task.originalFile)
+    console.log(`分片上传完成: ${ task.fileName }`)
 
   } catch (error) {
     console.error('上传文件失败:', error)
     // 直接使用传入的task参数，无需重新获取
-    task.status = 'failed'
-    task.error = error.message
+    const currentTask = uploadTasks.value.get(task.taskId)
+    if (currentTask) {
+      currentTask.status = 'failed'
+      currentTask.error = error.message
+    }
     $message.error(`上传失败: ${ error.message }`)
   }
 }

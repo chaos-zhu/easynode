@@ -31,7 +31,6 @@ const { Client: SSHClient } = require('ssh2')
  * }
  */
 
-
 // 格式化文件列表数据，添加权限字符串和用户名/组名
 function formatFileList(fileList) {
   return fileList.map(file => {
@@ -40,7 +39,7 @@ function formatFileList(fileList) {
     // 从 rights 对象生成权限字符串
     if (file.rights) {
       const { user, group, other } = file.rights
-      formatted.permissions = `${user}${group}${other}`
+      formatted.permissions = `${ user }${ group }${ other }`
     }
 
     // 从 longname 中提取ownerName和groupName
@@ -62,8 +61,7 @@ const listenAction = (sftpClient, socket) => {
   const downloadTasks = new Map() // taskId -> { abortController, startTime, totalSize, downloadedSize }
 
   // 上传任务管理
-  const uploadTasks = new Map() // taskId -> { abortController, startTime, totalSize, uploadedSize, chunks }
-  const uploadCache = new Map() // taskId -> { chunks: [], totalChunks: 0 }
+  const uploadTasks = new Map() // taskId -> { abortController, startTime, totalSize, uploadedSize, tempFilePath, writeStream, receivedChunks }
 
   socket.on('open_dir', async (path) => {
     try {
@@ -908,27 +906,32 @@ const listenAction = (sftpClient, socket) => {
   // 开始上传
   socket.on('upload_start', async ({ taskId, fileName, fileSize, targetPath }) => {
     try {
+      consola.info(`收到上传请求: ${ fileName }, 大小: ${ (fileSize / 1024 / 1024 / 1024).toFixed(2) }GB`)
+
       if (!taskId || !fileName || !fileSize || !targetPath) {
         throw new Error('上传参数不完整')
       }
 
+      // 创建临时文件路径（清理文件名中的特殊字符）
+      const safeFileName = fileName.replace(/[<>:"|?*]/g, '_')
+      const tempFilePath = rawPath.join(sftpCacheDir, `temp_${ taskId }_${ safeFileName }`)
       // 创建上传任务
       const uploadTask = {
         taskId,
         fileName,
         fileSize,
         targetPath,
+        tempFilePath,
         uploadedSize: 0,
-        chunks: [],
+        receivedChunks: new Set(), // 使用Set记录已接收的分片索引
         totalChunks: 0,
+        writeStream: null, // 稍后在第一个分片到达时创建
         startTime: Date.now(),
         lastProgressTime: Date.now(),
         abortController: new AbortController()
       }
 
       uploadTasks.set(taskId, uploadTask)
-      uploadCache.set(taskId, { chunks: [], totalChunks: 0 })
-
       consola.info(`开始上传任务: ${ taskId } - ${ fileName }`)
       socket.emit('upload_started', { taskId, fileName })
 
@@ -942,9 +945,8 @@ const listenAction = (sftpClient, socket) => {
   socket.on('upload_chunk', async ({ taskId, chunkIndex, chunkData, totalChunks, isLastChunk }) => {
     try {
       const task = uploadTasks.get(taskId)
-      const cache = uploadCache.get(taskId)
 
-      if (!task || !cache) {
+      if (!task) {
         throw new Error('上传任务不存在')
       }
 
@@ -952,12 +954,46 @@ const listenAction = (sftpClient, socket) => {
         throw new Error('上传已取消')
       }
 
-      // 存储分片数据
-      cache.chunks[chunkIndex] = chunkData
-      cache.totalChunks = totalChunks
+      // 初始化写入流（仅第一次）
+      if (!task.writeStream) {
+        // 确保缓存目录存在
+        fs.ensureDirSync(sftpCacheDir)
 
+        task.writeStream = fs.createWriteStream(task.tempFilePath)
+        task.totalChunks = totalChunks
+
+        // 处理写入流错误（将错误标记到任务中）
+        task.writeStream.on('error', (err) => {
+          consola.error(`写入流错误: ${ taskId }`, err.message)
+          task.writeStreamError = err
+          // 销毁流，防止继续写入
+          if (!task.writeStream.destroyed) {
+            task.writeStream.destroy()
+          }
+        })
+      }
+
+      // 检查写入流是否已经出错
+      if (task.writeStreamError) {
+        throw new Error(`文件写入失败: ${ task.writeStreamError.message }`)
+      }
+
+      // 直接写入文件流，不存储在内存
+      const chunkBuffer = Buffer.from(chunkData)
+      await new Promise((resolve, reject) => {
+        task.writeStream.write(chunkBuffer, (err) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve()
+          }
+        })
+      })
+
+      // 记录已接收的分片
+      task.receivedChunks.add(chunkIndex)
       // 更新上传进度
-      const uploadedChunks = cache.chunks.filter(chunk => chunk !== undefined).length
+      const uploadedChunks = task.receivedChunks.size
       task.uploadedSize = (uploadedChunks / totalChunks) * task.fileSize
 
       // 计算速度和ETA
@@ -985,77 +1021,44 @@ const listenAction = (sftpClient, socket) => {
         task.lastProgressTime = now
       }
 
-      consola.info(`上传分片: ${ taskId } - ${ chunkIndex + 1 }/${ totalChunks }`)
+      // consola.info(`上传分片: ${ taskId } - ${ chunkIndex + 1 }/${ totalChunks }`) // 太频繁，注释掉
       socket.emit('upload_chunk_success', { taskId, chunkIndex })
 
-      // 如果是最后一个分片，开始合并和传输
+      // 如果是最后一个分片，完成文件写入并开始传输
       if (isLastChunk && uploadedChunks === totalChunks) {
-        await completeUpload(task, cache)
+        await completeUpload(task)
       }
 
     } catch (err) {
       consola.error('上传分片失败:', err.message)
       socket.emit('upload_chunk_fail', { taskId, chunkIndex, error: err.message })
+
+      // 清理资源
+      const failedTask = uploadTasks.get(taskId)
+      if (failedTask && failedTask.writeStream) {
+        failedTask.writeStream.destroy()
+      }
     }
   })
 
   // 完成上传的辅助函数
-  async function completeUpload(task, cache) {
-    let tempFilePath = null
-
+  async function completeUpload(task) {
     try {
-      consola.info(`开始合并文件: ${ task.fileName }`)
+      consola.info(`文件接收完成，准备传输: ${ task.fileName }`)
 
-      // 发送合并开始事件
-      socket.emit('upload_progress', {
-        taskId: task.taskId,
-        chunkProgress: 100,
-        chunkUploadedSize: task.fileSize,
-        chunkTotalSize: task.fileSize,
-        sftpProgress: 0,
-        sftpUploadedSize: 0,
-        sftpTotalSize: task.fileSize,
-        speed: 0,
-        eta: 0,
-        stage: 'merging'
-      })
-
-      // 创建临时文件用于SFTP传输
-      tempFilePath = rawPath.join(sftpCacheDir, `temp_${ task.taskId }_${ task.fileName }`)
-      const writeStream = fs.createWriteStream(tempFilePath)
-
-      // 流式合并分片，避免大文件占用过多内存
-      try {
-        for (let i = 0; i < cache.totalChunks; i++) {
-          if (!cache.chunks[i]) {
-            throw new Error(`分片 ${ i } 缺失`)
-          }
-
-          const chunkBuffer = Buffer.from(cache.chunks[i])
-          await new Promise((resolve, reject) => {
-            writeStream.write(chunkBuffer, (err) => {
-              if (err) reject(err)
-              else resolve()
-            })
-          })
-
-          // 立即释放已写入的分片内存
-          cache.chunks[i] = null
-        }
-
+      // 关闭写入流
+      if (task.writeStream) {
         await new Promise((resolve, reject) => {
-          writeStream.end((err) => {
+          task.writeStream.end((err) => {
             if (err) reject(err)
             else resolve()
           })
         })
-      } catch (mergeErr) {
-        writeStream.destroy()
-        throw mergeErr
+        task.writeStream = null
       }
 
       // 验证文件大小
-      const stats = fs.statSync(tempFilePath)
+      const stats = fs.statSync(task.tempFilePath)
       if (stats.size !== task.fileSize) {
         throw new Error(`文件大小不匹配: 期望 ${ task.fileSize }, 实际 ${ stats.size }`)
       }
@@ -1081,7 +1084,7 @@ const listenAction = (sftpClient, socket) => {
       let lastSftpUpdateTime = sftpStartTime
       let lastSftpUploadedSize = 0
 
-      await sftpClient.fastPut(tempFilePath, task.targetPath, {
+      await sftpClient.fastPut(task.tempFilePath, task.targetPath, {
         step: (transferredBytes) => {
           const now = Date.now()
           const sftpProgress = Math.min((transferredBytes / task.fileSize) * 100, 100)
@@ -1129,17 +1132,22 @@ const listenAction = (sftpClient, socket) => {
       })
     } finally {
       // 确保清理临时文件
-      if (tempFilePath) {
+      if (task.tempFilePath && fs.existsSync(task.tempFilePath)) {
         try {
-          fs.unlinkSync(tempFilePath)
+          fs.unlinkSync(task.tempFilePath)
+          consola.info(`已清理临时文件: ${ task.tempFilePath }`)
         } catch (cleanupErr) {
           consola.warn('清理临时文件失败:', cleanupErr.message)
         }
       }
 
-      // 清理任务和缓存
+      // 确保关闭写入流
+      if (task.writeStream) {
+        task.writeStream.destroy()
+      }
+
+      // 清理任务
       uploadTasks.delete(task.taskId)
-      uploadCache.delete(task.taskId)
     }
   }
 
@@ -1148,8 +1156,20 @@ const listenAction = (sftpClient, socket) => {
     const task = uploadTasks.get(taskId)
     if (task) {
       task.abortController.abort()
+      // 关闭写入流
+      if (task.writeStream) {
+        task.writeStream.destroy()
+      }
+      // 清理临时文件
+      if (task.tempFilePath && fs.existsSync(task.tempFilePath)) {
+        try {
+          fs.unlinkSync(task.tempFilePath)
+          consola.info(`取消上传，已清理临时文件: ${ task.tempFilePath }`)
+        } catch (cleanupErr) {
+          consola.warn('清理临时文件失败:', cleanupErr.message)
+        }
+      }
       uploadTasks.delete(taskId)
-      uploadCache.delete(taskId)
 
       consola.info(`取消上传任务: ${ taskId }`)
       socket.emit('upload_cancelled', { taskId })
@@ -1200,27 +1220,27 @@ const listenAction = (sftpClient, socket) => {
           if (task.abortController) {
             task.abortController.abort()
           }
+          // 关闭写入流
+          if (task.writeStream) {
+            task.writeStream.destroy()
+          }
+          // 清理临时文件
+          if (task.tempFilePath && fs.existsSync(task.tempFilePath)) {
+            try {
+              fs.unlinkSync(task.tempFilePath)
+              consola.info(`连接断开，已清理临时文件: ${ task.tempFilePath }`)
+            } catch (cleanupErr) {
+              consola.warn('清理临时文件失败:', cleanupErr.message)
+            }
+          }
         } catch (taskError) {
           consola.warn(`清理上传任务 ${ taskId } 失败:`, taskError.message)
-        }
-      }
-
-      // 清理上传缓存中的大文件数据
-      for (const [taskId, cache] of uploadCache) {
-        try {
-          if (cache.chunks) {
-            // 释放分片内存
-            cache.chunks.length = 0
-          }
-        } catch (cacheError) {
-          consola.warn(`清理上传缓存 ${ taskId } 失败:`, cacheError.message)
         }
       }
 
       // 清理所有任务映射
       downloadTasks.clear()
       uploadTasks.clear()
-      uploadCache.clear()
 
       // 清理本地缓存目录
       try {
@@ -1247,8 +1267,21 @@ const listenAction = (sftpClient, socket) => {
         if (task.abortController) {
           task.abortController.abort()
         }
+        // 关闭写入流
+        if (task.writeStream) {
+          task.writeStream.destroy()
+        }
+        // 清理临时文件
+        if (task.tempFilePath && fs.existsSync(task.tempFilePath)) {
+          try {
+            fs.unlinkSync(task.tempFilePath)
+            consola.info(`清理超时任务临时文件: ${ task.tempFilePath }`)
+          } catch (cleanupErr) {
+            consola.warn('清理临时文件失败:', cleanupErr.message)
+          }
+        }
+
         uploadTasks.delete(taskId)
-        uploadCache.delete(taskId)
       }
     }
 
@@ -1381,7 +1414,11 @@ module.exports = (httpServer) => {
     path: '/sftp-v2',
     cors: {
       origin: '*'
-    }
+    },
+    // 增加消息大小限制，支持大文件上传（默认1MB）
+    maxHttpBufferSize: 10 * 1024 * 1024, // 10MB
+    pingTimeout: 60000, // 60秒
+    pingInterval: 25000 // 25秒
   })
   serverIo.on('connection', async (socket) => {
     // IP白名单检查
