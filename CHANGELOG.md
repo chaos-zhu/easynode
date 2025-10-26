@@ -10,6 +10,13 @@
 * 通知模块重构，支持webhook
 * 支持csv模板特定格式导入
 
+## [3.5.2](https://github.com/chaos-zhu/easynode/releases) (2025-10-26)
+* SFTP上传优化，不再限制文件大小
+* 修复ws协议upgrade失败bug，提升终端连接稳定性
+* 同步后端socket版本
+* 调整终端默认配置
+* 终端搜索功能优化
+
 ## [3.5.1](https://github.com/chaos-zhu/easynode/releases) (2025-10-20)
 * 终端默认缓冲区大小提高至10000@zhanghao-njmu
 * 支持终端内缓冲区内搜索功能@zhanghao-njmu
