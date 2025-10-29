@@ -16,17 +16,40 @@
       :show-message="false"
     >
       <el-form-item label="终端主题" prop="theme">
-        <el-select v-model="theme" placeholder="" style="width: 100%;" :teleported="false">
+        <el-select
+          v-model="theme"
+          placeholder="选择主题"
+          style="width: 100%;"
+          :teleported="false"
+        >
           <el-option
             v-for="(value, key) in themeList"
             :key="key"
             :label="key"
             :value="key"
-          />
+          >
+            <div class="theme_option">
+              <div
+                class="theme_preview_mini"
+                :style="{
+                  background: value.background || '#000',
+                  color: value.foreground || '#fff'
+                }"
+              >
+                <span class="preview_text">Aa</span>
+              </div>
+              <span class="theme_option_name">{{ key }}</span>
+            </div>
+          </el-option>
         </el-select>
       </el-form-item>
       <el-form-item label="终端字体" prop="fontFamily">
-        <el-select v-model="fontFamily" placeholder="选择字体" style="width: 100%;" :teleported="false">
+        <el-select
+          v-model="fontFamily"
+          placeholder="选择字体"
+          style="width: 100%;"
+          :teleported="false"
+        >
           <el-option
             v-for="font in commonFonts"
             :key="font.value"
@@ -134,7 +157,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:show'])
+const emit = defineEmits(['update:show',])
 
 // 全平台通用字体列表
 const commonFonts = [
@@ -144,7 +167,7 @@ const commonFonts = [
   { label: 'Consolas', value: 'Consolas, monospace' },
   { label: 'Monaco', value: 'Monaco, monospace' },
   { label: 'Menlo', value: 'Menlo, monospace' },
-  { label: 'Cascadia Code', value: 'Cascadia Code, monospace' }
+  { label: 'Cascadia Code', value: 'Cascadia Code, monospace' },
 ]
 
 // 预定义颜色
@@ -157,7 +180,7 @@ const predefineColors = [
   '#ff0000',
   '#00ff00',
   '#0000ff',
-  '#000000'
+  '#000000',
 ]
 
 // 保存最后选择的自定义颜色
@@ -199,11 +222,7 @@ const fontColor = computed({
 const customFontColor = computed({
   get: () => {
     // 如果有自定义颜色，显示自定义颜色；否则显示上次选择的颜色
-    if (fontColor.value) {
-      lastCustomColor.value = fontColor.value
-      return fontColor.value
-    }
-    return lastCustomColor.value
+    return fontColor.value || lastCustomColor.value
   },
   set: (newVal) => {
     lastCustomColor.value = newVal
@@ -213,10 +232,6 @@ const customFontColor = computed({
 
 const setThemeColor = () => {
   fontColor.value = ''
-}
-
-const setCustomColor = (color) => {
-  fontColor.value = color
 }
 
 const handleColorChange = (color) => {
@@ -232,11 +247,7 @@ const cursorColor = computed({
 
 const customCursorColor = computed({
   get: () => {
-    if (cursorColor.value) {
-      lastCustomCursorColor.value = cursorColor.value
-      return cursorColor.value
-    }
-    return lastCustomCursorColor.value
+    return cursorColor.value || lastCustomCursorColor.value
   },
   set: (newVal) => {
     lastCustomCursorColor.value = newVal
@@ -265,6 +276,35 @@ const changeBackground = (item) => {
 </script>
 
 <style lang="scss" scoped>
+.theme_option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .theme_preview_mini {
+    width: 50px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    font-weight: bold;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+
+    .preview_text {
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .theme_option_name {
+    flex: 1;
+    font-size: 14px;
+  }
+}
+
 .font_color_list {
   display: flex;
   align-items: center;
