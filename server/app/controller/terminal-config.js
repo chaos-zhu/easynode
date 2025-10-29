@@ -2,7 +2,7 @@ const { TerminalConfigDB } = require('../utils/db-class')
 
 // 终端默认配置
 const DEFAULT_TERMINAL_CONFIG = {
-  themeName: 'Afterglow',
+  themeName: 'Cobalt_Neon',
   fontFamily: 'monospace', // 使用多平台通用的等宽字体
   fontSize: 16,
   fontColor: '', // 使用主题字体颜色
