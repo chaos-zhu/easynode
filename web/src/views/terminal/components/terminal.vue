@@ -64,15 +64,18 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  autoFocus: { type: Boolean, default: true }
+  autoFocus: { type: Boolean, default: true },
+  showSftpSide: {
+    type: Boolean,
+    default: false
+  }
 })
 
-const emit = defineEmits(['inputCommand', 'cdCommand', 'ping-data', 'reset-long-press', 'tab-focus',])
+const emit = defineEmits(['inputCommand', 'ping-data', 'reset-long-press', 'tab-focus', 'sync-path-to-sftp',])
 
 const socket = ref(null)
 // const commandHistoryList = ref([])
 const term = ref(null)
-const terminalText = ref('')
 const highlighter = ref(null)
 const initCommand = ref('')
 const timer = ref(null)
@@ -85,6 +88,9 @@ const socketConnected = ref(false)
 const curStatus = ref(CONNECTING)
 const terminalRef = ref(null)
 const { showMenu, closeMenu, isVisible } = useContextMenu()
+
+// 临时路径同步回调
+const tempPathSyncCallback = ref(null)
 
 const theme = computed(() => themeList[$store.terminalConfig.themeName])
 const fontSize = computed(() => $store.terminalConfig.fontSize)
@@ -235,6 +241,11 @@ const connectIO = () => {
     socket.value.emit('ws_terminal', { hostId: hostId.value })
     socket.value.on('terminal_connect_success', () => {
       socket.value.on('output', (str) => {
+        // 如果有临时路径同步回调，先调用它
+        if (tempPathSyncCallback.value) {
+          tempPathSyncCallback.value(str)
+        }
+
         if (props.isSingleWindow && !isPlusActive.value) return
 
         // 使用高亮器处理
@@ -244,8 +255,6 @@ const connectIO = () => {
         } else {
           term.value.write(str)
         }
-
-        terminalText.value += str
       })
       socket.value.on('terminal_connect_shell_success', () => {
         curStatus.value = CONNECT_SUCCESS
@@ -457,39 +466,6 @@ const handleSearchClose = () => {
 
 const enterTimer = ref(null)
 
-function filterAnsiSequences(str) {
-  // 使用正则表达式移除ANSI转义序列
-  // return str.replace(/\x1b\[[0-9;]*m|\x1b\[?[\d;]*[A-HJKSTfmin]/g, '')
-  // eslint-disable-next-line
-  return str.replace(/\x1b\[[0-9;]*[mGK]|(\x1b\][0-?]*[0-7;]*\x07)|(\x1b[\[\]()#%;][0-9;?]*[0-9A-PRZcf-ntqry=><])/g, '')
-}
-
-// 处理 Backspace，删除前一个字符
-function applyBackspace(text) {
-  let result = []
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === '\b') {
-      if (result.length > 0) {
-        result.pop()
-      }
-    } else {
-      result.push(text[i])
-    }
-  }
-  return result.join('')
-}
-
-function extractLastCdPath(text) {
-  const regex = /cd\s+([^\s]+)(?=\s|$)/g
-  let lastMatch
-  let match
-  regex.lastIndex = 0
-  while ((match = regex.exec(text)) !== null) {
-    lastMatch = match
-  }
-  return lastMatch ? lastMatch[1] : null
-}
-
 const onData = () => {
   term.value.onData((key) => {
     if ('\r' === key && curStatus.value === CONNECT_FAIL) {
@@ -522,28 +498,6 @@ const onData = () => {
     if (acsiiCode === 6) return showSearchBar() // Ctrl + F
     enterTimer.value = setTimeout(() => {
       if (enterTimer.value) clearTimeout(enterTimer.value)
-      if (key === '\r') { // Enter
-        if (curStatus.value === CONNECT_SUCCESS) {
-          let cleanText = applyBackspace(filterAnsiSequences(terminalText.value))
-          const lines = cleanText.split('\n')
-          // console.log('lines: ', lines)
-          const lastLine = lines[lines.length - 1].trim()
-          // console.log('lastLine: ', lastLine)
-          // 截取最后一个提示符后的内容（'$'或'#'后的内容）
-          const commandStartIndex = lastLine.lastIndexOf('#') + 1
-          const commandText = lastLine.substring(commandStartIndex).trim()
-          // eslint-disable-next-line
-          const cdPath = extractLastCdPath(commandText)
-
-          if (cdPath) {
-            console.log('cd command path:', cdPath)
-            let firstChar = cdPath.charAt(0)
-            if (!['/',].includes(firstChar)) return console.log('err fullpath:', cdPath) // 后端依赖不支持 '~'
-            emit('cdCommand', cdPath)
-          }
-          terminalText.value = ''
-        }
-      }
     })
     if (curStatus.value !== CONNECT_SUCCESS) return
     emit('inputCommand', key, uid)
@@ -588,6 +542,69 @@ const plusTips = () => {
     return false
   }
   return true
+}
+
+const syncPathToSftp = () => {
+  if (curStatus.value !== CONNECT_SUCCESS) {
+    $message.warning('终端未连接')
+    return
+  }
+
+  // 监听一次输出，提取路径
+  let outputBuffer = ''
+  let pathFound = false
+
+  tempPathSyncCallback.value = (str) => {
+    outputBuffer += str
+
+    // 清理ANSI转义序列
+    // eslint-disable-next-line no-control-regex
+    const cleanBuffer = outputBuffer.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').replace(/\x1b\][^\x07]*\x07/g, '')
+
+    // 查找路径（以/开头的行）
+    const lines = cleanBuffer.split(/\r?\n/)
+    for (const line of lines) {
+      const trimmed = line.trim()
+
+      // 匹配路径：以/开头，长度合理
+      if (trimmed.startsWith('/') && !pathFound && trimmed.length > 1 && trimmed.length < 500) {
+        // 进一步清理：只保留路径部分，去除可能的提示符
+        const pathMatch = trimmed.match(/^(\/[^\s]*?)(?:\s|$)/)
+        if (pathMatch) {
+          const cleanPath = pathMatch[1]
+          pathFound = true
+          // 找到路径，通过emit发送给父组件
+          emit('sync-path-to-sftp', cleanPath)
+          tempPathSyncCallback.value = null
+          $message.success(`已同步路径: ${ cleanPath }`)
+          break
+        }
+      }
+    }
+
+    // 限制缓冲区大小，防止无限增长
+    if (outputBuffer.length > 1000) {
+      tempPathSyncCallback.value = null
+      if (!pathFound) {
+        $message.error('未能获取路径')
+      }
+    }
+  }
+
+  // 设置超时，防止一直监听
+  setTimeout(() => {
+    if (tempPathSyncCallback.value) {
+      tempPathSyncCallback.value = null
+      if (!pathFound) {
+        $message.error('同步路径超时')
+      }
+    }
+  }, 3000)
+
+  // 延迟发送pwd命令
+  setTimeout(() => {
+    socket.value.emit('input', 'pwd\n')
+  }, 100)
 }
 
 const handleRightClick = async (e) => {
@@ -641,6 +658,14 @@ const handleRightClick = async (e) => {
       focusTab()
     }
   }
+  const syncToSftp = props.showSftpSide ? {
+    label: '同步目录到SFTP',
+    onClick: () => {
+      syncPathToSftp()
+      term.value.clearSelection()
+      focusTab()
+    }
+  } : null
   const dockerId = isDockerId(str) ? {
     label: 'docker容器ID',
     children: [
@@ -764,6 +789,7 @@ const handleRightClick = async (e) => {
     search,
     clear,
     reconnect,
+    syncToSftp,
     dockerId,
     dockerComposeYml,
   ].filter(Boolean)
@@ -850,6 +876,7 @@ onBeforeUnmount(() => {
   socket.value?.close()
   window.removeEventListener('resize', handleResize)
   clearInterval(pingTimer.value)
+  tempPathSyncCallback.value = null
 })
 
 defineExpose({

@@ -330,17 +330,18 @@
                   :class="getSplitItemClass(item.key, panelIndex)"
                   @click="setActiveSplit(item.key, panelIndex)"
                 >
-                  <!-- @cd-command="cdCommand" -->
                   <Terminal
                     ref="terminalRefs"
                     :host-obj="item"
                     :long-press-ctrl="longPressCtrl"
                     :long-press-alt="longPressAlt"
                     :auto-focus="panelIndex === 1"
+                    :show-sftp-side="showSftpSide"
                     @input-command="(cmd, uid) => terminalInput(cmd, uid)"
                     @ping-data="getPingData"
                     @reset-long-press="resetLongPress"
                     @tab-focus="handleTabFocus"
+                    @sync-path-to-sftp="(path) => handleSyncPathToSftp(path)"
                   />
                 </div>
               </template>
@@ -354,6 +355,7 @@
               class="mobile_menu_drawer"
             >
               <SftpV2
+                ref="sftpRefs"
                 :init-connect="showSftpSide"
                 :host-id="item.id"
                 @exec-script="handleExecScript"
@@ -373,6 +375,7 @@
                 <div class="sftp_resize_handle_line" />
               </div>
               <SftpV2
+                ref="sftpRefs"
                 :init-connect="showSftpSide"
                 :host-id="item.id"
                 @exec-script="handleExecScript"
@@ -491,6 +494,7 @@ const hostGroupCascaderRef = ref(null)
 const hostDropdownRef = ref(null)
 const singleWindowRef = ref(null)
 const showDockerDialog = ref(false)
+const sftpRefs = ref([])
 
 // 当前聚焦终端 uid
 const focusedUid = ref(null)
@@ -857,21 +861,16 @@ const terminalInput = (command, uid) => {
   })
 }
 
-// 识别命令动态切换目录功能暂时取消
-// const cdCommand = (path) => {
-//   // console.log('cdCommand:', path)
-//   if (!showSftpSide.value) return
-//   if (isSyncAllSession.value) {
-//     sftpRefs.value.forEach(sftpRef => {
-//       sftpRef.openDir(path)
-//     })
-//   } else {
-//     sftpRefs.value[activeTabIndex.value].openDir(path, false)
-//   }
-// }
-
 const getPingData = ({ host, time }) => {
   pingData.value[host] = time
+}
+
+const handleSyncPathToSftp = (path) => {
+  // 获取当前标签页的SFTP组件引用
+  const sftpRef = sftpRefs.value[activeTabIndex.value]
+  if (sftpRef && sftpRef.switchToPath && showSftpSide.value) {
+    sftpRef.switchToPath(path, false)
+  }
 }
 
 const tabChange = async (index) => {

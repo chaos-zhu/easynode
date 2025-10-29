@@ -1922,7 +1922,7 @@ const onRowContextMenu = (row, _column, event) => {
 
   // 发送cd指令到终端
   if (row.type === 'd' && props.showCdCommand) {
-    const cdCommand = `cd ${ currentPath.value }/${ row.name }`.replace(/\/+/g, '/')
+    const cdCommand = `cd ${ currentPath.value }/${ row.name }\n`.replace(/\/+/g, '/')
     items.push({
       label: '发送cd指令到终端',
       onClick: () => {
@@ -2514,7 +2514,8 @@ defineExpose({
   selectedRows: computed(() => selectedRows.value),
   connectionStatus: computed(() => connectionStatus.value),
   refresh,
-  openDir
+  openDir,
+  switchToPath
 })
 </script>
 
