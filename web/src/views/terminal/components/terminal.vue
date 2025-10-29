@@ -335,14 +335,14 @@ const reconnectTerminal = (isCommonTips = false, tips) => {
   socket.value = null
   socketConnected.value = false
   if (isCommonTips) {
-    if (isPlusActive.value && autoReconnect.value) {
+    if (autoReconnect.value) {
       term.value.write(`\r\n\x1b[91m${ tips },自动重连中...\x1b[0m \r\n`)
       connectIO()
     } else {
       term.value.write(`\r\n\x1b[91mError: ${ tips },请重新连接。([终端设置->其他设置]中开启自动重连)\x1b[0m \r\n`)
     }
   } else {
-    term.value.write(`\n${ tips } \n`)
+    term.value.write(`\r\n\x1b[91m${ tips }\x1b[0m \r\n`)
     connectIO()
   }
 }
@@ -633,6 +633,14 @@ const handleRightClick = async (e) => {
       handleClear()
     }
   }
+  const reconnect = {
+    label: '重新连接',
+    onClick: () => {
+      reconnectTerminal(false, '重新连接中...')
+      term.value.clearSelection()
+      focusTab()
+    }
+  }
   const dockerId = isDockerId(str) ? {
     label: 'docker容器ID',
     children: [
@@ -755,6 +763,7 @@ const handleRightClick = async (e) => {
     pasteSelection,
     search,
     clear,
+    reconnect,
     dockerId,
     dockerComposeYml,
   ].filter(Boolean)

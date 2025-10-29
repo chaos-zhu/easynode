@@ -16,20 +16,16 @@
       :show-message="false"
     >
       <el-form-item label="自动重连" prop="autoReconnect">
-        <PlusSupportTip>
-          <span>
-            <el-switch
-              v-model="autoReconnect"
-              class="switch"
-              inline-prompt
-              :disabled="!isPlusActive"
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-              active-text="开启"
-              inactive-text="关闭"
-            />
-            <span class="plus_support_tip_text">(Plus专属功能)</span>
-          </span>
-        </PlusSupportTip>
+        <span>
+          <el-switch
+            v-model="autoReconnect"
+            class="switch"
+            inline-prompt
+            style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+            active-text="开启"
+            inactive-text="关闭"
+          />
+        </span>
       </el-form-item>
       <el-form-item label="脚本执行" prop="autoExecuteScript">
         <el-tooltip
@@ -75,7 +71,6 @@
 <script setup>
 import { computed, getCurrentInstance } from 'vue'
 import useMobileWidth from '@/composables/useMobileWidth'
-import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 
 const { proxy: { $store } } = getCurrentInstance()
 const { isMobileScreen } = useMobileWidth()
@@ -87,7 +82,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:show'])
+const emit = defineEmits(['update:show',])
 
 const visible = computed({
   get: () => props.show,
@@ -109,7 +104,6 @@ const autoShowContextMenu = computed({
   set: (newVal) => $store.setTerminalSetting({ autoShowContextMenu: newVal })
 })
 
-const isPlusActive = computed(() => $store.isPlusActive)
 </script>
 
 <style lang="scss" scoped>
@@ -124,9 +118,5 @@ const isPlusActive = computed(() => $store.isPlusActive)
   .el-drawer__header {
     margin-bottom: 0 !important;
   }
-}
-.plus_support_tip_text {
-  margin-left: 5px;
-  color: var(--el-text-color-placeholder);
 }
 </style>
