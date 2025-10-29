@@ -8,6 +8,16 @@ const pendingConnections = new Map() // key -> Promise，跟踪正在创建的�
 const { HostListDB } = require('../utils/db-class')
 const hostListDB = new HostListDB().getInstance()
 
+/* eslint-disable no-control-regex */
+function stripAnsi(s = '') {
+  return s
+    .replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '') // CSI
+    .replace(/\x1B\][^\x07]*(\x07|\x1B\\)/g, '') // OSC
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // 其他控制符
+}
+
+const safeDelta = (curr, prev) => (curr >= prev ? curr - prev : 0)
+
 module.exports = (httpServer) => {
   const serverIo = new Server(httpServer, {
     path: '/server-status',
@@ -169,7 +179,7 @@ module.exports = (httpServer) => {
         if (shellReady) return resolve()
         if (!targetSSHClient) return reject(new Error('SSH client not ready'))
 
-        targetSSHClient.shell({ term: 'bash' }, (err, stream) => {
+        targetSSHClient.exec('/bin/bash --noprofile --norc -i', (err, stream) => {
           if (err) {
             consola.error('创建持久化 shell 失败:', err.message)
             return reject(err)
@@ -177,14 +187,7 @@ module.exports = (httpServer) => {
           persistentShell = stream
           shellReady = true
 
-          // 关闭 shell 回显并清空提示符，避免输出干扰
-          persistentShell.write('export PS1=""\n')
-          // 某些发行版可能没有 stty，忽略报错
-          persistentShell.write('stty -echo 2>/dev/null || true\n')
-          persistentShell.write('export HISTFILE=/dev/null\n')
-          persistentShell.write('set +o history\n')
-          // 亦启用 ignorespace，后续命令前加空格
-          persistentShell.write('export HISTCONTROL=ignorespace\n')
+          persistentShell.write('unset HISTFILE\n')
           consola.info('server-status: 持久化 shell 已就绪')
 
           let buffer = ''
@@ -201,7 +204,7 @@ module.exports = (httpServer) => {
               if (line === current.marker) {
                 // 完整输出拿到了
                 cmdQueue.shift()
-                current.resolve(current.output.trim())
+                current.resolve(stripAnsi(current.output.trim()))
                 // 继续处理下一个命令
                 if (cmdQueue.length) {
                   sendNextCommand()
@@ -385,8 +388,8 @@ module.exports = (httpServer) => {
     // 解析/proc/stat输出
     const parseProcStat = (procStatOutput) => {
       try {
-        const firstLine = procStatOutput.split('\n')[0]
-        const values = firstLine.split(' ').slice(2).map(Number)
+        const firstLine = procStatOutput.split('\n').find(line => line.startsWith('cpu ')) || ''
+        const values = firstLine.trim().split(/\s+/).slice(1).map(Number)
         const idle = values[3] || 0
         const total = values.reduce((a, b) => a + b, 0)
         return { idle, total }
@@ -469,7 +472,7 @@ module.exports = (httpServer) => {
 
       try {
         // 检查是否为BusyBox环境
-        let freeCommand = 'free -m'
+        let freeCommand = '\\free -m'
         let isBusyBox = false
 
         try {
@@ -570,7 +573,7 @@ module.exports = (httpServer) => {
     // 获取所有磁盘信息
     const getDrivesInfo = async () => {
       try {
-        const dfOutput = await executeCommand('df -kP -x tmpfs -x devtmpfs -x proc -x sysfs -x overlay')
+        const dfOutput = await executeCommand('\\df -kP -x tmpfs -x devtmpfs -x proc -x sysfs -x overlay')
         const lines = dfOutput.split('\n').slice(1) // 去掉表头
         const drives = []
         lines.forEach(line => {
@@ -601,41 +604,62 @@ module.exports = (httpServer) => {
 
     // 获取默认网络接口
     const getDefaultInterface = async () => {
-      if (defaultNetInterface) {
-        return defaultNetInterface
-      }
+      if (defaultNetInterface) return defaultNetInterface
 
       try {
-        // 尝试通过路由表获取默认接口
+        // 尝试从路由表获取默认接口
         const routeOutput = await executeCommand('ip route get 1')
-        const match = routeOutput.match(/dev\s+(\w+)/)
+        const match = routeOutput.match(/dev\s+(\S+)/)
         if (match) {
-          defaultNetInterface = match[1]
-          return defaultNetInterface
+          const iface = match[1].trim()
+          if (!iface.match(/^(lo|br-|docker|veth|virbr|tun|tap)/)) {
+            defaultNetInterface = iface
+            return defaultNetInterface
+          }
         }
-      } catch (error) {
-        // 静默处理，继续尝试其他方法
+      } catch (_) {
+        // 忽略
       }
 
       try {
-        // 备用方法：获取第一个非lo接口
+        // 遍历 /sys/class/net 目录，选第一个“真实”设备（存在 device 文件）
+        const sysClassOutput = await executeCommand('ls -1 /sys/class/net')
+        const interfaces = sysClassOutput.split('\n').map(i => i.trim()).filter(Boolean)
+
+        for (const iface of interfaces) {
+          if (iface === 'lo') continue
+          // 检查是否是物理接口
+          const checkCmd = `test -e /sys/class/net/${ iface }/device && echo yes || echo no`
+          const isPhysical = (await executeCommand(checkCmd)).trim() === 'yes'
+          if (
+            isPhysical &&
+            !iface.match(/^(br-|docker|veth|virbr|tun|tap)/)
+          ) {
+            defaultNetInterface = iface
+            return defaultNetInterface
+          }
+        }
+      } catch (_) {
+        // 忽略
+      }
+
+      try {
+        // 取第一个以 enp / ens / eth / eno / wlan 开头的接口
         const netDev = await executeCommand('cat /proc/net/dev')
         const lines = netDev.split('\n').slice(2)
         for (const line of lines) {
-          const parts = line.trim().split(/\s+/)
-          if (parts.length >= 9 && parts[0]) {
-            const interfaceName = parts[0].replace(':', '')
-            if (interfaceName !== 'lo') {
-              defaultNetInterface = interfaceName
-              return defaultNetInterface
-            }
+          const iface = line.trim().split(':')[0]
+          if (iface && iface.match(/^(enp|ens|eth|eno|wlan)/)) {
+            defaultNetInterface = iface.trim()
+            return defaultNetInterface
           }
         }
-      } catch (error) {
-        // 静默处理
+      } catch (_) {
+        // 忽略
       }
 
-      return null
+      defaultNetInterface = 'eth0'
+      return defaultNetInterface
     }
 
     // 解析网络设备统计信息
@@ -645,18 +669,23 @@ module.exports = (httpServer) => {
         const lines = netDev.split('\n').slice(2)
         const stats = {}
 
-        lines.forEach(line => {
+        for (const line of lines) {
           const parts = line.trim().split(/\s+/)
-          if (parts.length >= 9 && parts[0]) {
-            const interfaceName = parts[0].replace(':', '')
-            const rxBytes = parseInt(parts[1]) || 0
-            const txBytes = parseInt(parts[9]) || 0
-            stats[interfaceName] = { rxBytes, txBytes }
-          }
-        })
+          if (parts.length < 17) continue
+
+          const iface = parts[0].replace(':', '')
+
+          // 跳过虚拟接口与环回
+          if (iface.match(/^(lo|br-|docker|veth|virbr|tun|tap)/)) continue
+
+          const rxBytes = parseInt(parts[1]) || 0
+          const txBytes = parseInt(parts[9]) || 0
+          stats[iface] = { rxBytes, txBytes }
+        }
 
         return stats
       } catch (error) {
+        consola.error('parseNetworkStats 失败:', error.message)
         return null
       }
     }
@@ -684,11 +713,16 @@ module.exports = (httpServer) => {
         if (lastNetStats && lastNetStats.timestamp < timestamp) {
           const timeDiffSeconds = (timestamp - lastNetStats.timestamp) / 1000
 
+          // 防抖：时间间隔太短或太长（系统卡顿、休眠等）时跳过这次更新
+          if (timeDiffSeconds < 0.5 || timeDiffSeconds > 10) {
+            return lastNetStats.netstatInfo || { total: { inputMb: '0.000', outputMb: '0.000' } }
+          }
+
           if (timeDiffSeconds > 0.1) {
             // 总流量速率
             netstatInfo.total = {
-              inputMb: ((totalInput - lastNetStats.totalInput) / timeDiffSeconds / 1024 / 1024).toFixed(3),
-              outputMb: ((totalOutput - lastNetStats.totalOutput) / timeDiffSeconds / 1024 / 1024).toFixed(3)
+              inputMb: (safeDelta(totalInput, lastNetStats.totalInput) / timeDiffSeconds / 1024 / 1024).toFixed(3),
+              outputMb: (safeDelta(totalOutput, lastNetStats.totalOutput) / timeDiffSeconds / 1024 / 1024).toFixed(3)
             }
 
             // 默认接口的速率
@@ -700,8 +734,8 @@ module.exports = (httpServer) => {
 
               netstatInfo.default = {
                 interface: defaultInterface,
-                inputMb: ((currentRx - lastRx) / timeDiffSeconds / 1024 / 1024).toFixed(3),
-                outputMb: ((currentTx - lastTx) / timeDiffSeconds / 1024 / 1024).toFixed(3)
+                inputMb: (safeDelta(currentRx, lastRx) / timeDiffSeconds / 1024 / 1024).toFixed(3),
+                outputMb: (safeDelta(currentTx, lastTx) / timeDiffSeconds / 1024 / 1024).toFixed(3)
               }
             }
 
@@ -712,8 +746,8 @@ module.exports = (httpServer) => {
                 const lastInterface = lastNetStats.interfaces[interfaceName]
 
                 netstatInfo[interfaceName] = {
-                  inputMb: ((currentInterface.rxBytes - lastInterface.rxBytes) / timeDiffSeconds / 1024 / 1024).toFixed(3),
-                  outputMb: ((currentInterface.txBytes - lastInterface.txBytes) / timeDiffSeconds / 1024 / 1024).toFixed(3)
+                  inputMb: (safeDelta(currentInterface.rxBytes, lastInterface.rxBytes) / timeDiffSeconds / 1024 / 1024).toFixed(3),
+                  outputMb: (safeDelta(currentInterface.txBytes, lastInterface.txBytes) / timeDiffSeconds / 1024 / 1024).toFixed(3)
                 }
               }
             })
@@ -745,7 +779,8 @@ module.exports = (httpServer) => {
           totalInput,
           totalOutput,
           interfaces: currentStats,
-          timestamp
+          timestamp,
+          netstatInfo
         }
 
         return netstatInfo
