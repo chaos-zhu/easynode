@@ -68,7 +68,12 @@
           <el-table-column prop="name" label="名称" />
           <el-table-column prop="description" label="描述" />
           <el-table-column prop="command" label="指令内容" show-overflow-tooltip />
-          <el-table-column prop="useBase64" label="编码方式" width="140px" :formatter="formatExecutionMode" />
+          <el-table-column
+            prop="useBase64"
+            label="编码方式"
+            width="140px"
+            :formatter="formatExecutionMode"
+          />
           <el-table-column label="操作" fixed="right" width="160px">
             <template #default="{ row }">
               <template v-if="row.index !== '--'">

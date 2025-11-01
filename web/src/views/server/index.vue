@@ -1,8 +1,25 @@
 <template>
   <div class="server_group_container">
     <div class="server_group_header">
-      <el-button type="primary" class="add_host_btn" @click="hostFormVisible = true">添加实例</el-button>
-
+      <el-input
+        v-if="hostList.length > 2"
+        v-model="searchKeyword"
+        placeholder="搜索实例"
+        class="search_input"
+        clearable
+      >
+        <template #prefix>
+          <el-icon><Search /></el-icon>
+        </template>
+      </el-input>
+      <el-button
+        type="primary"
+        class="add_host_btn"
+        :class="{ 'first_btn': hostList.length <= 2 }"
+        @click="hostFormVisible = true"
+      >
+        添加实例
+      </el-button>
       <el-dropdown trigger="click">
         <el-button type="primary" class="group_action_btn">
           批量操作<el-icon class="el-icon--right"><arrow-down /></el-icon>
@@ -22,9 +39,9 @@
       <el-button
         type="primary"
         class="table_header_setting_btn"
-        @click="columnSettingsVisible = true"
+        @click="listSettingsVisible = true"
       >
-        表头设置
+        列表设置
       </el-button>
     </div>
     <div class="server_group_collapse">
@@ -35,7 +52,8 @@
           <el-button type="primary" @click="importVisible = true">批量导入实例</el-button>
         </el-empty>
       </div>
-      <el-collapse v-else v-model="activeGroup">
+      <!-- 分组展示模式 -->
+      <el-collapse v-else-if="displayMode === 'group'" v-model="activeGroup">
         <el-collapse-item v-for="(hosts, groupName) in groupHostList" :key="groupName" :name="groupName">
           <template #title>
             <div class="group_title">
@@ -45,12 +63,23 @@
           <HostTable
             ref="hostTableRefs"
             :hosts="hosts"
-            :column-settings="rawColumnSettings"
+            :column-settings="columnSettings"
             @update-host="handleUpdateHost"
             @update-list="handleUpdateList"
           />
         </el-collapse-item>
       </el-collapse>
+
+      <!-- 列表展示模式 -->
+      <div v-else class="list_mode_container">
+        <HostTable
+          ref="hostTableRefs"
+          :hosts="filteredHostList"
+          :column-settings="columnSettings"
+          @update-host="handleUpdateHost"
+          @update-list="handleUpdateList"
+        />
+      </div>
 
       <!-- 滚动到顶部按钮 -->
       <Transition name="scroll-to-top">
@@ -77,30 +106,14 @@
     />
     <GroupDialog v-model:show="groupDialogVisible" />
 
-    <!-- 表头设置弹窗 -->
-    <el-dialog
-      v-model="columnSettingsVisible"
-      title="表头设置"
-      width="400px"
-      append-to-body
-    >
-      <div class="column-settings">
-        <div v-for="(item, key) in columnConfig" :key="key" class="column-item">
-          <el-checkbox
-            v-model="columnSettings[key]"
-            :disabled="item.disabled"
-          >
-            {{ item.label }}
-          </el-checkbox>
-        </div>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="resetColumnSettings">重置默认</el-button>
-          <el-button type="primary" @click="saveColumnSettings">确定</el-button>
-        </div>
-      </template>
-    </el-dialog>
+    <!-- 列表设置弹窗 -->
+    <ListSettings
+      v-model:show="listSettingsVisible"
+      :column-config="columnConfig"
+      :column-settings="columnSettings"
+      :display-mode="displayMode"
+      @confirm="handleSettingsConfirm"
+    />
   </div>
 </template>
 
@@ -111,7 +124,8 @@ import HostTable from './components/host-table.vue'
 import HostForm from './components/host-form.vue'
 import ImportHost from './components/import-host.vue'
 import GroupDialog from './components/group.vue'
-import { ArrowDown, ArrowUp } from '@element-plus/icons-vue'
+import ListSettings from './components/list-settings.vue'
+import { ArrowDown, ArrowUp, Search } from '@element-plus/icons-vue'
 import { exportFile } from '@/utils'
 
 const { proxy: { $api, $store, $router, $message, $messageBox, $tools } } = getCurrentInstance()
@@ -126,7 +140,10 @@ const activeGroup = ref([])
 const groupDialogVisible = ref(false)
 
 // 列设置相关
-const columnSettingsVisible = ref(false)
+const listSettingsVisible = ref(false)
+
+// 展示模式（从store获取）
+const displayMode = computed(() => $store.serverListConfig.displayMode)
 
 // 滚动到顶部相关
 const showScrollToTop = ref(false)
@@ -147,41 +164,19 @@ const columnConfig = {
   tag: { label: 'Tag', disabled: false }
 }
 
-// 默认列设置
-const defaultColumnSettings = {
-  selection: true,
-  index: true,
-  name: true,
-  username: true,
-  host: true,
-  port: true,
-  authType: true,
-  proxyType: false,
-  expired: false,
-  consoleUrl: false,
-  tag: false
-}
+// 列设置状态（从store获取）
+const columnSettings = computed(() => $store.serverListConfig.columnSettings)
 
-// 从localStorage获取列设置
-const getColumnSettings = () => {
-  const saved = localStorage.getItem('host_table_column_settings')
-  return saved ? { ...defaultColumnSettings, ...JSON.parse(saved) } : { ...defaultColumnSettings }
-}
-
-// 列设置状态
-const columnSettings = ref(getColumnSettings())
-const rawColumnSettings = ref({ ...columnSettings.value })
-
-// 保存列设置到localStorage
-const saveColumnSettings = () => {
-  localStorage.setItem('host_table_column_settings', JSON.stringify(columnSettings.value))
-  rawColumnSettings.value = { ...columnSettings.value }
-  columnSettingsVisible.value = false
-}
-
-// 重置列设置
-const resetColumnSettings = () => {
-  columnSettings.value = { ...defaultColumnSettings }
+// 处理设置确认
+const handleSettingsConfirm = async (settings) => {
+  try {
+    // 保存到数据库
+    await $store.setServerListConfig(settings)
+    $message.success('设置已保存')
+  } catch (error) {
+    $message.error('保存设置失败')
+    console.error('保存设置失败:', error)
+  }
 }
 
 const handleUpdateList = async () => {
@@ -193,10 +188,17 @@ const handleUpdateList = async () => {
   }
 }
 
+// 获取所有 HostTable 组件的引用（兼容分组和列表模式）
+const getHostTableRefs = () => {
+  if (!hostTableRefs.value) return []
+  // 列表模式下是单个组件，分组模式下是数组
+  return Array.isArray(hostTableRefs.value) ? hostTableRefs.value : [hostTableRefs.value,]
+}
+
 // 收集选中的实例
 const collectSelectHost = () => {
   let allSelectHosts = []
-  hostTableRefs.value.map(item => {
+  getHostTableRefs().forEach(item => {
     if (item) allSelectHosts = allSelectHosts.concat(item.getSelectHosts())
   })
   selectHosts.value = allSelectHosts
@@ -207,7 +209,6 @@ const handleBatchConnect = () => {
   if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
   let ids = selectHosts.value.filter(item => item.isConfig).map(item => item.id)
   if (!ids.length) return $message.warning('所选实例未配置ssh连接信息')
-  if (ids.length < selectHosts.value.length) $message.warning('部分实例未配置ssh连接信息,已忽略')
   // $router.push({ path: '/terminal', query: { hostIds: ids.join(',') } })
   if (selectHosts.value.every(item => item.connectType === 'rdp')) {
     $router.push({ path: '/rdp', query: { hostIds: ids.join(',') } })
@@ -215,7 +216,9 @@ const handleBatchConnect = () => {
     $router.push({ path: '/terminal', query: { hostIds: ids.join(',') } })
   } else {
     $message.warning('所选实例包含rdp和ssh连接信息,请选择同一终端类型进行批量连接')
+    return
   }
+  if (ids.length < selectHosts.value.length) $message.warning('部分实例未配置ssh连接信息,已忽略')
 }
 
 const handleBatchModify = async () => {
@@ -226,7 +229,11 @@ const handleBatchModify = async () => {
 }
 
 const handleSelectAll = () => {
-  hostTableRefs.value.forEach(item => item.selectAll())
+  getHostTableRefs().forEach(item => {
+    if (item && item.toggleSelection) {
+      item.toggleSelection()
+    }
+  })
 }
 
 const handleBatchRemove = async () => {
@@ -244,7 +251,7 @@ const handleBatchRemove = async () => {
     $message({ message: data, type: 'success', center: true })
     selectHosts.value = []
     await handleUpdateList()
-    hostTableRefs.value.forEach(item => item.clearSelection())
+    getHostTableRefs().forEach(item => item.clearSelection())
   })
 }
 
@@ -263,10 +270,31 @@ const handleBatchExport = () => {
   })
   const fileName = `easynode-${ $tools.formatTimestamp(Date.now(), 'time', '.') }.json`
   exportFile(exportData, fileName, 'application/json')
-  hostTableRefs.value.forEach(item => item.clearSelection())
+  getHostTableRefs().forEach(item => item.clearSelection())
 }
 
 const hostList = computed(() => $store.hostList)
+
+const searchKeyword = ref('')
+
+const filteredHostList = computed(() => {
+  if (!searchKeyword.value) return hostList.value
+
+  const keyword = searchKeyword.value.toLowerCase()
+  return hostList.value.filter(item => {
+    // 搜索实例名称
+    if (item.name && item.name.toLowerCase().includes(keyword)) return true
+    // 搜索用户名
+    if (item.username && item.username.toLowerCase().includes(keyword)) return true
+    // 搜索IP
+    if (item.host && item.host.toLowerCase().includes(keyword)) return true
+    // 搜索标签
+    if (item.tag && Array.isArray(item.tag)) {
+      return item.tag.some(tag => tag.toLowerCase().includes(keyword))
+    }
+    return false
+  })
+})
 
 const groupHostList = computed(() => {
   let res = {}
@@ -274,7 +302,7 @@ const groupHostList = computed(() => {
   groupList.forEach(group => {
     res[group.name] = []
   })
-  hostList.value.forEach(item => {
+  filteredHostList.value.forEach(item => {
     const group = groupList.find(group => group.id === item.group)
     if (group?.name) {
       res[group.name].push(item)
@@ -302,7 +330,7 @@ const hostFormClosed = () => {
   updateHostData.value = null
   isBatchModify.value = false
   selectHosts.value = []
-  hostTableRefs.value.forEach(item => item.clearSelection())
+  getHostTableRefs().forEach(item => item.clearSelection())
 }
 
 // 滚动监听处理
@@ -353,7 +381,6 @@ onUnmounted(() => {
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
-    justify-content: flex-end;
 
     @media screen and (max-width: 768px) {
       justify-content: flex-start;
@@ -363,11 +390,25 @@ onUnmounted(() => {
       display: none;
     }
 
+    .search_input {
+      width: 300px;
+      margin-right: auto;
+      flex-shrink: 0;
+
+      @media screen and (max-width: 768px) {
+        width: 200px;
+      }
+    }
+
     .add_host_btn,
     .group_action_btn,
     .el-button {
       flex-shrink: 0;
       min-width: fit-content;
+    }
+
+    .first_btn {
+      margin-left: auto;
     }
     .table_header_setting_btn {
       margin-left: 0px;
@@ -401,6 +442,10 @@ onUnmounted(() => {
       margin: 0 25px;
     }
 
+    .list-mode-container {
+      padding: 10px;
+    }
+
     .scroll-to-top-btn {
       position: fixed;
       right: 15px;
@@ -429,21 +474,6 @@ onUnmounted(() => {
       }
     }
   }
-}
-
-.column-settings {
-  .column-item {
-    margin-bottom: 12px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: space-between;
 }
 
 // 滚动到顶部按钮的过渡动画

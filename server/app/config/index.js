@@ -24,6 +24,7 @@ module.exports = {
   proxyDBPath: path.join(process.cwd(),'app/db/proxy.db'),
   fileTransferDBPath: path.join(process.cwd(),'app/db/file-transfer.db'),
   terminalConfigDBPath: path.join(process.cwd(),'app/db/terminal-config.db'),
+  serverListDBPath: path.join(process.cwd(),'app/db/server-list-config.db'),
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/db/logs'),

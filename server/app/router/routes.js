@@ -10,6 +10,7 @@ const { getLog, saveIpWhiteList, removeSomeLoginRecords } = require('../controll
 const { getAIConfig, saveAIConfig, getAIModels, getChatHistory, saveChatHistory, removeChatHistory } = require('../controller/chat')
 const { getProxyList, addProxy, updateProxy, removeProxy } = require('../controller/proxy')
 const { getTerminalConfig, saveTerminalConfig } = require('../controller/terminal-config')
+const { getServerListConfig, saveServerListConfig } = require('../controller/server-list-config')
 
 const ssh = [
   {
@@ -349,6 +350,19 @@ const terminalConfig = [
   }
 ]
 
+const serverListConfig = [
+  {
+    method: 'get',
+    path: '/server-list-config',
+    controller: getServerListConfig
+  },
+  {
+    method: 'post',
+    path: '/server-list-config',
+    controller: saveServerListConfig
+  }
+]
+
 module.exports = [].concat(
   ssh,
   host,
@@ -361,5 +375,6 @@ module.exports = [].concat(
   log,
   aiConfig,
   proxy,
-  terminalConfig
+  terminalConfig,
+  serverListConfig
 )

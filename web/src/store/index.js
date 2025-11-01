@@ -51,6 +51,23 @@ const useStore = defineStore('global', {
     ],
     // 终端配置占位
     terminalConfig: {},
+    // 服务器列表配置
+    serverListConfig: {
+      columnSettings: {
+        selection: true,
+        index: true,
+        name: true,
+        username: true,
+        host: true,
+        port: true,
+        authType: true,
+        proxyType: false,
+        expired: false,
+        consoleUrl: false,
+        tag: false
+      },
+      displayMode: localStorage.getItem('host_list_display_mode') || 'group'
+    },
     menuSetting: {
       ...{
         scriptLibrary: true,
@@ -95,6 +112,7 @@ const useStore = defineStore('global', {
       await this.getPlusInfo()
       await this.getProxyList()
       await this.getTerminalConfig() // 添加终端配置获取
+      await this.getServerListConfig() // 添加服务器列表配置获取
       this.getAIConfig()
       this.getChatHistory()
     },
@@ -161,6 +179,19 @@ const useStore = defineStore('global', {
       const newConfig = { ...this.terminalConfig, ...setTarget }
       await $api.saveTerminalConfig(newConfig)
       this.$patch({ terminalConfig: newConfig })
+    },
+    async getServerListConfig() {
+      const { data: serverListConfig } = await $api.getServerListConfig()
+      if (serverListConfig.displayMode) {
+        // 将displayMode写入localStorage，避免刷新时闪烁
+        localStorage.setItem('host_list_display_mode', serverListConfig.displayMode)
+      }
+      this.$patch({ serverListConfig })
+    },
+    async setServerListConfig(setTarget = {}) {
+      const newConfig = { ...this.serverListConfig, ...setTarget }
+      await $api.saveServerListConfig(newConfig)
+      await this.getServerListConfig()
     },
     setMenuSetting(setTarget = {}) {
       let newConfig = { ...this.menuSetting, ...setTarget }

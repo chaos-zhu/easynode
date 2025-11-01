@@ -190,5 +190,12 @@ export default {
   },
   saveTerminalConfig(data) {
     return axios({ url: '/terminal-config', method: 'post', data })
+  },
+  // 服务器列表配置相关API
+  getServerListConfig(params = {}) {
+    return axios({ url: '/server-list-config', method: 'get', params })
+  },
+  saveServerListConfig(data) {
+    return axios({ url: '/server-list-config', method: 'post', data })
   }
 }

@@ -15,7 +15,7 @@
         v-for="item in batchHosts"
         :key="item.id"
         class="host_name_tag"
-        type="warning"
+        type="success"
       >
         {{ item.name }}
       </el-tag>

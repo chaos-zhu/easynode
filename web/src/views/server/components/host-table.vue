@@ -213,10 +213,20 @@ const selectAll = () => {
   nextTick(() => tableRef.value.toggleAllSelection())
 }
 
+// 反选：已选的变成不选，未选的变成已选
+const toggleSelection = () => {
+  nextTick(() => {
+    hosts.value.forEach(row => {
+      tableRef.value.toggleRowSelection(row)
+    })
+  })
+}
+
 defineExpose({
   getSelectHosts,
   clearSelection,
-  selectAll
+  selectAll,
+  toggleSelection
 })
 
 const handleRemoveHost = async ({ id }) => {
