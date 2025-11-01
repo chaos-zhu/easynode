@@ -17,6 +17,7 @@
       </div>
     </template>
     <codemirror
+      ref="cmRef"
       v-model="code"
       placeholder="Code goes here..."
       :style="{ height: '80vh', minHeight: '500px' }"
@@ -25,7 +26,7 @@
       :indent-with-tab="true"
       :tab-size="4"
       :extensions="extensions"
-      @ready="status = '准备中'"
+      @ready="handleReady"
       @change="handleChange"
       @focus="status = '编辑中'"
       @blur="status = '未聚焦'"
@@ -88,6 +89,10 @@ export default {
     disabled: {
       type: Boolean,
       default: false
+    },
+    scrollToBottom: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:show', 'save', 'closed',],
@@ -98,7 +103,8 @@ export default {
       status: '准备中',
       loading: false,
       isTips: false,
-      code: 'loading...'
+      code: 'loading...',
+      editorView: null
     }
   },
   computed: {
@@ -120,6 +126,12 @@ export default {
   watch: {
     originalCode(newVal) {
       this.code = newVal
+      if (this.scrollToBottom) {
+        // 内容更新时，只有用户在底部才自动滚动
+        setTimeout(() => {
+          this.scrollToEnd(false) // 不强制滚动，会检查用户位置
+        }, 500)
+      }
     },
     filename(newVal) {
       try {
@@ -165,6 +177,57 @@ export default {
   created() {
   },
   methods: {
+    handleReady(payload) {
+      this.status = '准备中'
+      // 保存 view 实例以便后续使用
+      if (payload && payload.view) {
+        this.editorView = payload.view
+      }
+      // 编辑器准备就绪后，如果需要滚动到底部则执行（首次打开强制滚动）
+      if (this.scrollToBottom) {
+        // 延迟执行，确保编辑器和内容完全渲染
+        setTimeout(() => {
+          this.scrollToEnd(true) // 首次打开强制滚动
+        }, 300)
+      }
+    },
+    isScrollAtBottom() {
+      // 检测滚动条是否在底部（允许50px的误差）
+      try {
+        const view = this.editorView || (this.$refs.cmRef && this.$refs.cmRef.view)
+        if (view && view.scrollDOM) {
+          const scroller = view.scrollDOM
+          const threshold = 50 // 距离底部50px以内认为是在底部
+          const isAtBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - threshold
+          return isAtBottom
+        }
+        return false
+      } catch (error) {
+        return false
+      }
+    },
+    // force: 是否强制滚动（用于首次打开）
+    scrollToEnd(force = false) {
+      try {
+        const view = this.editorView || (this.$refs.cmRef && this.$refs.cmRef.view)
+        if (view && view.scrollDOM) {
+          const scroller = view.scrollDOM
+          // 用户不在底部，不自动滚动
+          if (!force && !this.isScrollAtBottom()) {
+            return
+          }
+          // 用户在底部或强制滚动，执行滚动
+          requestAnimationFrame(() => {
+            scroller.scrollTo({
+              top: scroller.scrollHeight,
+              behavior: 'smooth'
+            })
+          })
+        }
+      } catch (error) {
+        console.warn('滚动到底部失败:', error)
+      }
+    },
     handleSave() {
       if (this.isTips) {
         this.$messageBox.confirm('文件已变更, 确认保存?', 'Warning', {

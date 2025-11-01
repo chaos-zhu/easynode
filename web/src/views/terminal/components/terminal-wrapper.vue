@@ -398,12 +398,12 @@
         </div>
         <el-dialog
           v-model="showDockerDialog"
-          top="20vh"
+          align-center
           :title="`Docker容器管理-${ item.name }`"
           :width="isMobileScreen ? '100vw' : '80vw'"
           :style="isMobileScreen ? 'max-width: 100vw;' : 'max-width: 1300px;'"
         >
-          <Docker :host-id="item.id" />
+          <Docker :host-id="item.id" :host="item.host" :visible="showDockerDialog" />
         </el-dialog>
       </el-tab-pane>
     </el-tabs>

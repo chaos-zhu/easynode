@@ -12,6 +12,7 @@
         prop="id"
         label="ID"
         show-overflow-tooltip
+        width="108"
       />
       <el-table-column
         prop="name"
@@ -21,58 +22,47 @@
       <el-table-column
         prop="image"
         label="镜像"
-        show-overflow-tooltip
-      />
-      <el-table-column
-        prop="ip"
-        label="IP 地址"
-        show-overflow-tooltip
-      />
+        class-name="wrap-cell"
+      >
+        <template #default="{ row }">
+          <div class="wrap-content">
+            {{ row.image }}
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column
         prop="ports"
         label="端口"
+        width="160"
+        class-name="wrap-cell"
       >
         <template #default="{ row }">
-          <div v-if="Array.isArray(row.ports)">
-            <el-tooltip placement="left">
-              <template #content>
-                <div v-for="port in row.ports" :key="port">
+          <div v-if="Array.isArray(row.ports) && row.ports.length > 0" class="ports-wrapper">
+            <template v-for="port in row.ports" :key="port">
+              <el-tooltip
+                v-if="!isPortMapped(port)"
+                content="此端口未映射到宿主机"
+                placement="left"
+              >
+                <div class="port_text">
                   {{ port }}
                 </div>
-              </template>
-              <div>
-                <div v-for="port in row.ports.slice(0, 1)" :key="port">
-                  {{ port }}
-                  <span v-if="row.ports.length > 1">...</span>
-                </div>
+              </el-tooltip>
+              <div
+                v-else
+                class="port_link"
+                @click="handlePortClick(port)"
+              >
+                {{ port }}
               </div>
-            </el-tooltip>
+            </template>
           </div>
           <div v-else>
             {{ row.ports || '--' }}
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="资源使用率" width="120">
-        <template #default="{ row }">
-          <div class="resource_usage">
-            <el-tooltip placement="left">
-              <template #content>
-                <div>
-                  <div>CPU 使用: {{ row.cpuUsage }}%</div>
-                  <div>内存使用: {{ row.memoryUsed }}</div>
-                  <div>内存限额: {{ row.memoryLimit }}</div>
-                </div>
-              </template>
-              <div class="resource_item">
-                <div>CPU: {{ row.cpuUsage }}%</div>
-                <div>内存: {{ row.memoryUsage }}%</div>
-              </div>
-            </el-tooltip>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" align="center">
+      <el-table-column label="状态" align="center" width="100">
         <template #default="{ row }">
           <el-tag
             :type="getStatusType(row.status)"
@@ -84,7 +74,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="uptime" label="运行时长" />
+      <el-table-column prop="uptime" label="运行时长" width="142" />
       <el-table-column
         label="操作"
         align="center"
@@ -108,45 +98,41 @@
         </template>
         <template #default="{ row }">
           <div class="action_buttons">
-            <el-tooltip content="启动" placement="top" :disabled="row.status === 'running'">
-              <el-button
-                type="success"
-                :icon="VideoPlay"
-                circle
-                size="small"
-                :disabled="row.status === 'running'"
-                @click="handleStart(row)"
-              />
-            </el-tooltip>
-            <el-tooltip content="重启" placement="top" :disabled="row.status !== 'running'">
-              <el-button
-                type="primary"
-                :icon="RefreshRight"
-                circle
-                size="small"
-                :disabled="row.status !== 'running'"
-                @click="handleRestart(row)"
-              />
-            </el-tooltip>
-            <el-tooltip content="停止" placement="top" :disabled="row.status !== 'running'">
-              <el-button
-                type="warning"
-                :icon="VideoPause"
-                circle
-                size="small"
-                :disabled="row.status !== 'running'"
-                @click="handleStop(row)"
-              />
-            </el-tooltip>
-            <el-tooltip content="删除" placement="top">
-              <el-button
-                type="danger"
-                :icon="Delete"
-                circle
-                size="small"
-                @click="handleDelete(row)"
-              />
-            </el-tooltip>
+            <el-button
+              type="success"
+              :icon="VideoPlay"
+              circle
+              size="small"
+              :disabled="row.status === 'running'"
+              title="启动"
+              @click="handleStart(row)"
+            />
+            <el-button
+              type="primary"
+              :icon="RefreshRight"
+              circle
+              size="small"
+              :disabled="row.status !== 'running'"
+              title="重启"
+              @click="handleRestart(row)"
+            />
+            <el-button
+              type="warning"
+              :icon="VideoPause"
+              circle
+              size="small"
+              :disabled="row.status !== 'running'"
+              title="停止"
+              @click="handleStop(row)"
+            />
+            <el-button
+              type="danger"
+              :icon="Delete"
+              circle
+              size="small"
+              title="删除"
+              @click="handleDelete(row)"
+            />
             <el-dropdown trigger="click">
               <el-button
                 type="info"
@@ -169,10 +155,12 @@
       </el-table-column>
     </el-table>
     <CodeEdit
+      :key="logDialogKey"
       v-model:show="showLogsDialog"
       :original-code="dockerLogs"
       :disabled="true"
       :filename="containerName"
+      :scroll-to-bottom="true"
       @closed="() => showLogsDialog = false"
     />
     <el-dialog
@@ -221,6 +209,14 @@ const props = defineProps({
   hostId: {
     type: String,
     required: true
+  },
+  host: {
+    type: String,
+    required: true
+  },
+  visible: {
+    type: Boolean,
+    required: true
   }
 })
 
@@ -231,7 +227,9 @@ const dockerServerErr = ref(false)
 const dockerLogs = ref('')
 const currentContainer = ref(null)
 const logInterval = ref(null)
+const refreshInterval = ref(null)
 const showLogsDialog = ref(false)
+const logDialogKey = ref(0)
 const makeImageDialog = ref(false)
 const makeImageFormRef = ref(null)
 const makeImageForm = ref({
@@ -258,6 +256,25 @@ const hostId = computed(() => props.hostId)
 const containerName = computed(() => `${ currentContainer.value?.name }.log(自动刷新)` || '')
 const isPlusActive = computed(() => $store.isPlusActive)
 
+watch(() => props.visible, (newVal) => {
+  if (newVal) {
+    refreshDockerContainers(false, 0)
+    if (!refreshInterval.value) {
+      refreshInterval.value = setInterval(() => {
+        if (socket.value && socket.value.connected && isPlusActive.value && !loading.value) {
+          socket.value.emit('docker_get_containers_data')
+        }
+      }, 3500)
+    }
+  } else {
+    // 组件变为不可见时，暂停定时器
+    if (refreshInterval.value) {
+      clearInterval(refreshInterval.value)
+      refreshInterval.value = null
+    }
+  }
+})
+
 watch(() => showLogsDialog.value, (newVal) => {
   if (!newVal) {
     dockerLogs.value = ''
@@ -280,12 +297,7 @@ watch(() => isPlusActive.value, (newVal) => {
         '0.0.0.0:8082->8082/tcp',
       ],
       'createdAt': new Date().toLocaleString(),
-      'uptime': '49 minutes',
-      'cpuUsage': '0.17',
-      'memoryUsage': '22.33',
-      'memoryLimit': '1.796GiB',
-      'memoryUsed': '410.6MiB',
-      'ip': '171.18.0.2'
+      'uptime': '49 minutes'
     },]
   }
 }, {
@@ -307,6 +319,7 @@ const getStatusType = (status) => {
 }
 
 const connectDocker = () => {
+  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
   socket.value = generateSocketInstance('/docker')
   socket.value.on('connect', () => {
     console.log('/docker socket已连接：', hostId.value)
@@ -322,6 +335,15 @@ const connectDocker = () => {
       // console.log('docker_containers_logs:', data)
       dockerLogs.value = data
       showLogsDialog.value = true
+    })
+    socket.value.on('docker_operation_result', (result) => {
+      if (result.success) {
+        $message.success(result.message)
+        refreshDockerContainers(true, 0)
+      } else {
+        $message.error(result.message)
+        loading.value = false
+      }
     })
     socket.value.on('docker_connect_fail', () => {
       console.error('docker_connect_fail')
@@ -342,7 +364,6 @@ const connectDocker = () => {
 }
 
 const refreshDockerContainers = (isLoading = true, delay = 0) => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
   if (!socket.value || !socket.value.connected) return connectDocker()
   loading.value = isLoading
   setTimeout(() => {
@@ -351,21 +372,33 @@ const refreshDockerContainers = (isLoading = true, delay = 0) => {
 }
 
 const handleStart = async (row) => {
-  $message.success('已发送启动指令')
-  EventBus.$emit('exec_external_command', `docker start ${ row.id }`)
-  refreshDockerContainers(false, 3000)
+  if (!socket.value || !socket.value.connected) {
+    $message.error('连接已断开，正在刷新')
+    refreshDockerContainers(true, 0)
+    return
+  }
+  loading.value = true
+  socket.value.emit('docker_start_container', { containerId: row.id })
 }
 
 const handleStop = async (row) => {
-  $message.success('已发送停止指令')
-  EventBus.$emit('exec_external_command', `docker stop ${ row.id }`)
-  refreshDockerContainers(false, 3000)
+  if (!socket.value || !socket.value.connected) {
+    $message.error('连接已断开，正在刷新')
+    refreshDockerContainers(true, 0)
+    return
+  }
+  loading.value = true
+  socket.value.emit('docker_stop_container', { containerId: row.id })
 }
 
 const handleRestart = async (row) => {
-  $message.success('已发送重启指令')
-  EventBus.$emit('exec_external_command', `docker restart ${ row.id }`)
-  refreshDockerContainers(false, 3000)
+  if (!socket.value || !socket.value.connected) {
+    $message.error('连接已断开，正在刷新')
+    refreshDockerContainers(true, 0)
+    return
+  }
+  loading.value = true
+  socket.value.emit('docker_restart_container', { containerId: row.id })
 }
 
 const handleDelete = (row) => {
@@ -374,10 +407,32 @@ const handleDelete = (row) => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
-    $message.success('已发送删除指令')
-    EventBus.$emit('exec_external_command', `docker rm -f ${ row.id }`)
-    refreshDockerContainers(false, 3000)
+    if (!socket.value || !socket.value.connected) {
+      $message.error('连接已断开，正在刷新')
+      refreshDockerContainers(true, 0)
+      return
+    }
+    loading.value = true
+    socket.value.emit('docker_delete_container', { containerId: row.id })
   }).catch(() => {})
+}
+
+const isPortMapped = (portStr) => {
+  // 判断端口是否映射到宿主机（包含 -> 符号）
+  return portStr.includes('->')
+}
+
+const handlePortClick = (portStr) => {
+  // 解析端口映射字符串，例如: "0.0.0.0:8082->8082/tcp" 或 "[::]:8082->8082/tcp"
+  // 提取外部端口号（冒号后、箭头前的数字）
+  const match = portStr.match(/:(\d+)->/)
+  if (match && match[1]) {
+    const port = match[1]
+    const url = `http://${ props.host }:${ port }`
+    window.open(url, '_blank')
+  } else {
+    $message.warning('无法解析端口信息')
+  }
 }
 
 const handleLogs = (row) => {
@@ -386,6 +441,9 @@ const handleLogs = (row) => {
     refreshDockerContainers(true, 0)
     return
   }
+
+  // 更新 key 强制重新创建 CodeEdit 组件，确保每次都会滚动到底部
+  logDialogKey.value++
   currentContainer.value = row
   socket.value.emit('docker_get_containers_logs', { containerId: row.id, tail: 2000 })
 }
@@ -428,9 +486,28 @@ const intervalLogs = () => {
 
 onMounted(() => {
   connectDocker()
+  // 如果组件初始可见，启动定时器，每3秒静默刷新容器列表
+  if (props.visible) {
+    refreshInterval.value = setInterval(() => {
+      if (socket.value && socket.value.connected && isPlusActive.value && !loading.value) {
+        socket.value.emit('docker_get_containers_data')
+      }
+    }, 3000)
+  }
 })
 
 onUnmounted(() => {
+  // 清除刷新定时器
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value)
+    refreshInterval.value = null
+  }
+  // 清除日志定时器
+  if (logInterval.value) {
+    clearInterval(logInterval.value)
+    logInterval.value = null
+  }
+  // 关闭socket连接
   if (socket.value) {
     socket.value.removeAllListeners()
     socket.value.close()
@@ -446,10 +523,46 @@ onUnmounted(() => {
   padding: 10px;
   position: relative;
 
-  .resource_usage {
-    .resource_item {
-      gap: 3px;
+  :deep(.wrap-cell) {
+    .cell {
+      white-space: normal !important;
+      word-break: break-all;
+      line-height: 1.5;
     }
+  }
+
+  .wrap-content {
+    word-break: break-all;
+    white-space: normal;
+    line-height: 1.5;
+  }
+
+  .ports-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .port_link {
+    color: #409eff;
+    cursor: pointer;
+    transition: all 0.2s;
+    word-break: break-all;
+    white-space: normal;
+    line-height: 1.5;
+
+    &:hover {
+      color: #66b1ff;
+      text-decoration: underline;
+    }
+  }
+
+  .port_text {
+    color: #606266;
+    word-break: break-all;
+    white-space: normal;
+    line-height: 1.5;
+    cursor: help;
   }
 
   .header_buttons {
@@ -466,10 +579,6 @@ onUnmounted(() => {
     .more_button {
       margin-left: 12px;
     }
-  }
-
-  :deep(.el-table tr), :deep(.el-table th.el-table__cell) {
-    //background-color: transparent;
   }
 
   :deep(.el-tag) {

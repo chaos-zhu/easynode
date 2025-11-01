@@ -8,7 +8,7 @@ const { plusServers } = require('./plus-server')
 
 // 为空时请求本地IP
 const getNetIPInfo = async (searchIp = '') => {
-  console.log('searchIp:', searchIp)
+  // console.log('searchIp:', searchIp)
   if (isLocalIP(searchIp)) {
     return {
       ip: searchIp,
