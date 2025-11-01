@@ -276,9 +276,10 @@ const groupHostList = computed(() => {
   })
   hostList.value.forEach(item => {
     const group = groupList.find(group => group.id === item.group)
-    if (group) {
+    if (group?.name) {
       res[group.name].push(item)
     } else {
+      if (!res['默认分组']) res['默认分组'] = []
       res['默认分组'].push(item)
     }
   })
