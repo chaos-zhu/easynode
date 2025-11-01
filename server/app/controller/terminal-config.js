@@ -9,7 +9,7 @@ const DEFAULT_TERMINAL_CONFIG = {
   cursorColor: '#00ff41', // 使用主题光标颜色
   selectionColor: 'rgb(226, 232, 38)', // 选中颜色
   background: '', // 使用主题背景
-  keywordHighlight: false, // 关键词高亮
+  keywordHighlight: true, // 关键词高亮
   highlightDebugMode: false,
   customHighlightRules: null, // null表示使用默认规则
   autoExecuteScript: false, // 自动执行脚本
