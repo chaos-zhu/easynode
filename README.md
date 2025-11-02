@@ -19,9 +19,6 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
   <a href="https://github.com/chaos-zhu/easynode/releases/latest">
     <img src="https://img.shields.io/github/downloads/chaos-zhu/easynode/total?color=brightgreen&include_prereleases" alt="release">
   </a>
-  <a href="https://raw.githubusercontent.com/chaos-zhu/easynode/main/LICENSE">
-    <img src="https://img.shields.io/github/license/chaos-zhu/easynode?color=brightgreen" alt="license">
-  </a>
 </p>
 
 <p align="center">
@@ -133,6 +130,7 @@ CDN acceleration and security protection for this project are sponsored by Tence
 
 
 ![Image](https://github.com/user-attachments/assets/a50409e4-9394-4a59-a125-18ffe64c5fb0) [![image](https://img.shields.io/badge/NodeSupport-YXVM-red)](https://yxvm.com/)
+
 
 
 
