@@ -44,7 +44,7 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --schedule "0 8 * * *" --label-enable
+    command: --schedule "0 0 * * * *" --label-enable
     environment:
       - TZ=Asia/Shanghai
 
