@@ -727,6 +727,7 @@ const onConnected = () => {
       console.debug('无法读取本地剪贴板:', err.message)
     }
   })
+  displayElement.addEventListener('blur', () => { if (keyboard) keyboard.reset() })
 
   keyboard = new Guacamole.Keyboard(displayElement)
   keyboard.onkeydown = (keysym) => client.value.sendKeyEvent(1, keysym)
