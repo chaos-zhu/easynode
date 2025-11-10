@@ -82,12 +82,16 @@
         </el-form-item>
         <el-form-item v-if="sshForm.authType === 'password'" prop="password" label="密码">
           <el-input
-            v-model.trim="sshForm.password"
+            v-model="sshForm.password"
             type="text"
             placeholder=""
             autocomplete="off"
             clearable
           />
+          <div v-if="passwordHasSpace" class="password-warning">
+            <el-icon><WarningFilled /></el-icon>
+            <span>密码中包含空格字符</span>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -131,6 +135,7 @@
 <script setup>
 import { ref, reactive, computed, nextTick, getCurrentInstance } from 'vue'
 import { randomStr, AESEncrypt, RSAEncrypt } from '@utils/index.js'
+import { WarningFilled } from '@element-plus/icons-vue'
 import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 
 const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
@@ -159,6 +164,11 @@ const privateKeyRef = ref(null)
 
 let sshList = computed(() => $store.sshList)
 let isPlusActive = computed(() => $store.isPlusActive)
+
+// 检测密码是否包含空格
+const passwordHasSpace = computed(() => {
+  return sshForm.authType === 'password' && sshForm.password && sshForm.password.includes(' ')
+})
 
 let addCredentials = () => {
   sshForm.id = null
@@ -272,5 +282,14 @@ const handleDecryptKey = async () => {
   font-size: 15px;
   color: #87cf63;
   cursor: pointer;
+}
+
+.password-warning {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 13px;
+  color: #CF8A20;
 }
 </style>
