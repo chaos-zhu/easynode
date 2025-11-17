@@ -2,6 +2,8 @@ const rawPath = require('path')
 const fs = require('fs-extra')
 const SFTPClient = require('ssh2-sftp-client')
 const { Server } = require('socket.io')
+const iconv = require('iconv-lite')
+const chardet = require('chardet')
 const { sftpCacheDir } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { isAllowedIp } = require('../utils/tools')
@@ -10,6 +12,88 @@ const { getConnectionOptions, handleProxyAndJumpHostConnection } = require('./te
 const hostListDB = new HostListDB().getInstance()
 const favoriteSftpDB = new FavoriteSftpDB().getInstance()
 const { Client: SSHClient } = require('ssh2')
+
+/**
+ * 将 Buffer 解码为字符串
+ * @param {Buffer} buffer - 要解码的 Buffer
+ * @param {string} encoding - 编码格式 (utf8, gbk, gb2312, gb18030 等)
+ * @returns {string} 解码后的字符串
+ */
+function decodeBuffer(buffer, encoding = 'utf8') {
+  if (encoding === 'utf8') {
+    return buffer.toString('utf8')
+  }
+  // 使用 iconv-lite 解码其他编码
+  return iconv.decode(buffer, encoding)
+}
+
+/**
+ * 将字符串编码为 Buffer
+ * @param {string} content - 要编码的字符串
+ * @param {string} encoding - 编码格式 (utf8, gbk, gb2312, gb18030 等)
+ * @returns {Buffer} 编码后的 Buffer
+ */
+function encodeString(content, encoding = 'utf8') {
+  if (encoding === 'utf8') {
+    return Buffer.from(content, 'utf8')
+  }
+  // 使用 iconv-lite 编码其他编码
+  return iconv.encode(content, encoding)
+}
+
+/**
+ * 智能检测文件编码
+ * @param {Buffer} buffer - 文件内容 Buffer
+ * @returns {Object} { encoding: 'utf8', confidence: 95 }
+ */
+function detectEncoding(buffer) {
+  try {
+    // 对于小文件（< 50 字节），直接返回 utf8
+    if (buffer.length < 50) {
+      return { encoding: 'utf8', confidence: 50, reason: '文件过小，默认 UTF-8' }
+    }
+
+    // 1. 检查 BOM（Byte Order Mark）
+    if (buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+      return { encoding: 'utf8', confidence: 100, reason: '检测到 UTF-8 BOM' }
+    }
+
+    // 2. 使用 chardet 检测
+    const detected = chardet.detect(buffer)
+    if (!detected) {
+      return { encoding: 'utf8', confidence: 30, reason: '无法检测，默认 UTF-8' }
+    }
+
+    // 3. 分析置信度
+    const analysisResults = chardet.analyse(buffer)
+    const topResult = analysisResults[0] || { name: 'UTF-8', confidence: 30 }
+
+    // 规范化编码名称
+    let normalizedEncoding = detected.toLowerCase()
+    if (normalizedEncoding === 'gb2312' || normalizedEncoding === 'gb18030') {
+      // GB2312 和 GB18030 统一用对应名称
+      normalizedEncoding = detected.toLowerCase()
+    } else if (normalizedEncoding.includes('gb')) {
+      // 其他 GB 相关编码统一为 gbk
+      normalizedEncoding = 'gbk'
+    } else if (normalizedEncoding.includes('utf') || normalizedEncoding.includes('utf8')) {
+      normalizedEncoding = 'utf8'
+    }
+
+    const confidence = Math.round(topResult.confidence || 50)
+
+    consola.info(`编码检测结果: ${ normalizedEncoding } (置信度: ${ confidence }%)`)
+
+    return {
+      encoding: normalizedEncoding,
+      confidence,
+      reason: `chardet 检测为 ${ detected }`
+    }
+  } catch (error) {
+    consola.error('编码检测失败:', error.message)
+    return { encoding: 'utf8', confidence: 30, reason: '检测异常，默认 UTF-8' }
+  }
+}
 
 /**
  * https://github.com/theophilusx/ssh2-sftp-client#readme
@@ -763,19 +847,65 @@ const listenAction = (sftpClient, socket) => {
 
   // -------- 文本文件编辑功能 --------
 
-  // 读取文件内容
-  socket.on('read_file', async ({ filePath, fileSize }) => {
+  // 智能检测编码并读取文件
+  socket.on('detect_and_read_file', async ({ filePath, fileSize }) => {
     try {
-      // 检查文件大小限制 (1MB)
-      const maxFileSize = 1024 * 1024
+      // 检查文件是否存在
+      const exists = await sftpClient.exists(filePath)
+      if (!exists) {
+        socket.emit('file_read_error', {
+          error: '文件不存在',
+          filePath
+        })
+        return
+      }
+      // 检查文件大小限制 (2MB)
+      const maxFileSize = 1024 * 1024 * 2
       if (fileSize > maxFileSize) {
         socket.emit('file_read_error', {
-          error: `文件过大（${ Math.round(fileSize / 1024 / 1024 * 100) / 100 }MB），仅支持编辑小于1MB的文件`,
+          error: `文件过大（${ Math.round(fileSize / 1024 / 1024 * 100) / 100 }MB），仅支持编辑小于2MB的文件`,
           filePath
         })
         return
       }
 
+      consola.info(`开始智能检测文件编码: ${ filePath }`)
+      const buffer = await sftpClient.get(filePath)
+
+      const { encoding: detectedEncoding, confidence, reason } = detectEncoding(buffer)
+      consola.info(`检测结果: ${ detectedEncoding.toUpperCase() } (置信度: ${ confidence }%) - ${ reason }`)
+
+      // 根据检测到的编码解码文件内容
+      let content
+      try {
+        content = decodeBuffer(buffer, detectedEncoding)
+      } catch (decodeErr) {
+        consola.error('使用检测编码解码失败，尝试 UTF-8:', decodeErr.message)
+        // 解码失败，降级为 UTF-8
+        content = buffer.toString('utf8')
+      }
+
+      consola.info(`文件读取成功: ${ filePath }，大小: ${ content.length } 字符，使用编码: ${ detectedEncoding.toUpperCase() }`)
+
+      socket.emit('file_content_with_encoding', {
+        content,
+        filePath,
+        detectedEncoding,
+        confidence
+      })
+
+    } catch (err) {
+      consola.error('智能读取文件失败:', err.message)
+      socket.emit('file_read_error', {
+        error: err.message,
+        filePath
+      })
+    }
+  })
+
+  // 读取文件内容（手动指定编码）
+  socket.on('read_file', async ({ filePath, fileSize, encoding = 'utf8' }) => {
+    try {
       // 检查文件是否存在
       const exists = await sftpClient.exists(filePath)
       if (!exists) {
@@ -787,9 +917,21 @@ const listenAction = (sftpClient, socket) => {
       }
 
       // 读取文件内容
-      consola.info(`开始读取文件: ${ filePath }`)
+      consola.info(`开始读取文件: ${ filePath }，使用编码: ${ encoding.toUpperCase() }`)
       const buffer = await sftpClient.get(filePath)
-      const content = buffer.toString('utf8')
+
+      // 根据编码解码文件内容
+      let content
+      try {
+        content = decodeBuffer(buffer, encoding)
+      } catch (decodeErr) {
+        consola.error(`文件解码失败（编码: ${ encoding }）:`, decodeErr.message)
+        socket.emit('file_read_error', {
+          error: `文件解码失败，可能不是 ${ encoding.toUpperCase() } 编码`,
+          filePath
+        })
+        return
+      }
 
       consola.info(`文件读取成功: ${ filePath }，大小: ${ content.length } 字符`)
       socket.emit('file_content', { content, filePath })
@@ -872,22 +1014,23 @@ const listenAction = (sftpClient, socket) => {
   })
 
   // 保存文件内容
-  socket.on('save_file', async ({ filePath, content }) => {
+  socket.on('save_file', async ({ filePath, content, encoding = 'utf8' }) => {
     try {
-      // 检查内容大小限制 (1MB)
-      const maxFileSize = 1024 * 1024
-      const contentSize = Buffer.byteLength(content, 'utf8')
-      if (contentSize > maxFileSize) {
+      // 根据编码将内容转换为 Buffer
+      let buffer
+      try {
+        buffer = encodeString(content, encoding)
+      } catch (encodeErr) {
+        consola.error(`文件编码失败（编码: ${ encoding }）:`, encodeErr.message)
         socket.emit('file_save_error', {
-          error: `文件内容过大（${ Math.round(contentSize / 1024 / 1024 * 100) / 100 }MB），仅支持保存小于1MB的文件`,
+          error: `文件编码失败: ${ encodeErr.message }`,
           filePath
         })
         return
       }
 
       // 保存文件内容
-      consola.info(`开始保存文件: ${ filePath }，大小: ${ content.length } 字符`)
-      await sftpClient.put(Buffer.from(content, 'utf8'), filePath)
+      await sftpClient.put(buffer, filePath)
 
       consola.info(`文件保存成功: ${ filePath }`)
       socket.emit('file_saved', { filePath })

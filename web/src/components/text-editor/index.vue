@@ -70,6 +70,17 @@
         </div>
 
         <div class="toolbar-item">
+          <label>编码</label>
+          <el-select v-model="selectedEncoding" size="small" @change="changeEncoding">
+            <el-option label="自动检测" value="auto" />
+            <el-option label="UTF-8" value="utf8" />
+            <el-option label="GB18030" value="gb18030" />
+            <!-- <el-option label="GBK" value="gbk" />
+            <el-option label="GB2312" value="gb2312" /> -->
+          </el-select>
+        </div>
+
+        <div class="toolbar-item">
           <label>自动换行</label>
           <el-switch v-model="wordWrapEnabled" size="small" @change="toggleWordWrap" />
         </div>
@@ -170,6 +181,7 @@ const getDefaultTheme = () => {
 
 const selectedTheme = ref(getDefaultTheme())
 const selectedLanguage = ref('plaintext')
+const selectedEncoding = ref('auto') // 默认自动检测
 const selectedEOL = ref('LF')
 const wordWrapEnabled = ref(true)
 const minimapEnabled = ref(true)
@@ -178,6 +190,7 @@ const minimapSize = ref('medium') // 默认中等大小
 let editor = null
 let disposables = []
 let shouldCloseAfterSave = false
+let actualEncoding = 'utf8' // 实际使用的编码
 
 const title = computed(() => {
   return `编辑文件 - ${ props.filePath } ${ hasChanges.value ? ' [已变更]' : '' }`
@@ -310,11 +323,20 @@ const loadFileContent = async () => {
 
   loading.value = true
   try {
-    // 请求文件内容
-    props.socket.emit('read_file', {
-      filePath: props.filePath,
-      fileSize: props.fileSize
-    })
+    // 如果选择自动检测编码
+    if (selectedEncoding.value === 'auto') {
+      props.socket.emit('detect_and_read_file', {
+        filePath: props.filePath,
+        fileSize: props.fileSize
+      })
+    } else {
+      // 手动指定编码
+      props.socket.emit('read_file', {
+        filePath: props.filePath,
+        fileSize: props.fileSize,
+        encoding: selectedEncoding.value
+      })
+    }
   } catch (error) {
     console.error('加载文件失败:', error)
   }
@@ -326,9 +348,12 @@ const saveFile = async () => {
   loading.value = true
   try {
     const content = editor.getValue()
+    // 保存时使用实际编码，而不是 'auto'
+    const encodingToUse = selectedEncoding.value === 'auto' ? actualEncoding : selectedEncoding.value
     props.socket.emit('save_file', {
       filePath: props.filePath,
-      content: content
+      content: content,
+      encoding: encodingToUse
     })
   } catch (error) {
     console.error('保存文件失败:', error)
@@ -407,6 +432,33 @@ const changeLanguage = (language) => {
   }
 }
 
+// 保存当前编码，用于取消时恢复
+let previousEncoding = 'auto'
+
+const changeEncoding = (newEncoding) => {
+  // 如果有未保存的更改或编辑器已加载内容，提示用户
+  if (hasChanges.value || (editor && editor.getValue())) {
+    ElMessageBox.confirm(
+      '切换编码将重新加载文件，未保存的修改将丢失。是否继续？',
+      '切换编码',
+      {
+        confirmButtonText: '继续',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    ).then(() => {
+      previousEncoding = newEncoding
+      loadFileContent()
+    }).catch(() => {
+      // 用户取消，恢复之前的编码选择
+      selectedEncoding.value = previousEncoding
+    })
+  } else {
+    // 没有内容，直接切换
+    previousEncoding = newEncoding
+  }
+}
+
 const changeEOL = (eol) => {
   if (editor) {
     const model = editor.getModel()
@@ -479,6 +531,25 @@ const resetFile = () => {
 const setupSocketListeners = () => {
   if (!props.socket) return
 
+  // 智能检测编码后的文件内容
+  props.socket.on('file_content_with_encoding', ({ content, filePath, detectedEncoding, confidence }) => {
+    if (filePath !== props.filePath) return
+
+    actualEncoding = detectedEncoding
+
+    // 直接使用检测到的编码
+    originalContent.value = content
+    hasChanges.value = false
+    if (editor) {
+      editor.setValue(content)
+    }
+    loading.value = false
+
+    // 只在控制台打印检测信息
+    console.log(`文件编码检测: ${ detectedEncoding.toUpperCase() }，置信度: ${ confidence }%`)
+  })
+
+  // 手动指定编码的文件内容
   props.socket.on('file_content', ({ content, filePath }) => {
     if (filePath === props.filePath) {
       originalContent.value = content
@@ -487,6 +558,10 @@ const setupSocketListeners = () => {
         editor.setValue(content)
       }
       loading.value = false
+      // 更新实际编码
+      if (selectedEncoding.value !== 'auto') {
+        actualEncoding = selectedEncoding.value
+      }
     }
   })
 
@@ -497,6 +572,10 @@ const setupSocketListeners = () => {
       loading.value = false
       ElMessage.success('文件保存成功')
       emit('saved', { filePath })
+
+      // 控制台打印编码信息
+      const encodingDisplay = selectedEncoding.value === 'auto' ? actualEncoding.toUpperCase() : selectedEncoding.value.toUpperCase()
+      console.log(`文件已保存，使用编码: ${ encodingDisplay }`)
 
       // 如果是保存并关闭操作，则关闭对话框
       if (shouldCloseAfterSave) {
@@ -525,6 +604,7 @@ const cleanupSocketListeners = () => {
   if (!props.socket) return
 
   props.socket.off('file_content')
+  props.socket.off('file_content_with_encoding')
   props.socket.off('file_saved')
   props.socket.off('file_read_error')
   props.socket.off('file_save_error')
@@ -536,6 +616,10 @@ watch(visible, (newVal) => {
   if (newVal) {
     // 对话框打开时更新主题设置
     selectedTheme.value = getDefaultTheme()
+    // 重置编码为自动检测
+    selectedEncoding.value = 'auto'
+    previousEncoding = 'auto'
+    actualEncoding = 'utf8'
 
     nextTick(() => {
       initEditor()
