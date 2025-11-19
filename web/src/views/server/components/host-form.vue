@@ -159,6 +159,12 @@
           style="margin-top: 5px;"
           placeholder="-----BEGIN RSA PRIVATE KEY-----"
         />
+        <div v-if="hasEncryptedKey" class="key_warning">
+          <el-icon><WarningFilled /></el-icon>
+          <span>如果该密钥需密码，需在</span>
+          <a href="javascript:void(0)" @click="toCredentials">凭据管理</a>
+          <span>中添加，未加密私钥可忽略此提示.</span>
+        </div>
       </el-form-item>
       <el-form-item
         v-if="hostForm.authType === 'password' || isRDP"
@@ -362,6 +368,7 @@ import { ref, computed, getCurrentInstance, nextTick, watch } from 'vue'
 import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 import { RSAEncrypt, AESEncrypt, randomStr } from '@utils/index.js'
 import { isValidDate } from '@/utils'
+import { WarningFilled } from '@element-plus/icons-vue'
 
 const { proxy: { $api, $router, $message, $store } } = getCurrentInstance()
 
@@ -455,6 +462,13 @@ const title = computed(() => {
 // 连接类型计算属性
 const isSSH = computed(() => hostForm.value.connectType === 'ssh')
 const isRDP = computed(() => hostForm.value.connectType === 'rdp')
+
+// 检测是否为加密密钥或需要密码的 OpenSSH 密钥
+const hasEncryptedKey = computed(() => {
+  const privateKey = hostForm.value.privateKey
+  if (!privateKey) return false
+  return privateKey.includes('ENCRYPTED') || privateKey.includes('OPENSSH PRIVATE KEY')
+})
 
 const groupList = computed(() => $store.groupList)
 const sshList = computed(() => $store.sshList)
@@ -665,5 +679,14 @@ const handleSave = () => {
 .dialog-footer {
   display: flex;
   justify-content: center;
+}
+
+.key_warning {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 5px;
+  font-size: 13px;
+  color: #CF8A20;
 }
 </style>

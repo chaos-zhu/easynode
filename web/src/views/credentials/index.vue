@@ -68,17 +68,15 @@
           />
         </el-form-item>
         <el-form-item v-if="sshForm.authType === 'privateKey' && showOpenSSHKeyField" label="私钥密码">
-          <PlusSupportTip>
-            <el-input
-              v-model="sshForm.openSSHKeyPassword"
-              type="password"
-              :disabled="!isPlusActive"
-              placeholder="请输入openssh私钥密码"
-              show-password
-              autocomplete="off"
-              clearable
-            />
-          </PlusSupportTip>
+          <el-input
+            v-model="sshForm.openSSHKeyPassword"
+            type="password"
+            :disabled="!isPlusActive"
+            placeholder="请输入openssh私钥密码(没有密码请留空)"
+            show-password
+            autocomplete="off"
+            clearable
+          />
         </el-form-item>
         <el-form-item v-if="sshForm.authType === 'password'" prop="password" label="密码">
           <el-input
@@ -133,7 +131,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, nextTick, getCurrentInstance } from 'vue'
+import { ref, reactive, computed, nextTick, getCurrentInstance, watch } from 'vue'
 import { randomStr, AESEncrypt, RSAEncrypt } from '@utils/index.js'
 import { WarningFilled } from '@element-plus/icons-vue'
 import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
@@ -229,21 +227,27 @@ const keyPassword = ref('')
 const tempPrivateKey = ref('')
 const showOpenSSHKeyField = ref(false)
 
+// 监听私钥内容变化，自动检测密钥类型
+watch(() => sshForm.privateKey, (newValue) => {
+  if (!newValue) return showOpenSSHKeyField.value = false
+
+  // 检查是否是加密的私钥
+  if (newValue.includes('ENCRYPTED')) {
+    tempPrivateKey.value = newValue
+    keyPasswordVisible.value = true
+  } else if (newValue.includes('OPENSSH PRIVATE KEY')) {
+    // 如果是 OpenSSH 格式，显示密码字段
+    showOpenSSHKeyField.value = true
+  } else {
+    showOpenSSHKeyField.value = false
+  }
+})
+
 const handleSelectPrivateKeyFile = (event) => {
   let file = event.target.files[0]
   let reader = new FileReader()
   reader.onload = async (e) => {
-    const content = e.target.result
-    // 检查是否是加密的私钥
-    if (content.includes('ENCRYPTED')) {
-      tempPrivateKey.value = content
-      keyPasswordVisible.value = true
-    } else if (content.includes('OPENSSH PRIVATE KEY')) {
-      sshForm.privateKey = content
-      showOpenSSHKeyField.value = true
-    } else {
-      sshForm.privateKey = content
-    }
+    sshForm.privateKey = e.target.result
     privateKeyRef.value.value = ''
   }
   reader.readAsText(file)
