@@ -258,7 +258,7 @@ const connectIO = () => {
       })
       socket.value.on('terminal_connect_shell_success', () => {
         curStatus.value = CONNECT_SUCCESS
-        shellResize()
+        handleResize()
         if (initCommand.value) socket.value.emit('input', initCommand.value + '\n')
       })
 
@@ -413,10 +413,22 @@ const createLocalTerminal = () => {
 }
 
 const shellResize = () => {
+  // 由于非当前的el-tab-pane的display属性为none, 调用fitAddon.value?.fit()时无法获取宽高，因此先展示，再fit，最后再隐藏
+  let temp = []
+  let panes = Array.from(document.getElementsByClassName('el-tab-pane'))
+  panes.forEach((item, index) => {
+    temp[index] = item.style.display
+    item.style.display = 'block'
+  })
+
   fitAddon.value.fit()
   let { rows, cols } = term.value
   socket.value?.emit('resize', { rows, cols })
   term.value?.scrollToBottom()
+
+  panes.forEach((item, index) => {
+    item.style.display = temp[index]
+  })
 }
 
 const onResize = () => {
@@ -427,18 +439,8 @@ const onResize = () => {
 
 const handleResize = () => {
   if (timer.value) clearTimeout(timer.value)
-  timer.value = setTimeout(async () => {
-    // 由于非当前的el-tab-pane的display属性为none, 调用fitAddon.value?.fit()时无法获取宽高，因此先展示，再fit，最后再隐藏
-    let temp = []
-    let panes = Array.from(document.getElementsByClassName('el-tab-pane'))
-    panes.forEach((item, index) => {
-      temp[index] = item.style.display
-      item.style.display = 'block'
-    })
+  timer.value = setTimeout(() => {
     shellResize()
-    panes.forEach((item, index) => {
-      item.style.display = temp[index]
-    })
   }, 200)
 }
 
