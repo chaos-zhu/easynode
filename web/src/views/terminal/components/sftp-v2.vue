@@ -82,10 +82,15 @@
           </template>
         </el-dropdown>
 
-        <!-- 连接控制按钮 -->
-        <span class="disconnect_btn" @click="toggleConnection">
-          <el-icon><SwitchButton /></el-icon>
-        </span>
+        <el-tooltip
+          effect="dark"
+          content="重新连接"
+          placement="left"
+        >
+          <span class="reconnect_btn" @click="reconnectSftp">
+            <el-icon><RefreshRight /></el-icon>
+          </span>
+        </el-tooltip>
       </div>
 
       <!-- 路径栏：当前路径 + 操作按钮 -->
@@ -651,7 +656,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, getCurrentInstance, nextTick } from 'vue'
-import { ArrowDown, ArrowLeft, Refresh, View, Hide, Edit, Search, ArrowRight, HomeFilled, Check, Close as CloseIcon, Download, Upload, DocumentCopy, Loading, WarningFilled, Star, StarFilled, Delete, SwitchButton, Setting } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowLeft, Refresh, View, Hide, Edit, Search, ArrowRight, HomeFilled, Check, Close as CloseIcon, Download, Upload, DocumentCopy, Loading, WarningFilled, Star, StarFilled, Delete, RefreshRight, Setting } from '@element-plus/icons-vue'
 import { generateSocketInstance } from '@/utils'
 import dirIcon from '@/assets/image/system/dir.png'
 import linkIcon from '@/assets/image/system/link.png'
@@ -1346,7 +1351,8 @@ const connectSftp = () => {
   })
 }
 
-// 断开连接
+// 断开连接（保留函数以备将来使用）
+// eslint-disable-next-line no-unused-vars
 const disconnectSftp = () => {
   if (socket.value) {
     socket.value.removeAllListeners()
@@ -1380,20 +1386,16 @@ watch(initConnect, (val) => {
   immediate: true
 })
 
-//----------------------------------
-// 初始化
-//----------------------------------
-// onMounted(() => {
-//   connectSftp()
-// })
-
-// 切换连接状态
-const toggleConnection = () => {
-  if (connectionStatus.value === 'connected') {
-    disconnectSftp()
-  } else {
-    connectSftp()
+// 重新连接 SFTP
+const reconnectSftp = () => {
+  if (socket.value) {
+    socket.value.removeAllListeners()
+    socket.value.close()
+    socket.value = null
   }
+  selectedRows.value = [] // 清空选中状态，重新连接后文件列表会变化
+  searchKeyword.value = '' // 清空搜索关键词
+  connectSftp()
 }
 
 const openDir = (path = currentPath.value, tips = true) => {
@@ -2531,7 +2533,7 @@ defineExpose({
     gap: 8px;
     padding: 5px 10px;
     border-bottom: 1px solid var(--el-border-color);
-    .disconnect_btn {
+    .reconnect_btn {
       margin-left: auto;
       color: var(--el-color-warning);
       cursor: pointer;
