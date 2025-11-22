@@ -402,6 +402,7 @@
           :title="`Docker容器管理-${ item.name }`"
           :width="isMobileScreen ? '100vw' : '80vw'"
           :style="isMobileScreen ? 'max-width: 100vw;' : 'max-width: 1300px;'"
+          :close-on-click-modal="false"
         >
           <Docker :host-id="item.id" :host="item.host" :visible="showDockerDialog" />
         </el-dialog>

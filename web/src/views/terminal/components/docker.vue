@@ -1,13 +1,66 @@
 <template>
   <div class="docker_container">
     <PlusLimitTip />
+    <!-- 顶部批量操作工具栏 -->
+    <div v-if="selectedContainers.length > 0 || batchOperating" class="batch_toolbar">
+      <div class="batch_info">
+        <template v-if="batchOperating">
+          正在{{ batchProgress.action }}... <span class="progress">{{ batchProgress.current }}/{{ batchProgress.total }}</span>
+        </template>
+        <template v-else>
+          已选中 <span class="count">{{ selectedContainers.length }}</span> 个容器
+        </template>
+      </div>
+      <div class="batch_actions">
+        <el-button
+          type="success"
+          size="small"
+          :disabled="batchOperating"
+          @click="handleBatchStart"
+        >
+          批量启动
+        </el-button>
+        <el-button
+          type="primary"
+          size="small"
+          :disabled="batchOperating"
+          @click="handleBatchRestart"
+        >
+          批量重启
+        </el-button>
+        <el-button
+          type="warning"
+          size="small"
+          :disabled="batchOperating"
+          @click="handleBatchStop"
+        >
+          批量停止
+        </el-button>
+        <el-button
+          type="danger"
+          size="small"
+          :disabled="batchOperating"
+          @click="handleBatchDelete"
+        >
+          批量删除
+        </el-button>
+      </div>
+    </div>
     <el-table
+      ref="tableRef"
       v-loading="loading"
+      class="docker_table"
       :data="dockerContainers"
       row-key="id"
       size="small"
       center
+      @selection-change="handleSelectionChange"
     >
+      <el-table-column
+        type="selection"
+        width="55"
+        :selectable="() => isPlusActive"
+      />
       <el-table-column
         prop="id"
         label="ID"
@@ -25,7 +78,7 @@
         class-name="wrap-cell"
       >
         <template #default="{ row }">
-          <div class="wrap-content">
+          <div class="wrap_content">
             {{ row.image }}
           </div>
         </template>
@@ -37,7 +90,7 @@
         class-name="wrap-cell"
       >
         <template #default="{ row }">
-          <div v-if="Array.isArray(row.ports) && row.ports.length > 0" class="ports-wrapper">
+          <div v-if="Array.isArray(row.ports) && row.ports.length > 0" class="ports_wrapper">
             <template v-for="port in row.ports" :key="port">
               <el-tooltip
                 v-if="!isPortMapped(port)"
@@ -74,6 +127,11 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column
+        prop="createdAt"
+        label="创建时间"
+        width="160"
+      />
       <el-table-column prop="uptime" label="运行时长" width="142" />
       <el-table-column
         label="操作"
@@ -202,6 +260,7 @@ import { VideoPlay, VideoPause, RefreshRight, Delete, MoreFilled } from '@elemen
 import CodeEdit from '@/components/code-edit/index.vue'
 import PlusLimitTip from '@/components/common/PlusLimitTip.vue'
 import { EventBus, generateSocketInstance } from '@/utils'
+import dayjs from 'dayjs'
 
 const { proxy: { $store, $message, $messageBox } } = getCurrentInstance()
 
@@ -232,6 +291,10 @@ const showLogsDialog = ref(false)
 const logDialogKey = ref(0)
 const makeImageDialog = ref(false)
 const makeImageFormRef = ref(null)
+const tableRef = ref(null)
+const selectedContainers = ref([])
+const batchOperating = ref(false)
+const batchProgress = ref({ current: 0, total: 0, action: '' }) // 批量操作进度
 const makeImageForm = ref({
   name: '',
   tag: 'latest',
@@ -261,7 +324,7 @@ watch(() => props.visible, (newVal) => {
     refreshDockerContainers(false, 0)
     if (!refreshInterval.value) {
       refreshInterval.value = setInterval(() => {
-        if (socket.value && socket.value.connected && isPlusActive.value && !loading.value) {
+        if (socket.value && socket.value.connected && isPlusActive.value && !loading.value && selectedContainers.value.length === 0) {
           socket.value.emit('docker_get_containers_data')
         }
       }, 3500)
@@ -329,7 +392,12 @@ const connectDocker = () => {
       // console.log('docker_containers_data:', data)
       dockerServerErr.value = false
       loading.value = false
-      dockerContainers.value = data
+      if (!Array.isArray(data)) return
+      dockerContainers.value = data.map(item => ({
+        ...item,
+        createdAt: dayjs(item.createdAt).format('YYYY-MM-DD HH:mm:ss')
+        // uptime: dayjs(item.uptime).format('HH:mm:ss')
+      }))
     })
     socket.value.on('docker_containers_logs', (data) => {
       // console.log('docker_containers_logs:', data)
@@ -337,6 +405,8 @@ const connectDocker = () => {
       showLogsDialog.value = true
     })
     socket.value.on('docker_operation_result', (result) => {
+      if (batchOperating.value) return
+
       if (result.success) {
         $message.success(result.message)
         refreshDockerContainers(true, 0)
@@ -364,6 +434,11 @@ const connectDocker = () => {
 }
 
 const refreshDockerContainers = (isLoading = true, delay = 0) => {
+  // 如果有选中的容器，暂停刷新
+  if (selectedContainers.value.length > 0) {
+    console.log('检测到有选中的容器，跳过本次刷新')
+    return
+  }
   if (!socket.value || !socket.value.connected) return connectDocker()
   loading.value = isLoading
   setTimeout(() => {
@@ -484,16 +559,164 @@ const intervalLogs = () => {
   socket.value.emit('docker_get_containers_logs', { containerId: currentContainer.value.id, tail: 2000 })
 }
 
+// 处理选择变化
+const handleSelectionChange = (selection) => {
+  selectedContainers.value = selection
+}
+
+// 批量操作 - 串行执行
+const executeBatchOperation = async (operation, containers, actionName) => {
+  if (!socket.value || !socket.value.connected) {
+    $message.error('连接已断开，正在刷新')
+    refreshDockerContainers(true, 0)
+    return
+  }
+
+  if (batchOperating.value) {
+    $message.warning('批量操作正在进行中，请稍候')
+    return
+  }
+
+  batchOperating.value = true
+  loading.value = true
+
+  // 初始化进度
+  batchProgress.value = {
+    current: 0,
+    total: containers.length,
+    action: actionName
+  }
+
+  let successCount = 0
+  let failCount = 0
+  const failedContainers = [] // 记录失败的容器
+
+  for (let i = 0; i < containers.length; i++) {
+    const container = containers[i]
+    // 更新进度
+    batchProgress.value.current = i + 1
+
+    try {
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('操作超时(30s)'))
+        }, 30 * 1000)
+
+        const handleResult = (result) => {
+          clearTimeout(timeout)
+          socket.value.off('docker_operation_result', handleResult)
+          if (result.success) {
+            successCount++
+            resolve()
+          } else {
+            failCount++
+            reject(new Error(result.message))
+          }
+        }
+
+        socket.value.on('docker_operation_result', handleResult)
+        socket.value.emit(operation, { containerId: container.id })
+      })
+    } catch (error) {
+      console.error(`${ actionName }容器 ${ container.name } 失败:`, error)
+      failCount++
+      failedContainers.push(container.name)
+    }
+
+    // 每个操作之间添加短暂延迟
+    if (i < containers.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+  }
+
+  batchOperating.value = false
+  loading.value = false
+
+  // 重置进度
+  batchProgress.value = { current: 0, total: 0, action: '' }
+
+  // 清空选择
+  tableRef.value?.clearSelection()
+  selectedContainers.value = []
+
+  // 显示结果
+  if (failCount === 0) {
+    $message.success(`批量${ actionName }完成：全部成功（${ successCount }/${ containers.length }）`)
+  } else {
+    const failedNames = failedContainers.slice(0, 3).join('、')
+    const moreText = failedContainers.length > 3 ? ` 等${ failedContainers.length }个` : ''
+    $message.warning(`批量${ actionName }完成：成功 ${ successCount } 个，失败 ${ failCount } 个（${ failedNames }${ moreText }）`)
+  }
+
+  // 刷新列表
+  refreshDockerContainers(true, 0)
+}
+
+// 批量启动
+const handleBatchStart = () => {
+  const canStart = selectedContainers.value.filter(c => c.status !== 'running')
+  if (canStart.length === 0) {
+    $message.warning('没有可启动的容器（已选容器都在运行中）')
+    return
+  }
+  $messageBox.confirm(`确认批量启动 ${ canStart.length } 个容器？`, '确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'info'
+  }).then(() => {
+    executeBatchOperation('docker_start_container', canStart, '启动')
+  }).catch(() => {})
+}
+
+// 批量重启
+const handleBatchRestart = () => {
+  const canRestart = selectedContainers.value.filter(c => c.status === 'running')
+  if (canRestart.length === 0) {
+    $message.warning('没有可重启的容器（已选容器都未运行）')
+    return
+  }
+  $messageBox.confirm(`确认批量重启 ${ canRestart.length } 个容器？`, '确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    executeBatchOperation('docker_restart_container', canRestart, '重启')
+  }).catch(() => {})
+}
+
+// 批量停止
+const handleBatchStop = () => {
+  const canStop = selectedContainers.value.filter(c => c.status === 'running')
+  if (canStop.length === 0) {
+    $message.warning('没有可停止的容器（已选容器都未运行）')
+    return
+  }
+  $messageBox.confirm(`确认批量停止 ${ canStop.length } 个容器？`, '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    executeBatchOperation('docker_stop_container', canStop, '停止')
+  }).catch(() => {})
+}
+
+// 批量删除
+const handleBatchDelete = () => {
+  $messageBox.confirm(
+    `确认批量删除 ${ selectedContainers.value.length } 个容器？此操作不可恢复！`,
+    '危险操作',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'error'
+    }
+  ).then(() => {
+    executeBatchOperation('docker_delete_container', selectedContainers.value, '删除')
+  }).catch(() => {})
+}
+
 onMounted(() => {
   connectDocker()
-  // 如果组件初始可见，启动定时器，每3秒静默刷新容器列表
-  if (props.visible) {
-    refreshInterval.value = setInterval(() => {
-      if (socket.value && socket.value.connected && isPlusActive.value && !loading.value) {
-        socket.value.emit('docker_get_containers_data')
-      }
-    }, 3000)
-  }
 })
 
 onUnmounted(() => {
@@ -518,10 +741,60 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .docker_container {
-  display: flex;
-  gap: 10px;
   padding: 10px;
   position: relative;
+
+  .batch_toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 16px;
+    animation: slideDown 0.3s ease-out;
+    transition: all 0.3s ease;
+
+    .batch_info {
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+
+      .count {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 0 4px;
+      }
+
+      .progress {
+        font-size: 16px;
+        font-weight: bold;
+        margin-left: 8px;
+        padding: 2px 10px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        display: inline-block;
+      }
+    }
+
+    .batch_actions {
+      display: flex;
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .docker_table {
+    min-height: 50vh;
+    max-height: 72vh;
+    overflow: auto;
+  }
 
   :deep(.wrap-cell) {
     .cell {
@@ -531,13 +804,13 @@ onUnmounted(() => {
     }
   }
 
-  .wrap-content {
+  .wrap_content {
     word-break: break-all;
     white-space: normal;
     line-height: 1.5;
   }
 
-  .ports-wrapper {
+  .ports_wrapper {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -567,9 +840,10 @@ onUnmounted(() => {
 
   .header_buttons {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     justify-content: flex-end;
     align-items: center;
+    gap: 8px;
   }
 
   .action_buttons {
