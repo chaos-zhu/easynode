@@ -1676,6 +1676,11 @@ const isArchiveFile = (filename) => {
   return /(\.zip|\.tar\.gz|\.tgz|\.tar|\.rar)$/i.test(filename)
 }
 
+// 判断是否为 docker-compose 文件
+const isDockerComposeFile = (filename) => {
+  return /^docker-compose\.(yml|yaml)$/i.test(filename)
+}
+
 // 判断是否为图片文件
 const isImageFile = (filename) => {
   const imageExtensions = [
@@ -1902,35 +1907,77 @@ const onRowContextMenu = (row, _column, event) => {
     })
   }
 
+  // Docker-compose 操作（仅单选且为 docker-compose.yml/yaml 文件时显示）
+  if (!isMultiSelected && row.type === '-' && isDockerComposeFile(row.name)) {
+    items.push({
+      label: 'docker-compose',
+      children: [
+        {
+          label: '启动',
+          onClick: () => handleDockerComposeAction(row, 'up')
+        },
+        {
+          label: '重启',
+          onClick: () => handleDockerComposeAction(row, 'restart')
+        },
+        {
+          label: '移除',
+          onClick: () => handleDockerComposeAction(row, 'down')
+        },
+        {
+          label: '拉取',
+          onClick: () => handleDockerComposeAction(row, 'pull')
+        },
+        {
+          label: '重建',
+          onClick: () => handleDockerComposeAction(row, 'rebuild')
+        },
+        {
+          label: '日志',
+          onClick: () => handleDockerComposeAction(row, 'logs')
+        },
+      ]
+    })
+  }
+
   items.push({
-    label: '复制路径',
+    label: row.type === 'd' ? '复制文件夹路径' : '复制文件路径',
     onClick: () => {
       let fullPath
       const currentPathValue = currentPath.value
-
       if (currentPathValue === '/' || currentPathValue === '~') {
         fullPath = `${ currentPathValue === '/' ? '' : currentPathValue }/${ row.name }`
       } else {
         fullPath = `${ currentPathValue }/${ row.name }`
       }
-
-      // 清理路径
       fullPath = fullPath.replace(/\/+/g, '/')
-
       navigator.clipboard.writeText(fullPath)
       $message.success('已复制路径')
     }
   })
 
   // 发送cd指令到终端
-  if (row.type === 'd' && props.showCdCommand) {
-    const cdCommand = `cd ${ currentPath.value }/${ row.name }\n`.replace(/\/+/g, '/')
-    items.push({
-      label: '发送cd指令到终端',
-      onClick: () => {
-        emit('exec-script', cdCommand)
-      }
-    })
+  if (props.showCdCommand) {
+    let cdPath
+    if (row.type === 'd') {
+      // 文件夹：cd到该文件夹
+      cdPath = `${ currentPath.value }/${ row.name }`.replace(/\/+/g, '/')
+      items.push({
+        label: 'cd到该文件夹',
+        onClick: () => {
+          emit('exec-script', `cd ${ cdPath }\n`)
+        }
+      })
+    } else {
+      // 文件：cd到文件所在目录
+      cdPath = currentPath.value
+      items.push({
+        label: 'cd到文件所在目录',
+        onClick: () => {
+          emit('exec-script', `cd ${ cdPath }\n`)
+        }
+      })
+    }
   }
 
   showMenu(event, items)
@@ -2091,6 +2138,49 @@ const handleDecompress = (row) => {
       folderName: baseName
     })
   })
+}
+
+const handleDockerComposeAction = (row, action) => {
+  // 构建文件的完整路径
+  let fullPath
+  const currentPathValue = currentPath.value
+
+  if (currentPathValue === '/' || currentPathValue === '~') {
+    fullPath = `${ currentPathValue === '/' ? '' : currentPathValue }/${ row.name }`
+  } else {
+    fullPath = `${ currentPathValue }/${ row.name }`
+  }
+
+  // 清理路径
+  fullPath = fullPath.replace(/\/+/g, '/')
+
+  // 构建对应的 docker-compose 命令
+  let command = ''
+
+  switch (action) {
+    case 'up':
+      command = `docker-compose -f ${ fullPath } up -d\n`
+      break
+    case 'restart':
+      command = `docker-compose -f ${ fullPath } restart\n`
+      break
+    case 'down':
+      command = `docker-compose -f ${ fullPath } down\n`
+      break
+    case 'pull':
+      command = `docker-compose -f ${ fullPath } pull\n`
+      break
+    case 'rebuild':
+      command = `docker-compose -f ${ fullPath } up -d --force-recreate\n`
+      break
+    case 'logs':
+      command = `docker-compose -f ${ fullPath } logs -f\n`
+      break
+    default:
+      $message.error('未知操作')
+      return
+  }
+  emit('exec-script', command)
 }
 
 // 下载功能
