@@ -1,9 +1,8 @@
-version: '3'
-
 services:
   easynode:
     container_name: easynode
-    image: docker.1ms.run/chaoszhu/easynode
+    # image: docker.1ms.run/chaoszhu/easynode
+    image: docker.cnb.cool/chaoszhu/easynode:latest # cnb自动同步
     restart: always
     ports:
       - 8082:8082
@@ -24,7 +23,8 @@ services:
 
   easynode-guacd:
     container_name: easynode-guacd
-    image: docker.1ms.run/guacamole/guacd
+    # image: docker.1ms.run/guacamole/guacd
+    image: docker.cnb.cool/chaoszhu/docker-sync-manual/guacamole-guacd:latest_amd64 # cnb加速amd64
     restart: always
     expose:
       - "4822"
@@ -40,11 +40,12 @@ services:
 
   watchtower:
     container_name: easynode-watchtower
-    image: docker.1ms.run/containrrr/watchtower
+    # image: docker.1ms.run/containrrr/watchtower
+    image: docker.cnb.cool/chaoszhu/docker-sync-manual/containrrr-watchtower:latest_amd64 # cnb加速amd64
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --schedule "0 0 * * * *" --label-enable
+    command: --schedule "0 */5 * * * *" --label-enable # 每5分钟检测一次更新
     environment:
       - TZ=Asia/Shanghai
 
