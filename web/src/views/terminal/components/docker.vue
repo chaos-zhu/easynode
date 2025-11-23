@@ -1,217 +1,245 @@
 <template>
   <div class="docker_container">
     <PlusLimitTip />
-    <!-- 顶部批量操作工具栏 -->
-    <div v-if="selectedContainers.length > 0 || batchOperating" class="batch_toolbar">
-      <div class="batch_info">
-        <template v-if="batchOperating">
-          正在{{ batchProgress.action }}... <span class="progress">{{ batchProgress.current }}/{{ batchProgress.total }}</span>
-        </template>
-        <template v-else>
-          已选中 <span class="count">{{ selectedContainers.length }}</span> 个容器
-        </template>
-      </div>
-      <div class="batch_actions">
-        <el-button
-          type="success"
-          size="small"
-          :disabled="batchOperating"
-          @click="handleBatchStart"
+
+    <!-- 顶部工具栏：全选、刷新与批量操作提示 -->
+    <div class="top_toolbar">
+      <div class="left_tools">
+        <el-checkbox
+          v-if="isPlusActive"
+          v-model="checkAll"
+          :indeterminate="isIndeterminate"
+          class="select_all_checkbox"
+          @change="handleSelectAll"
         >
-          批量启动
-        </el-button>
+          全选
+        </el-checkbox>
+        <div v-if="selectedContainers.length > 0 || batchOperating" class="batch_info_tag">
+          <template v-if="batchOperating">
+            正在{{ batchProgress.action }}... <span class="progress">{{ batchProgress.current }}/{{ batchProgress.total }}</span>
+          </template>
+          <template v-else>
+            已选中 <span class="count">{{ selectedContainers.length }}</span> 个
+          </template>
+        </div>
+      </div>
+
+      <div class="right_tools">
+        <!-- 批量操作按钮组 -->
+        <transition name="fade">
+          <div v-if="selectedContainers.length > 0" class="batch_actions">
+            <el-button-group>
+              <el-button
+                type="success"
+                size="small"
+                :disabled="batchOperating"
+                @click="handleBatchStart"
+              >
+                批量启动
+              </el-button>
+              <el-button
+                type="primary"
+                size="small"
+                :disabled="batchOperating"
+                @click="handleBatchRestart"
+              >
+                重启
+              </el-button>
+              <el-button
+                type="warning"
+                size="small"
+                :disabled="batchOperating"
+                @click="handleBatchStop"
+              >
+                停止
+              </el-button>
+              <el-button
+                type="danger"
+                size="small"
+                :disabled="batchOperating"
+                @click="handleBatchDelete"
+              >
+                删除
+              </el-button>
+            </el-button-group>
+          </div>
+        </transition>
+
+        <div v-if="dockerServerErr" style="margin-right: 10px;">
+          <el-tag type="danger" effect="light" size="small">Docker服务连接失败</el-tag>
+        </div>
         <el-button
           type="primary"
+          :loading="loading"
           size="small"
-          :disabled="batchOperating"
-          @click="handleBatchRestart"
+          :icon="RefreshRight"
+          @click="() => reconnectDocker(true)"
         >
-          批量重启
-        </el-button>
-        <el-button
-          type="warning"
-          size="small"
-          :disabled="batchOperating"
-          @click="handleBatchStop"
-        >
-          批量停止
-        </el-button>
-        <el-button
-          type="danger"
-          size="small"
-          :disabled="batchOperating"
-          @click="handleBatchDelete"
-        >
-          批量删除
+          刷新
         </el-button>
       </div>
     </div>
-    <el-table
-      ref="tableRef"
-      v-loading="loading"
-      class="docker_table"
-      :data="dockerContainers"
-      row-key="id"
-      size="small"
-      center
-      @selection-change="handleSelectionChange"
-    >
-      <el-table-column
-        type="selection"
-        width="55"
-        :selectable="() => isPlusActive"
-      />
-      <el-table-column
-        prop="id"
-        label="ID"
-        show-overflow-tooltip
-        width="108"
-      />
-      <el-table-column
-        prop="name"
-        label="名称"
-        show-overflow-tooltip
-      />
-      <el-table-column
-        prop="image"
-        label="镜像"
-        class-name="wrap-cell"
-      >
-        <template #default="{ row }">
-          <div class="wrap_content">
-            {{ row.image }}
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column
-        prop="ports"
-        label="端口"
-        width="160"
-        class-name="wrap-cell"
-      >
-        <template #default="{ row }">
-          <div v-if="Array.isArray(row.ports) && row.ports.length > 0" class="ports_wrapper">
-            <template v-for="port in row.ports" :key="port">
-              <el-tooltip
-                v-if="!isPortMapped(port)"
-                content="此端口未映射到宿主机"
-                placement="left"
-              >
-                <div class="port_text">
-                  {{ port }}
-                </div>
-              </el-tooltip>
-              <div
-                v-else
-                class="port_link"
-                @click="handlePortClick(port)"
-              >
-                {{ port }}
-              </div>
-            </template>
-          </div>
-          <div v-else>
-            {{ row.ports || '--' }}
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" align="center" width="100">
-        <template #default="{ row }">
-          <el-tag
-            :type="getStatusType(row.status)"
-            size="small"
-            effect="light"
-            style="width: 60px;"
+
+    <!-- 卡片列表区域 -->
+    <div v-loading="loading" class="card_container_wrapper">
+      <el-empty v-if="dockerContainers.length === 0 && !loading" description="暂无容器" />
+
+      <el-row :gutter="12">
+        <el-col
+          v-for="row in dockerContainers"
+          :key="row.id"
+          :xs="24"
+          :sm="12"
+          :md="12"
+          :lg="8"
+          :xl="6"
+          class="mb-3"
+        >
+          <el-card
+            class="container_card"
+            :class="{ 'is-selected': isSelected(row) }"
+            shadow="hover"
           >
-            {{ row.status }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column
-        prop="createdAt"
-        label="创建时间"
-        width="160"
-      />
-      <el-table-column prop="uptime" label="运行时长" width="142" />
-      <el-table-column
-        label="操作"
-        align="center"
-        width="230"
-        fixed="right"
-      >
-        <template #header>
-          <div class="header_buttons">
-            <div v-if="dockerServerErr" style="margin-right: 6px;">
-              <el-tag type="danger" effect="light" size="small">Docker服务连接失败</el-tag>
+            <!-- 背景图标（新增） -->
+            <div class="card_bg_icon">
+              <img
+                :src="getAppIcon(row.image)"
+                loading="lazy"
+                @error="handleIconError"
+              >
             </div>
-            <el-button
-              type="primary"
-              :loading="loading"
-              size="small"
-              @click="() => refreshDockerContainers(true)"
-            >
-              刷新
-            </el-button>
-          </div>
-        </template>
-        <template #default="{ row }">
-          <div class="action_buttons">
-            <el-button
-              type="success"
-              :icon="VideoPlay"
-              circle
-              size="small"
-              :disabled="row.status === 'running'"
-              title="启动"
-              @click="handleStart(row)"
-            />
-            <el-button
-              type="primary"
-              :icon="RefreshRight"
-              circle
-              size="small"
-              :disabled="row.status !== 'running'"
-              title="重启"
-              @click="handleRestart(row)"
-            />
-            <el-button
-              type="warning"
-              :icon="VideoPause"
-              circle
-              size="small"
-              :disabled="row.status !== 'running'"
-              title="停止"
-              @click="handleStop(row)"
-            />
-            <el-button
-              type="danger"
-              :icon="Delete"
-              circle
-              size="small"
-              title="删除"
-              @click="handleDelete(row)"
-            />
-            <el-dropdown trigger="click">
-              <el-button
-                type="info"
-                class="more_button"
-                :icon="MoreFilled"
-                circle
+
+            <!-- 卡片头部：选择框 + 名称 + 状态 -->
+            <div class="card_header">
+              <div class="header_left">
+                <el-checkbox
+                  v-if="isPlusActive"
+                  :model-value="isSelected(row)"
+                  @change="() => toggleSelection(row)"
+                />
+                <span class="container_name" :title="row.name">{{ row.name }}</span>
+              </div>
+              <el-tag
+                :type="getStatusType(row.status)"
                 size="small"
-              />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item @click="handleLogs(row)"> 查看日志 </el-dropdown-item>
-                  <el-dropdown-item @click="handleTerminal(row)"> 进入容器 </el-dropdown-item>
-                  <el-dropdown-item @click="handlePullImage(row)"> 拉取新镜像 </el-dropdown-item>
-                  <el-dropdown-item @click="handleMakeImage(row)"> 制作成镜像 </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </div>
-        </template>
-      </el-table-column>
-    </el-table>
+                effect="dark"
+                class="status_tag"
+              >
+                {{ row.status }}
+              </el-tag>
+            </div>
+
+            <!-- 卡片内容：信息展示 -->
+            <div class="card_content">
+              <div class="info_row">
+                <span class="label">ID:</span>
+                <span class="value text-truncate" :title="row.id">{{ row.id.substring(0, 12) }}</span>
+              </div>
+
+              <div class="info_row">
+                <span class="label">镜像:</span>
+                <span class="value text-truncate" :title="row.image">{{ row.image }}</span>
+              </div>
+
+              <div class="info_row">
+                <span class="label">时长:</span>
+                <span class="value">{{ row.uptime }}</span>
+              </div>
+
+              <div class="info_row ports_row">
+                <span class="label">端口:</span>
+                <div class="ports_wrapper">
+                  <template v-if="Array.isArray(row.ports) && row.ports.length > 0">
+                    <template v-for="port in row.ports" :key="port">
+                      <el-tooltip
+                        v-if="!isPortMapped(port)"
+                        content="此端口未映射到宿主机"
+                        placement="top"
+                      >
+                        <el-tag size="small" type="info" class="port_tag">{{ port || '--' }}</el-tag>
+                      </el-tooltip>
+                      <el-tag
+                        v-else
+                        size="small"
+                        class="port_tag link"
+                        effect="plain"
+                        @click="handlePortClick(port)"
+                      >
+                        {{ port || '--' }}
+                      </el-tag>
+                    </template>
+                  </template>
+                  <span v-else class="text-gray">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 卡片底部：操作按钮 -->
+            <div class="card_actions">
+              <el-tooltip content="启动" placement="top" :hide-after="0">
+                <el-button
+                  type="success"
+                  :icon="VideoPlay"
+                  circle
+                  plain
+                  size="small"
+                  :disabled="row.status === 'running'"
+                  @click="handleStart(row)"
+                />
+              </el-tooltip>
+
+              <el-tooltip content="重启" placement="top" :hide-after="0">
+                <el-button
+                  type="primary"
+                  :icon="RefreshRight"
+                  circle
+                  plain
+                  size="small"
+                  :disabled="row.status !== 'running'"
+                  @click="handleRestart(row)"
+                />
+              </el-tooltip>
+
+              <el-tooltip content="停止" placement="top" :hide-after="0">
+                <el-button
+                  type="warning"
+                  :icon="VideoPause"
+                  circle
+                  plain
+                  size="small"
+                  :disabled="row.status !== 'running'"
+                  @click="handleStop(row)"
+                />
+              </el-tooltip>
+
+              <el-tooltip content="删除" placement="top" :hide-after="0">
+                <el-button
+                  type="danger"
+                  :icon="Delete"
+                  circle
+                  plain
+                  size="small"
+                  @click="handleDelete(row)"
+                />
+              </el-tooltip>
+
+              <el-tooltip content="日志" placement="top" :hide-after="0">
+                <el-button
+                  type="info"
+                  :icon="Document"
+                  circle
+                  plain
+                  size="small"
+                  @click="handleLogs(row)"
+                />
+              </el-tooltip>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+    </div>
+
+    <!-- 弹窗组件保持不变 -->
     <CodeEdit
       :key="logDialogKey"
       v-model:show="showLogsDialog"
@@ -221,45 +249,15 @@
       :scroll-to-bottom="true"
       @closed="() => showLogsDialog = false"
     />
-    <el-dialog
-      v-model="makeImageDialog"
-      title="制作镜像"
-      top="250px"
-      width="450px"
-    >
-      <el-form
-        ref="makeImageFormRef"
-        :model="makeImageForm"
-        :rules="makeImageRules"
-        label-width="120px"
-      >
-        <el-form-item label="镜像名称" prop="name">
-          <el-input v-model="makeImageForm.name" />
-        </el-form-item>
-        <el-form-item label="标签" prop="tag">
-          <el-input v-model="makeImageForm.tag" />
-        </el-form-item>
-        <el-form-item label="作者" prop="author">
-          <el-input v-model="makeImageForm.author" />
-        </el-form-item>
-        <el-form-item label="提交说明" prop="message">
-          <el-input v-model="makeImageForm.message" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="makeImageDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleMakeImageConfirm">确定</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch, getCurrentInstance } from 'vue'
-import { VideoPlay, VideoPause, RefreshRight, Delete, MoreFilled } from '@element-plus/icons-vue'
+import { VideoPlay, VideoPause, RefreshRight, Delete, Document } from '@element-plus/icons-vue'
 import CodeEdit from '@/components/code-edit/index.vue'
 import PlusLimitTip from '@/components/common/PlusLimitTip.vue'
-import { EventBus, generateSocketInstance } from '@/utils'
+import { generateSocketInstance } from '@/utils'
 import dayjs from 'dayjs'
 
 const { proxy: { $store, $message, $messageBox } } = getCurrentInstance()
@@ -289,35 +287,27 @@ const logInterval = ref(null)
 const refreshInterval = ref(null)
 const showLogsDialog = ref(false)
 const logDialogKey = ref(0)
-const makeImageDialog = ref(false)
-const makeImageFormRef = ref(null)
-const tableRef = ref(null)
+// const tableRef = ref(null) // 移除 tableRef
 const selectedContainers = ref([])
 const batchOperating = ref(false)
 const batchProgress = ref({ current: 0, total: 0, action: '' }) // 批量操作进度
-const makeImageForm = ref({
-  name: '',
-  tag: 'latest',
-  author: '',
-  message: ''
-})
-const makeImageRules = ref({
-  name: [
-    { required: true, message: '请输入镜像名称', trigger: 'blur' },
-  ],
-  tag: [
-    { required: false, message: '请输入标签', trigger: 'blur' },
-  ],
-  author: [
-    { required: false, message: '请输入作者', trigger: 'blur' },
-  ],
-  message: [
-    { required: false, message: '请输入提交说明', trigger: 'blur' },
-  ]
-})
 const hostId = computed(() => props.hostId)
 const containerName = computed(() => `${ currentContainer.value?.name }.log(自动刷新)` || '')
 const isPlusActive = computed(() => $store.isPlusActive)
+
+// 全选相关计算属性
+const checkAll = computed({
+  get() {
+    return dockerContainers.value.length > 0 && selectedContainers.value.length === dockerContainers.value.length
+  },
+  set(val) {
+    handleSelectAll(val)
+  }
+})
+
+const isIndeterminate = computed(() => {
+  return selectedContainers.value.length > 0 && selectedContainers.value.length < dockerContainers.value.length
+})
 
 watch(() => props.visible, (newVal) => {
   if (newVal) {
@@ -393,11 +383,21 @@ const connectDocker = () => {
       dockerServerErr.value = false
       loading.value = false
       if (!Array.isArray(data)) return
-      dockerContainers.value = data.map(item => ({
+
+      // 更新数据的同时，尝试保留选中状态 (如果容器ID依然存在)
+      const currentSelectedIds = new Set(selectedContainers.value.map(c => c.id))
+
+      const newData = data.map(item => ({
         ...item,
         createdAt: dayjs(item.createdAt).format('YYYY-MM-DD HH:mm:ss')
-        // uptime: dayjs(item.uptime).format('HH:mm:ss')
       }))
+
+      dockerContainers.value = newData
+
+      // 过滤掉已经不存在的选中项
+      if (selectedContainers.value.length > 0) {
+        selectedContainers.value = newData.filter(item => currentSelectedIds.has(item.id))
+      }
     })
     socket.value.on('docker_containers_logs', (data) => {
       // console.log('docker_containers_logs:', data)
@@ -437,6 +437,7 @@ const refreshDockerContainers = (isLoading = true, delay = 0) => {
   // 如果有选中的容器，暂停刷新
   if (selectedContainers.value.length > 0) {
     console.log('检测到有选中的容器，跳过本次刷新')
+    loading.value = false
     return
   }
   if (!socket.value || !socket.value.connected) return connectDocker()
@@ -444,6 +445,16 @@ const refreshDockerContainers = (isLoading = true, delay = 0) => {
   setTimeout(() => {
     socket.value.emit('docker_get_containers_data')
   }, delay)
+}
+
+const reconnectDocker = () => {
+  if (socket.value) {
+    socket.value.removeAllListeners()
+    socket.value.close()
+    socket.value = null
+  }
+  selectedContainers.value = [] // 清空选中状态，重新连接后文件列表会变化
+  connectDocker()
 }
 
 const handleStart = async (row) => {
@@ -523,32 +534,6 @@ const handleLogs = (row) => {
   socket.value.emit('docker_get_containers_logs', { containerId: row.id, tail: 2000 })
 }
 
-const handleTerminal = (row) => {
-  $message.success('已发送进入容器指令')
-  EventBus.$emit('exec_external_command', `docker exec -it ${ row.id } /bin/sh`)
-}
-
-const handlePullImage = (row) => {
-  $message.success('已发送拉取镜像指令')
-  EventBus.$emit('exec_external_command', `docker pull ${ row.image }`)
-}
-
-const handleMakeImage = (row) => {
-  currentContainer.value = row
-  makeImageDialog.value = true
-}
-
-const handleMakeImageConfirm = () => {
-  makeImageFormRef.value.validate((valid) => {
-    if (!valid) return
-    $message.success('已发送制作镜像指令')
-    const { name, tag, author, message } = makeImageForm.value
-    // docker commit -a "作者名" -m "提交说明" 容器ID my-new-image:v1.0
-    EventBus.$emit('exec_external_command', `docker commit -a "${ author }" -m "${ message }" ${ currentContainer.value.id } ${ name }:${ tag }`)
-    makeImageDialog.value = false
-  })
-}
-
 const intervalLogs = () => {
   if (!socket.value || !socket.value.connected) {
     $message.error('连接已断开,正在刷新')
@@ -559,9 +544,30 @@ const intervalLogs = () => {
   socket.value.emit('docker_get_containers_logs', { containerId: currentContainer.value.id, tail: 2000 })
 }
 
-// 处理选择变化
-const handleSelectionChange = (selection) => {
-  selectedContainers.value = selection
+// ------ 新增的卡片选择逻辑 ------
+
+// 判断单个容器是否被选中
+const isSelected = (row) => {
+  return selectedContainers.value.some(item => item.id === row.id)
+}
+
+// 切换选中状态
+const toggleSelection = (row) => {
+  const index = selectedContainers.value.findIndex(item => item.id === row.id)
+  if (index > -1) {
+    selectedContainers.value.splice(index, 1)
+  } else {
+    selectedContainers.value.push(row)
+  }
+}
+
+// 全选/取消全选
+const handleSelectAll = (val) => {
+  if (val) {
+    selectedContainers.value = [...dockerContainers.value,]
+  } else {
+    selectedContainers.value = []
+  }
 }
 
 // 批量操作 - 串行执行
@@ -636,7 +642,6 @@ const executeBatchOperation = async (operation, containers, actionName) => {
   batchProgress.value = { current: 0, total: 0, action: '' }
 
   // 清空选择
-  tableRef.value?.clearSelection()
   selectedContainers.value = []
 
   // 显示结果
@@ -714,6 +719,29 @@ const handleBatchDelete = () => {
     executeBatchOperation('docker_delete_container', selectedContainers.value, '删除')
   }).catch(() => {})
 }
+// ------ 图标处理逻辑 ------
+const ICON_BASE_URL = 'https://easynode-apps-icon.221022.xyz/images/'
+const FALLBACK_ICON = `${ ICON_BASE_URL }docker.png`
+
+const getAppIcon = (imageName) => {
+  if (!imageName) return FALLBACK_ICON
+  try {
+    // 1. 获取最后一个斜杠后的部分 (处理 registry/namespace，如 chaoszhu/easynode -> easynode)
+    const nameWithTag = imageName.split('/').pop()
+    // 2. 去除 tag (处理 :latest 等)
+    const name = nameWithTag.split(':')[0]
+    return `${ ICON_BASE_URL }${ name }.png`
+  } catch (e) {
+    return FALLBACK_ICON
+  }
+}
+
+const handleIconError = (e) => {
+  // 防止死循环：如果已经是默认图就不再替换
+  if (e.target.src !== FALLBACK_ICON) {
+    e.target.src = FALLBACK_ICON
+  }
+}
 
 onMounted(() => {
   connectDocker()
@@ -743,124 +771,241 @@ onUnmounted(() => {
 .docker_container {
   padding: 10px;
   position: relative;
+  min-height: 400px;
+}
 
-  .batch_toolbar {
+/* 顶部工具栏样式 */
+.top_toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 4px;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  .left_tools {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 6px 16px;
-    animation: slideDown 0.3s ease-out;
-    transition: all 0.3s ease;
+    gap: 16px;
 
-    .batch_info {
-      color: #fff;
+    .select_all_checkbox {
+      margin-right: 0;
+    }
+
+    .batch_info_tag {
       font-size: 14px;
-      font-weight: 500;
+      color: var(--el-text-color-regular);
+      background: var(--el-fill-color-light);
+      padding: 4px 10px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
 
       .count {
-        font-size: 18px;
+        color: var(--el-color-primary);
         font-weight: bold;
         margin: 0 4px;
       }
 
       .progress {
-        font-size: 16px;
+        color: var(--el-color-success);
         font-weight: bold;
-        margin-left: 8px;
-        padding: 2px 10px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 12px;
-        display: inline-block;
+        margin-left: 5px;
+      }
+    }
+  }
+
+  .right_tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .batch_actions {
+      display: inline-flex;
+    }
+  }
+}
+
+/* 卡片容器样式 */
+.card_container_wrapper {
+  min-height: 200px;
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mb-3 {
+  margin-bottom: 12px; // 减少卡片下间距
+}
+
+.container_card {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--el-border-color-light);
+  background-color: var(--el-bg-color-overlay);
+
+  // 选中状态样式优化：仅高亮边框，移除背景色干扰
+  &.is-selected {
+    box-shadow: 0 0 0 1px var(--el-color-primary) inset; // 使用内阴影增强边框感，但不改变背景
+  }
+
+  // 背景水印图标样式
+  .card_bg_icon {
+    position: absolute;
+    right: 12px;
+    // top: 55px; // 避开头部
+    top: 50%;
+    transform: translateY(-50%) rotate(-15deg);
+    transition: all 3s;
+    width: 80px;
+    height: 80px;
+    opacity: 0.15; // 低透明度作为水印
+    z-index: 0;
+    pointer-events: none; // 点击穿透，不影响下方交互
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  :deep(.el-card__body) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px; // 保持紧凑
+  }
+
+  /* 头部区域 */
+  .card_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    .header_left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+
+      .container_name {
+        font-weight: 600; // 加粗
+        font-size: 15px;
+        // 使用主要文字颜色变量，确保在暗色模式下也是亮色（如白色/浅灰）
+        color: var(--el-text-color-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+
+  /* 内容区域 */
+  .card_content {
+    flex: 1;
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+    margin-bottom: 12px;
+
+    .info_row {
+      display: flex;
+      margin-bottom: 6px;
+      line-height: 1.4;
+
+      .label {
+        width: 45px;
+        flex-shrink: 0;
+        color: var(--el-text-color-secondary); // 使用次级文字颜色
+      }
+
+      .value {
+        flex: 1;
+        word-break: break-all;
+        color: var(--el-text-color-regular);
+      }
+
+      .text-truncate {
+         white-space: nowrap;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         display: block;
       }
     }
 
-    .batch_actions {
+    .ports_row {
+      align-items: flex-start;
+
+      .ports_wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .port_tag {
+        cursor: default;
+        font-size: 12px;
+        padding: 0 4px;
+        height: 20px;
+        line-height: 18px;
+
+        &.link {
+          cursor: pointer;
+          &:hover {
+             opacity: 0.8;
+          }
+        }
+      }
+
+      .text-gray {
+        color: var(--el-text-color-placeholder);
+      }
+    }
+  }
+
+  /* 底部操作区 - 使用 Grid 布局绝对均分 */
+  .card_actions {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); // 5等分
+    justify-items: center; // 每个格子内容居中
+    align-items: center;
+    padding-top: 10px;
+    border-top: 1px dashed var(--el-border-color-lighter);
+
+    // 下拉菜单触发器居中
+    .dropdown_trigger_wrapper {
       display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    :deep(.el-button) {
+      margin: 0;
+    }
+    // 按钮样式微调
+    :deep(.el-button.is-circle) {
+      width: 28px;
+      height: 28px;
+      padding: 5px;
     }
   }
+}
 
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+/* 动画效果 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
 
-  .docker_table {
-    min-height: 50vh;
-    max-height: 72vh;
-    overflow: auto;
-  }
-
-  :deep(.wrap-cell) {
-    .cell {
-      white-space: normal !important;
-      word-break: break-all;
-      line-height: 1.5;
-    }
-  }
-
-  .wrap_content {
-    word-break: break-all;
-    white-space: normal;
-    line-height: 1.5;
-  }
-
-  .ports_wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .port_link {
-    color: #409eff;
-    cursor: pointer;
-    transition: all 0.2s;
-    word-break: break-all;
-    white-space: normal;
-    line-height: 1.5;
-
-    &:hover {
-      color: #66b1ff;
-      text-decoration: underline;
-    }
-  }
-
-  .port_text {
-    color: #606266;
-    word-break: break-all;
-    white-space: normal;
-    line-height: 1.5;
-    cursor: help;
-  }
-
-  .header_buttons {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .action_buttons {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    .more_button {
-      margin-left: 12px;
-    }
-  }
-
-  :deep(.el-tag) {
-    margin: 0 auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-width: 60px;
-  }
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
