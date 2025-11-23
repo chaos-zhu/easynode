@@ -10,6 +10,12 @@
 * 通知模块重构，支持webhook
 * 支持csv模板特定格式导入
 
+## [3.5.4](https://github.com/chaos-zhu/easynode/releases) (2025-11-23)
+* docker：UI重构、卡片式展示docker容器、支持批量操作
+* SFTP：优化SFTP重连、支持右键菜单docker-compse文件操作、文件编辑支持自动检测编码
+* 终端：优化批量连接时宽高错误的bug
+* 其他：加密密钥解密逻辑优化、支持含空格的密码、tab键优化
+
 ## [3.5.3](https://github.com/chaos-zhu/easynode/releases) (2025-11-02)
 * 优化docker组件: 使用基础命令获取docker容器列表；日志滚动；新增端口检测快捷外链功能；
 * 终端右键添加同步[目录到SFTP]菜单项(自动同步暂未找到完美的解决方案)
