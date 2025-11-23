@@ -10,7 +10,6 @@ jobs:
           fetch-depth: 0
 
       - name: Sync to CNB Repository
-        # -e PLUGIN_FORCE="true" \
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:${{ github.workspace }} \
@@ -19,5 +18,5 @@ jobs:
             -e PLUGIN_AUTH_TYPE="https" \
             -e PLUGIN_USERNAME="cnb" \
             -e PLUGIN_PASSWORD=${{ secrets.CNB_ACCESS_TOKEN }} \
-            -e PLUGIN_BRANCH="main" \
+            -e PLUGIN_SYNC_MODE="rebase" \
             tencentcom/git-sync
