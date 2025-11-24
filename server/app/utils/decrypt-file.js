@@ -44,7 +44,7 @@ function decryptAndExecuteAsync(plusPath) {
       )
       resolve(exports)
     } catch (error) {
-      consola.info('解锁plus功能失败: ', error.message)
+      logger.info('解锁plus功能失败: ', error.message)
       resolve(null)
     }
   })

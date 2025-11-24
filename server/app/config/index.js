@@ -1,7 +1,5 @@
 const path = require('path')
 
-consola.info('debug日志：', process.env.DEBUG === '1' ? '开启' : '关闭')
-
 module.exports = {
   httpPort: 8082,
   uploadDir: path.join(process.cwd(),'app/db'),
@@ -28,6 +26,6 @@ module.exports = {
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/db/logs'),
-    recordLog: process.env.DEBUG === '1' // 是否记录日志
+    DEBUG: process.env.DEBUG === '1' || process.env.DEBUG === 'true' // 是否记录日志
   }
 }

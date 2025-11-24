@@ -1,3 +1,4 @@
+require('./logs')
 const { httpServer } = require('./server')
 const initDB = require('./db')
 const scheduleJob = require('./schedule')

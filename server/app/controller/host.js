@@ -14,7 +14,7 @@ async function getHostList({ res }) {
       const isConfig = Boolean(authType && item[authType])
       Object.assign(item, { id, isConfig, password: '', privateKey: '', credential })
     } catch (error) {
-      consola.error('getHostList error: ', error.message)
+      logger.error('getHostList error: ', error.message)
     }
   }
   res.success({ data })

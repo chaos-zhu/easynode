@@ -23,7 +23,7 @@ const verifyAuthSync = async (token, userId) => {
     }
     return { code: enumLoginCode.SUCCESS, success: true } // 验证成功
   } catch (err) {
-    consola.error('用户身份校验失败: ', err.message)
+    logger.error('用户身份校验失败: ', err.message)
     return { code: enumLoginCode.ERROR_TOKEN }
   }
 }

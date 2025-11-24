@@ -1,7 +1,7 @@
 // 规则参见：https://cn.eslint.org/docs/rules/
 module.exports = {
   root: true, // 当前配置文件不能往父级查找
-  'globals': { 'consola': true },
+  'globals': { 'logger': true },
   env: {
     node: true,
     es6: true

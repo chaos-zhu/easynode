@@ -17,7 +17,7 @@ function executeDockerLogsCommand(targetSSHClient, command) {
   return new Promise((resolve, reject) => {
     targetSSHClient.exec(command, (err, stream) => {
       if (err) {
-        consola.error('执行Docker logs命令失败:', err)
+        logger.error('执行Docker logs命令失败:', err)
         return reject(err)
       }
 
@@ -27,12 +27,12 @@ function executeDockerLogsCommand(targetSSHClient, command) {
       stream.on('close', () => { // code
         // Docker logs 的输出主要在 stderr，合并所有输出
         const allData = stdoutData + stderrData
-        // consola.info(`Docker logs 命令完成, 退出码: ${ code }, 输出长度: ${ allData.length }`)
+        // logger.info(`Docker logs 命令完成, 退出码: ${ code }, 输出长度: ${ allData.length }`)
 
         if (allData.trim()) {
           resolve(allData)
         } else {
-          consola.warn('Docker logs 无输出:', command)
+          logger.warn('Docker logs 无输出:', command)
           resolve('')
         }
       })
@@ -46,7 +46,7 @@ function executeDockerLogsCommand(targetSSHClient, command) {
       })
 
       stream.on('error', (err) => {
-        consola.error('Docker logs stream 错误:', err)
+        logger.error('Docker logs stream 错误:', err)
         reject(err)
       })
     })
@@ -140,7 +140,7 @@ module.exports = (httpServer) => {
       return
     }
     connectionCount++
-    consola.success(`docker websocket 已连接 - 当前连接数: ${ connectionCount }`)
+    logger.info(`docker websocket 已连接 - 当前连接数: ${ connectionCount }`)
 
     let targetSSHClient = null
     let jumpSshClients = []
@@ -197,7 +197,7 @@ module.exports = (httpServer) => {
       jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
       targetSSHClient = null
       jumpSshClients = null
-      consola.info(`docker websocket 连接断开: ${ reason } - 当前连接数: ${ connectionCount }`)
+      logger.info(`docker websocket 连接断开: ${ reason } - 当前连接数: ${ connectionCount }`)
     })
   })
 }

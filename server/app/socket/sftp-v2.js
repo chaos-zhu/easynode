@@ -82,7 +82,7 @@ function detectEncoding(buffer) {
 
     const confidence = Math.round(topResult.confidence || 50)
 
-    consola.info(`编码检测结果: ${ normalizedEncoding } (置信度: ${ confidence }%)`)
+    logger.info(`编码检测结果: ${ normalizedEncoding } (置信度: ${ confidence }%)`)
 
     return {
       encoding: normalizedEncoding,
@@ -90,7 +90,7 @@ function detectEncoding(buffer) {
       reason: `chardet 检测为 ${ detected }`
     }
   } catch (error) {
-    consola.error('编码检测失败:', error.message)
+    logger.error('编码检测失败:', error.message)
     return { encoding: 'utf8', confidence: 30, reason: '检测异常，默认 UTF-8' }
   }
 }
@@ -271,7 +271,7 @@ const listenAction = (sftpClient, socket) => {
     try {
       sftpClient.client.exec(cmd, (err, stream) => {
         if (err) {
-          consola.error('执行命令失败:', cmd, err.message)
+          logger.error('执行命令失败:', cmd, err.message)
           // 检查是否是连接相关错误
           if (err.message.includes('Not connected') || err.message.includes('Connection lost')) {
             return rej(new Error('SSH连接已断开，无法执行命令'))
@@ -300,7 +300,7 @@ const listenAction = (sftpClient, socket) => {
                 stream.destroy()
               }
             } catch (cleanupErr) {
-              consola.warn('清理stream失败:', cleanupErr.message)
+              logger.warn('清理stream失败:', cleanupErr.message)
             }
           }
         }
@@ -320,7 +320,7 @@ const listenAction = (sftpClient, socket) => {
 
         // 设置超时保护（60秒）
         timeout = setTimeout(() => {
-          consola.warn('命令执行超时:', cmd)
+          logger.warn('命令执行超时:', cmd)
           resolveOnce(new Error(`命令执行超时: ${ cmd }`), true)
         }, 60000)
 
@@ -331,7 +331,7 @@ const listenAction = (sftpClient, socket) => {
 
         // 处理错误事件
         stream.on('error', (streamErr) => {
-          consola.error('Stream错误:', cmd, streamErr.message)
+          logger.error('Stream错误:', cmd, streamErr.message)
           if (streamErr.message.includes('Not connected')) {
             resolveOnce(new Error('SSH连接在命令执行过程中断开'), true)
           } else {
@@ -342,10 +342,10 @@ const listenAction = (sftpClient, socket) => {
         // 处理连接断开
         stream.on('close', (code) => {
           if (errMsg) {
-            consola.error('命令执行错误:', cmd, errMsg)
+            logger.error('命令执行错误:', cmd, errMsg)
             resolveOnce(new Error(`命令执行失败: ${ code }: ${ errMsg }`), true)
           } else {
-            consola.info('命令执行完成:', cmd)
+            logger.info('命令执行完成:', cmd)
             resolveOnce('success')
           }
         })
@@ -353,11 +353,11 @@ const listenAction = (sftpClient, socket) => {
         // 处理命令退出
         stream.on('exit', (code) => {
           if (code === 0) {
-            consola.info('命令执行成功:', cmd)
+            logger.info('命令执行成功:', cmd)
             resolveOnce() // 成功
           } else {
             const errorMessage = errMsg || `命令退出码: ${ code }`
-            consola.error('命令执行失败:', cmd, errorMessage)
+            logger.error('命令执行失败:', cmd, errorMessage)
             resolveOnce(new Error(errorMessage), true)
           }
         })
@@ -366,7 +366,7 @@ const listenAction = (sftpClient, socket) => {
         stream.on('data', () => {})
       })
     } catch (execErr) {
-      consola.error('execCommand异常:', cmd, execErr.message)
+      logger.error('execCommand异常:', cmd, execErr.message)
       rej(execErr)
     }
   })
@@ -387,7 +387,7 @@ const listenAction = (sftpClient, socket) => {
       const formattedDirLs = formatFileList(dirLs)
       socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
-      consola.error('copy error:', err.message)
+      logger.error('copy error:', err.message)
       socket.emit('copy_fail', err.message)
     }
   })
@@ -416,11 +416,11 @@ const listenAction = (sftpClient, socket) => {
       }
 
       if (type === 'folder') {
-        consola.info(`创建文件夹: ${ targetPath }`)
+        logger.info(`创建文件夹: ${ targetPath }`)
         await sftpClient.mkdir(targetPath)
         socket.emit('create_success', `文件夹 "${ trimmedName }" 创建成功`)
       } else if (type === 'file') {
-        consola.info(`创建文件: ${ targetPath }`)
+        logger.info(`创建文件: ${ targetPath }`)
         // 创建空文件，使用 touch 命令
         const cmd = `touch "${ targetPath }"`
         await execCommand(cmd)
@@ -434,7 +434,7 @@ const listenAction = (sftpClient, socket) => {
       const formattedDirLs = formatFileList(dirLs)
       socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
-      consola.error('create error:', err.message)
+      logger.error('create error:', err.message)
       socket.emit('create_fail', err.message)
     }
   })
@@ -472,9 +472,9 @@ const listenAction = (sftpClient, socket) => {
       // 使用 tar 命令压缩
       const tarCmd = `cd "${ dirPath }" && tar -czf "${ trimmedArchiveName }" ${ fileNames }`
 
-      consola.info(`开始压缩文件: ${ targets.map(t => t.name).join(', ') } -> ${ trimmedArchiveName }`)
+      logger.info(`开始压缩文件: ${ targets.map(t => t.name).join(', ') } -> ${ trimmedArchiveName }`)
       await execCommand(tarCmd)
-      consola.info(`压缩完成: ${ trimmedArchiveName }`)
+      logger.info(`压缩完成: ${ trimmedArchiveName }`)
 
       socket.emit('compress_success', `压缩文件 "${ trimmedArchiveName }" 创建成功`)
 
@@ -483,7 +483,7 @@ const listenAction = (sftpClient, socket) => {
       const formattedDirLs = formatFileList(dirLs)
       socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
-      consola.error('compress error:', err.message)
+      logger.error('compress error:', err.message)
       socket.emit('compress_fail', err.message)
     }
   })
@@ -527,7 +527,7 @@ const listenAction = (sftpClient, socket) => {
 
         // 创建目标文件夹
         await sftpClient.mkdir(targetDir)
-        consola.info(`创建目标文件夹: ${ targetDir }`)
+        logger.info(`创建目标文件夹: ${ targetDir }`)
       }
 
       // 根据文件扩展名选择解压命令
@@ -555,9 +555,9 @@ const listenAction = (sftpClient, socket) => {
         }
       }
 
-      consola.info(`开始解压文件: ${ trimmedFileName } -> ${ targetDirName }`)
+      logger.info(`开始解压文件: ${ trimmedFileName } -> ${ targetDirName }`)
       await execCommand(decompressCmd)
-      consola.info(`解压完成: ${ trimmedFileName } -> ${ targetDirName }`)
+      logger.info(`解压完成: ${ trimmedFileName } -> ${ targetDirName }`)
 
       socket.emit('decompress_success', `文件 "${ trimmedFileName }" 解压到${ targetDirName }成功`)
 
@@ -566,7 +566,7 @@ const listenAction = (sftpClient, socket) => {
       const formattedDirLs = formatFileList(dirLs)
       socket.emit('dir_ls', formattedDirLs, dirPath)
     } catch (err) {
-      consola.error('decompress error:', err.message)
+      logger.error('decompress error:', err.message)
       socket.emit('decompress_fail', err.message)
     }
   })
@@ -615,13 +615,13 @@ const listenAction = (sftpClient, socket) => {
           }
 
           // 在远端打包
-          consola.info(`开始打包文件夹: ${ srcPath }`)
+          logger.info(`开始打包文件夹: ${ srcPath }`)
           const tarCmd = `cd "${ dirPath }" && tar -czf "${ remoteTarPath }" "${ target.name }"`
           try {
             await execCommand(tarCmd)
-            consola.info(`打包文件夹: ${ srcPath } 成功`)
+            logger.info(`打包文件夹: ${ srcPath } 成功`)
           } catch (tarErr) {
-            consola.error('打包文件夹失败:', tarErr.message)
+            logger.error('打包文件夹失败:', tarErr.message)
             throw new Error(`打包文件夹失败: ${ tarErr.message }`)
           }
 
@@ -670,12 +670,12 @@ const listenAction = (sftpClient, socket) => {
         const fileNames = targets.map(t => `"${ t.name }"`).join(' ')
         const tarCmd = `cd "${ dirPath }" && tar -czf "${ remoteTarPath }" ${ fileNames }`
 
-        consola.info(`开始打包多个文件: ${ targets.map(t => t.name).join(', ') }`)
+        logger.info(`开始打包多个文件: ${ targets.map(t => t.name).join(', ') }`)
         try {
           await execCommand(tarCmd)
-          consola.info('打包多个文件成功')
+          logger.info('打包多个文件成功')
         } catch (tarErr) {
-          consola.error('打包失败:', tarErr.message)
+          logger.error('打包失败:', tarErr.message)
           throw new Error(`打包失败: ${ tarErr.message }`)
         }
 
@@ -695,7 +695,7 @@ const listenAction = (sftpClient, socket) => {
 
       downloadTasks.delete(taskId)
     } catch (err) {
-      consola.error('下载失败:', err.message)
+      logger.error('下载失败:', err.message)
       socket.emit('download_fail', err.message)
 
       // 清理远程临时文件（如果还存在）
@@ -715,9 +715,9 @@ const listenAction = (sftpClient, socket) => {
     if (!remoteTarPath) return
     try {
       await execCommand(`rm -f "${ remoteTarPath }"`)
-      consola.info(`已清理远程临时文件: ${ remoteTarPath }`)
+      logger.info(`已清理远程临时文件: ${ remoteTarPath }`)
     } catch (cleanupErr) {
-      consola.warn('清理远程临时文件失败:', remoteTarPath, cleanupErr.message)
+      logger.warn('清理远程临时文件失败:', remoteTarPath, cleanupErr.message)
     }
   }
 
@@ -740,9 +740,9 @@ const listenAction = (sftpClient, socket) => {
   const cleanupCacheDir = () => {
     try {
       fs.emptyDirSync(sftpCacheDir)
-      consola.success('已清理 sftpCacheDir:', sftpCacheDir)
+      logger.info('已清理 sftpCacheDir:', sftpCacheDir)
     } catch (err) {
-      consola.warn('清理缓存目录失败:', err.message)
+      logger.warn('清理缓存目录失败:', err.message)
     }
   }
 
@@ -754,7 +754,7 @@ const listenAction = (sftpClient, socket) => {
       const favorites = await favoriteSftpDB.findAsync({ hostId }, { sort: { createTime: -1 } })
       socket.emit('favorites_list', favorites)
     } catch (err) {
-      consola.error('获取收藏列表失败:', err.message)
+      logger.error('获取收藏列表失败:', err.message)
       socket.emit('favorite_error', '获取收藏列表失败')
     }
   })
@@ -785,9 +785,9 @@ const listenAction = (sftpClient, socket) => {
       await favoriteSftpDB.insertAsync(newFavorite)
       socket.emit('favorite_added', `收藏 "${ name }" 成功`)
 
-      consola.info(`用户收藏了路径: ${ path }`)
+      logger.info(`用户收藏了路径: ${ path }`)
     } catch (err) {
-      consola.error('添加收藏失败:', err.message)
+      logger.error('添加收藏失败:', err.message)
       socket.emit('favorite_error', err.message)
     }
   })
@@ -807,9 +807,9 @@ const listenAction = (sftpClient, socket) => {
       }
 
       socket.emit('favorite_removed', '取消收藏成功')
-      consola.info(`用户取消收藏路径: ${ path }`)
+      logger.info(`用户取消收藏路径: ${ path }`)
     } catch (err) {
-      consola.error('删除收藏失败:', err.message)
+      logger.error('删除收藏失败:', err.message)
       socket.emit('favorite_error', err.message)
     }
   })
@@ -820,9 +820,9 @@ const listenAction = (sftpClient, socket) => {
   socket.on('resolve_symlink', async ({ symlinkPath }) => {
     try {
       // 获取软链接的真实路径
-      consola.info(`解析软链接: ${ symlinkPath }`)
+      logger.info(`解析软链接: ${ symlinkPath }`)
       const realPath = await sftpClient.realPath(symlinkPath)
-      consola.info(`软链接真实路径: ${ realPath }`)
+      logger.info(`软链接真实路径: ${ realPath }`)
 
       // 检查真实路径是否存在
       const stats = await sftpClient.stat(realPath)
@@ -834,10 +834,10 @@ const listenAction = (sftpClient, socket) => {
         symlinkPath
       })
 
-      consola.info(`软链接解析成功: ${ symlinkPath } -> ${ realPath } (${ isDirectory ? '目录' : '文件' })`)
+      logger.info(`软链接解析成功: ${ symlinkPath } -> ${ realPath } (${ isDirectory ? '目录' : '文件' })`)
 
     } catch (err) {
-      consola.error('软链接解析失败:', err.message)
+      logger.error('软链接解析失败:', err.message)
       socket.emit('symlink_resolve_error', {
         error: err.message,
         symlinkPath
@@ -869,23 +869,23 @@ const listenAction = (sftpClient, socket) => {
         return
       }
 
-      consola.info(`开始智能检测文件编码: ${ filePath }`)
+      logger.info(`开始智能检测文件编码: ${ filePath }`)
       const buffer = await sftpClient.get(filePath)
 
       const { encoding: detectedEncoding, confidence, reason } = detectEncoding(buffer)
-      consola.info(`检测结果: ${ detectedEncoding.toUpperCase() } (置信度: ${ confidence }%) - ${ reason }`)
+      logger.info(`检测结果: ${ detectedEncoding.toUpperCase() } (置信度: ${ confidence }%) - ${ reason }`)
 
       // 根据检测到的编码解码文件内容
       let content
       try {
         content = decodeBuffer(buffer, detectedEncoding)
       } catch (decodeErr) {
-        consola.error('使用检测编码解码失败，尝试 UTF-8:', decodeErr.message)
+        logger.error('使用检测编码解码失败，尝试 UTF-8:', decodeErr.message)
         // 解码失败，降级为 UTF-8
         content = buffer.toString('utf8')
       }
 
-      consola.info(`文件读取成功: ${ filePath }，大小: ${ content.length } 字符，使用编码: ${ detectedEncoding.toUpperCase() }`)
+      logger.info(`文件读取成功: ${ filePath }，大小: ${ content.length } 字符，使用编码: ${ detectedEncoding.toUpperCase() }`)
 
       socket.emit('file_content_with_encoding', {
         content,
@@ -895,7 +895,7 @@ const listenAction = (sftpClient, socket) => {
       })
 
     } catch (err) {
-      consola.error('智能读取文件失败:', err.message)
+      logger.error('智能读取文件失败:', err.message)
       socket.emit('file_read_error', {
         error: err.message,
         filePath
@@ -917,7 +917,7 @@ const listenAction = (sftpClient, socket) => {
       }
 
       // 读取文件内容
-      consola.info(`开始读取文件: ${ filePath }，使用编码: ${ encoding.toUpperCase() }`)
+      logger.info(`开始读取文件: ${ filePath }，使用编码: ${ encoding.toUpperCase() }`)
       const buffer = await sftpClient.get(filePath)
 
       // 根据编码解码文件内容
@@ -925,7 +925,7 @@ const listenAction = (sftpClient, socket) => {
       try {
         content = decodeBuffer(buffer, encoding)
       } catch (decodeErr) {
-        consola.error(`文件解码失败（编码: ${ encoding }）:`, decodeErr.message)
+        logger.error(`文件解码失败（编码: ${ encoding }）:`, decodeErr.message)
         socket.emit('file_read_error', {
           error: `文件解码失败，可能不是 ${ encoding.toUpperCase() } 编码`,
           filePath
@@ -933,11 +933,11 @@ const listenAction = (sftpClient, socket) => {
         return
       }
 
-      consola.info(`文件读取成功: ${ filePath }，大小: ${ content.length } 字符`)
+      logger.info(`文件读取成功: ${ filePath }，大小: ${ content.length } 字符`)
       socket.emit('file_content', { content, filePath })
 
     } catch (err) {
-      consola.error('读取文件失败:', err.message)
+      logger.error('读取文件失败:', err.message)
       socket.emit('file_read_error', {
         error: err.message,
         filePath
@@ -987,7 +987,7 @@ const listenAction = (sftpClient, socket) => {
       const cacheFileName = `image_${ timestamp }_${ fileName }`
       const localImagePath = rawPath.join(sftpCacheDir, cacheFileName)
 
-      consola.info(`开始下载图片到缓存: ${ filePath } -> ${ localImagePath }`)
+      logger.info(`开始下载图片到缓存: ${ filePath } -> ${ localImagePath }`)
 
       // 下载图片到本地缓存
       await sftpClient.fastGet(filePath, localImagePath)
@@ -995,7 +995,7 @@ const listenAction = (sftpClient, socket) => {
       // 生成访问URL
       const imageUrl = `/sftp-cache/${ cacheFileName }`
 
-      consola.info(`图片下载成功: ${ filePath }，缓存路径: ${ localImagePath }`)
+      logger.info(`图片下载成功: ${ filePath }，缓存路径: ${ localImagePath }`)
 
       socket.emit('image_content', {
         imageUrl,
@@ -1005,7 +1005,7 @@ const listenAction = (sftpClient, socket) => {
       })
 
     } catch (err) {
-      consola.error('图片预览失败:', err.message)
+      logger.error('图片预览失败:', err.message)
       socket.emit('image_read_error', {
         error: err.message,
         filePath
@@ -1021,7 +1021,7 @@ const listenAction = (sftpClient, socket) => {
       try {
         buffer = encodeString(content, encoding)
       } catch (encodeErr) {
-        consola.error(`文件编码失败（编码: ${ encoding }）:`, encodeErr.message)
+        logger.error(`文件编码失败（编码: ${ encoding }）:`, encodeErr.message)
         socket.emit('file_save_error', {
           error: `文件编码失败: ${ encodeErr.message }`,
           filePath
@@ -1032,11 +1032,11 @@ const listenAction = (sftpClient, socket) => {
       // 保存文件内容
       await sftpClient.put(buffer, filePath)
 
-      consola.info(`文件保存成功: ${ filePath }`)
+      logger.info(`文件保存成功: ${ filePath }`)
       socket.emit('file_saved', { filePath })
 
     } catch (err) {
-      consola.error('保存文件失败:', err.message)
+      logger.error('保存文件失败:', err.message)
       socket.emit('file_save_error', {
         error: err.message,
         filePath
@@ -1049,7 +1049,7 @@ const listenAction = (sftpClient, socket) => {
   // 开始上传
   socket.on('upload_start', async ({ taskId, fileName, fileSize, targetPath }) => {
     try {
-      consola.info(`收到上传请求: ${ fileName }, 大小: ${ (fileSize / 1024 / 1024 / 1024).toFixed(2) }GB`)
+      logger.info(`收到上传请求: ${ fileName }, 大小: ${ (fileSize / 1024 / 1024 / 1024).toFixed(2) }GB`)
 
       if (!taskId || !fileName || !fileSize || !targetPath) {
         throw new Error('上传参数不完整')
@@ -1075,11 +1075,11 @@ const listenAction = (sftpClient, socket) => {
       }
 
       uploadTasks.set(taskId, uploadTask)
-      consola.info(`开始上传任务: ${ taskId } - ${ fileName }`)
+      logger.info(`开始上传任务: ${ taskId } - ${ fileName }`)
       socket.emit('upload_started', { taskId, fileName })
 
     } catch (err) {
-      consola.error('开始上传失败:', err.message)
+      logger.error('开始上传失败:', err.message)
       socket.emit('upload_fail', { taskId, error: err.message })
     }
   })
@@ -1107,7 +1107,7 @@ const listenAction = (sftpClient, socket) => {
 
         // 处理写入流错误（将错误标记到任务中）
         task.writeStream.on('error', (err) => {
-          consola.error(`写入流错误: ${ taskId }`, err.message)
+          logger.error(`写入流错误: ${ taskId }`, err.message)
           task.writeStreamError = err
           // 销毁流，防止继续写入
           if (!task.writeStream.destroyed) {
@@ -1164,7 +1164,7 @@ const listenAction = (sftpClient, socket) => {
         task.lastProgressTime = now
       }
 
-      // consola.info(`上传分片: ${ taskId } - ${ chunkIndex + 1 }/${ totalChunks }`) // 太频繁，注释掉
+      // logger.info(`上传分片: ${ taskId } - ${ chunkIndex + 1 }/${ totalChunks }`) // 太频繁，注释掉
       socket.emit('upload_chunk_success', { taskId, chunkIndex })
 
       // 如果是最后一个分片，完成文件写入并开始传输
@@ -1173,7 +1173,7 @@ const listenAction = (sftpClient, socket) => {
       }
 
     } catch (err) {
-      consola.error('上传分片失败:', err.message)
+      logger.error('上传分片失败:', err.message)
       socket.emit('upload_chunk_fail', { taskId, chunkIndex, error: err.message })
 
       // 清理资源
@@ -1187,7 +1187,7 @@ const listenAction = (sftpClient, socket) => {
   // 完成上传的辅助函数
   async function completeUpload(task) {
     try {
-      consola.info(`文件接收完成，准备传输: ${ task.fileName }`)
+      logger.info(`文件接收完成，准备传输: ${ task.fileName }`)
 
       // 关闭写入流
       if (task.writeStream) {
@@ -1221,7 +1221,7 @@ const listenAction = (sftpClient, socket) => {
       })
 
       // 通过SFTP传输到远程服务器，使用fastPut带进度回调
-      consola.info(`开始传输文件到远程服务器: ${ task.targetPath }`)
+      logger.info(`开始传输文件到远程服务器: ${ task.targetPath }`)
 
       let sftpStartTime = Date.now()
       let lastSftpUpdateTime = sftpStartTime
@@ -1260,7 +1260,7 @@ const listenAction = (sftpClient, socket) => {
       })
 
       // 传输完成
-      consola.info(`文件上传成功: ${ task.fileName }`)
+      logger.info(`文件上传成功: ${ task.fileName }`)
       socket.emit('upload_complete', {
         taskId: task.taskId,
         fileName: task.fileName,
@@ -1268,7 +1268,7 @@ const listenAction = (sftpClient, socket) => {
       })
 
     } catch (err) {
-      consola.error('完成上传失败:', err.message)
+      logger.error('完成上传失败:', err.message)
       socket.emit('upload_fail', {
         taskId: task.taskId,
         error: err.message
@@ -1278,9 +1278,9 @@ const listenAction = (sftpClient, socket) => {
       if (task.tempFilePath && fs.existsSync(task.tempFilePath)) {
         try {
           fs.unlinkSync(task.tempFilePath)
-          consola.info(`已清理临时文件: ${ task.tempFilePath }`)
+          logger.info(`已清理临时文件: ${ task.tempFilePath }`)
         } catch (cleanupErr) {
-          consola.warn('清理临时文件失败:', cleanupErr.message)
+          logger.warn('清理临时文件失败:', cleanupErr.message)
         }
       }
 
@@ -1307,14 +1307,14 @@ const listenAction = (sftpClient, socket) => {
       if (task.tempFilePath && fs.existsSync(task.tempFilePath)) {
         try {
           fs.unlinkSync(task.tempFilePath)
-          consola.info(`取消上传，已清理临时文件: ${ task.tempFilePath }`)
+          logger.info(`取消上传，已清理临时文件: ${ task.tempFilePath }`)
         } catch (cleanupErr) {
-          consola.warn('清理临时文件失败:', cleanupErr.message)
+          logger.warn('清理临时文件失败:', cleanupErr.message)
         }
       }
       uploadTasks.delete(taskId)
 
-      consola.info(`取消上传任务: ${ taskId }`)
+      logger.info(`取消上传任务: ${ taskId }`)
       socket.emit('upload_cancelled', { taskId })
     }
   })
@@ -1322,7 +1322,7 @@ const listenAction = (sftpClient, socket) => {
   // 监听连接断开，清理下载任务和缓存
   socket.on('disconnect', async (reason) => {
     try {
-      consola.info('SFTP连接断开，开始清理资源...', reason)
+      logger.info('SFTP连接断开，开始清理资源...', reason)
 
       // 清理定时器
       if (memoryCleanupInterval) {
@@ -1343,7 +1343,7 @@ const listenAction = (sftpClient, socket) => {
             remoteCleanupPromises.push(cleanupRemoteTarFile(task.remoteTarPath))
           }
         } catch (taskError) {
-          consola.warn(`清理下载任务 ${ taskId } 失败:`, taskError.message)
+          logger.warn(`清理下载任务 ${ taskId } 失败:`, taskError.message)
         }
       }
 
@@ -1351,9 +1351,9 @@ const listenAction = (sftpClient, socket) => {
       if (remoteCleanupPromises.length > 0) {
         try {
           await Promise.all(remoteCleanupPromises)
-          consola.info(`连接断开时已清理 ${ remoteCleanupPromises.length } 个远程临时文件`)
+          logger.info(`连接断开时已清理 ${ remoteCleanupPromises.length } 个远程临时文件`)
         } catch (err) {
-          consola.warn('连接断开时清理远程临时文件部分失败:', err.message)
+          logger.warn('连接断开时清理远程临时文件部分失败:', err.message)
         }
       }
 
@@ -1371,13 +1371,13 @@ const listenAction = (sftpClient, socket) => {
           if (task.tempFilePath && fs.existsSync(task.tempFilePath)) {
             try {
               fs.unlinkSync(task.tempFilePath)
-              consola.info(`连接断开，已清理临时文件: ${ task.tempFilePath }`)
+              logger.info(`连接断开，已清理临时文件: ${ task.tempFilePath }`)
             } catch (cleanupErr) {
-              consola.warn('清理临时文件失败:', cleanupErr.message)
+              logger.warn('清理临时文件失败:', cleanupErr.message)
             }
           }
         } catch (taskError) {
-          consola.warn(`清理上传任务 ${ taskId } 失败:`, taskError.message)
+          logger.warn(`清理上传任务 ${ taskId } 失败:`, taskError.message)
         }
       }
 
@@ -1389,12 +1389,12 @@ const listenAction = (sftpClient, socket) => {
       try {
         cleanupCacheDir()
       } catch (cleanupError) {
-        consola.warn('清理本地缓存目录失败:', cleanupError.message)
+        logger.warn('清理本地缓存目录失败:', cleanupError.message)
       }
 
-      consola.info('SFTP资源清理完成')
+      logger.info('SFTP资源清理完成')
     } catch (disconnectError) {
-      consola.error('Socket断开连接清理过程中发生错误:', disconnectError.message)
+      logger.error('Socket断开连接清理过程中发生错误:', disconnectError.message)
     }
   })
 
@@ -1406,7 +1406,7 @@ const listenAction = (sftpClient, socket) => {
 
     for (const [taskId, task] of uploadTasks) {
       if (now - task.startTime > timeout) {
-        consola.warn(`清理超时上传任务: ${ taskId }`)
+        logger.warn(`清理超时上传任务: ${ taskId }`)
         if (task.abortController) {
           task.abortController.abort()
         }
@@ -1418,9 +1418,9 @@ const listenAction = (sftpClient, socket) => {
         if (task.tempFilePath && fs.existsSync(task.tempFilePath)) {
           try {
             fs.unlinkSync(task.tempFilePath)
-            consola.info(`清理超时任务临时文件: ${ task.tempFilePath }`)
+            logger.info(`清理超时任务临时文件: ${ task.tempFilePath }`)
           } catch (cleanupErr) {
-            consola.warn('清理临时文件失败:', cleanupErr.message)
+            logger.warn('清理临时文件失败:', cleanupErr.message)
           }
         }
 
@@ -1431,7 +1431,7 @@ const listenAction = (sftpClient, socket) => {
     // 检查并清理超时的下载任务
     for (const [taskId, task] of downloadTasks) {
       if (now - task.startTime > timeout) {
-        consola.warn(`清理超时下载任务: ${ taskId }`)
+        logger.warn(`清理超时下载任务: ${ taskId }`)
         if (task.abortController) {
           task.abortController.abort()
         }
@@ -1580,12 +1580,12 @@ module.exports = (httpServer) => {
       return
     }
     let sftpClient = new SFTPClient()
-    consola.success('sftp-v2 websocket 已连接')
+    logger.info('sftp-v2 websocket 已连接')
     let jumpSshClients = []
 
     // 添加socket本身的错误处理
     socket.on('error', (err) => {
-      consola.error('SFTP-v2 Socket连接错误:', err.message)
+      logger.error('SFTP-v2 Socket连接错误:', err.message)
     })
 
     socket.on('ws_sftp', async ({ hostId }) => {
@@ -1610,14 +1610,14 @@ module.exports = (httpServer) => {
           return
         }
 
-        consola.info('准备连接sftp-v2 面板：', host)
-        consola.log('连接信息', { username, port, authType })
+        logger.info('准备连接sftp-v2 面板：', host)
+        logger.info('连接信息', { username, port, authType })
 
         sftpClient.client = new SSHClient()
 
         // 添加错误处理器，防止程序崩溃
         sftpClient.client.on('error', (err) => {
-          consola.error('SFTP SSH连接错误:', err.message)
+          logger.error('SFTP SSH连接错误:', err.message)
           try {
           // 发送SSH连接错误事件
             socket.emit('shell_connection_error', {
@@ -1625,40 +1625,40 @@ module.exports = (httpServer) => {
               code: err.code || 'UNKNOWN'
             })
           } catch (emitError) {
-            consola.error('发送错误事件失败:', emitError.message)
+            logger.error('发送错误事件失败:', emitError.message)
           }
         })
 
         sftpClient.client.on('end', () => {
-          consola.info('SSH连接正常结束')
+          logger.info('SSH连接正常结束')
         })
 
         sftpClient.client.on('close', (hadError) => {
           if (hadError) {
-            consola.warn('SSH连接异常关闭')
+            logger.warn('SSH连接异常关闭')
             try {
               socket.emit('shell_connection_error', {
                 message: 'SSH连接异常关闭',
                 code: 'CONNECTION_CLOSED'
               })
             } catch (emitError) {
-              consola.error('发送连接关闭事件失败:', emitError.message)
+              logger.error('发送连接关闭事件失败:', emitError.message)
             }
           } else {
-            consola.info('SSH连接已关闭')
+            logger.info('SSH连接已关闭')
           }
         })
 
         // 添加未处理异常捕获
         // sftpClient.client.on('timeout', () => {
-        //   consola.warn('SSH连接超时')
+        //   logger.warn('SSH连接超时')
         //   try {
         //     socket.emit('shell_connection_error', {
         //       message: 'SSH连接超时',
         //       code: 'CONNECTION_TIMEOUT'
         //     })
         //   } catch (emitError) {
-        //     consola.error('发送超时事件失败:', emitError.message)
+        //     logger.error('发送超时事件失败:', emitError.message)
         //   }
         // })
 
@@ -1678,23 +1678,23 @@ module.exports = (httpServer) => {
 
           try {
             rootList = await sftpClient.list('/')
-            consola.success('获取根目录成功')
+            logger.info('获取根目录成功')
           } catch (error) {
-            consola.error('获取根目录失败:', error.message)
-            consola.info('尝试获取当前目录')
+            logger.error('获取根目录失败:', error.message)
+            logger.info('尝试获取当前目录')
             isRootUser = false
 
             try {
             // 获取当前工作目录的绝对路径
               currentWorkingDir = await sftpClient.cwd()
-              consola.info('当前工作目录:', currentWorkingDir)
+              logger.info('当前工作目录:', currentWorkingDir)
               rootList = await sftpClient.list(currentWorkingDir)
-              consola.success('获取当前目录成功')
+              logger.info('获取当前目录成功')
             } catch (cwdError) {
-              consola.warn('获取工作目录失败，使用相对路径:', cwdError.message)
+              logger.warn('获取工作目录失败，使用相对路径:', cwdError.message)
               currentWorkingDir = '~'
               rootList = await sftpClient.list('./')
-              consola.success('获取当前目录成功')
+              logger.info('获取当前目录成功')
             }
           }
 
@@ -1707,10 +1707,10 @@ module.exports = (httpServer) => {
             isRootUser,
             currentPath: currentWorkingDir
           })
-          consola.success('连接sftp-v2 成功：', host)
+          logger.info('连接sftp-v2 成功：', host)
           listenAction(sftpClient, socket)
         } catch (error) {
-          consola.error('连接sftp-v2 失败：', error.message)
+          logger.error('连接sftp-v2 失败：', error.message)
 
           // 发送详细的错误信息给前端
           let errorMessage = error.message
@@ -1729,7 +1729,7 @@ module.exports = (httpServer) => {
               await sftpClient.end()
             }
           } catch (cleanupError) {
-            consola.warn('清理SFTP客户端资源失败:', cleanupError.message)
+            logger.warn('清理SFTP客户端资源失败:', cleanupError.message)
           }
 
           // 清理跳板机连接
@@ -1737,9 +1737,9 @@ module.exports = (httpServer) => {
             jumpSshClients.forEach((client, index) => {
               try {
                 client.end()
-                consola.info(`已清理跳板机连接 ${ index + 1 }`)
+                logger.info(`已清理跳板机连接 ${ index + 1 }`)
               } catch (cleanupError) {
-                consola.warn(`清理跳板机连接 ${ index + 1 } 失败:`, cleanupError.message)
+                logger.warn(`清理跳板机连接 ${ index + 1 } 失败:`, cleanupError.message)
               }
             })
           }
@@ -1747,12 +1747,12 @@ module.exports = (httpServer) => {
           socket.disconnect()
         }
       } catch (globalError) {
-        consola.error('SFTP连接处理过程中发生未预期错误:', globalError.message)
+        logger.error('SFTP连接处理过程中发生未预期错误:', globalError.message)
         try {
           socket.emit('connect_fail', `连接失败: ${ globalError.message }`)
           socket.disconnect()
         } catch (cleanupError) {
-          consola.error('清理失败连接时发生错误:', cleanupError.message)
+          logger.error('清理失败连接时发生错误:', cleanupError.message)
         }
       }
     })
@@ -1760,9 +1760,9 @@ module.exports = (httpServer) => {
     socket.on('disconnect', async () => {
       try {
         await sftpClient.end()
-        consola.info('sftp-v2 连接断开')
+        logger.info('sftp-v2 连接断开')
       } catch (error) {
-        consola.info('sftp断开连接失败:', error.message)
+        logger.info('sftp断开连接失败:', error.message)
       } finally {
         sftpClient = null
         // 这里不再清理缓存目录，因为在 listenAction 中的 disconnect 处理器会处理

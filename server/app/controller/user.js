@@ -82,7 +82,7 @@ const login = async ({ res, request }) => {
 const beforeLoginHandler = async (clientIp, jwtExpires) => {
   loginErrCount = loginErrTotal = 0 // 登录成功, 清空错误次数
 
-  // consola.success('登录成功, 准备生成token', new Date())
+  logger.info('登录成功, 准备生成token')
   // 生产token
   let { commonKey, user } = await keyDB.findOneAsync({})
   let token = jwt.sign({ date: Date.now() }, `${ user }-${ commonKey }`, { expiresIn: jwtExpires }) // 生成token
@@ -91,7 +91,7 @@ const beforeLoginHandler = async (clientIp, jwtExpires) => {
   // 记录客户端登录IP(用于判断是否异地且只保留最近10次)
   const clientIPInfo = await getNetIPInfo(clientIp)
   const { ip, country, city } = clientIPInfo || {}
-  consola.info('登录成功:', new Date(), { ip, country, city })
+  logger.info('登录成功:', new Date(), { ip, country, city })
 
   // 登录通知
   sendNoticeAsync('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }`)
@@ -122,7 +122,7 @@ const getEasynodeVersion = async ({ res }) => {
     const { data } = await axios.get('https://get-easynode-latest-version.chaoszhu.workers.dev/version')
     res.success({ data, msg: 'success' })
   } catch (error) {
-    consola.error('Failed to fetch Easynode latest version:', error)
+    logger.error('Failed to fetch Easynode latest version:', error)
     res.fail({ msg: 'Failed to fetch Easynode latest version' })
   }
 }
@@ -155,7 +155,7 @@ const enableMFA2 = async ({ res, request }) => {
     await keyDB.updateAsync({ _id: keyConfig._id }, { $set: keyConfig })
     res.success({ msg: '验证成功' })
   } catch (error) {
-    consola.error('MFA2验证失败:', error.message)
+    logger.error('MFA2验证失败:', error.message)
     res.fail({ msg: `验证失败: ${ error.message }` })
   }
 }
@@ -178,7 +178,7 @@ const disableMFA2 = async ({ res, request }) => {
     await keyDB.updateAsync({ _id: keyConfig._id }, { $set: keyConfig })
     res.success({ msg: '禁用成功' })
   } catch (error) {
-    consola.error('禁用MFA2失败:', error.message)
+    logger.error('禁用MFA2失败:', error.message)
     res.fail({ msg: `禁用失败: ${ error.message }` })
   }
 }
@@ -202,11 +202,11 @@ const getPlusDiscount = async ({ res } = {}) => {
     }
 
     // 如果是403或其他错误状态码
-    consola.error('获取折扣信息失败，状态码:', response.status)
+    logger.error('获取折扣信息失败，状态码:', response.status)
     return res.success({ discount: false })
 
   } catch (error) {
-    consola.error('获取折扣信息失败:', error.message)
+    logger.error('获取折扣信息失败:', error.message)
     return res.success({ discount: false })
   }
 }

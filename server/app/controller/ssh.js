@@ -30,7 +30,7 @@ const addSSH = async ({ res, request }) => {
   record[authType] = await AESEncryptAsync(clearSSHKey)
   // console.log(`${ authType }__commonKey加密存储: `, record[authType])
   await credentialsDB.insertAsync({ ...record, date: Date.now() })
-  consola.info('添加凭证：', name)
+  logger.info('添加凭证：', name)
   res.success({ data: '保存成功' })
 }
 
@@ -54,7 +54,7 @@ const updateSSH = async ({ res, request }) => {
     // console.log(`${ authType }__commonKey加密存储: `, record[authType])
   }
   await credentialsDB.updateAsync({ _id: id }, record)
-  consola.info('修改凭证：', name)
+  logger.info('修改凭证：', name)
   res.success({ data: '保存成功' })
 }
 
@@ -75,7 +75,7 @@ const removeSSH = async ({ res, request }) => {
     }
   }
   await hostListDB.compactDatafileAsync()
-  consola.info('移除凭证：', id)
+  logger.info('移除凭证：', id)
   await credentialsDB.removeAsync({ _id: id })
   res.success({ data: '移除成功' })
 }
@@ -85,7 +85,7 @@ const getCommand = async ({ res, request }) => {
   if (!hostId) return res.fail({ data: false, msg: '参数错误' })
   let hostInfo = await hostListDB.findAsync({})
   let record = hostInfo?.find(item => item._id === hostId)
-  consola.info('查询登录后执行的指令：', hostId)
+  logger.info('查询登录后执行的指令：', hostId)
   if (!record) return res.fail({ data: false, msg: 'host not found' })
   const { command } = record
   if (!command) return res.success({ data: false })

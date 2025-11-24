@@ -1,7 +1,6 @@
 const path = require('path')
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const consola = require('consola')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { isAllowedIp, fileTransferThrottle } = require('../utils/tools')
 const { getConnectionOptions } = require('./terminal')
@@ -67,7 +66,7 @@ module.exports = (httpServer) => {
   transferIo.on('connection', async (socket) => {
     connectionCount++
     connectedSockets.add(socket)
-    consola.success(`file-transfer websocket 已连接 - 当前连接数: ${ connectionCount }`)
+    logger.info(`file-transfer websocket 已连接 - 当前连接数: ${ connectionCount }`)
 
     // IP白名单检查
     const requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
@@ -113,7 +112,7 @@ module.exports = (httpServer) => {
         const updatedTasks = await getSortedTasksList()
         socket.emit('tasks_list', updatedTasks)
       } catch (error) {
-        consola.error('启动传输任务失败:', error)
+        logger.error('启动传输任务失败:', error)
         socket.emit('task_failed', {
           taskId: transferConfig.taskId,
           message: error.message
@@ -217,7 +216,7 @@ module.exports = (httpServer) => {
 
       // 清理该socket的进度广播定时器
       stopProgressBroadcast(socket)
-      consola.info(`file-transfer websocket 断开连接 - 当前连接数: ${ connectionCount }`)
+      logger.info(`file-transfer websocket 断开连接 - 当前连接数: ${ connectionCount }`)
     })
   })
 
@@ -261,7 +260,7 @@ async function executeTransfer(taskData, socket) {
     await updateTaskStatus(taskId, 'completed', socket)
 
   } catch (error) {
-    consola.error(`传输任务 ${ taskId } 失败:`, error)
+    logger.error(`传输任务 ${ taskId } 失败:`, error)
     await updateTaskStatus(taskId, 'failed', socket, error.message)
   } finally {
     // 清理资源
@@ -284,7 +283,7 @@ async function executeRsyncTransfer(taskData, sshClient, socket) {
   const targetOptions = targetConnectionData.authInfo
   const targetHostAuthType = targetOptions.password ? 'password' : 'privateKey'
 
-  consola.info(`目标主机认证方式: ${ targetHostAuthType }`)
+  logger.info(`目标主机认证方式: ${ targetHostAuthType }`)
 
   // 构建Rsync命令
   let rsyncCmd = []
@@ -358,9 +357,9 @@ async function executeRsyncTransfer(taskData, sshClient, socket) {
   rsyncCmd.push(...sourcePaths.map(item => item.path))
   rsyncCmd.push(`${ targetOptions.username }@${ targetOptions.host }:"${ targetPath }"`)
 
-  consola.info(`执行Rsync命令: ${ rsyncCmd.join(' ') }`)
+  logger.info(`执行Rsync命令: ${ rsyncCmd.join(' ') }`)
   if (Object.keys(envVars).length > 0) {
-    consola.info(`环境变量: ${ Object.keys(envVars).join(', ') }`)
+    logger.info(`环境变量: ${ Object.keys(envVars).join(', ') }`)
   }
 
   return new Promise((resolve, reject) => {
@@ -375,7 +374,7 @@ async function executeRsyncTransfer(taskData, sshClient, socket) {
       finalCommand = `${ envString } ${ finalCommand }`
     }
 
-    // consola.info(`最终Rsync命令: ${ finalCommand }`)
+    // logger.info(`最终Rsync命令: ${ finalCommand }`)
     let start = false
     sshClient.exec(finalCommand, (err, stream) => {
       if (err) {
@@ -394,10 +393,10 @@ async function executeRsyncTransfer(taskData, sshClient, socket) {
             activeTask.progressTracker.isVerifying = true
             await updateTaskProgress(taskId, activeTask.progressTracker, socket)
           }
-          consola.success(`Rsync传输完成: ${ taskId }`)
+          logger.info(`Rsync传输完成: ${ taskId }`)
           resolve()
         } else {
-          consola.error(`Rsync传输失败: ${ taskId }, 退出码: ${ code }`)
+          logger.error(`Rsync传输失败: ${ taskId }, 退出码: ${ code }`)
           reject(new Error(`Rsync传输失败: ${ errorOutput || '未知错误' }`))
         }
       })
@@ -425,7 +424,7 @@ async function executeRsyncTransfer(taskData, sshClient, socket) {
         }
         const output = data.toString()
         errorOutput += output
-        consola.warn(`Rsync stderr: ${ output }`)
+        logger.warn(`Rsync stderr: ${ output }`)
 
         // 解析错误信息中的进度信息
         fileTransferThrottle(parseRsyncProgress(output, taskId, socket))
@@ -460,7 +459,7 @@ function parseRsyncProgress(output, taskId, socket) {
   const outputLine = output.trim()
 
   // 添加调试日志
-  consola.info(`Rsync输出 [${ taskId }]: "${ outputLine }"`)
+  logger.info(`Rsync输出 [${ taskId }]: "${ outputLine }"`)
 
   // 检测是否在校验阶段
   if (outputLine.includes('verifying') ||
@@ -490,7 +489,7 @@ function parseRsyncProgress(output, taskId, socket) {
           status: 'transferring'
         })
       }
-      consola.info(`单文件传输初始化: ${ tracker.currentFile }`)
+      logger.info(`单文件传输初始化: ${ tracker.currentFile }`)
     }
   }
 
@@ -509,7 +508,7 @@ function parseRsyncProgress(output, taskId, socket) {
         status: 'transferring'
       })
     }
-    consola.info(`检测到新文件传输(itemize格式): ${ filePath }`)
+    logger.info(`检测到新文件传输(itemize格式): ${ filePath }`)
     return
   }
 
@@ -527,7 +526,7 @@ function parseRsyncProgress(output, taskId, socket) {
         status: 'transferring'
       })
     }
-    consola.info(`检测到新文件传输(传统格式): ${ filePath }`)
+    logger.info(`检测到新文件传输(传统格式): ${ filePath }`)
     return
   }
 
@@ -546,7 +545,7 @@ function parseRsyncProgress(output, taskId, socket) {
     const unitFactor = { 'B/s': 1, 'KB/s': 1024, 'MB/s': 1024 ** 2, 'GB/s': 1024 ** 3, 'TB/s': 1024 ** 4 }
     speed = parseFloat(speedVal) * (unitFactor[speedUnit] || 1)
     eta = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(seconds)
-    consola.info(`Rsync标准格式解析 [${ taskId }]: ${ fileProgress }%, 速度: ${ speedVal }${ speedUnit }, ETA: ${ eta }s`)
+    logger.info(`Rsync标准格式解析 [${ taskId }]: ${ fileProgress }%, 速度: ${ speedVal }${ speedUnit }, ETA: ${ eta }s`)
   } else {
     // 模式2: 简化格式 - 100% 1.23MB/s
     match = outputLine.match(/(\d+)%\s+([\d.]+)([KMGT]?B\/s)/)
@@ -555,13 +554,13 @@ function parseRsyncProgress(output, taskId, socket) {
       const unit = match[3]
       const unitFactor = { 'B/s': 1, 'KB/s': 1024, 'MB/s': 1024 ** 2, 'GB/s': 1024 ** 3, 'TB/s': 1024 ** 4 }
       speed = parseFloat(match[2]) * (unitFactor[unit] || 1)
-      consola.info(`Rsync简化格式解析 [${ taskId }]: ${ fileProgress }%, 速度: ${ match[2] }${ unit }`)
+      logger.info(`Rsync简化格式解析 [${ taskId }]: ${ fileProgress }%, 速度: ${ match[2] }${ unit }`)
     } else {
       // 模式3: 最简格式 - 只有百分比
       match = outputLine.match(/(\d+)%/)
       if (match) {
         fileProgress = parseInt(match[1])
-        consola.info(`Rsync百分比解析 [${ taskId }]: ${ fileProgress }%`)
+        logger.info(`Rsync百分比解析 [${ taskId }]: ${ fileProgress }%`)
       }
     }
   }
@@ -582,12 +581,12 @@ function parseRsyncProgress(output, taskId, socket) {
         fileInfo.status = 'completed'
         fileInfo.transferred = transferred
         // 清除当前文件，为下一个文件做准备
-        consola.info(`文件传输完成: ${ tracker.currentFile }`)
+        logger.info(`文件传输完成: ${ tracker.currentFile }`)
         tracker.currentFile = null
       }
     }
 
-    consola.info(`传输进度: ${ completed }/${ total } 文件完成`)
+    logger.info(`传输进度: ${ completed }/${ total } 文件完成`)
   }
 
   // 更新当前文件进度
@@ -613,13 +612,13 @@ function parseRsyncProgress(output, taskId, socket) {
         if (fileProgress === 100) {
           fileInfo.status = 'completed'
           // 文件完成后清除当前文件，为下一个文件做准备
-          consola.info(`文件传输完成: ${ tracker.currentFile }`)
+          logger.info(`文件传输完成: ${ tracker.currentFile }`)
           tracker.currentFile = null
         }
       }
     } else {
       // 如果仍然没有当前文件，记录警告但继续处理
-      consola.warn(`收到进度信息但没有当前文件 [${ taskId }]: ${ fileProgress }%`)
+      logger.warn(`收到进度信息但没有当前文件 [${ taskId }]: ${ fileProgress }%`)
     }
   }
 
@@ -692,7 +691,7 @@ async function updateTaskProgress(taskId, progressTracker, socket) {
       }))
     }
 
-    consola.info(`推送进度更新 [${ taskId }]:`, {
+    logger.info(`推送进度更新 [${ taskId }]:`, {
       overall: progressData.overallProgress,
       files: `${ progressData.completedFiles }/${ progressData.totalFiles }`,
       current: progressData.currentFile,
@@ -705,7 +704,7 @@ async function updateTaskProgress(taskId, progressTracker, socket) {
       socket.emit('task_progress', progressData)
     }
   } catch (error) {
-    consola.error('更新任务进度失败:', error)
+    logger.error('更新任务进度失败:', error)
   }
 }
 
@@ -739,7 +738,7 @@ async function updateTaskStatus(taskId, status, socket, errorMessage = null) {
       errorMessage
     })
   } catch (error) {
-    consola.error('更新任务状态失败:', error)
+    logger.error('更新任务状态失败:', error)
   }
 }
 
@@ -848,14 +847,14 @@ async function createRemoteTempKeyFile(sshClient, privateKey) {
 function cleanupRemoteKeyFile(sshClient, keyFile) {
   if (!keyFile || !sshClient) return
 
-  consola.info(`清理远程密钥文件: ${ keyFile }`)
+  logger.info(`清理远程密钥文件: ${ keyFile }`)
 
   // 先删除文件，再验证删除
   // const cleanupCmd = `rm -f "${ keyFile }" && if [ -f "${ keyFile }" ]; then echo "CLEANUP_FAILED"; else echo "CLEANUP_SUCCESS"; fi`
   const cleanupCmd = 'cd /tmp && rm -f easynode_key_* && if ls easynode_key_* 2>/dev/null; then echo "CLEANUP_FAILED"; else echo "CLEANUP_SUCCESS"; fi'
   sshClient.exec(cleanupCmd, (err, stream) => {
     if (err) {
-      consola.error('清理密钥文件时SSH错误:', err)
+      logger.error('清理密钥文件时SSH错误:', err)
       return
     }
 
@@ -866,21 +865,21 @@ function cleanupRemoteKeyFile(sshClient, keyFile) {
 
     stream.on('close', () => {
       if (output.includes('CLEANUP_SUCCESS')) {
-        consola.success(`密钥文件清理成功: ${ keyFile }`)
+        logger.info(`密钥文件清理成功: ${ keyFile }`)
       } else if (output.includes('CLEANUP_FAILED')) {
-        consola.error(`密钥文件清理失败: ${ keyFile }`)
+        logger.error(`密钥文件清理失败: ${ keyFile }`)
         // 强制清理尝试 - 覆盖后删除
         const forceCleanup = `echo "" > "${ keyFile }" && rm -f "${ keyFile }"`
         sshClient.exec(forceCleanup, () => {
-          consola.info(`强制清理密钥文件: ${ keyFile }`)
+          logger.info(`强制清理密钥文件: ${ keyFile }`)
         })
       } else {
-        consola.warn(`密钥文件清理状态未知: ${ keyFile }`)
+        logger.warn(`密钥文件清理状态未知: ${ keyFile }`)
       }
     })
 
     stream.stderr.on('data', (data) => {
-      consola.warn('清理密钥文件stderr:', data.toString())
+      logger.warn('清理密钥文件stderr:', data.toString())
     })
   })
 }
@@ -902,7 +901,7 @@ function startProgressBroadcast(socket) {
       const runningTasks = Array.from(activeTasks.values()).filter(task => task.status === 'running')
       if (runningTasks.length === 0) {
         // 没有运行中的任务，停止广播
-        consola.info('没有运行中的任务，停止进度广播')
+        logger.info('没有运行中的任务，停止进度广播')
         stopProgressBroadcast(socket)
         return
       }
@@ -931,13 +930,13 @@ function startProgressBroadcast(socket) {
         }
       }
     } catch (error) {
-      consola.error('进度广播出错:', error)
+      logger.error('进度广播出错:', error)
       stopProgressBroadcast(socket)
     }
   }, 1500)
 
   progressBroadcastTimers.set(socket, timer)
-  consola.info('已启动进度广播定时器')
+  logger.info('已启动进度广播定时器')
 }
 
 // 停止进度广播
@@ -946,7 +945,7 @@ function stopProgressBroadcast(socket) {
   if (timer) {
     clearInterval(timer)
     progressBroadcastTimers.delete(socket)
-    consola.info('已停止进度广播定时器')
+    logger.info('已停止进度广播定时器')
   }
 }
 

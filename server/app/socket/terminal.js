@@ -39,7 +39,7 @@ function createInteractiveShell(socket, targetSSHClient) {
     // 检查SSH客户端连接状态
     if (!targetSSHClient || !targetSSHClient._sock || !targetSSHClient._sock.writable) {
       const errorMsg = 'SSH客户端连接已断开，无法创建交互式终端'
-      consola.error(errorMsg)
+      logger.error(errorMsg)
       socket.emit('terminal_connect_fail', errorMsg)
       return reject(new Error(errorMsg))
     }
@@ -47,7 +47,7 @@ function createInteractiveShell(socket, targetSSHClient) {
     try {
       targetSSHClient.shell({ term: 'xterm-color' }, (err, stream) => {
         if (err) {
-          consola.error('创建交互式终端失败:', err.message)
+          logger.error('创建交互式终端失败:', err.message)
           socket.emit('terminal_connect_fail', err.message)
           return reject(err)
         }
@@ -59,18 +59,18 @@ function createInteractiveShell(socket, targetSSHClient) {
             socket.emit('output', data.toString())
           })
           .on('close', () => {
-            consola.info('交互终端已关闭')
+            logger.info('交互终端已关闭')
             targetSSHClient.end()
           })
           .on('error', (streamErr) => {
-            consola.error('终端流错误:', streamErr.message)
+            logger.error('终端流错误:', streamErr.message)
             socket.emit('terminal_connect_fail', streamErr.message)
           })
 
         socket.emit('terminal_connect_shell_success') // 已连接终端，web端可以执行指令了
       })
     } catch (shellError) {
-      consola.error('调用shell方法失败:', shellError.message)
+      logger.error('调用shell方法失败:', shellError.message)
       socket.emit('terminal_connect_fail', shellError.message)
       reject(shellError)
     }
@@ -96,7 +96,7 @@ async function getProxyConfig(proxyId) {
       password: proxyInfo.password || ''
     }
   } catch (error) {
-    consola.error('获取代理配置失败:', error.message)
+    logger.error('获取代理配置失败:', error.message)
     throw error
   }
 }
@@ -119,7 +119,7 @@ async function handleProxyAndJumpHostConnection(options) {
       const proxyConfig = await getProxyConfig(proxyServer)
       if (proxyConfig) {
         const logMsg = `${ logPrefix }使用代理服务器: ${ proxyConfig.name } (${ proxyConfig.type.toUpperCase() }) - ${ proxyConfig.host }:${ proxyConfig.port }`
-        consola.info(logMsg)
+        logger.info(logMsg)
 
         // 向前端发送代理信息（如果socket存在且有对应方法）
         if (socket && socket.emit) {
@@ -146,7 +146,7 @@ async function handleProxyAndJumpHostConnection(options) {
         }
 
         targetConnectionOptions.sock = proxySocket
-        consola.success(`${ logPrefix }代理连接建立成功: ${ host }`)
+        logger.info(`${ logPrefix }代理连接建立成功: ${ host }`)
 
         // 向前端发送成功信息
         if (socket && socket.emit && typeof socket.emit === 'function') {
@@ -166,7 +166,7 @@ async function handleProxyAndJumpHostConnection(options) {
       if (jumpHostResult) {
         targetConnectionOptions.sock = jumpHostResult.sock
         jumpSshClients = jumpHostResult.sshClients
-        consola.success(`${ logPrefix }跳板机连接成功`)
+        logger.info(`${ logPrefix }跳板机连接成功`)
       }
     }
 
@@ -175,13 +175,13 @@ async function handleProxyAndJumpHostConnection(options) {
       jumpSshClients
     }
   } catch (error) {
-    consola.error(`${ logPrefix }连接失败:`, error.message)
+    logger.error(`${ logPrefix }连接失败:`, error.message)
     throw error
   }
 }
 
 async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShell = true) {
-  consola.info(`准备创建${ isInteractiveShell ? '交互式' : '非交互式' }终端：${ hostId }`)
+  logger.info(`准备创建${ isInteractiveShell ? '交互式' : '非交互式' }终端：${ hostId }`)
   return new Promise(async (resolve) => {
     const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
     if (!targetHostInfo) return socket.emit('create_fail', `查找hostId【${ hostId }】凭证信息失败`)
@@ -206,13 +206,13 @@ async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShel
 
       socket.emit('terminal_print_info', `准备连接目标终端: ${ name } - ${ host }`)
       socket.emit('terminal_print_info', `连接信息: ssh ${ username }@${ host } -p ${ port }  ->  ${ authType }`)
-      consola.info('准备连接目标终端：', host)
-      consola.log('连接信息', { username, port, authType })
+      logger.info('准备连接目标终端：', host)
+      logger.info('连接信息', { username, port, authType })
 
       let closeNoticeFlag = false // 避免重复发送通知
       targetSSHClient
         .on('ready', async () => {
-          consola.success('终端连接成功：', host)
+          logger.info('终端连接成功：', host)
           if (isInteractiveShell) {
             sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录成功`)
             socket.emit('terminal_print_info', `终端连接成功: ${ name } - ${ host }`)
@@ -222,7 +222,7 @@ async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShel
               let stream = await createInteractiveShell(socket, targetSSHClient)
               resolve({ stream, jumpSshClients })
             } catch (shellError) {
-              consola.error('创建交互式终端失败:', host, shellError.message)
+              logger.error('创建交互式终端失败:', host, shellError.message)
               // 连接已经成功但创建shell失败，需要清理连接
               targetSSHClient.end()
               jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
@@ -234,13 +234,13 @@ async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShel
         .on('close', (err) => {
           if (closeNoticeFlag) return closeNoticeFlag = false
           const closeReason = err ? '发生错误导致连接断开' : '正常断开连接'
-          consola.info(`终端连接断开(${ closeReason }): ${ host }`)
+          logger.info(`终端连接断开(${ closeReason }): ${ host }`)
           socket.emit('terminal_connect_close', { reason: closeReason })
         })
         .on('error', (err) => {
           closeNoticeFlag = true
           sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录失败`)
-          consola.error('连接终端失败:', host, err.message)
+          logger.error('连接终端失败:', host, err.message)
           socket.emit('terminal_connect_fail', err.message)
         })
         .on('keyboard-interactive', function (name, instructions, instructionsLang, prompts, finish) {
@@ -252,7 +252,7 @@ async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShel
           // debug: (info) => console.log(info)
         })
     } catch (err) {
-      consola.error('创建终端失败: ', host, err.message)
+      logger.error('创建终端失败: ', host, err.message)
       socket.emit('terminal_create_fail', err.message)
     }
   })
@@ -278,7 +278,7 @@ function createServerIo(serverIo) {
       return
     }
     connectionCount++
-    consola.success(`terminal websocket 已连接 - 当前连接数: ${ connectionCount }`)
+    logger.info(`terminal websocket 已连接 - 当前连接数: ${ connectionCount }`)
     let targetSSHClient = null
     let jumpSshClients = []
     socket.on('ws_terminal', async ({ hostId }) => {
@@ -288,7 +288,7 @@ function createServerIo(serverIo) {
 
         // 如果创建终端失败，result可能为undefined
         if (!result) {
-          consola.error('创建终端失败，未返回结果')
+          logger.error('创建终端失败，未返回结果')
           return
         }
 
@@ -297,7 +297,7 @@ function createServerIo(serverIo) {
 
         const listenerInput = (key) => {
           if (!targetSSHClient || !targetSSHClient._sock || !targetSSHClient._sock.writable) {
-            consola.info('终端连接已关闭,禁止输入')
+            logger.info('终端连接已关闭,禁止输入')
             return
           }
           stream && stream.write(key)
@@ -310,7 +310,7 @@ function createServerIo(serverIo) {
         socket.on('input', listenerInput)
         socket.on('resize', resizeShell)
       } catch (error) {
-        consola.error('ws_terminal事件处理失败:', error.message)
+        logger.error('ws_terminal事件处理失败:', error.message)
         socket.emit('terminal_connect_fail', `连接失败: ${ error.message }`)
       }
     })
@@ -329,7 +329,7 @@ function createServerIo(serverIo) {
       jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
       targetSSHClient = null
       jumpSshClients = null
-      consola.info(`终端socket连接断开: ${ reason } - 当前连接数: ${ connectionCount }`)
+      logger.info(`终端socket连接断开: ${ reason } - 当前连接数: ${ connectionCount }`)
     })
   })
 }

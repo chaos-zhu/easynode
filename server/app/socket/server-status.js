@@ -46,7 +46,7 @@ module.exports = (httpServer) => {
     }
 
     connectionCount++
-    consola.success(`server-status websocket 已连接 - 当前连接数: ${ connectionCount }`)
+    logger.info(`server-status websocket 已连接 - 当前连接数: ${ connectionCount }`)
 
     let targetSSHClient = null
     let jumpSshClients = []
@@ -92,7 +92,7 @@ module.exports = (httpServer) => {
         // 如果有正在创建的连接，等待它完成
         if (pendingConnections.has(monitorKey)) {
           try {
-            consola.info(`等待现有连接创建完成: ${ monitorKey }`)
+            logger.info(`等待现有连接创建完成: ${ monitorKey }`)
             await pendingConnections.get(monitorKey)
             // 连接创建完成后，应该能在monitorMap中找到了
             if (monitorMap.has(monitorKey)) {
@@ -109,7 +109,7 @@ module.exports = (httpServer) => {
               return
             }
           } catch (error) {
-            consola.error(`等待连接创建失败，继续创建: ${ error.message }`)
+            logger.error(`等待连接创建失败，继续创建: ${ error.message }`)
           }
         }
 
@@ -139,10 +139,10 @@ module.exports = (httpServer) => {
                 stopAll()
                 monitorMap.delete(monitorKey)
               }
-              consola.info(`server-status socket断开: ${ reason }`)
+              logger.info(`server-status socket断开: ${ reason }`)
             })
 
-            consola.success(`成功创建服务器监控: ${ monitorKey }`)
+            logger.info(`成功创建服务器监控: ${ monitorKey }`)
             return entryObj
 
           } finally {
@@ -158,7 +158,7 @@ module.exports = (httpServer) => {
         await createConnectionPromise
 
       } catch (error) {
-        consola.error('ws_server_status 事件处理失败:', error.message)
+        logger.error('ws_server_status 事件处理失败:', error.message)
         socket.emit('server_status_error', `连接失败: ${ error.message }`)
 
         // 全面清理资源，防止泄漏
@@ -169,7 +169,7 @@ module.exports = (httpServer) => {
           pendingConnections.delete(monitorKey)
         }
 
-        consola.info(`连接失败后已清理资源: ${ monitorKey || 'unknown' }`)
+        logger.info(`连接失败后已清理资源: ${ monitorKey || 'unknown' }`)
       }
     })
 
@@ -181,14 +181,14 @@ module.exports = (httpServer) => {
 
         targetSSHClient.exec('/bin/bash --noprofile --norc -i', (err, stream) => {
           if (err) {
-            consola.error('创建持久化 shell 失败:', err.message)
+            logger.error('创建持久化 shell 失败:', err.message)
             return reject(err)
           }
           persistentShell = stream
           shellReady = true
 
           persistentShell.write('unset HISTFILE\n')
-          consola.info('server-status: 持久化 shell 已就绪')
+          logger.info('server-status: 持久化 shell 已就绪')
 
           let buffer = ''
           const handleData = (data) => {
@@ -219,7 +219,7 @@ module.exports = (httpServer) => {
           stream.on('close', () => {
             shellReady = false
             persistentShell = null
-            consola.warn('server-status: 持久化 shell 已关闭')
+            logger.warn('server-status: 持久化 shell 已关闭')
           })
           resolve()
         })
@@ -313,7 +313,7 @@ module.exports = (httpServer) => {
         pendingConnections.delete(monitorKey)
       }
 
-      consola.info(`已清理服务器监控资源: ${ monitorKey || 'unknown' } - 原因: ${ reason }`)
+      logger.info(`已清理服务器监控资源: ${ monitorKey || 'unknown' } - 原因: ${ reason }`)
     }
 
     // 检查是否是关键的服务器错误
@@ -353,7 +353,7 @@ module.exports = (httpServer) => {
           cpuCount = cpuCountMatch ? parseInt(cpuCountMatch[1]) : 0
         }
       } catch (error) {
-        consola.warn('获取CPU核心数失败:', error.message)
+        logger.warn('获取CPU核心数失败:', error.message)
       }
 
       // 获取CPU型号
@@ -369,11 +369,11 @@ module.exports = (httpServer) => {
           cpuModel = lscpuModelMatch ? lscpuModelMatch[1].trim() : 'Unknown'
         }
       } catch (error) {
-        consola.warn('获取CPU型号失败:', error.message)
+        logger.warn('获取CPU型号失败:', error.message)
 
         // 检查是否是关键错误
         if (isServerCriticalError(error.message)) {
-          consola.error(`执行命令失败：cat /proc/cpuinfo: ${ error.message }`)
+          logger.error(`执行命令失败：cat /proc/cpuinfo: ${ error.message }`)
           return { cpuCount: 0, cpuModel: 'Unknown' }
         }
       }
@@ -431,11 +431,11 @@ module.exports = (httpServer) => {
           previousCpuStats = { ...currentCpuStats, timestamp: now }
         }
       } catch (error) {
-        consola.warn('获取CPU使用率失败:', error.message)
+        logger.warn('获取CPU使用率失败:', error.message)
 
         // 检查是否是关键错误
         if (isServerCriticalError(error.message)) {
-          consola.error(`执行命令失败：cat /proc/stat: ${ error.message }`)
+          logger.error(`执行命令失败：cat /proc/stat: ${ error.message }`)
           return { cpuUsage: 0, cpuCount: 0, cpuModel: 'Unknown' }
         }
       }
@@ -559,11 +559,11 @@ module.exports = (httpServer) => {
         return { memInfo, swapInfo }
 
       } catch (error) {
-        consola.error('获取内存信息失败:', error.message)
+        logger.error('获取内存信息失败:', error.message)
 
         // 检查是否是关键错误
         if (isServerCriticalError(error.message)) {
-          consola.error(`执行命令失败：free -m: ${ error.message }`)
+          logger.error(`执行命令失败：free -m: ${ error.message }`)
         }
 
         return defaultReturn
@@ -597,7 +597,7 @@ module.exports = (httpServer) => {
         })
         return drives
       } catch (error) {
-        consola.error('获取磁盘信息失败:', error.message)
+        logger.error('获取磁盘信息失败:', error.message)
         return []
       }
     }
@@ -685,7 +685,7 @@ module.exports = (httpServer) => {
 
         return stats
       } catch (error) {
-        consola.error('parseNetworkStats 失败:', error.message)
+        logger.error('parseNetworkStats 失败:', error.message)
         return null
       }
     }
@@ -785,11 +785,11 @@ module.exports = (httpServer) => {
 
         return netstatInfo
       } catch (error) {
-        consola.error('获取网络信息失败:', error.message)
+        logger.error('获取网络信息失败:', error.message)
 
         // 检查是否是关键错误
         if (isServerCriticalError(error.message)) {
-          consola.error(`执行命令失败：cat /proc/net/dev: ${ error.message }`)
+          logger.error(`执行命令失败：cat /proc/net/dev: ${ error.message }`)
           return { total: { inputMb: '0.000', outputMb: '0.000' } }
         }
 
@@ -817,7 +817,7 @@ module.exports = (httpServer) => {
         try {
           hostname = await executeCommand('hostname') || 'Unknown'
         } catch (e) {
-          consola.warn('获取hostname失败:', e.message)
+          logger.warn('获取hostname失败:', e.message)
         }
 
         // 通过读取 /etc/os-release 文件获取操作系统信息
@@ -850,18 +850,18 @@ module.exports = (httpServer) => {
             }
           })
         } catch (e) {
-          consola.warn('读取 /etc/os-release 失败，尝试使用 uname 命令:', e.message)
+          logger.warn('读取 /etc/os-release 失败，尝试使用 uname 命令:', e.message)
           // 如果读取 /etc/os-release 失败，回退到 uname 命令
           try {
             type = await executeCommand('uname -s') || 'Linux'
           } catch (e2) {
-            consola.warn('获取系统类型失败:', e2.message)
+            logger.warn('获取系统类型失败:', e2.message)
           }
 
           try {
             release = await executeCommand('uname -r') || 'Unknown'
           } catch (e2) {
-            consola.warn('获取系统版本失败:', e2.message)
+            logger.warn('获取系统版本失败:', e2.message)
           }
         }
 
@@ -869,7 +869,7 @@ module.exports = (httpServer) => {
         try {
           arch = await executeCommand('uname -m') || 'Unknown'
         } catch (e) {
-          consola.warn('获取系统架构失败:', e.message)
+          logger.warn('获取系统架构失败:', e.message)
         }
 
         const staticInfo = {
@@ -884,7 +884,7 @@ module.exports = (httpServer) => {
         staticSystemInfo.osInfo = staticInfo
         return staticInfo
       } catch (error) {
-        consola.error('获取静态系统信息失败:', error.message)
+        logger.error('获取静态系统信息失败:', error.message)
         staticSystemInfo.osInfo = defaultStaticInfo
         return defaultStaticInfo
       }
@@ -902,11 +902,11 @@ module.exports = (httpServer) => {
           const uptimeStr = await executeCommand('cat /proc/uptime | cut -d" " -f1') || '0'
           uptime = parseFloat(uptimeStr) || 0
         } catch (e) {
-          consola.warn('获取系统运行时间失败:', e.message)
+          logger.warn('获取系统运行时间失败:', e.message)
 
           // 检查是否是关键错误
           if (isServerCriticalError(e.message)) {
-            consola.error(`执行命令失败：cat /proc/uptime: ${ e.message }`)
+            logger.error(`执行命令失败：cat /proc/uptime: ${ e.message }`)
             return { ...staticInfo, uptime: 0 }
           }
         }
@@ -916,7 +916,7 @@ module.exports = (httpServer) => {
           uptime
         }
       } catch (error) {
-        consola.error('获取系统信息失败:', error.message)
+        logger.error('获取系统信息失败:', error.message)
         return {
           hostname: 'Unknown',
           type: 'Linux',
@@ -935,7 +935,7 @@ module.exports = (httpServer) => {
         statusData.cpuInfo = cpuInfo
         statusData.connect = true // 标记连接状态
       } catch (error) {
-        consola.error('更新CPU信息失败:', error.message)
+        logger.error('更新CPU信息失败:', error.message)
         statusData.cpuInfo = {}
       }
     }
@@ -948,7 +948,7 @@ module.exports = (httpServer) => {
         statusData.swapInfo = swapInfo
         statusData.connect = true
       } catch (error) {
-        consola.error('更新内存信息失败:', error.message)
+        logger.error('更新内存信息失败:', error.message)
         statusData.memInfo = {}
         statusData.swapInfo = {}
       }
@@ -961,7 +961,7 @@ module.exports = (httpServer) => {
         statusData.drivesInfo = drives
         statusData.connect = true
       } catch (error) {
-        consola.error('更新磁盘信息失败:', error.message)
+        logger.error('更新磁盘信息失败:', error.message)
         statusData.drivesInfo = []
       }
     }
@@ -973,7 +973,7 @@ module.exports = (httpServer) => {
         statusData.netstatInfo = netstatInfo
         statusData.connect = true
       } catch (error) {
-        consola.error('更新网络信息失败:', error.message)
+        logger.error('更新网络信息失败:', error.message)
         statusData.netstatInfo = {}
       }
     }
@@ -985,7 +985,7 @@ module.exports = (httpServer) => {
         statusData.osInfo = osInfo
         statusData.connect = true
       } catch (error) {
-        consola.error('更新系统信息失败:', error.message)
+        logger.error('更新系统信息失败:', error.message)
         statusData.osInfo = {}
       }
     }
@@ -1013,7 +1013,7 @@ module.exports = (httpServer) => {
         }
 
       } catch (error) {
-        consola.error('更新服务器状态过程中出错:', error.message)
+        logger.error('更新服务器状态过程中出错:', error.message)
         statusData.connect = false
       }
     }
@@ -1026,7 +1026,7 @@ module.exports = (httpServer) => {
           // 更新全局statusData
           await updateServerStatus()
         } catch (error) {
-          consola.error('数据收集过程中出错:', error.message)
+          logger.error('数据收集过程中出错:', error.message)
         }
       }
 
@@ -1042,7 +1042,7 @@ module.exports = (httpServer) => {
             }
           }
         } catch (error) {
-          consola.error('数据发送过程中出错:', error.message)
+          logger.error('数据发送过程中出错:', error.message)
         }
       }
 
@@ -1071,7 +1071,7 @@ module.exports = (httpServer) => {
         cleanupResources('socket断开')
       }
 
-      consola.info(`server-status websocket 连接断开: ${ reason } - 当前连接数: ${ connectionCount }`)
+      logger.info(`server-status websocket 连接断开: ${ reason } - 当前连接数: ${ connectionCount }`)
     })
   })
 }

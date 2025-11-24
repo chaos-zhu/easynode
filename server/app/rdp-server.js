@@ -30,18 +30,18 @@ const startRdpServer = () => {
     const guacamole = new GuacamoleLite(websocketOptions, guacdOptions, clientOptions)
 
     guacamole.on('connection', () => {
-      consola.success('✔ RDP guacamole连接成功')
+      logger.info('✔ RDP guacamole连接成功')
     })
 
     guacamole.on('error', (err) => {
-      consola.error('❌ RDP guacamole连接错误', err)
+      logger.error('❌ RDP guacamole连接错误', err)
     })
 
     rdpServer.listen(RDP_PORT, () => {
-      consola.success(`RDP服务运行在端口: ${ RDP_PORT }`)
+      logger.info(`RDP服务运行在端口: ${ RDP_PORT }`)
     })
   } catch (error) {
-    consola.error('❌ RDP 初始化失败:', error.message)
+    logger.error('❌ RDP 初始化失败:', error.message)
   }
 }
 

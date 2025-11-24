@@ -5,7 +5,7 @@ const { HostListDB } = require('../utils/db-class')
 const hostListDB = new HostListDB().getInstance()
 
 const expiredNotifyJob = async () => {
-  consola.info('=====开始检测服务器到期时间=====', new Date())
+  logger.info('=====开始检测服务器到期时间=====', new Date())
   const hostList = await hostListDB.findAsync({})
   for (const item of hostList) {
     if (!item.expiredNotify) continue

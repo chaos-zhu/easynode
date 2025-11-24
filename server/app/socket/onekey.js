@@ -112,7 +112,7 @@ module.exports = (httpServer) => {
       socket.disconnect()
       return
     }
-    consola.success('onekey-terminal websocket 已连接')
+    logger.info('onekey-terminal websocket 已连接')
     if (isExecuting) {
       socket.emit('create_fail', '正在执行中, 请稍后再试')
       socket.disconnect()
@@ -157,19 +157,19 @@ module.exports = (httpServer) => {
               return
             }
 
-            consola.info('准备连接终端执行一次性指令：', host)
-            consola.log('连接信息', { username: targetConnectionOptions.username, port: targetConnectionOptions.port, authType: hostInfo.authType })
+            logger.info('准备连接终端执行一次性指令：', host)
+            logger.info('连接信息', { username: targetConnectionOptions.username, port: targetConnectionOptions.port, authType: hostInfo.authType })
 
             let sshClient = new SSHClient()
             execClient.push(sshClient)
             sshClient
               .on('ready', () => {
-                consola.success('连接终端成功：', host)
+                logger.info('连接终端成功：', host)
                 execShell(socket, sshClient, curRes, resolve)
               })
               .on('error', (err) => {
                 console.log(err)
-                consola.error('onekey终端连接失败:', err.level)
+                logger.error('onekey终端连接失败:', err.level)
                 curRes.status = execStatusEnum.connectFail
                 curRes.result += err.message
                 socket.emit('output', execResult)
@@ -185,7 +185,7 @@ module.exports = (httpServer) => {
                 ...targetConnectionOptions
               })
           } catch (err) {
-            consola.error('创建终端错误:', err.message)
+            logger.error('创建终端错误:', err.message)
             curRes.status = execStatusEnum.connectFail
             curRes.result += err.message
             socket.emit('output', execResult)
@@ -197,11 +197,11 @@ module.exports = (httpServer) => {
       })
       try {
         await Promise.all(execPromise)
-        consola.success('onekey执行完成')
+        logger.info('onekey执行完成')
         socket.emit('exec_complete')
         sendNoticeAsync('onekey_complete', '批量指令执行完成', '请登录面板查看执行结果')
       } catch (error) {
-        consola.error('onekey执行超时:', error)
+        logger.error('onekey执行超时:', error)
         const { connecting, executing } = execStatusEnum
         execResult.forEach(item => {
           // 连接中和执行中的状态变更为超时状态
@@ -218,7 +218,7 @@ module.exports = (httpServer) => {
     })
 
     socket.on('disconnect', async (reason) => {
-      consola.info('onekey终端连接断开:', reason)
+      logger.info('onekey终端连接断开:', reason)
       disconnectAllExecClient()
       const { execSuccess, connectFail, execFail, execTimeout } = execStatusEnum
       execResult.forEach(item => {

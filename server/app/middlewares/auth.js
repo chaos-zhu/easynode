@@ -5,11 +5,11 @@ let whitePath = [
   '/login',
   '/get-pub-pem'
 ].map(item => (apiPrefix + item))
-consola.info('路由白名单：', whitePath)
+logger.warn('路由白名单：', whitePath)
 
 const useAuth = async ({ request, res }, next) => {
   const { path, headers: { token, uid } } = request
-  // consola.info('verify path: ', path)
+  logger.info('verify path: ', path)
   if (whitePath.includes(path)) return next()
   if (!token) return res.fail({ msg: '未登录(token)', status: 401 })
   if (!uid) return res.fail({ msg: '未登录(uid)', status: 401 })
@@ -23,7 +23,7 @@ const useAuth = async ({ request, res }, next) => {
     case enumLoginCode.ERROR_TOKEN:
       return res.fail({ msg: 'TOKEN校验失败, 请重新登录', status: 401 })
     case enumLoginCode.ERROR_UID:
-      consola.warn('用户id校验失败(可能存在外部攻击): ', path)
+      logger.error('用户id校验失败(可能存在外部攻击): ', path)
       return res.fail({ msg: 'UID错误!!!', status: 403 })
   }
 }

@@ -10,7 +10,7 @@ async function initKeyDB() {
     const { _id, ipWhiteList = [] } = keyData
     let allowedIPs = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : []
     if (allowedIPs.length > 0) {
-      consola.info('[存在白名单IP环境变量,合并到本地数据库中]')
+      logger.info('[存在白名单IP环境变量,合并到本地数据库中]')
       allowedIPs = [...new Set([...ipWhiteList, ...allowedIPs])].filter(item => item)
       await keyDB.updateAsync({ _id }, { $set: { ipWhiteList: allowedIPs } })
     }
@@ -18,9 +18,9 @@ async function initKeyDB() {
       let { ipWhiteList = [] } = await keyDB.findOneAsync({})
       if (ipWhiteList.length > 0) global.ALLOWED_IPS = ipWhiteList
     } catch (error) {
-      consola.error('设置全局IP白名单失败:', error)
+      logger.error('设置全局IP白名单失败:', error)
     }
-    consola.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
+    logger.info('公私钥已存在[重新生成会导致已保存的ssh密钥信息失效]')
     return
   }
 
@@ -44,20 +44,19 @@ async function initKeyDB() {
   await keyDB.updateAsync({}, { $set: newConfig }, { upsert: true })
 
   // 在控制台打印随机生成的账号密码
-  consola.info('========================================')
-  consola.info('EasyNode 默认登录凭据 (请及时更改):')
-  consola.info(`用户名: ${ randomUsername }`)
-  consola.info(`密码: ${ randomPassword }`)
-  consola.info('========================================')
+  logger.info('========================================')
+  logger.info('EasyNode 默认登录凭据 (请及时更改):')
+  logger.info(`用户名: ${ randomUsername }`)
+  logger.info(`密码: ${ randomPassword }`)
+  logger.info('========================================')
 
-  consola.info('Task: 已生成新的非对称加密公私钥')
 }
 
 async function initGroupDB() {
   const groupDB = new GroupDB().getInstance()
   let count = await groupDB.countAsync({})
   if (count === 0) {
-    consola.log('初始化groupDB✔')
+    logger.info('初始化groupDB✔')
     const defaultData = [{ '_id': 'default', 'name': '默认分组', 'index': 0 }]
     return groupDB.insertAsync(defaultData)
   }
@@ -68,7 +67,7 @@ async function initNotifyDB() {
   const notifyDB = new NotifyDB().getInstance()
   let count = await notifyDB.countAsync({})
   if (count !== 0) return
-  consola.log('初始化notifyDB✔')
+  logger.info('初始化notifyDB✔')
   let defaultData = [{
     'type': 'login',
     'desc': '登录面板提醒',
@@ -100,7 +99,7 @@ async function initNotifyDB() {
 async function initNotifyConfigDB() {
   const notifyConfigDB = new NotifyConfigDB().getInstance()
   let notifyConfig = await notifyConfigDB.findOneAsync({})
-  consola.log('初始化NotifyConfigDB✔')
+  logger.info('初始化NotifyConfigDB✔')
   const defaultData = {
     type: 'sct',
     sct: {
@@ -128,7 +127,7 @@ async function initScriptGroupDB() {
   const scriptGroupDB = new ScriptGroupDB().getInstance()
   let count = await scriptGroupDB.countAsync({})
   if (count === 0) {
-    consola.log('初始化ScriptGroupDB✔')
+    logger.info('初始化ScriptGroupDB✔')
     const defaultData = [
       { '_id': 'default', 'name': '默认分组', 'index': 0 },
       { '_id': 'builtin', 'name': '内置脚本', 'index': -1 }

@@ -11,15 +11,15 @@ async function getLicenseInfo(key = '') {
   let ip = ''
   if (global.serverIp && (Date.now() - global.getServerIpLastTime) / 1000 / 60 < 60) {
     ip = global.serverIp
-    consola.log('get server ip by cache: ', ip)
+    logger.info('通过缓存获取服务器IP: ', ip)
   } else {
     ip = await getLocalNetIP()
     global.serverIp = ip
     global.getServerIpLastTime = Date.now()
-    consola.log('get server ip by net: ', ip)
+    logger.info('通过接口获取服务器IP: ', ip)
   }
   if (!ip) {
-    consola.error('activate plus failed: get public ip failed')
+    logger.error('😒激活PLUS功能失败: get public ip failed')
     global.serverIp = ''
     return { success: false, msg: 'get public ip failed' }
   }
@@ -33,7 +33,7 @@ async function getLicenseInfo(key = '') {
     const response = await requestWithFailover('/api/licenses/activate', requestOptions)
 
     if (!response.ok) {
-      consola.log('activate plus failed: ', response.status)
+      logger.info('😒激活PLUS功能失败: ', response.status)
       if (response.status === 403) {
         const errMsg = await response.json()
         throw { errMsg, clear: true }
@@ -45,7 +45,7 @@ async function getLicenseInfo(key = '') {
     if (success) {
       let { decryptKey, expiryDate, usedIPCount, maxIPs, usedIPs } = data
       decryptKey = await AESEncryptAsync(decryptKey)
-      consola.success('activate plus success')
+      logger.info('🎉PLUS功能激活成功')
       const plusData = { key, decryptKey, expiryDate, usedIPCount, maxIPs, usedIPs }
       let count = await plusDB.countAsync({})
       if (count === 0) {
@@ -56,10 +56,10 @@ async function getLicenseInfo(key = '') {
       }
       return { success: true, msg: '激活成功' }
     }
-    consola.error('activate plus failed: ', data)
+    logger.error('😒激活PLUS功能失败: ', data)
     return { success: false, msg: '激活失败' }
   } catch (error) {
-    consola.error(`activate plus failed: ${ error.message || error.errMsg?.message }`)
+    logger.error(`😒激活PLUS功能失败: ${ error.message || error.errMsg?.message }`)
     if (error.clear) {
       await plusDB.removeAsync({}, { multi: true })
     }
