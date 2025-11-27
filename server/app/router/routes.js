@@ -6,7 +6,7 @@ const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('..
 const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript, batchRemoveScript, importScript } = require('../controller/scripts')
 const { getScriptGroupList, addScriptGroup, removeScriptGroup, updateScriptGroup } = require('../controller/script-group')
 const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
-const { getLog, saveIpWhiteList, removeSomeLoginRecords } = require('../controller/log')
+const { getLog, saveIpWhiteList, removeSomeLoginRecords, removeLoginSid } = require('../controller/sessionLog')
 const { getAIConfig, saveAIConfig, getAIModels, getChatHistory, saveChatHistory, removeChatHistory } = require('../controller/chat')
 const { getProxyList, addProxy, updateProxy, removeProxy } = require('../controller/proxy')
 const { getTerminalConfig, saveTerminalConfig } = require('../controller/terminal-config')
@@ -278,6 +278,11 @@ const log = [
     method: 'delete',
     path: '/remove-some-login-records',
     controller: removeSomeLoginRecords
+  },
+  {
+    method: 'delete',
+    path: '/remove-login-sid/:id',
+    controller: removeLoginSid
   }
 ]
 

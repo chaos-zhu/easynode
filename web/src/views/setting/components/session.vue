@@ -23,6 +23,8 @@
       </el-button>
     </template>
   </el-alert>
+
+  <!-- table -->
   <el-table v-loading="loading" :data="loginRecordList">
     <el-table-column prop="ip" label="IP" />
     <el-table-column prop="address" label="地点" show-overflow-tooltip>
@@ -30,16 +32,45 @@
         <span style="letter-spacing: 2px;"> {{ scope.row.country }} {{ scope.row.city }} </span>
       </template>
     </el-table-column>
-    <el-table-column prop="date" label="时间" />
+    <el-table-column prop="agentInfo" label="设备信息" show-overflow-tooltip>
+      <template #default="scope">
+        <div style="letter-spacing: 2px;"> {{ scope.row.os }} </div>
+        <div style="letter-spacing: 2px;"> {{ scope.row.browser }} </div>
+      </template>
+    </el-table-column>
+    <el-table-column prop="create" label="登录时间" />
+    <el-table-column prop="expireAt" label="过期时间">
+      <template #default="{ row }">
+        {{ row.expireAt }}
+      </template>
+    </el-table-column>
+    <el-table-column label="状态">
+      <template #default="{ row }">
+        <el-tag v-if="row.isExpired" type="info" size="small">已过期</el-tag>
+        <el-tag v-if="row.revoked" type="warning" size="small">已注销</el-tag>
+        <el-tag v-else type="success" size="small">正常</el-tag>
+      </template>
+    </el-table-column>
     <el-table-column label="操作" width="200">
       <template #header>
         <el-button
-          type="danger"
+          type="info"
           size="small"
-          :loading="removeLoading"
+          :loading="removeLogLoading"
           @click="handleRemoveLogs"
         >
           移除一周前的登录日志
+        </el-button>
+      </template>
+      <template #default="{ row }">
+        <el-button
+          v-if="!row.isExpired && !row.revoked"
+          type="warning"
+          size="small"
+          :loading="removeSidLoading"
+          @click="handleRemoveSid(row.id)"
+        >
+          注销
         </el-button>
       </template>
     </el-table-column>
@@ -50,14 +81,16 @@
 import { ref, onMounted, getCurrentInstance, watch } from 'vue'
 import { InfoFilled } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
+import dayjs from 'dayjs'
 
-const { proxy: { $api, $tools, $message, $messageBox } } = getCurrentInstance()
+const { proxy: { $api, $message, $messageBox } } = getCurrentInstance()
 const route = useRoute()
 
 const loginRecordList = ref([])
 const loading = ref(false)
 const btnLoading = ref(false)
-const removeLoading = ref(false)
+const removeLogLoading = ref(false)
+const removeSidLoading = ref(false)
 const total = ref('')
 const allowedIPs = ref([])
 
@@ -75,7 +108,12 @@ const handleLookupLoginRecord = () => {
       total.value = list.length
       allowedIPs.value = ipWhiteList || []
       loginRecordList.value = list.map((item) => {
-        item.date = $tools.formatTimestamp(item.date)
+        item.create = dayjs(item.create).format('YYYY-MM-DD HH:mm:ss')
+        item.expireAt = dayjs(item.expireAt).format('YYYY-MM-DD HH:mm:ss')
+        item.isExpired = dayjs().isAfter(dayjs(item.expireAt))
+        const { agentInfo: { os, browser } } = item
+        item.browser = browser ? (browser.name + browser.version) : '--'
+        item.os = os ? (os.name + os.version) : '--'
         return item
       })
     })
@@ -103,7 +141,7 @@ const handleRemoveLogs = async () => {
     type: 'warning'
   })
     .then(async () => {
-      removeLoading.value = true
+      removeLogLoading.value = true
       try {
         const { msg } = await $api.removeSomeLoginRecords()
         handleLookupLoginRecord()
@@ -112,11 +150,28 @@ const handleRemoveLogs = async () => {
         console.error(error)
         $message.error('移除一周前的登录日志失败')
       } finally {
-        removeLoading.value = false
+        removeLogLoading.value = false
       }
     })
 }
 
+const handleRemoveSid = async (id) => {
+  $messageBox.confirm('确定要注销该设备登录凭证吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(async () => {
+      removeSidLoading.value = true
+      try {
+        const { msg } = await $api.removeLoginSid(id)
+        handleLookupLoginRecord()
+        $message.success(msg)
+      } finally {
+        removeSidLoading.value = false
+      }
+    })
+}
 onMounted(() => {
   handleLookupLoginRecord()
 })

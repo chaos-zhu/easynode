@@ -19,9 +19,11 @@ const useAuth = async ({ request, res }, next) => {
     case enumLoginCode.SUCCESS:
       return await next()
     case enumLoginCode.EXPIRES:
-      return res.fail({ msg: '登录态已过期, 请重新登录', status: 401 })
+      return res.fail({ msg: 'TOKEN已过期, 请重新登录', status: 403 })
     case enumLoginCode.ERROR_TOKEN:
-      return res.fail({ msg: 'TOKEN校验失败, 请重新登录', status: 401 })
+      return res.fail({ msg: 'TOKEN校验失败, 请重新登录', status: 403 })
+    case enumLoginCode.REVOKED_TOKEN:
+      return res.fail({ msg: 'TOKEN已被注销, 请重新登录', status: 403 })
     case enumLoginCode.ERROR_UID:
       logger.error('用户id校验失败(可能存在外部攻击): ', path)
       return res.fail({ msg: 'UID错误!!!', status: 403 })

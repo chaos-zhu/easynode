@@ -37,6 +37,23 @@ export const randomStr = (e) =>{
   return res
 }
 
+export const jwtExpireToTimestamp = (str) => {
+  const match = /^(\d+)([smhd])$/.exec(str)
+  if (!match) throw new Error('jwt过期格式错误，必须是 [xx]s / [xx]h / [xx]d')
+
+  const n = Number(match[1])
+  const unit = match[2]
+
+  const map = {
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000
+  }
+
+  return n * map[unit] + Date.now()
+}
+
 // rsa公钥加密
 export const RSAEncrypt = (text) => {
   const publicKey = localStorage.getItem('publicKey')

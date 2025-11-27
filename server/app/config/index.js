@@ -14,7 +14,6 @@ module.exports = {
   notifyDBPath: path.join(process.cwd(),'app/db/notify.db'),
   notifyConfigDBPath: path.join(process.cwd(),'app/db/notify-config.db'),
   onekeyDBPath: path.join(process.cwd(),'app/db/onekey.db'),
-  logDBPath: path.join(process.cwd(),'app/db/log.db'),
   plusDBPath: path.join(process.cwd(),'app/db/plus.db'),
   aiConfigDBPath: path.join(process.cwd(),'app/db/ai-config.db'),
   chatHistoryDBPath: path.join(process.cwd(),'app/db/chat-history.db'),
@@ -23,6 +22,7 @@ module.exports = {
   fileTransferDBPath: path.join(process.cwd(),'app/db/file-transfer.db'),
   terminalConfigDBPath: path.join(process.cwd(),'app/db/terminal-config.db'),
   serverListDBPath: path.join(process.cwd(),'app/db/server-list-config.db'),
+  sessionDBPath: path.join(process.cwd(),'app/db/session.db'),
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/db/logs'),

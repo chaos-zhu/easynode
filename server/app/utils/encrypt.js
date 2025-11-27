@@ -6,7 +6,7 @@ const keyDB = new KeyDB().getInstance()
 
 // rsa非对称 私钥解密
 const RSADecryptAsync = async (ciphertext) => {
-  if (!ciphertext) return
+  if (!ciphertext) return Promise.reject(new Error('ciphertext is empty'))
   let { privateKey } = await keyDB.findOneAsync({})
   privateKey = await AESDecryptAsync(privateKey) // 先解密私钥
   const rsakey = new NodeRSA(privateKey)
@@ -17,7 +17,7 @@ const RSADecryptAsync = async (ciphertext) => {
 
 // aes对称 加密(default commonKey)
 const AESEncryptAsync = async (text, key) => {
-  if (!text) return
+  if (!text) return Promise.reject(new Error('text is empty'))
   let { commonKey } = await keyDB.findOneAsync({})
   let ciphertext = CryptoJS.AES.encrypt(text, key || commonKey).toString()
   return ciphertext
@@ -25,7 +25,7 @@ const AESEncryptAsync = async (text, key) => {
 
 // aes对称 解密(default commonKey)
 const AESDecryptAsync = async (ciphertext, key) => {
-  if (!ciphertext) return
+  if (!ciphertext) return Promise.reject(new Error('ciphertext is empty'))
   let { commonKey } = await keyDB.findOneAsync({})
   let bytes = CryptoJS.AES.decrypt(ciphertext, key || commonKey)
   let originalText = bytes.toString(CryptoJS.enc.Utf8)

@@ -9,7 +9,6 @@ const {
   scriptsDBPath,
   scriptGroupDBPath,
   onekeyDBPath,
-  logDBPath,
   plusDBPath,
   aiConfigDBPath,
   chatHistoryDBPath,
@@ -17,7 +16,8 @@ const {
   proxyDBPath,
   fileTransferDBPath,
   terminalConfigDBPath,
-  serverListDBPath
+  serverListDBPath,
+  sessionDBPath
 } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
@@ -127,18 +127,6 @@ module.exports.OnekeyDB = class OnekeyDB {
   }
 }
 
-module.exports.LogDB = class LogDB {
-  constructor() {
-    if (!LogDB.instance) {
-      LogDB.instance = new Datastore({ filename: logDBPath, autoload: true })
-      // LogDB.instance.setAutocompactionInterval(5000)
-    }
-  }
-  getInstance() {
-    return LogDB.instance
-  }
-}
-
 module.exports.PlusDB = class PlusDB {
   constructor() {
     if (!PlusDB.instance) {
@@ -224,5 +212,16 @@ module.exports.ServerListDB = class ServerListDB {
   }
   getInstance() {
     return ServerListDB.instance
+  }
+}
+
+module.exports.SessionDB = class SessionDB {
+  constructor() {
+    if (!SessionDB.instance) {
+      SessionDB.instance = new Datastore({ filename: sessionDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return SessionDB.instance
   }
 }

@@ -4,8 +4,8 @@
       <el-tab-pane label="修改密码" name="user">
         <User />
       </el-tab-pane>
-      <el-tab-pane label="登录日志" name="record" lazy>
-        <Record />
+      <el-tab-pane label="登录管理" name="session" lazy>
+        <Session />
       </el-tab-pane>
       <el-tab-pane label="通知配置" name="notify">
         <Notify />
@@ -23,7 +23,7 @@
 <script setup>
 import { watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import Record from './components/record.vue'
+import Session from './components/session.vue'
 import User from './components/user.vue'
 import Notify from './components/notify.vue'
 import UserPlus from './components/user-plus.vue'

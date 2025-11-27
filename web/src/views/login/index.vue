@@ -82,7 +82,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
-import { RSAEncrypt } from '@utils/index.js'
+import { RSAEncrypt, jwtExpireToTimestamp } from '@utils/index.js'
 import { version } from '../../../package.json'
 
 const { proxy: { $store, $api, $message, $router, $messageBox } } = getCurrentInstance()
@@ -128,11 +128,12 @@ const handleLogin = () => {
         jwtExpires = '7d'
         break
     }
+    const jwtExpireAt = jwtExpireToTimestamp(jwtExpires)
     const ciphertext = RSAEncrypt(pwd)
     if (ciphertext === -1) return $message.error({ message: '公钥加载失败', center: true })
     loading.value = true
     try {
-      let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, mfa2Token })
+      let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, jwtExpireAt, mfa2Token })
       const { token, uid } = data
       $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
       $store.setUser(loginName, uid)
@@ -164,7 +165,6 @@ const handleLogin = () => {
 }
 
 onMounted(async () => {
-  if (localStorage.getItem('jwtExpires')) loginForm.jwtExpires = Number(localStorage.getItem('jwtExpires'))
   const { data } = await $api.getPubPem()
   if (!data) {
     notKey.value = true

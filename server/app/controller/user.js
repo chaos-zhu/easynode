@@ -2,15 +2,17 @@ const jwt = require('jsonwebtoken')
 const axios = require('axios')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
+const uap = require('ua-parser-js')
+const { v4: uuidv4 } = require('uuid')
 const version = require('../../package.json').version
 const getLicenseInfo = require('../utils/get-plus')
 const { sendNoticeAsync } = require('../utils/notify')
 const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt } = require('../utils/encrypt')
 const { getNetIPInfo, requestWithFailover } = require('../utils/tools')
-const { KeyDB, LogDB, PlusDB } = require('../utils/db-class')
+const { KeyDB, PlusDB, SessionDB } = require('../utils/db-class')
 
 const keyDB = new KeyDB().getInstance()
-const logDB = new LogDB().getInstance()
+const sessionDB = new SessionDB().getInstance()
 const plusDB = new PlusDB().getInstance()
 
 const getpublicKey = async ({ res }) => {
@@ -28,8 +30,8 @@ let loginCountDown = forbidTimer
 let forbidLogin = false
 
 const login = async ({ res, request }) => {
-  let { body: { loginName, ciphertext, jwtExpires, mfa2Token }, ip: clientIp } = request
-  if (!loginName && !ciphertext) return res.fail({ msg: '请求非法!' })
+  let { body: { loginName, ciphertext, jwtExpires, jwtExpireAt, mfa2Token }, ip: clientIp, header } = request
+  if (!loginName || !ciphertext || !jwtExpires || !jwtExpireAt || !header) return res.fail({ msg: '请求非法!' })
   if (forbidLogin) return res.fail({ msg: `禁止登录! 倒计时[${ loginCountDown }s]后尝试登录或重启面板服务` })
   loginErrCount++
   loginErrTotal++
@@ -71,32 +73,31 @@ const login = async ({ res, request }) => {
     loginPwd = SHA1Encrypt(loginPwd)
     if (loginName !== user || loginPwd !== pwd) return res.fail({ msg: `用户名或密码错误 ${ loginErrTotal }/${ allowErrCount }` })
 
-    const token = await beforeLoginHandler(clientIp, jwtExpires)
-    return res.success({ data: { token, uid: _id, jwtExpires }, msg: '登录成功' })
+    const token = await beforeLoginHandler(clientIp, jwtExpires, jwtExpireAt, uap(header?.['user-agent'] || ''))
+    return res.success({ data: { token, uid: _id }, msg: '登录成功' })
   } catch (error) {
     console.log('登录失败：', error.message)
     res.fail({ msg: '登录失败, 请查看服务端日志' })
   }
 }
 
-const beforeLoginHandler = async (clientIp, jwtExpires) => {
+const beforeLoginHandler = async (clientIp, jwtExpires, jwtExpireAt, agentInfo) => {
   loginErrCount = loginErrTotal = 0 // 登录成功, 清空错误次数
+  const sessionId = uuidv4()
 
   logger.info('登录成功, 准备生成token')
-  // 生产token
   let { commonKey, user } = await keyDB.findOneAsync({})
-  let token = jwt.sign({ date: Date.now() }, `${ user }-${ commonKey }`, { expiresIn: jwtExpires }) // 生成token
+  let token = jwt.sign({ create: Date.now(), sid: sessionId }, `${ commonKey }-${ user }`, { expiresIn: jwtExpires })
   token = await AESEncryptAsync(token) // 对称加密token后再传输给前端
 
-  // 记录客户端登录IP(用于判断是否异地且只保留最近10次)
   const clientIPInfo = await getNetIPInfo(clientIp)
   const { ip, country, city } = clientIPInfo || {}
-  logger.info('登录成功:', new Date(), { ip, country, city })
+  logger.info('登录成功:', { ip, country, city, agentInfo })
 
   // 登录通知
-  sendNoticeAsync('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }`)
+  sendNoticeAsync('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }\n设备信息: ${ agentInfo?.browser?.name } ${ agentInfo?.os?.name }`)
 
-  await logDB.insertAsync({ ip, country, city, date: Date.now(), type: 'login' })
+  await sessionDB.insertAsync({ sid: sessionId, revoked: false, ip, country, city, agentInfo, create: Date.now(), expireAt: jwtExpireAt })
   return token
 }
 
