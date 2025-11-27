@@ -54,7 +54,7 @@
     "ssh2": "^1.15.0",
     "ssh2-sftp-client": "^10.0.3",
     "ua-parser-js": "^2.0.6",
-    "uuid": "^13.0.0"
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "eslint": "^8.56.0",
