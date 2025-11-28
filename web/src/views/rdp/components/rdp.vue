@@ -62,6 +62,7 @@
             {{ isConnecting ? '连接中' : '重连' }}
           </el-button>
           <el-button type="info" size="small" @click="moveToBackground"> 挂起 </el-button>
+          <el-button type="danger" size="small" @click="() => $emit('disconnect')"> 断开 </el-button>
           <el-button
             v-show="isMobile()"
             type="success"
@@ -148,7 +149,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close:dialog', 'status:change',])
+const emit = defineEmits(['close:dialog', 'status:change', 'disconnect',])
 
 const rdpContainer = ref(null)
 let client = ref(null)

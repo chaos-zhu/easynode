@@ -34,6 +34,7 @@
           :host="item"
           @close:dialog="() => item.show = false"
           @status:change="(status) => handleStatusChange(item.id, status)"
+          @disconnect="() => handleRemoveRdpTab(item)"
         />
       </div>
     </div>
