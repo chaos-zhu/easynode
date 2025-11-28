@@ -16,6 +16,7 @@ const useStore = defineStore('global', {
     user: localStorage.getItem('user') || null,
     token: localStorage.getItem('token') || sessionStorage.getItem('token') || null,
     uid: localStorage.getItem('uid') || sessionStorage.getItem('uid') || null,
+    deviceId: localStorage.getItem('deviceId') || null,
     title: '',
     isDark: false,
     menuPosition: localStorage.getItem('menuPosition') || 'left', // left | top
@@ -87,21 +88,31 @@ const useStore = defineStore('global', {
       else localStorage.setItem('token', token)
       this.$patch({ token })
     },
-    async setUser(username, uid) {
+    async setUser(username, uid, deviceId) {
       localStorage.setItem('user', username)
       localStorage.setItem('uid', uid)
-      this.$patch({ user: username, uid })
+      localStorage.setItem('deviceId', deviceId)
+      this.$patch({ user: username, uid, deviceId })
     },
     async setTitle(title) {
       this.$patch({ title })
     },
-    async removeLoginInfo() {
-      localStorage.removeItem('token')
-      sessionStorage.removeItem('token')
-      sessionStorage.removeItem('uid')
-      localStorage.removeItem('uid')
-      localStorage.removeItem('user')
-      this.$patch({ token: null, uid: null, user: null })
+    async removeLoginInfo(removeSession = false) {
+      try {
+        if (removeSession && this.deviceId) {
+          await $api.removeLoginSid(this.deviceId)
+        }
+      } catch (err) {
+        console.error('注销登录凭证失败: ', err.message)
+      } finally {
+        localStorage.removeItem('token')
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('uid')
+        localStorage.removeItem('uid')
+        localStorage.removeItem('user')
+        localStorage.removeItem('deviceId')
+        this.$patch({ token: null, uid: null, user: null, deviceId: null })
+      }
     },
     async getMainData() {
       await this.getGroupList()

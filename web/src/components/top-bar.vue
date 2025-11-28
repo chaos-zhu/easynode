@@ -156,10 +156,13 @@ const handleCollapse = () => {
   menuCollapse.value = !menuCollapse.value
 }
 
-const handleLogout = () => {
-  $store.removeLoginInfo()
-  $message({ type: 'success', message: '已安全退出', center: true })
-  $router.push('/login')
+const handleLogout = async () => {
+  try {
+    await $store.removeLoginInfo(true)
+  } finally {
+    $message({ type: 'success', message: '已安全退出', center: true })
+    $router.push('/login')
+  }
 }
 
 const gotoPlusPage = () => {

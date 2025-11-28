@@ -134,9 +134,9 @@ const handleLogin = () => {
     loading.value = true
     try {
       let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, jwtExpireAt, mfa2Token })
-      const { token, uid } = data
+      const { token, uid, deviceId } = data
       $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
-      $store.setUser(loginName, uid)
+      $store.setUser(loginName, uid, deviceId)
       $message.success({ message: msg || 'success', center: true })
       if (isHttps) return $router.push('/')
       if (notHttpsTips) return $router.push('/')
@@ -168,7 +168,8 @@ onMounted(async () => {
   const { data } = await $api.getPubPem()
   if (!data) {
     notKey.value = true
-    return}
+    return
+  }
   localStorage.setItem('publicKey', data)
   $store.removeLoginInfo()
 })

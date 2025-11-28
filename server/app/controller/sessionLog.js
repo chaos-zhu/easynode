@@ -32,7 +32,13 @@ const removeSomeLoginRecords = async ({ res }) => {
 
 const removeLoginSid = async ({ res, request }) => {
   let { params: { id } } = request
-  await sessionDB.updateAsync({ _id: id }, { $set: { revoked: true } })
+  let result = await sessionDB.updateAsync({
+    $or: [
+      { _id: id },
+      { deviceId: id }
+    ]
+  }, { $set: { revoked: true } })
+  if (!result || !result.numAffected) return res.fail({ msg: '注销凭证失败' })
   res.success({ msg: '注销凭证成功' })
 }
 

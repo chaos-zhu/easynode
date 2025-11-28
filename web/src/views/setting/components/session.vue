@@ -27,19 +27,36 @@
   <!-- table -->
   <el-table v-loading="loading" :data="loginRecordList">
     <el-table-column prop="ip" label="IP" />
-    <el-table-column prop="address" label="地点" show-overflow-tooltip>
+    <el-table-column
+      prop="address"
+      label="地点"
+      min-width="126"
+      show-overflow-tooltip
+    >
       <template #default="scope">
         <span style="letter-spacing: 2px;"> {{ scope.row.country }} {{ scope.row.city }} </span>
       </template>
     </el-table-column>
-    <el-table-column prop="agentInfo" label="设备信息" show-overflow-tooltip>
+    <el-table-column
+      prop="agentInfo"
+      label="设备信息"
+      min-width="126"
+      show-overflow-tooltip
+    >
       <template #default="scope">
         <div style="letter-spacing: 2px;"> {{ scope.row.os }} </div>
         <div style="letter-spacing: 2px;"> {{ scope.row.browser }} </div>
+        <el-tag
+          v-if="scope.row.deviceId === deviceId"
+          type="success"
+          size="small"
+        >
+          当前设备
+        </el-tag>
       </template>
     </el-table-column>
-    <el-table-column prop="create" label="登录时间" />
-    <el-table-column prop="expireAt" label="过期时间">
+    <el-table-column prop="create" label="登录时间" min-width="126" />
+    <el-table-column prop="expireAt" label="过期时间" min-width="126">
       <template #default="{ row }">
         {{ row.expireAt }}
       </template>
@@ -47,7 +64,7 @@
     <el-table-column label="状态">
       <template #default="{ row }">
         <el-tag v-if="row.isExpired" type="info" size="small">已过期</el-tag>
-        <el-tag v-if="row.revoked" type="warning" size="small">已注销</el-tag>
+        <el-tag v-else-if="row.revoked" type="warning" size="small">已注销</el-tag>
         <el-tag v-else type="success" size="small">正常</el-tag>
       </template>
     </el-table-column>
@@ -78,12 +95,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, getCurrentInstance, watch } from 'vue'
+import { ref, onMounted, getCurrentInstance, watch, computed } from 'vue'
 import { InfoFilled } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 
-const { proxy: { $api, $message, $messageBox } } = getCurrentInstance()
+const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
 const route = useRoute()
 
 const loginRecordList = ref([])
@@ -93,6 +110,7 @@ const removeLogLoading = ref(false)
 const removeSidLoading = ref(false)
 const total = ref('')
 const allowedIPs = ref([])
+const deviceId = computed(() => $store.deviceId)
 
 watch(() => route.query.refresh, (newVal) => {
   if (newVal) {

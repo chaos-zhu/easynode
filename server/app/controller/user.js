@@ -73,8 +73,8 @@ const login = async ({ res, request }) => {
     loginPwd = SHA1Encrypt(loginPwd)
     if (loginName !== user || loginPwd !== pwd) return res.fail({ msg: `用户名或密码错误 ${ loginErrTotal }/${ allowErrCount }` })
 
-    const token = await beforeLoginHandler(clientIp, jwtExpires, jwtExpireAt, uap(header?.['user-agent'] || ''))
-    return res.success({ data: { token, uid: _id }, msg: '登录成功' })
+    const { token, deviceId } = await beforeLoginHandler(clientIp, jwtExpires, jwtExpireAt, uap(header?.['user-agent'] || ''))
+    return res.success({ data: { token, uid: _id, deviceId }, msg: '登录成功' })
   } catch (error) {
     console.log('登录失败：', error.message)
     res.fail({ msg: '登录失败, 请查看服务端日志' })
@@ -84,8 +84,7 @@ const login = async ({ res, request }) => {
 const beforeLoginHandler = async (clientIp, jwtExpires, jwtExpireAt, agentInfo) => {
   loginErrCount = loginErrTotal = 0 // 登录成功, 清空错误次数
   const sessionId = uuidv4()
-
-  logger.info('登录成功, 准备生成token')
+  const deviceId = uuidv4()
   let { commonKey, user } = await keyDB.findOneAsync({})
   let token = jwt.sign({ create: Date.now(), sid: sessionId }, `${ commonKey }-${ user }`, { expiresIn: jwtExpires })
   token = await AESEncryptAsync(token) // 对称加密token后再传输给前端
@@ -97,8 +96,8 @@ const beforeLoginHandler = async (clientIp, jwtExpires, jwtExpireAt, agentInfo) 
   // 登录通知
   sendNoticeAsync('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }\n设备信息: ${ agentInfo?.browser?.name } ${ agentInfo?.os?.name }`)
 
-  await sessionDB.insertAsync({ sid: sessionId, revoked: false, ip, country, city, agentInfo, create: Date.now(), expireAt: jwtExpireAt })
-  return token
+  await sessionDB.insertAsync({ sid: sessionId, deviceId, revoked: false, ip, country, city, agentInfo, create: Date.now(), expireAt: jwtExpireAt })
+  return { token, deviceId }
 }
 
 const updatePwd = async ({ res, request }) => {
