@@ -60,7 +60,7 @@ _✨ 一个多功能Linux服务器WEB终端面板(webSSH&webSFTP) ✨_
 
 ### docker-compose部署-自动更新（推荐）
 
-部署本项目的[docker-compose.yml](https://github.com/chaos-zhu/easynode/blob/main/docker-compose.yml)默认采用[docker.1ms.run加速镜像](https://1ms.run/)，如发现服务不可用请自行替换或移除加速
+部署本项目的[docker-compose.yml](https://github.com/chaos-zhu/easynode/blob/main/docker-compose.yml)默认采用[腾讯云CNB自动构建镜像](https://cnb.cool/chaoszhu/easynode)，如发现服务不可用请自行替换或移除加速
 ```shell
 # docker compose快速部署
 
@@ -130,6 +130,7 @@ CDN acceleration and security protection for this project are sponsored by Tence
 
 
 ![Image](https://github.com/user-attachments/assets/a50409e4-9394-4a59-a125-18ffe64c5fb0) [![image](https://img.shields.io/badge/NodeSupport-YXVM-red)](https://yxvm.com/)
+
 
 
 
