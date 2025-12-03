@@ -48,6 +48,33 @@
               <el-option label="自适应" value="adaptive" />
               <el-option label="自定义" value="custom" @click="handleCustomOptionClick" />
             </el-select>
+            <el-select
+              v-model="qualityLevel"
+              class="quality_select"
+              size="small"
+              :disabled="isConnecting"
+              placeholder="清晰度"
+              @change="handleQualityChange"
+            >
+              <el-option label="流畅" value="low">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <span>流畅</span>
+                  <span style="color: var(--el-text-color-secondary); font-size: 12px;">省流</span>
+                </span>
+              </el-option>
+              <el-option label="清晰" value="medium">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <span>清晰</span>
+                  <span style="color: var(--el-text-color-secondary); font-size: 12px;">均衡</span>
+                </span>
+              </el-option>
+              <el-option label="高清" value="high">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <span>高清</span>
+                  <span style="color: var(--el-text-color-secondary); font-size: 12px;">高带宽</span>
+                </span>
+              </el-option>
+            </el-select>
           </div>
         </div>
 
@@ -178,12 +205,16 @@ const getCachedDisplayConfig = () => {
   return {
     mode: 'adaptive',
     customWidth: '1366',
-    customHeight: '768'
+    customHeight: '768',
+    quality: 'medium' // 默认清晰度：清晰（均衡）
   }
 }
 
 // 显示模式：maximize(最大化)、adaptive(自适应)、custom(自定义)
 const displayMode = ref(isMobile() ? 'maximize' : 'adaptive')
+
+// 清晰度：low(流畅)、medium(清晰)、high(高清)
+const qualityLevel = ref('medium')
 
 // 自定义宽高
 const customWidth = ref('1366')
@@ -200,14 +231,18 @@ const initDisplayConfig = () => {
   displayMode.value = config.mode || (isMobile() ? 'maximize' : 'adaptive')
   customWidth.value = config.customWidth || '1366'
   customHeight.value = config.customHeight || '768'
+  qualityLevel.value = config.quality || 'medium'
 }
 
 initDisplayConfig()
 
 // 实际应用的配置
 const appliedConfig = ref({
-  width: '1366',
-  height: '768'
+  width: '1366', // RDP width（发给后端）
+  height: '768', // RDP height
+  cssWidth: 1366, // 前端 dialog / 容器用的宽
+  cssHeight: 768, // 前端 dialog / 容器用的高
+  scale: 1
 })
 
 // 浏览器可视区域限制
@@ -226,43 +261,67 @@ const saveDisplayConfigToCache = () => {
   const config = {
     mode: displayMode.value,
     customWidth: customWidth.value,
-    customHeight: customHeight.value
+    customHeight: customHeight.value,
+    quality: qualityLevel.value
   }
   localStorage.setItem('rdp_display_config', JSON.stringify(config))
 }
 
 // 根据显示模式计算实际宽高
 const calculateResolution = () => {
-  const maxW = maxWidth.value
-  const maxH = maxHeight.value
+  const maxCssW = maxWidth.value
+  const maxCssH = maxHeight.value
 
-  let width, height
+  let cssWidth, cssHeight
 
   switch (displayMode.value) {
     case 'maximize':
-      // 最大化：使用最大可用空间
-      width = maxW
-      height = maxH
+      // 最大化：用浏览器可视区域
+      cssWidth = maxCssW
+      cssHeight = maxCssH
       break
     case 'adaptive':
-      // 自适应：宽80%，高90%
-      width = Math.floor(maxW * 0.8)
-      height = Math.floor(maxH * 0.9)
+      // 自适应：宽 80%，高 90%
+      cssWidth = Math.floor(maxCssW * 0.8)
+      cssHeight = Math.floor(maxCssH * 0.9)
       break
     case 'custom':
-      // 自定义：使用用户设置的值
-      width = parseInt(customWidth.value) || 1366
-      height = parseInt(customHeight.value) || 768
-      // 确保不超过最大值
-      width = Math.min(width, maxW)
-      height = Math.min(height, maxH)
+      cssWidth = parseInt(customWidth.value) || 1366
+      cssHeight = parseInt(customHeight.value) || 768
+      cssWidth = Math.min(cssWidth, maxCssW)
+      cssHeight = Math.min(cssHeight, maxCssH)
       break
     default:
-      width = 1366
-      height = 768
+      cssWidth = 1366
+      cssHeight = 768
   }
+  // 真实 RDP 分辨率（物理像素）[自适应缩放]
+  // const rdpWidth = Math.floor(cssWidth * devicePixelRatio)
+  // const rdpHeight = Math.floor(cssHeight * devicePixelRatio)
 
-  return { width, height }
+  // 1:1 显示，不做缩放（缩放会导致模糊）
+  const rdpWidth = cssWidth
+  const rdpHeight = cssHeight
+
+  // 高清模式：传递实际 DPI 让 Windows 自己渲染高清字体
+  const dpi = qualityLevel.value === 'high' ? Math.round(96 * (window.devicePixelRatio || 1)) : 96
+
+  return {
+    cssWidth,
+    cssHeight,
+    rdpWidth,
+    rdpHeight,
+    // scale: 1 / devicePixelRatio, // 自适应缩放
+    scale: 1, // 1:1 显示，不缩放
+    quality: qualityLevel.value,
+    dpi
+  }
+}
+
+// 清晰度变化处理
+const handleQualityChange = () => {
+  saveDisplayConfigToCache()
+  connectRdp()
 }
 
 // 显示模式变化处理
@@ -317,14 +376,13 @@ const cancelCustomSettings = () => {
 
 // 计算dialog的宽度和高度（基于实际应用的配置）
 const dialogWidth = computed(() => {
-  const rdpWidth = parseInt(appliedConfig.value.width) || 1366
-  // 考虑dialog的padding和边框，增加最小的必要空间
-  return rdpWidth + 'px'
+  const w = appliedConfig.value.cssWidth || 1366
+  return w + 'px'
 })
 
 const dialogBodyHeight = computed(() => {
-  const rdpHeight = parseInt(appliedConfig.value.height) || 768
-  return rdpHeight + 'px' // 为header和padding留出空间
+  const h = appliedConfig.value.cssHeight || 768
+  return h + 'px'
 })
 
 // 状态相关计算属性
@@ -368,8 +426,8 @@ const moveToBackground = () => {
 }
 
 const getRdpWsUrl = async () => {
-  const { width, height } = appliedConfig.value
-  const { data } = await $api.getRdpToken({ hostId: hostId.value, width, height })
+  const { width, height, quality, dpi } = appliedConfig.value
+  const { data } = await $api.getRdpToken({ hostId: hostId.value, width, height, quality, dpi })
   if (!data) return $message.error('获取RDP WS URL失败')
   const wsHost = $isDev ? `ws://${ location.hostname }:8082` : location.origin.replace('http', 'ws')
   return `${ wsHost }/rdp-proxy/guac?token=${ encodeURIComponent(data) }`
@@ -378,17 +436,21 @@ const getRdpWsUrl = async () => {
 const connectRdp = async () => {
   try {
     // 根据显示模式计算实际分辨率
-    const { width, height } = calculateResolution()
+    const { cssWidth, cssHeight, rdpWidth, rdpHeight, scale, quality, dpi } = calculateResolution()
 
     // 更新实际应用的配置
     appliedConfig.value = {
-      width: width.toString(),
-      height: height.toString()
+      width: String(rdpWidth),
+      height: String(rdpHeight),
+      cssWidth,
+      cssHeight,
+      scale,
+      quality,
+      dpi
     }
 
     // 保存到localStorage
     saveDisplayConfigToCache()
-
     // 清理之前的连接
     clearConnectionTimeout()
     disconnectRdp()
@@ -686,7 +748,8 @@ const onConnected = () => {
     const displayElement = display.getElement()
 
     // 重要：设置显示缩放为1:1，确保鼠标位置准确
-    display.scale(1.0)
+    const scale = appliedConfig.value.scale || 1
+    display.scale(scale)
 
     // 不要设置CSS尺寸，让Guacamole自己管理canvas尺寸
     displayElement.style.display = 'block'
@@ -698,7 +761,7 @@ const onConnected = () => {
   const displayElement = client.value.getDisplay().getElement()
   mouse = new Guacamole.Mouse(displayElement)
   mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = (e) => {
-    client.value.sendMouseState(e.state ?? e)
+    client.value.sendMouseState(e.state ?? e, true)
   }
 
   // 设置触摸事件（移动端支持）
@@ -739,7 +802,8 @@ const onConnected = () => {
   display.onresize = (width, height) => {
     console.log('RDP显示尺寸变化:', width, 'x', height)
     // 确保显示缩放始终为1:1
-    display.scale(1.0)
+    const scale = appliedConfig.value.scale || 1
+    display.scale(scale)
   }
 
   // 处理移动端键盘输入
@@ -888,6 +952,9 @@ defineExpose({
       align-items: center;
       gap: 8px;
       .display_mode_select {
+        width: 80px;
+      }
+      .quality_select {
         width: 80px;
       }
       .info_icon {
