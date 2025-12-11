@@ -10,7 +10,7 @@
 * 通知模块重构，支持webhook
 * 支持csv模板特定格式导入
 
-## [3.5.6](https://github.com/chaos-zhu/easynode/releases) (2025-12-11)
+## [3.5.5](https://github.com/chaos-zhu/easynode/releases) (2025-12-11)
 * win: 支持清晰度调整,添加断开按钮
 * 安全: 支持登录设备管理；优化日志打印；默认开启DEBUG
 * 底层组件升级
