@@ -10,7 +10,7 @@ services:
       - /root/easynode/db:/easynode/app/db
     environment:
       - TZ=Asia/Shanghai
-      - DEBUG=0
+      - DEBUG=true
       - GUACD_HOST=easynode-guacd
       - GUACD_PORT=4822
     depends_on:

@@ -26,6 +26,6 @@ module.exports = {
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/db/logs'),
-    DEBUG: process.env.DEBUG === '1' || process.env.DEBUG === 'true' // 是否记录日志
+    DEBUG: process.env.DEBUG !== 'false'
   }
 }

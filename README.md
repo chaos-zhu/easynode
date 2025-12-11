@@ -100,7 +100,7 @@ docker run -d \
 环境变量：
 - `GUACD_HOST`: 自建guacd服务IP
 - `GUACD_PORT`: 自建guacd服务PORT
-- `DEBUG`: 启动debug日志 0：关闭 1：开启, 默认关闭
+- `DEBUG`: 启动日志 false：关闭 true：开启, 默认开启
 
 注意: **docker默认不启用ipv6，请自行配置或者使用支持ipv6的跳板机中转.**
 

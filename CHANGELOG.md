@@ -10,6 +10,11 @@
 * 通知模块重构，支持webhook
 * 支持csv模板特定格式导入
 
+## [3.5.6](https://github.com/chaos-zhu/easynode/releases) (2025-12-11)
+* win: 支持清晰度调整,添加断开按钮
+* 安全: 支持登录设备管理；优化日志打印；默认开启DEBUG
+* 底层组件升级
+
 ## [3.5.4](https://github.com/chaos-zhu/easynode/releases) (2025-11-23)
 * docker：UI重构、卡片式展示docker容器、支持批量操作
 * SFTP：优化SFTP重连、支持右键菜单docker-compse文件操作、文件编辑支持自动检测编码
