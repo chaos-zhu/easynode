@@ -4,6 +4,7 @@ const SFTPClient = require('ssh2-sftp-client')
 const { Server } = require('socket.io')
 const iconv = require('iconv-lite')
 const chardet = require('chardet')
+const { v4: uuidv4 } = require('uuid')
 const { sftpCacheDir } = require('../config')
 const { verifyAuthSync } = require('../utils/verify-auth')
 const { isAllowedIp } = require('../utils/tools')
@@ -981,10 +982,9 @@ const listenAction = (sftpClient, socket) => {
         return
       }
 
-      // 生成缓存文件名（使用时间戳避免冲突）
+      // 生成缓存文件名（使用UUID避免猜测和冲突）
       const fileName = rawPath.basename(filePath)
-      const timestamp = Date.now()
-      const cacheFileName = `image_${ timestamp }_${ fileName }`
+      const cacheFileName = `${ uuidv4() }_${ fileName }`
       const localImagePath = rawPath.join(sftpCacheDir, cacheFileName)
 
       logger.info(`开始下载图片到缓存: ${ filePath } -> ${ localImagePath }`)
