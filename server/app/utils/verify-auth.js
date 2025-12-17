@@ -16,12 +16,11 @@ const enumLoginCode = {
 // 校验token&uid
 const verifyAuthSync = async (token, userId) => {
   try {
-    const { commonKey, user, _id: uid } = await keyDB.findOneAsync({ _id: userId })
+    const { jwtToken, user, _id: uid } = await keyDB.findOneAsync({ _id: userId })
     if (uid !== userId) return { code: enumLoginCode.ERROR_UID }
     token = await AESDecryptAsync(token)
-    const payload = jwt.verify(token, `${ commonKey }-${ user }`)
+    const payload = jwt.verify(token, `${ jwtToken }-${ user }`)
     const { sid } = payload
-    // console.log('sid:', sid) // TODO: 安全的移除uid校验(再考虑)
     const sessionRecord = await sessionDB.findOneAsync({ sid })
     if (!sessionRecord || sessionRecord.revoked) {
       return { code: enumLoginCode.REVOKED_TOKEN, success: false } // 被注销的token

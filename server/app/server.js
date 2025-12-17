@@ -10,7 +10,7 @@ const wsDocker = require('./socket/docker')
 const wsOnekey = require('./socket/onekey')
 const wsServerStatus = require('./socket/server-status')
 const wsFileTransfer = require('./socket/file-transfer')
-const { throwError } = require('./utils/tools')
+const { throwError, isAllowedIp } = require('./utils/tools')
 
 const httpServer = () => {
   const app = new Koa()
@@ -21,9 +21,31 @@ const httpServer = () => {
   const rdpProxy = createRdpProxyMiddleware()
 
   // 只处理WebSocket升级请求的代理（RDP只需要WebSocket）
+  // 安全说明：
+  // 1. RDP token 是通过 /get-rdp-token API 获取的，该 API 受 auth 中间件保护，只有登录用户才能获取
+  // 2. RDP token 由 guacamole-lite 使用 AES-256-CBC 加密，包含连接信息，guacamole-lite 会验证 token 有效性
+  // 3. 这里只需要验证 IP 白名单，防止 token 泄露后被非授权 IP 使用
   server.on('upgrade', (request, socket, head) => {
     if (request.url.startsWith('/rdp-proxy')) {
-      rdpProxy.upgrade(request, socket, head)
+      try {
+        // 验证 IP 白名单
+        const requestIP = request.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                          request.socket.remoteAddress
+        if (!isAllowedIp(requestIP)) {
+          logger.warn(`RDP 连接被拒绝: IP ${ requestIP } 不在白名单中`)
+          socket.write('HTTP/1.1 403 Forbidden\r\n\r\n')
+          socket.destroy()
+          return
+        }
+
+        // IP 验证通过，转发请求到 guacamole-lite
+        // guacamole-lite 会验证 URL 中的加密 token
+        rdpProxy.upgrade(request, socket, head)
+      } catch (error) {
+        logger.error('RDP 代理异常:', error.message)
+        socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n')
+        socket.destroy()
+      }
     }
   })
 

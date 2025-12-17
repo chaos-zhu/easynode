@@ -85,8 +85,9 @@ const beforeLoginHandler = async (clientIp, jwtExpires, jwtExpireAt, agentInfo) 
   loginErrCount = loginErrTotal = 0 // 登录成功, 清空错误次数
   const sessionId = uuidv4()
   const deviceId = uuidv4()
-  let { commonKey, user } = await keyDB.findOneAsync({})
-  let token = jwt.sign({ create: Date.now(), sid: sessionId }, `${ commonKey }-${ user }`, { expiresIn: jwtExpires })
+  let { jwtToken, user } = await keyDB.findOneAsync({})
+  if (!jwtToken || !user) throw new Error('加密串获取失败，请重启服务!')
+  let token = jwt.sign({ create: Date.now(), sid: sessionId }, `${ jwtToken }-${ user }`, { expiresIn: jwtExpires })
   token = await AESEncryptAsync(token) // 对称加密token后再传输给前端
 
   const clientIPInfo = await getNetIPInfo(clientIp)

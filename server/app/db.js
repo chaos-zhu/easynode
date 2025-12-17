@@ -6,6 +6,13 @@ const { KeyDB, GroupDB, NotifyDB, NotifyConfigDB, ScriptGroupDB } = require('./u
 async function initKeyDB() {
   const keyDB = new KeyDB().getInstance()
   let keyData = await keyDB.findOneAsync({})
+
+  if (!keyData?.jwtToken) {
+    logger.info('🔒初始化jwtToken')
+    const jwtToken = randomStr(32)
+    await keyDB.updateAsync({ _id: keyData._id }, { $set: { jwtToken } })
+  }
+
   if (keyData?.user) {
     const { _id, ipWhiteList = [] } = keyData
     let allowedIPs = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : []
@@ -30,7 +37,8 @@ async function initKeyDB() {
   let newConfig = {
     user: randomUsername,
     pwd: SHA1Encrypt(randomPassword),
-    commonKey: randomStr(16),
+    commonKey: randomStr(32),
+    jwtToken: randomStr(32),
     publicKey: '',
     privateKey: ''
   }

@@ -186,13 +186,11 @@ const isIP = (ip = '') => {
   return isIPv4.test(ip) || isIPv6.test(ip)
 }
 
-const randomStr = (len) => {
-  len = len || 16
-  let str = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678',
-    a = str.length,
-    res = ''
-  for (let i = 0; i < len; i++) res += str.charAt(Math.floor(Math.random() * a))
-  return res
+const randomStr = (len = 16) => {
+  const str = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678'
+  const array = new Uint32Array(len)
+  crypto.getRandomValues(array) // 安全随机
+  return Array.from(array, x => str[x % str.length]).join('')
 }
 
 // 获取UTC-x时间

@@ -24,11 +24,8 @@ const addSSH = async ({ res, request }) => {
   if (count > 0) return res.fail({ data: false, msg: '已存在同名凭证' })
 
   const clearTempKey = await RSADecryptAsync(tempKey)
-  console.log('clearTempKey:', clearTempKey)
   const clearSSHKey = await AESDecryptAsync(record[authType], clearTempKey)
-  // console.log(`${ authType }原密文: `, clearSSHKey)
   record[authType] = await AESEncryptAsync(clearSSHKey)
-  // console.log(`${ authType }__commonKey加密存储: `, record[authType])
   await credentialsDB.insertAsync({ ...record, date: Date.now() })
   logger.info('添加凭证：', name)
   res.success({ data: '保存成功' })
@@ -49,9 +46,7 @@ const updateSSH = async ({ res, request }) => {
     const clearTempKey = await RSADecryptAsync(tempKey)
     console.log('clearTempKey:', clearTempKey)
     const clearSSHKey = await AESDecryptAsync(record[authType], clearTempKey)
-    // console.log(`${ authType }原密文: `, clearSSHKey)
     record[authType] = await AESEncryptAsync(clearSSHKey)
-    // console.log(`${ authType }__commonKey加密存储: `, record[authType])
   }
   await credentialsDB.updateAsync({ _id: id }, record)
   logger.info('修改凭证：', name)
