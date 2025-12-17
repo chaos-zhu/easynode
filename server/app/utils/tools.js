@@ -1,4 +1,5 @@
 const { exec } = require('child_process')
+const crypto = require('crypto')
 const os = require('os')
 const net = require('net')
 const iconv = require('iconv-lite')

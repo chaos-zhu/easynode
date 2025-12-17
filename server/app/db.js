@@ -7,13 +7,14 @@ async function initKeyDB() {
   const keyDB = new KeyDB().getInstance()
   let keyData = await keyDB.findOneAsync({})
 
-  if (!keyData?.jwtToken) {
-    logger.info('🔒初始化jwtToken')
-    const jwtToken = randomStr(32)
-    await keyDB.updateAsync({ _id: keyData._id }, { $set: { jwtToken } })
-  }
-
   if (keyData?.user) {
+
+    if (!keyData?.jwtToken) {
+      logger.info('🔒初始化jwtToken')
+      const jwtToken = randomStr(32)
+      await keyDB.updateAsync({ _id: keyData._id }, { $set: { jwtToken } })
+    }
+
     const { _id, ipWhiteList = [] } = keyData
     let allowedIPs = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : []
     if (allowedIPs.length > 0) {
