@@ -89,136 +89,97 @@
         @scroll="handleScroll"
       >
         <div v-for="(item, index) in chatList" :key="item.id" class="chat_list_item">
-          <div
-            class="message_bubble"
-            :class="[item.role === 'assistant' ? 'bubble_start' : 'bubble_end']"
+          <Bubble
+            :loading="isConnecting && index === chatList.length - 1"
+            :placement="item.role === 'assistant' ? 'start' : 'end'"
+            :content="item.isEditing ? '' : item.content"
+            :message-render="item.isEditing ? null : renderMarkdown"
           >
-            <!-- 头像 -->
-            <div class="bubble_avatar">
-              <svg-icon v-if="item.role === 'assistant'" name="icon-AI-money" class="ai_avatar" />
-              <el-icon v-else :size="20" class="user_avatar"><Avatar /></el-icon>
-            </div>
-
-            <!-- 消息内容区域 -->
-            <div class="bubble_content_wrap">
-              <!-- 推理过程（仅AI消息且有reasoning） -->
-              <div v-if="item.role === 'assistant' && item.reasoning" class="reasoning_box">
-                <el-collapse
-                  :key="`collapse-${item.id}-${item.isStreaming}`"
-                  :model-value="(isReasoning && item.isStreaming) ? [item.id] : []"
-                >
+            <template #avatar>
+              <svg-icon v-if="item.role === 'assistant'" name="icon-AI-money" style="width: 25px; height: 25px;color: var(--el-menu-active-color);" />
+              <el-icon v-else :size="20" style="color: #887dfd;"><Avatar /></el-icon>
+            </template>
+            <template v-if="item.isEditing" #message>
+              <div class="message_edit_container">
+                <el-input
+                  v-model="item.editingContent"
+                  type="textarea"
+                  :autosize="{ minRows: 3, maxRows: 10 }"
+                  placeholder="编辑消息内容"
+                  class="edit_textarea"
+                />
+                <div class="edit_actions">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    :loading="loading"
+                    @click="handleConfirmEdit(item.id, item.editingContent)"
+                  >
+                    确认
+                  </el-button>
+                  <el-button
+                    size="small"
+                    @click="handleCancelEdit(item.id)"
+                  >
+                    取消
+                  </el-button>
+                </div>
+              </div>
+            </template>
+            <template #header>
+              <div v-show="item.reasoning" class="reasoning_box">
+                <el-collapse :model-value="(isReasoning && item.isStreaming) ? [item.id] : []">
                   <el-collapse-item :name="item.id">
                     <template #title>
-                      <div class="reasoning_title">
-                        <span class="reasoning_text">
+                      <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="color: #887dfd;">
                           {{ (isReasoning && item.isStreaming) ? '思考中' : '已深度思考' }}
                           {{ item.reasoningTime ? `(用时:${(item.reasoningTime / 1000).toFixed(1)}s)` : '' }}
                         </span>
-                        <el-icon class="reasoning_icon">
-                          <CircleCheck v-if="!item.isStreaming" />
-                          <Loading v-else />
+                        <el-icon class="header-icon" style="color: #887dfd;margin-left: 10px;">
+                          <CircleCheck v-if="!isReasoning" style="color: #887dfd;" />
+                          <Loading v-else style="color: #887dfd;" />
                         </el-icon>
                       </div>
                     </template>
-                    <div class="reasoning_content">
-                      <MarkdownRender
-                        :content="item.reasoning"
-                        :is-dark="isDark"
-                        :typewriter="true"
-                        custom-id="reasoning"
-                      />
-                    </div>
+                    <div v-html="md.render(item.reasoning || '')" />
                   </el-collapse-item>
                 </el-collapse>
               </div>
-
-              <!-- 消息内容 -->
-              <div class="bubble_content">
-                <!-- 编辑模式 -->
-                <template v-if="item.isEditing">
-                  <div class="message_edit_container">
-                    <el-input
-                      v-model="item.editingContent"
-                      type="textarea"
-                      :autosize="{ minRows: 3, maxRows: 10 }"
-                      placeholder="编辑消息内容"
-                      class="edit_textarea"
-                    />
-                    <div class="edit_actions">
-                      <el-button
-                        type="primary"
-                        size="small"
-                        :loading="loading"
-                        @click="handleConfirmEdit(item.id, item.editingContent)"
-                      >
-                        确认
-                      </el-button>
-                      <el-button
-                        size="small"
-                        @click="handleCancelEdit(item.id)"
-                      >
-                        取消
-                      </el-button>
-                    </div>
-                  </div>
-                </template>
-
-                <!-- 正常显示模式 -->
-                <template v-else>
-                  <!-- 加载中状态 -->
-                  <div v-if="isConnecting && index === chatList.length - 1 && !item.content" class="loading_dots">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-
-                  <!-- Markdown 内容渲染 -->
-                  <MarkdownRender
-                    v-else
-                    :content="item.content"
-                    :is-dark="isDark"
-                    :typewriter="true"
-                    :code-block-stream="item.isStreaming"
-                    custom-id="chat"
-                    @copy="handleCopy"
-                  />
-                </template>
-              </div>
-
-              <!-- 操作按钮 -->
-              <div v-if="index !== 0 && !item.isEditing" class="action_btn">
+            </template>
+            <template v-if="index !== 0" #footer>
+              <div class="action_btn" :style="item.role === 'assistant' ? 'left: 45px;' : 'right: 45px;'">
                 <el-button
+                  v-if="!item.isEditing"
                   size="small"
                   :icon="Refresh"
                   circle
-                  title="重新生成"
                   @click="regenerateMessage(item.id, activeModel)"
                 />
                 <el-button
+                  v-if="!item.isEditing"
                   size="small"
                   :icon="CopyDocument"
                   circle
-                  title="复制"
                   @click="copyContent(item.content)"
                 />
                 <el-button
+                  v-if="!item.isEditing"
                   size="small"
                   :icon="Delete"
                   circle
-                  title="删除"
                   @click="deleteMessage(item.id)"
                 />
                 <el-button
-                  v-if="item.role === 'user'"
+                  v-show="item.role === 'user' && !item.isEditing"
                   size="small"
                   :icon="EditPen"
                   circle
-                  title="编辑"
                   @click="handleStartEdit(item.id)"
                 />
               </div>
-            </div>
-          </div>
+            </template>
+          </Bubble>
         </div>
         <el-divider v-show="chatList.length > 1" content-position="center" class="clear_history_divider">
           <svg-icon name="icon-saoba" style="width: 16px; height: 16px;" />
@@ -241,18 +202,38 @@
     <AiApiConfig v-model:show="aiApiConfigVisible" :ai-config="aiConfig" />
   </el-drawer>
 </template>
-
 <script setup>
-import { ref, computed, nextTick, watch, getCurrentInstance, onMounted } from 'vue'
-import MarkdownRender, { setCustomComponents } from 'markstream-vue'
-import 'markstream-vue/index.css'
+import MarkdownIt from 'markdown-it'
+import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
-import { Sender } from 'ant-design-x-vue'
+import { ref, computed, h, nextTick, watch, getCurrentInstance } from 'vue'
+import { Bubble, Sender } from 'ant-design-x-vue'
 import { Avatar, Refresh, CopyDocument, Delete, EditPen, CircleCheck, Loading, Setting, ArrowDown, ChatDotRound, Plus } from '@element-plus/icons-vue'
 import { useAIChat } from '@/composables/useAIChat'
+import { loadMarkdownCSS } from '@/utils/markdown'
 import AiApiConfig from './ai-api-config.vue'
 import { EventBus } from '@/utils'
-import CustomCodeBlock from './custom-code-block.vue'
+
+const md = new MarkdownIt({
+  html: false,
+  linkify: true,
+  breaks: true,
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(str, { language: lang }).value
+      } catch (__) {console.warn(__)}
+    }
+    return ''
+  }
+})
+
+md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+  const token = tokens[idx]
+  token.attrSet('target', '_blank')
+  token.attrSet('rel', 'noopener noreferrer')
+  return self.renderToken(tokens, idx, options)
+}
 
 const { proxy: { $message, $store } } = getCurrentInstance()
 
@@ -271,6 +252,7 @@ const {
   loading,
   isConnecting,
   isReasoning,
+  // error,
   sendMessage,
   clearChat,
   stopGeneration,
@@ -303,21 +285,15 @@ const visible = computed({
   }
 })
 
-// 注册自定义代码块组件
-onMounted(() => {
-  setCustomComponents('chat', {
-    code_block: CustomCodeBlock
-  })
-  setCustomComponents('reasoning', {
-    code_block: CustomCodeBlock
-  })
-})
-
 watch(() => models.value, (newValue) => {
   if (!newValue?.length) return
   if (!activeModel.value || !newValue.includes(activeModel.value)) {
     activeModel.value = newValue[0]
   }
+}, { immediate: true })
+
+watch(() => isDark.value, (newValue) => {
+  loadMarkdownCSS(newValue)
 }, { immediate: true })
 
 watch(() => chatList.value, () => {
@@ -348,6 +324,87 @@ const handleModelChange = (model) => {
   activeModel.value = model
   localStorage.setItem('activeModel', model)
   inputFocus()
+}
+
+const renderMarkdown = (content) => {
+  const renderedContent = md.render(content)
+
+  const processCodeBlocks = () => {
+    nextTick(() => {
+      const codeBlocks = document.querySelectorAll('.markdown-body pre')
+
+      codeBlocks.forEach(pre => {
+        if (pre.classList.contains('code-block-processed')) return
+        pre.classList.add('code-block-processed')
+
+        if (!pre.parentElement.classList.contains('code-block-container')) {
+          const container = document.createElement('div')
+          container.classList.add('code-block-container')
+          pre.parentNode.insertBefore(container, pre)
+          container.appendChild(pre)
+
+          const buttonsWrapper = document.createElement('div')
+          buttonsWrapper.classList.add('code-buttons-wrapper')
+
+          const copyBtn = document.createElement('div')
+          copyBtn.classList.add('code_btn')
+          copyBtn.classList.add('code_copy_btn')
+          copyBtn.innerHTML = '复制'
+          copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation()
+            const codeElement = pre.querySelector('code')
+            if (codeElement) {
+              const codeText = codeElement.textContent || ''
+              copyContent(codeText)
+            }
+          })
+
+          const execBtn = document.createElement('div')
+          execBtn.classList.add('code_btn')
+          execBtn.classList.add('code_exec_btn')
+          execBtn.innerHTML = '执行'
+          execBtn.addEventListener('click', (e) => {
+            e.stopPropagation()
+            const codeElement = pre.querySelector('code')
+            if (codeElement) {
+              const codeText = codeElement.textContent?.trim() || ''
+              EventBus.$emit('exec_external_command', codeText)
+            }
+          })
+
+          buttonsWrapper.appendChild(copyBtn)
+          buttonsWrapper.appendChild(execBtn)
+          container.appendChild(buttonsWrapper)
+        }
+
+        const container = pre.parentElement
+        if (container && container.classList.contains('code-block-container')) {
+          container.addEventListener('mouseenter', () => {
+            const wrapper = container.querySelector('.code-buttons-wrapper')
+            if (wrapper) {
+              wrapper.style.opacity = '1'
+            }
+          })
+
+          container.addEventListener('mouseleave', () => {
+            const wrapper = container.querySelector('.code-buttons-wrapper')
+            if (wrapper) {
+              wrapper.style.opacity = '0'
+            }
+          })
+        }
+      })
+    })
+  }
+
+  // 每次渲染后处理代码块
+  processCodeBlocks()
+
+  return h('div', {
+    class: 'markdown-body',
+    innerHTML: renderedContent,
+    onMounted: processCodeBlocks
+  })
 }
 
 const chatListBox = ref(null)
@@ -384,6 +441,7 @@ const handleConfirmEdit = async (messageId, newContent) => {
     $message.warning('内容不能为空')
     return
   }
+
   await confirmEditMessage(messageId, newContent.trim(), activeModel.value)
 }
 
@@ -409,10 +467,6 @@ const copyContent = async (content) => {
   }
 }
 
-const handleCopy = (text) => {
-  copyContent(text)
-}
-
 const handleSetting = () => {
   if (!isPlusActive.value) {
     $message.warning('请先激活Plus')
@@ -428,7 +482,6 @@ const isLoadingTips = () => {
   }
   return false
 }
-
 const handleNewChat = () => {
   if (isLoadingTips()) return
   addChat()
@@ -447,7 +500,6 @@ const handleChangeChat = (id) => {
   inputFocus()
 }
 </script>
-
 <style scoped lang="scss">
 .ai_header_wrap {
   display: flex;
@@ -466,7 +518,9 @@ const handleChangeChat = (id) => {
       }
     }
   }
-  .chat_list_dropdown,
+  .chat_list_dropdown {
+    cursor: pointer;
+  }
   .model_dropdown {
     cursor: pointer;
   }
@@ -502,37 +556,6 @@ const handleChangeChat = (id) => {
     justify-content: flex-end;
   }
 }
-
-.loading_dots {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 0;
-
-  span {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: var(--el-color-primary);
-    animation: loading-bounce 1.4s infinite ease-in-out both;
-
-    &:nth-child(1) {
-      animation-delay: -0.32s;
-    }
-    &:nth-child(2) {
-      animation-delay: -0.16s;
-    }
-  }
-}
-
-@keyframes loading-bounce {
-  0%, 80%, 100% {
-    transform: scale(0);
-  }
-  40% {
-    transform: scale(1);
-  }
-}
 </style>
 
 <style lang="scss">
@@ -544,7 +567,6 @@ const handleChangeChat = (id) => {
   width: 30%;
   min-width: 350px;
   background-color: v-bind('isDark ? "#0d1117" : "#fff"');
-
   .el-drawer__header {
     margin-bottom: 0;
     padding-bottom: 10px;
@@ -561,6 +583,13 @@ const handleChangeChat = (id) => {
       display: flex;
       flex-direction: column;
 
+      .ant-bubble-header {
+        width: 100%;
+      }
+            .ant-bubble-content.ant-bubble-content-filled {
+        background-color: transparent!important;
+        border: 1px solid v-bind('isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"');
+      }
       .ant-sender {
         border-color: v-bind('isDark ? "#454242" : "#d9d9d9"');
         &:focus-within {
@@ -584,187 +613,34 @@ const handleChangeChat = (id) => {
         .chat_list_item {
           position: relative;
           padding-bottom: 15px;
-
-          .message_bubble {
-            display: flex;
-            gap: 10px;
-
-            &.bubble_start {
-              flex-direction: row;
-
-              .bubble_content_wrap {
-                align-items: flex-start;
-              }
-
-              .action_btn {
-                left: 45px;
+          .reasoning_box {
+            border: 1px solid v-bind('isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"');
+            background-color: v-bind('isDark ? "inherit" : "#f0f2f5"');
+            border-radius: 4px;
+            margin-bottom: 10px;
+            .el-collapse {
+              padding: 0 10px;
+              .el-collapse-item__header {
+                border: none;
               }
             }
-
-            &.bubble_end {
-              flex-direction: row-reverse;
-
-              .bubble_content_wrap {
-                align-items: flex-end;
-              }
-
-              .action_btn {
-                right: 45px;
+            .el-collapse-item__header {
+              background-color: transparent;
+              height: 36px;
+            }
+            .el-collapse-item__wrap {
+              background-color: transparent;
+              .el-collapse-item__content {
+                padding-bottom: 10px;
               }
             }
-
-            .bubble_avatar {
-              flex-shrink: 0;
-              width: 32px;
-              height: 32px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-
-              .ai_avatar {
-                width: 25px;
-                height: 25px;
-                color: var(--el-menu-active-color);
-              }
-
-              .user_avatar {
-                color: #887dfd;
-              }
-            }
-
-            .bubble_content_wrap {
-              flex: 1;
-              display: flex;
-              flex-direction: column;
-              min-width: 0;
-
-              .reasoning_box {
-                width: 100%;
-                border: 1px solid v-bind('isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"');
-                background-color: v-bind('isDark ? "inherit" : "#f0f2f5"');
-                border-radius: 4px;
-                margin-bottom: 10px;
-
-                .el-collapse {
-                  padding: 0 10px;
-                  .el-collapse-item__header {
-                    border: none;
-                  }
-                }
-                .el-collapse-item__header {
-                  background-color: transparent;
-                  height: 36px;
-                }
-                .el-collapse-item__wrap {
-                  background-color: transparent;
-                  .el-collapse-item__content {
-                    padding-bottom: 10px;
-                  }
-                }
-
-                .reasoning_title {
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-
-                  .reasoning_text {
-                    color: #887dfd;
-                  }
-
-                  .reasoning_icon {
-                    color: #887dfd;
-                    margin-left: 10px;
-                  }
-                }
-
-                .reasoning_content {
-                  font-size: 13px;
-                  opacity: 0.85;
-                }
-              }
-
-              .bubble_content {
-                max-width: 100%;
-                padding: 10px 14px;
-                border-radius: 8px;
-                border: 1px solid v-bind('isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"');
-                word-break: break-word;
-                line-height: 1.3;
-
-                .markstream-vue {
-                  font-size: 14px;
-
-                  // 段落样式
-                  p {
-                    line-height: 1.3;
-                  }
-
-                  .node-content > .paragraph-node {
-                    margin: 0;
-                  }
-
-                  // 表格容器样式
-                  .markstream-table-wrapper,
-                  > div:has(table) {
-                    width: 100%;
-                    overflow-x: auto;
-                    margin: 12px 0;
-                  }
-
-                  // 表格样式 - 只有水平分隔线
-                  table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-size: 14px;
-                    table-layout: auto;
-
-                    thead tr {
-                      border-bottom: 2px solid v-bind('isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)"');
-                    }
-
-                    th, td {
-                      padding: 10px 16px;
-                      border: none;
-                      border-bottom: 1px solid v-bind('isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"');
-                      white-space: nowrap;
-                    }
-
-                    th {
-                      font-weight: 600;
-                      color: v-bind('isDark ? "#58a6ff" : "#0969da"');
-                      text-align: left;
-                    }
-
-                    td {
-                      text-align: left;
-                    }
-
-                    // 支持对齐
-                    th[align="center"], td[align="center"],
-                    th[style*="text-align: center"], td[style*="text-align: center"] {
-                      text-align: center;
-                    }
-
-                    th[align="right"], td[align="right"],
-                    th[style*="text-align: right"], td[style*="text-align: right"] {
-                      text-align: right;
-                    }
-
-                    tbody tr:last-child td {
-                      border-bottom: none;
-                    }
-                  }
-                }
-              }
-            }
-
-            .action_btn {
-              position: absolute;
-              bottom: 1px;
-              visibility: hidden;
-              opacity: 0;
-              transition: all 0.5s ease;
-            }
+          }
+          .action_btn {
+            position: absolute;
+            bottom: 1px;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.5s ease;
           }
 
           &:hover .action_btn {
@@ -772,10 +648,8 @@ const handleChangeChat = (id) => {
             opacity: 1;
           }
         }
-
         .clear_history_divider {
-          margin-top: 20px;
-          flex-shrink: 0;
+          margin-top: auto;
           .clear_history {
             margin-left: 5px;
             text-align: center;
@@ -796,6 +670,7 @@ const handleChangeChat = (id) => {
 .chat_list_dropdown_menu {
   max-height: 70vh;
   width: 310px;
+  max-width: 375px;
   overflow: auto;
   .el-dropdown-menu__item {
     padding: 5px 8px;
@@ -851,5 +726,46 @@ const handleChangeChat = (id) => {
     background-color: var(--el-dropdown-menuItem-hover-fill);
     color: var(--el-dropdown-menuItem-hover-color);
   }
+}
+
+.code-block-container {
+  position: relative;
+
+  .code-buttons-wrapper {
+    position: absolute;
+    top: 0px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10;
+
+    .code_btn {
+      color: var(--el-color-primary);
+      padding: 2px 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      background-color: v-bind('isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"');
+      border-radius: 3px;
+      white-space: nowrap;
+      &:hover {
+        color: var(--el-color-success);
+        background-color: v-bind('isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"');
+      }
+    }
+  }
+
+  pre {
+    margin: 0;
+    overflow: auto;
+  }
+}
+
+.markdown-body {
+  font-size: 14px!important;
 }
 </style>
