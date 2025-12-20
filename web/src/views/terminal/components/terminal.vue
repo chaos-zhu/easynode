@@ -676,11 +676,11 @@ const handleRightClick = async (e) => {
         disabled: true
       },
       {
-        label: `登录: docker exec -it ${ str } bash`,
+        label: `登录: docker exec -it ${ str } sh \n`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand(`docker exec -it ${ str } bash`)
+          inputCommand(`docker exec -it ${ str } sh \n`)
         }
       },
       {
@@ -688,7 +688,7 @@ const handleRightClick = async (e) => {
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand(`docker stop ${ str }`)
+          inputCommand(`docker stop ${ str } \n`)
         }
       },
       {
@@ -696,7 +696,7 @@ const handleRightClick = async (e) => {
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand(`docker restart ${ str }`)
+          inputCommand(`docker restart ${ str } \n`)
         }
       },
       {
@@ -710,7 +710,7 @@ const handleRightClick = async (e) => {
           })
             .then(async () => {
               focusTab()
-              inputCommand(`docker rm -f ${ str }`)
+              inputCommand(`docker rm -f ${ str } \n`)
             })
         }
       },
