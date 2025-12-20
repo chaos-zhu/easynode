@@ -229,6 +229,25 @@
           </el-popconfirm>
         </el-divider>
       </div>
+      <!-- 置顶和置底按钮 -->
+      <div v-show="showScrollButtons" class="scroll_buttons">
+        <el-icon
+          class="scroll_btn"
+          :class="{ 'is_disabled': isAtTop }"
+          title="滚动到顶部"
+          @click="scrollToTop"
+        >
+          <Top />
+        </el-icon>
+        <el-icon
+          class="scroll_btn"
+          :class="{ 'is_disabled': isAtBottom }"
+          title="滚动到底部"
+          @click="scrollToBottomManual"
+        >
+          <Bottom />
+        </el-icon>
+      </div>
       <div class="sender_box">
         <Sender
           v-model:value="question"
@@ -248,7 +267,7 @@ import MarkdownRender, { setCustomComponents } from 'markstream-vue'
 import 'markstream-vue/index.css'
 import 'highlight.js/styles/github-dark.css'
 import { Sender } from 'ant-design-x-vue'
-import { Avatar, Refresh, CopyDocument, Delete, EditPen, CircleCheck, Loading, Setting, ArrowDown, ChatDotRound, Plus } from '@element-plus/icons-vue'
+import { Avatar, Refresh, CopyDocument, Delete, EditPen, CircleCheck, Loading, Setting, ArrowDown, ChatDotRound, Plus, Top, Bottom } from '@element-plus/icons-vue'
 import { useAIChat } from '@/composables/useAIChat'
 import AiApiConfig from './ai-api-config.vue'
 import { EventBus } from '@/utils'
@@ -352,18 +371,44 @@ const handleModelChange = (model) => {
 
 const chatListBox = ref(null)
 const shouldAutoScroll = ref(true)
+const showScrollButtons = ref(false)
+const isAtTop = ref(true)
+const isAtBottom = ref(true)
 
 const handleScroll = () => {
   if (!chatListBox.value) return
   const element = chatListBox.value
-  const isAtBottom = Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 10
-  shouldAutoScroll.value = isAtBottom
+  const hasScrollbar = element.scrollHeight > element.clientHeight
+  const atBottom = Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 10
+  const atTop = element.scrollTop < 10
+  shouldAutoScroll.value = atBottom
+  isAtTop.value = atTop
+  isAtBottom.value = atBottom
+  // 只有当存在滚动条时才显示按钮
+  showScrollButtons.value = hasScrollbar
 }
 
 const scrollToBottom = () => {
   if (!shouldAutoScroll.value || !chatListBox.value) return
   nextTick(() => {
     chatListBox.value.scrollTop = chatListBox.value.scrollHeight
+  })
+}
+
+const scrollToTop = () => {
+  if (!chatListBox.value) return
+  chatListBox.value.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
+
+const scrollToBottomManual = () => {
+  if (!chatListBox.value) return
+  shouldAutoScroll.value = true
+  chatListBox.value.scrollTo({
+    top: chatListBox.value.scrollHeight,
+    behavior: 'smooth'
   })
 }
 
@@ -782,6 +827,42 @@ const handleChangeChat = (id) => {
             color: #887dfd;
             cursor: pointer;
             user-select: none;
+          }
+        }
+      }
+
+      .scroll_buttons {
+        position: absolute;
+        right: 20px;
+        bottom: 80px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        z-index: 10;
+
+        .scroll_btn {
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          background-color: v-bind('isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.06)"');
+          color: v-bind('isDark ? "#bbb" : "#666"');
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 14px;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+
+          &:hover:not(.is_disabled) {
+            background-color: var(--el-color-primary);
+            color: #fff;
+            transform: scale(1.1);
+          }
+
+          &.is_disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
           }
         }
       }
