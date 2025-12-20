@@ -180,7 +180,6 @@
                     :typewriter="true"
                     :code-block-stream="item.isStreaming"
                     custom-id="chat"
-                    @copy="handleCopy"
                   />
                 </template>
               </div>
@@ -452,10 +451,6 @@ const copyContent = async (content) => {
   } catch (err) {
     $message.error('复制失败')
   }
-}
-
-const handleCopy = (text) => {
-  copyContent(text)
 }
 
 const handleSetting = () => {
