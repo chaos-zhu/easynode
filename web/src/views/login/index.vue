@@ -77,12 +77,14 @@
         </el-button>
       </div>
     </div>
+    <Warn />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { RSAEncrypt, jwtExpireToTimestamp } from '@utils/index.js'
+import Warn from './warn.vue'
 import { version } from '../../../package.json'
 
 const { proxy: { $store, $api, $message, $router, $messageBox } } = getCurrentInstance()
