@@ -1913,27 +1913,31 @@ const onRowContextMenu = (row, _column, event) => {
       label: 'docker-compose',
       children: [
         {
-          label: '启动',
+          label: '启动(up)',
           onClick: () => handleDockerComposeAction(row, 'up')
         },
         {
-          label: '重启',
+          label: '重启(restart)',
           onClick: () => handleDockerComposeAction(row, 'restart')
         },
         {
-          label: '移除',
+          label: '移除(down)',
           onClick: () => handleDockerComposeAction(row, 'down')
         },
         {
-          label: '拉取',
+          label: '拉取(pull)',
           onClick: () => handleDockerComposeAction(row, 'pull')
         },
         {
-          label: '重建',
+          label: '重建(rebuild)',
           onClick: () => handleDockerComposeAction(row, 'rebuild')
         },
         {
-          label: '日志',
+          label: '升级(pull_down_up)',
+          onClick: () => handleDockerComposeAction(row, 'upgrade')
+        },
+        {
+          label: '日志(logs)',
           onClick: () => handleDockerComposeAction(row, 'logs')
         },
       ]
@@ -2172,6 +2176,9 @@ const handleDockerComposeAction = (row, action) => {
       break
     case 'rebuild':
       command = `docker-compose -f ${ fullPath } up -d --force-recreate\n`
+      break
+    case 'upgrade':
+      command = `docker-compose -f ${ fullPath } pull && docker-compose -f ${ fullPath } down && docker-compose -f ${ fullPath } up -d\n`
       break
     case 'logs':
       command = `docker-compose -f ${ fullPath } logs -f\n`

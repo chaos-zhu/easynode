@@ -780,6 +780,14 @@ const handleRightClick = async (e) => {
           inputCommand('docker-compose up -d --force-recreate')
         }
       },
+      {
+        label: '升级镜像: pull && down && up -d',
+        onClick: () => {
+          if (!plusTips()) return
+          focusTab()
+          inputCommand('docker-compose pull && docker-compose down && docker-compose up -d')
+        }
+      },
     ]
   } : null
 
