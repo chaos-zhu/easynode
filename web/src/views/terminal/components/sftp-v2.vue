@@ -190,7 +190,7 @@
             <el-tooltip
               placement="right"
               effect="dark"
-              :show-after="500"
+              :show-after="1000"
             >
               <template #content>
                 <div style="font-size: 12px; line-height: 1.6;">
@@ -684,7 +684,7 @@ const props = defineProps({
 })
 
 // 组件实例上下文
-const { proxy: { $message, $messageBox } } = getCurrentInstance()
+const { proxy: { $message, $messageBox, $store } } = getCurrentInstance()
 
 // 列配置
 const COLUMNS_CONFIG_KEY = 'easynode_sftp_columns_config'
@@ -805,6 +805,7 @@ const imagePreviewConfig = ref({
 })
 
 const hasDownloadTasks = computed(() => downloadTasks.value.size > 0)
+const isPlusActive = computed(() => $store.isPlusActive)
 
 // 计算属性：正在进行的下载任务列表
 const activeDownloadTasks = computed(() => {
@@ -2145,6 +2146,7 @@ const handleDecompress = (row) => {
 }
 
 const handleDockerComposeAction = (row, action) => {
+  if (!isPlusActive.value) return $message.warning('该功能仅限 Plus 版用户使用')
   // 构建文件的完整路径
   let fullPath
   const currentPathValue = currentPath.value

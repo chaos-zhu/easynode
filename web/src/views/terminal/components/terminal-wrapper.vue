@@ -218,81 +218,34 @@
         <div class="tab_content_wrap">
           <div class="tab_content_header">
             <div :class="['tab_content_wrap_header_item', { 'active': showInfoSide }]">
-              <el-tooltip
-                effect="dark"
-                content="状态"
-                placement="bottom"
-              >
-                <span @click="changeInfoSide">
-                  <svg-icon name="icon-zhuangtai" class="icon" />
-                </span>
-              </el-tooltip>
+              <span title="状态" @click="changeInfoSide">
+                <svg-icon name="icon-zhuangtai" class="icon" />
+              </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': showSftpSide }]">
-              <el-tooltip
-                effect="dark"
-                content="文件传输"
-                placement="bottom"
-              >
-                <span @click="changeSftp">
-                  <svg-icon name="icon-sftp" class="icon" />
-                </span>
-              </el-tooltip>
+              <span title="SFTP文件管理" @click="changeSftp">
+                <svg-icon name="icon-sftp" class="icon" />
+              </span>
             </div>
-            <!-- <div :class="['tab_content_wrap_header_item', { 'active': showSftpSide }]">
-              <el-tooltip
-                effect="dark"
-                content="同步终端目录到SFTP"
-                placement="bottom"
-              >
-                <span @click="() => (showSftpSide = !showSftpSide)">
-                  <svg-icon name="icon-CD" class="icon" />
-                </span>
-              </el-tooltip>
-            </div> -->
             <div :class="['tab_content_wrap_header_item', { 'active': showDockerDialog }]">
-              <el-tooltip
-                effect="dark"
-                content="docker容器管理"
-                placement="bottom"
-              >
-                <span @click="() => (showDockerDialog = !showDockerDialog)">
-                  <svg-icon name="icon-docker" class="icon" />
-                </span>
-              </el-tooltip>
+              <span title="docker容器管理" @click="() => (showDockerDialog = !showDockerDialog)">
+                <svg-icon name="icon-docker" class="icon" />
+              </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': getSyncCurTab(item.key) }]">
-              <el-tooltip
-                effect="dark"
-                content="同步输入到分屏"
-                placement="bottom"
-              >
-                <span @click="handleSyncCurTabInput">
-                  <svg-icon name="icon-lianjie" class="icon" />
-                </span>
-              </el-tooltip>
+              <span title="同步输入到分屏" @click="handleSyncCurTabInput">
+                <svg-icon name="icon-lianjie" class="icon" />
+              </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': getSplitStatus(item.key).h }]">
-              <el-tooltip
-                effect="dark"
-                content="左右分屏"
-                placement="bottom"
-              >
-                <span @click="handleHorizontalScreen">
-                  <svg-icon name="icon-a-06gaodufenping" class="icon" />
-                </span>
-              </el-tooltip>
+              <span title="左右分屏" @click="handleHorizontalScreen">
+                <svg-icon name="icon-a-06gaodufenping" class="icon" />
+              </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': getSplitStatus(item.key).v }]">
-              <el-tooltip
-                effect="dark"
-                content="上下分屏"
-                placement="bottom"
-              >
-                <span @click="handleVerticalScreen">
-                  <svg-icon name="icon-a-05kuandufenping" class="icon" />
-                </span>
-              </el-tooltip>
+              <span title="上下分屏" @click="handleVerticalScreen">
+                <svg-icon name="icon-a-05kuandufenping" class="icon" />
+              </span>
             </div>
           </div>
           <div class="tab_content_main">

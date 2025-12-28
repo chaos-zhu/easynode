@@ -243,6 +243,7 @@
     <CodeEdit
       :key="logDialogKey"
       v-model:show="showLogsDialog"
+      element-loading-text="正在加载日志..."
       :original-code="dockerLogs"
       :disabled="true"
       :filename="containerName"
@@ -401,8 +402,10 @@ const connectDocker = () => {
     })
     socket.value.on('docker_containers_logs', (data) => {
       // console.log('docker_containers_logs:', data)
-      dockerLogs.value = data
-      showLogsDialog.value = true
+      // 只有在弹窗已经打开的情况下才更新日志数据，避免关闭弹窗后因延迟返回的数据导致弹窗重新打开
+      if (showLogsDialog.value) {
+        dockerLogs.value = data
+      }
     })
     socket.value.on('docker_operation_result', (result) => {
       if (batchOperating.value) return
@@ -531,6 +534,8 @@ const handleLogs = (row) => {
   // 更新 key 强制重新创建 CodeEdit 组件，确保每次都会滚动到底部
   logDialogKey.value++
   currentContainer.value = row
+  // 先打开弹窗，再请求日志数据
+  showLogsDialog.value = true
   socket.value.emit('docker_get_containers_logs', { containerId: row.id, tail: 2000 })
 }
 
