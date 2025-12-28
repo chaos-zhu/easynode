@@ -1,6 +1,4 @@
-const path = require('path')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
-const { sendServerChan, sendEmail } = require('../utils/notify')
+const { sendServerChan, sendEmail, sendTg, sendWebhook } = require('../utils/notify')
 const { NotifyConfigDB, NotifyDB } = require('../utils/db-class')
 const notifyDB = new NotifyDB().getInstance()
 const notifyConfigDB = new NotifyConfigDB().getInstance()
@@ -23,10 +21,10 @@ async function updateNotifyConfig({ res, request }) {
         await sendEmail(noticeConfig[type], 'EasyNode通知测试', '这是一条测试通知')
         break
       case 'tg':
-        let { sendTg } = await decryptAndExecuteAsync(path.join(__dirname, '../utils/plus.js')) || {}
-        console.log('sendTg: ', sendTg)
-        if (!sendTg) return res.fail({ msg: 'Plus专属功能点，请激活Plus' })
         await sendTg(noticeConfig[type], 'EasyNode通知测试', '这是一条测试通知')
+        break
+      case 'webhook':
+        await sendWebhook(noticeConfig[type], 'EasyNode通知测试', '这是一条测试通知')
         break
     }
     await notifyConfigDB.update({}, { $set: noticeConfig }, { upsert: true })

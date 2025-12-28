@@ -6,7 +6,7 @@
     :inline="false"
     :hide-required-asterisk="true"
     :show-message="false"
-    label-width="100px"
+    label-width="120px"
     label-suffix="："
   >
     <el-form-item label="通知方式" prop="type" class="form_item">
@@ -85,6 +85,62 @@
         <span class="tips">Telegram Token/ChatId 获取: <a class="link" href="https://easynode.chaoszhu.com/zh/guide/get-tg-token" target="_blank">查看教程</a> </span>
       </el-form-item>
     </template>
+    <!-- Webhook -->
+    <template v-if="noticeConfig.type === 'webhook'">
+      <el-form-item label="URL" prop="webhook.url" class="form_item">
+        <el-input
+          v-model.trim="noticeConfig.webhook.url"
+          clearable
+          placeholder="https://example.com/webhook"
+          autocomplete="off"
+          class="input"
+        />
+      </el-form-item>
+      <el-form-item label="请求方法" class="form_item">
+        <el-select v-model="noticeConfig.webhook.method" placeholder="" class="input">
+          <el-option label="POST" value="POST" />
+          <el-option label="GET" value="GET" />
+          <el-option label="PUT" value="PUT" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="Content-Type" class="form_item">
+        <el-select v-model="noticeConfig.webhook.contentType" placeholder="" class="input">
+          <el-option label="application/json" value="application/json" />
+          <el-option label="application/x-www-form-urlencoded" value="application/x-www-form-urlencoded" />
+          <el-option label="multipart/form-data" value="multipart/form-data" />
+          <el-option label="text/plain" value="text/plain" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="Header" class="form_item">
+        <el-input
+          v-model="noticeConfig.webhook.headers"
+          type="textarea"
+          :rows="2"
+          placeholder="JSON 格式，可选。例如：{&quot;Authorization&quot;: &quot;Bearer xxx&quot;}"
+          autocomplete="off"
+          class="input"
+        />
+      </el-form-item>
+      <el-form-item label="自定义模板" class="form_item">
+        <div class="template-wrapper">
+          <el-input
+            v-model="noticeConfig.webhook.template"
+            type="textarea"
+            :rows="6"
+            placeholder="{
+  &quot;msgtype&quot;: &quot;text&quot;,
+  &quot;text&quot;: {
+    &quot;content&quot;: &quot;{{title}}\n{{content}}&quot;
+  }
+}"
+            autocomplete="off"
+            class="input"
+          />
+          <el-button size="small" class="format-btn" @click="formatTemplate">格式化</el-button>
+        </div>
+        <span class="tips">支持变量: <code v-pre>{{title}}</code>, <code v-pre>{{content}}</code>, <code v-pre>{{timestamp}}</code>, <code v-pre>{{datetime}}</code>。留空则使用默认格式</span>
+      </el-form-item>
+    </template>
     <el-form-item label="" class="form_item">
       <el-button
         type="primary"
@@ -120,7 +176,7 @@
 import { ref, onMounted, computed, reactive } from 'vue'
 import { getCurrentInstance } from 'vue'
 
-const { proxy: { $api, $store, $notification } } = getCurrentInstance()
+const { proxy: { $api, $store, $notification, $message } } = getCurrentInstance()
 
 const notifyListLoading = ref(false)
 const notifyList = ref([])
@@ -139,6 +195,10 @@ const noticeTypeList = ref([
     type: 'tg',
     desc: 'Telegram'
   },
+  {
+    type: 'webhook',
+    desc: 'Webhook'
+  },
 ])
 const formRef = ref(null)
 const rules = reactive({
@@ -154,6 +214,10 @@ const rules = reactive({
       message: 'ChatId必须为数字',
       trigger: ['blur', 'change',]
     },
+  ],
+  'webhook.url': [
+    { required: true, message: '需输入Webhook URL', trigger: 'change' },
+    { type: 'url', message: '请输入有效的URL', trigger: 'change' },
   ]
 })
 
@@ -162,6 +226,32 @@ const isPlusActive = computed(() => $store.isPlusActive)
 const handleSave = () => {
   formRef.value.validate(async (valid) => {
     if (!valid) return
+
+    // Webhook 类型时校验 JSON 格式
+    if (noticeConfig.value.type === 'webhook') {
+      const { template, headers } = noticeConfig.value.webhook || {}
+
+      // 校验自定义模板
+      if (template) {
+        try {
+          JSON.parse(template)
+        } catch (e) {
+          $message.error('自定义模板不是有效的 JSON 格式，请检查后重试')
+          return
+        }
+      }
+
+      // 校验自定义请求头
+      if (headers) {
+        try {
+          JSON.parse(headers)
+        } catch (e) {
+          $message.error('自定义请求头不是有效的 JSON 格式，请检查后重试')
+          return
+        }
+      }
+    }
+
     try {
       loading.value = true
       await $api.updateNotifyConfig({ noticeConfig: { ...noticeConfig.value } })
@@ -211,6 +301,17 @@ const handleChangeSw = async (row) => {
   getNotifyList(false)
 }
 
+const formatTemplate = () => {
+  if (!noticeConfig.value.webhook?.template) return
+  try {
+    const parsed = JSON.parse(noticeConfig.value.webhook.template)
+    noticeConfig.value.webhook.template = JSON.stringify(parsed, null, 2)
+    $message.success('格式化成功')
+  } catch (e) {
+    $message.warning('格式化失败：模板不是有效的 JSON 格式')
+  }
+}
+
 onMounted(() => {
   getNotifyList()
   getNotifyConfig()
@@ -227,6 +328,14 @@ onMounted(() => {
     width: 100%;
     font-size: 14px;
     color: #999;
+  }
+  .template-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    .format-btn {
+      align-self: flex-start;
+    }
   }
 }
 </style>

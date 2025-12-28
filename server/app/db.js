@@ -122,6 +122,13 @@ async function initNotifyConfigDB() {
     tg: {
       token: '',
       chatId: ''
+    },
+    webhook: {
+      url: '',
+      method: 'POST',
+      contentType: 'application/json',
+      headers: '',
+      template: '{\n  "title": "{{title}}",\n  "content": "{{content}}",\n  "description": "{{content}}",\n  "timestamp": "{{timestamp}}",\n  "datetime": "{{datetime}}"\n}'
     }
   }
   if (notifyConfig) {
