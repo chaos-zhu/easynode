@@ -147,20 +147,34 @@ async function sendServerChan(sendKey, title, content) {
 
 }
 
-async function sendEmail({ service, user, pass }, title, content) {
+async function sendEmail({ service, user, pass, useCustom, host, port, secure, to }, title, content) {
   return new Promise((async (resolve, reject) => {
     try {
       logger.info('邮箱通知预发送: ', title)
-      let transporter = nodemailer.createTransport({
-        service,
-        auth: {
-          user,
-          pass
+
+      let transportConfig
+      if (useCustom && host) {
+        // 自定义 SMTP 模式
+        transportConfig = {
+          host,
+          port: port || 465,
+          secure: secure !== false, // 默认 true
+          auth: { user, pass }
         }
-      })
+        logger.info('使用自定义 SMTP 配置: ', { host, port, secure })
+      } else {
+        // 服务商模式（现有逻辑）
+        transportConfig = {
+          service,
+          auth: { user, pass }
+        }
+        logger.info('使用服务商模式: ', service)
+      }
+
+      let transporter = nodemailer.createTransport(transportConfig)
       await transporter.sendMail({
         from: user,
-        to: user,
+        to: to || user, // 支持自定义收件人，留空则发送给自己
         subject: title,
         // text: '', // 纯文本版本内容，如果收件人的邮件客户端不支持HTML显示，就会显示这个文本
         html: commonTemp(content)
@@ -209,9 +223,14 @@ async function sendNoticeAsync(noticeAction, title, content) {
         await sendServerChan(sendKey, title, content)
         break
       case 'email':
-        let { service, user, pass } = notifyConfig['email']
-        if (!service || !user || !pass) return logger.info('未发送邮件通知通知, 未配置邮箱: ', { service, user, pass })
-        await sendEmail({ service, user, pass }, title, content)
+        let { service, user, pass, useCustom, host, port, secure, to } = notifyConfig['email']
+        // 自定义模式需要 host，服务商模式需要 service
+        if (useCustom) {
+          if (!host || !user || !pass) return logger.info('未发送邮件通知, 未配置自定义SMTP: ', { host, user, pass })
+        } else {
+          if (!service || !user || !pass) return logger.info('未发送邮件通知, 未配置邮箱: ', { service, user, pass })
+        }
+        await sendEmail({ service, user, pass, useCustom, host, port, secure, to }, title, content)
         break
       case 'tg':
         let { token, chatId } = notifyConfig['tg']

@@ -117,7 +117,12 @@ async function initNotifyConfigDB() {
     email: {
       service: 'QQ',
       user: '',
-      pass: ''
+      pass: '',
+      useCustom: false,
+      host: '',
+      port: 465,
+      secure: true,
+      to: ''
     },
     tg: {
       token: '',

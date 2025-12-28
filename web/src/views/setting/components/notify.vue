@@ -34,30 +34,84 @@
     </template>
     <!-- 邮箱 -->
     <template v-if="noticeConfig.type === 'email'">
-      <el-form-item label="服务商" prop="email.service" class="form_item">
-        <el-input
-          v-model.trim="noticeConfig.email.service"
-          clearable
-          placeholder=""
-          autocomplete="off"
-          class="input"
-        />
-        <span class="tips">邮箱服务商, 例如: QQ、126、163、Gmial, 支持列表: <a class="link" href="https://github.com/nodemailer/nodemailer/blob/master/lib/well-known/services.json" target="_blank">点击查询</a> </span>
+      <!-- 配置模式切换 -->
+      <el-form-item label="配置模式" class="form_item">
+        <el-radio-group v-model="noticeConfig.email.useCustom" @change="handleEmailModeChange">
+          <el-radio-button :value="false">服务商</el-radio-button>
+          <el-radio-button :value="true">自定义 SMTP</el-radio-button>
+        </el-radio-group>
       </el-form-item>
+      <!-- 服务商模式 -->
+      <template v-if="!noticeConfig.email.useCustom">
+        <el-form-item label="服务商" prop="email.service" class="form_item">
+          <el-input
+            v-model.trim="noticeConfig.email.service"
+            clearable
+            placeholder="QQ、126、163、Gmail..."
+            autocomplete="off"
+            class="input"
+          />
+          <span class="tips">邮箱服务商, 例如: QQ、126、163、Gmail, 支持列表: <a class="link" href="https://github.com/nodemailer/nodemailer/blob/master/lib/well-known/services.json" target="_blank">点击查询</a> </span>
+        </el-form-item>
+      </template>
+      <!-- 自定义 SMTP 模式 -->
+      <template v-else>
+        <el-form-item label="SMTP 服务器" prop="email.host" class="form_item">
+          <el-input
+            v-model.trim="noticeConfig.email.host"
+            clearable
+            placeholder="smtp.gmail.com"
+            autocomplete="off"
+            class="input"
+          />
+          <span class="tips">SMTP 服务器地址，例如：smtp.gmail.com、smtp.163.com</span>
+        </el-form-item>
+        <el-form-item label="端口" class="form_item">
+          <el-select
+            v-model="noticeConfig.email.port"
+            placeholder=""
+            class="input"
+            @change="handlePortChange"
+          >
+            <el-option label="465 (SSL)" :value="465" />
+            <el-option label="587 (STARTTLS)" :value="587" />
+            <el-option label="25 (无加密)" :value="25" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="加密连接" class="form_item">
+          <el-radio-group v-model="noticeConfig.email.secure">
+            <el-radio-button :value="true">SSL/TLS</el-radio-button>
+            <el-radio-button :value="false">STARTTLS/无</el-radio-button>
+          </el-radio-group>
+          <span class="tips">端口 465 通常使用 SSL/TLS，端口 587 使用 STARTTLS</span>
+        </el-form-item>
+      </template>
+      <!-- 通用字段 -->
       <el-form-item label="邮箱地址" prop="email.user" class="form_item">
         <el-input
           v-model.trim="noticeConfig.email.user"
           clearable
-          placeholder="邮箱地址"
+          placeholder="your@email.com"
           autocomplete="off"
           class="input"
         />
       </el-form-item>
-      <el-form-item label="SMTP" prop="auth.pass" class="form_item">
+      <el-form-item label="SMTP 密码" prop="email.pass" class="form_item">
         <el-input
           v-model.trim="noticeConfig.email.pass"
           clearable
-          placeholder="SMTP授权码/密码"
+          type="password"
+          show-password
+          placeholder="SMTP 授权码/密码"
+          autocomplete="off"
+          class="input"
+        />
+      </el-form-item>
+      <el-form-item label="收件人" class="form_item">
+        <el-input
+          v-model.trim="noticeConfig.email.to"
+          clearable
+          placeholder="留空则发送给自己"
           autocomplete="off"
           class="input"
         />
@@ -204,6 +258,7 @@ const formRef = ref(null)
 const rules = reactive({
   'sct.sendKey': { required: true, message: '需输入sendKey', trigger: 'change' },
   'email.service': { required: true, message: '需输入邮箱提供商', trigger: 'change' },
+  'email.host': { required: true, message: '需输入SMTP服务器地址', trigger: 'change' },
   'email.user': { required: true, type: 'email', message: '需输入邮箱', trigger: 'change' },
   'email.pass': { required: true, message: '需输入邮箱SMTP授权码', trigger: 'change' },
   'tg.token': { required: true, message: '需输入Telegram Token', trigger: 'change' },
@@ -220,6 +275,28 @@ const rules = reactive({
     { type: 'url', message: '请输入有效的URL', trigger: 'change' },
   ]
 })
+
+// 邮箱模式切换时初始化默认值
+const handleEmailModeChange = (useCustom) => {
+  if (useCustom) {
+    // 切换到自定义模式，设置默认值
+    if (!noticeConfig.value.email.port) {
+      noticeConfig.value.email.port = 465
+    }
+    if (noticeConfig.value.email.secure === undefined) {
+      noticeConfig.value.email.secure = true
+    }
+  }
+}
+
+// 端口变化时自动调整加密设置
+const handlePortChange = (port) => {
+  if (port === 465) {
+    noticeConfig.value.email.secure = true
+  } else {
+    noticeConfig.value.email.secure = false
+  }
+}
 
 const isPlusActive = computed(() => $store.isPlusActive)
 
