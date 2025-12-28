@@ -7,8 +7,15 @@
 * 当前会话连接|w
 * 日志打印优化
 * 探针接入
-* 通知模块重构，支持webhook
 * 支持csv模板特定格式导入
+
+## [3.5.6](https://github.com/chaos-zhu/easynode/releases) (2025-12-28)
+* docker组件日志优化
+* 快捷指令调整优化
+* AI对话渲染组件重构
+* 新增webhook通知；tg通知下放
+* 邮箱通知支持自定义服务
+* 其他：安全更新
 
 ## [3.5.5](https://github.com/chaos-zhu/easynode/releases) (2025-12-11)
 * win: 支持清晰度调整,添加断开按钮
