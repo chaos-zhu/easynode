@@ -1,10 +1,5 @@
 [
   {
-    "name": "easynode监控服务卸载",
-    "command": "curl -o- https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/client/easynode-client-uninstall.sh | bash",
-    "description": "easynode-监控服务-卸载脚本"
-  },
-  {
     "name": "docker安装(外网环境)",
     "command": "curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh",
     "description": "docker安装(原脚本作者: https://github.com/docker/docker-install)"
