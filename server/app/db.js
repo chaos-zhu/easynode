@@ -44,7 +44,7 @@ async function initKeyDB() {
     privateKey: ''
   }
   await keyDB.insertAsync(newConfig)
-  let key = new NodeRSA({ b: 1024 })
+  let key = new NodeRSA({ b: 2048 })
   key.setOptions({ encryptionScheme: 'pkcs1', environment: 'browser' })
   let privateKey = key.exportKey('pkcs1-private-pem')
   let publicKey = key.exportKey('pkcs8-public-pem')
