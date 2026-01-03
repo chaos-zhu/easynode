@@ -62,6 +62,7 @@ const removeSSH = async ({ res, request }) => {
   if (Array.isArray(hostList) && hostList.length > 0) {
     for (let host of hostList) {
       let { credential } = host
+      if (!credential) continue
       credential = await AESDecryptAsync(credential)
       if (credential === id) {
         host.credential = ''
