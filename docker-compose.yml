@@ -48,6 +48,7 @@ services:
     command: --schedule "0 */5 * * * *" --label-enable # 每5分钟检测一次更新
     environment:
       - TZ=Asia/Shanghai
+      - DOCKER_API_VERSION=1.44
 
 networks:
   easynode-network:
