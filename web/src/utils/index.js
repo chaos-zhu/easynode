@@ -187,7 +187,7 @@ export const isDockerId = (id) => {
 }
 
 export const isDockerComposeYml = (str) => {
-  return /^docker-compose\.yml$/.test(str)
+  return /^docker-compose\.ya?ml$/.test(str)
 }
 
 export const isValidDate = (dateString) => {

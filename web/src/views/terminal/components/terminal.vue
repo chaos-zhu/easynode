@@ -726,58 +726,58 @@ const handleRightClick = async (e) => {
   } : null
 
   const dockerComposeYml = isDockerComposeYml(str) ? {
-    label: 'docker-compose文件',
+    label: 'docker compose文件',
     children: [
       {
-        label: '[plus]检测选中内容可能为docker-compose文件',
+        label: '[plus]检测选中内容可能为docker compose文件',
         disabled: true
       },
       {
-        label: '启动: docker-compose up -d',
+        label: '启动: docker compose up -d',
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand('docker-compose up -d')
+          inputCommand('docker compose up -d')
         }
       },
       {
-        label: '停止并删除: docker-compose down',
+        label: '停止并删除: docker compose down',
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand('docker-compose down')
+          inputCommand('docker compose down')
         }
       },
       {
-        label: '重启: docker-compose restart',
+        label: '重启: docker compose restart',
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand('docker-compose restart')
+          inputCommand('docker compose restart')
         }
       },
       {
-        label: '查看日志: docker-compose logs -f',
+        label: '查看日志: docker compose logs -f',
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand('docker-compose logs -f')
+          inputCommand('docker compose logs -f')
         }
       },
       {
-        label: '拉取新镜像: docker-compose pull',
+        label: '拉取新镜像: docker compose pull',
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand('docker-compose pull')
+          inputCommand('docker compose pull')
         }
       },
       {
-        label: '重建: docker-compose up -d --force-recreate',
+        label: '重建: docker compose up -d --force-recreate',
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand('docker-compose up -d --force-recreate')
+          inputCommand('docker compose up -d --force-recreate')
         }
       },
       {
@@ -785,7 +785,7 @@ const handleRightClick = async (e) => {
         onClick: () => {
           if (!plusTips()) return
           focusTab()
-          inputCommand('docker-compose pull && docker-compose down && docker-compose up -d')
+          inputCommand('docker compose pull && docker compose down && docker compose up -d')
         }
       },
     ]
