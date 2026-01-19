@@ -265,6 +265,10 @@ const maxReconnectAttempts = 10
 const reconnectInterval = 3000 // 3秒重连间隔
 const isConnecting = ref(false)
 
+// 数据陈旧检测相关
+const dataHistory = ref([]) // 记录最近的数据快照
+const staleDataThreshold = 3 // 连续n次相同数据触发重连
+
 // 网速图表相关
 const networkChart = ref(null) // canvas元素引用
 const chartInstance = shallowRef(null) // Chart.js实例，使用shallowRef避免深度响应式
@@ -333,6 +337,68 @@ const clearReconnectTimer = () => {
   }
 }
 
+// 清理数据历史记录
+const clearDataHistory = () => {
+  dataHistory.value = []
+}
+
+// 检测数据是否陈旧（连续相同或CPU相同且网速都为空/0）
+const checkStaleData = (cpuUsage, uploadMb, downloadMb) => {
+  const currentData = {
+    cpu: cpuUsage,
+    upload: uploadMb,
+    download: downloadMb
+  }
+
+  // 添加到历史
+  dataHistory.value.push(currentData)
+
+  // 保持最多 staleDataThreshold 条记录
+  if (dataHistory.value.length > staleDataThreshold) {
+    dataHistory.value.shift()
+  }
+
+  // 不足阈值条记录，不检测
+  if (dataHistory.value.length < staleDataThreshold) {
+    return false
+  }
+
+  const first = dataHistory.value[0]
+
+  // 检查是否连续n次完全相同（CPU、上行、下行网速都相同）
+  const allSame = dataHistory.value.every(d =>
+    d.cpu === first.cpu &&
+    d.upload === first.upload &&
+    d.download === first.download
+  )
+
+  // 检查是否CPU相同且n次数据上下行都为空/0
+  const allNetworkEmpty = dataHistory.value.every(d => (!d.upload) && (!d.download))
+  const cpuAllSame = dataHistory.value.every(d => d.cpu === first.cpu)
+
+  return allSame || (allNetworkEmpty && cpuAllSame)
+}
+
+// 触发陈旧数据重连
+const triggerStaleDataReconnect = () => {
+  console.warn('server-status: 检测到连续n次相同数据，触发重连...')
+  clearDataHistory() // 清除历史记录，避免重连后立即再次触发
+
+  // 断开当前连接
+  if (socket.value) {
+    socket.value.disconnect()
+    socket.value = null
+  }
+
+  // 延迟一小段时间后重新连接
+  setTimeout(() => {
+    if (props.visible && props.hostId) {
+      console.log('server-status: 陈旧数据重连中...')
+      connectWebSocket()
+    }
+  }, 1000)
+}
+
 // 启动重连
 const startReconnect = () => {
   if (reconnectAttempts.value >= maxReconnectAttempts) {
@@ -385,6 +451,22 @@ const connectWebSocket = () => {
         const uploadMb = data.netstatInfo.total.outputMb || 0
         const downloadMb = data.netstatInfo.total.inputMb || 0
         updateNetworkHistory(uploadMb, downloadMb)
+
+        // 检测数据是否陈旧（连续n次相同）
+        const currentCpuUsage = Number(data.cpuInfo?.cpuUsage) || 0
+        if (checkStaleData(currentCpuUsage, uploadMb, downloadMb)) {
+          triggerStaleDataReconnect()
+          return // 触发重连后，不再处理后续逻辑
+        }
+      } else if (data.connect) {
+        // 连接正常但没有网络数据，也需要检测
+        const currentCpuUsage = Number(data.cpuInfo?.cpuUsage) || 0
+        const uploadMb = 0
+        const downloadMb = 0
+        if (checkStaleData(currentCpuUsage, uploadMb, downloadMb)) {
+          triggerStaleDataReconnect()
+          return
+        }
       }
 
       // 如果服务器返回错误状态，停止重连并断开连接
@@ -392,6 +474,7 @@ const connectWebSocket = () => {
         console.warn('服务器状态监控出现关键错误:', data.errorReason)
         // 停止重连机制
         clearReconnectTimer()
+        clearDataHistory() // 清除数据历史
         reconnectAttempts.value = maxReconnectAttempts // 设置为最大值，防止重连
 
         console.warn(`服务器状态监控已停止: ${ data.errorReason }`)
@@ -443,12 +526,14 @@ const initWebSocket = () => {
   // 重置重连状态
   reconnectAttempts.value = 0
   clearReconnectTimer()
+  clearDataHistory() // 重置数据历史
   connectWebSocket()
 }
 
 // 断开WebSocket连接
 const disconnectWebSocket = () => {
   clearReconnectTimer()
+  clearDataHistory() // 清除数据历史
   isConnecting.value = false
 
   if (socket.value) {
