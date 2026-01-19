@@ -239,16 +239,12 @@
       </el-row>
     </div>
 
-    <!-- 弹窗组件保持不变 -->
-    <CodeEdit
-      :key="logDialogKey"
-      v-model:show="showLogsDialog"
-      element-loading-text="正在加载日志..."
-      :original-code="dockerLogs"
-      :disabled="true"
-      :filename="containerName"
-      :scroll-to-bottom="true"
-      @closed="() => showLogsDialog = false"
+    <LogViewer
+      v-model="showLogsDialog"
+      :content="dockerLogs"
+      :title="containerName"
+      :language="'shell'"
+      @refresh="intervalLogs"
     />
   </div>
 </template>
@@ -256,7 +252,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch, getCurrentInstance } from 'vue'
 import { VideoPlay, VideoPause, RefreshRight, Delete, Document } from '@element-plus/icons-vue'
-import CodeEdit from '@/components/code-edit/index.vue'
+import LogViewer from '@/components/log-viewer/index.vue'
 import PlusLimitTip from '@/components/common/PlusLimitTip.vue'
 import { generateSocketInstance } from '@/utils'
 import dayjs from 'dayjs'
@@ -284,10 +280,8 @@ const dockerContainers = ref([])
 const dockerServerErr = ref(false)
 const dockerLogs = ref('')
 const currentContainer = ref(null)
-const logInterval = ref(null)
 const refreshInterval = ref(null)
 const showLogsDialog = ref(false)
-const logDialogKey = ref(0)
 // const tableRef = ref(null) // 移除 tableRef
 const selectedContainers = ref([])
 const batchOperating = ref(false)
@@ -332,12 +326,8 @@ watch(() => props.visible, (newVal) => {
 watch(() => showLogsDialog.value, (newVal) => {
   if (!newVal) {
     dockerLogs.value = ''
-    clearInterval(logInterval.value)
-    return
+    currentContainer.value = null
   }
-  logInterval.value = setInterval(() => {
-    intervalLogs()
-  }, 3000)
 })
 
 watch(() => isPlusActive.value, (newVal) => {
@@ -531,8 +521,6 @@ const handleLogs = (row) => {
     return
   }
 
-  // 更新 key 强制重新创建 CodeEdit 组件，确保每次都会滚动到底部
-  logDialogKey.value++
   currentContainer.value = row
   // 先打开弹窗，再请求日志数据
   showLogsDialog.value = true
@@ -542,7 +530,6 @@ const handleLogs = (row) => {
 const intervalLogs = () => {
   if (!socket.value || !socket.value.connected) {
     $message.error('连接已断开,正在刷新')
-    clearInterval(logInterval.value)
     refreshDockerContainers(true, 0)
     return
   }
@@ -757,11 +744,6 @@ onUnmounted(() => {
   if (refreshInterval.value) {
     clearInterval(refreshInterval.value)
     refreshInterval.value = null
-  }
-  // 清除日志定时器
-  if (logInterval.value) {
-    clearInterval(logInterval.value)
-    logInterval.value = null
   }
   // 关闭socket连接
   if (socket.value) {
