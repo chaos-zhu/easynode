@@ -342,12 +342,20 @@ const clearDataHistory = () => {
   dataHistory.value = []
 }
 
-// 检测数据是否陈旧（连续相同或CPU相同且网速都为空/0）
-const checkStaleData = (cpuUsage, uploadMb, downloadMb) => {
+// 检测数据是否陈旧（综合检测：CPU、网速、在线时间、内存、负载）
+const checkStaleData = (cpuUsage, uploadMb, downloadMb, uptime, memoryUsage, loadAvg) => {
+  // 将负载数组转换为字符串以便比较（取1分钟负载作为主要比较值）
+  const loadAvgStr = Array.isArray(loadAvg) ? loadAvg.map(l => Number(l).toFixed(2)).join(',') : ''
+  const load1m = Array.isArray(loadAvg) ? Number(loadAvg[0]) || 0 : 0
+
   const currentData = {
     cpu: cpuUsage,
     upload: uploadMb,
-    download: downloadMb
+    download: downloadMb,
+    uptime: uptime,
+    memory: memoryUsage,
+    loadAvg: loadAvgStr,
+    load1m: load1m
   }
 
   // 添加到历史
@@ -364,19 +372,50 @@ const checkStaleData = (cpuUsage, uploadMb, downloadMb) => {
   }
 
   const first = dataHistory.value[0]
+  const last = dataHistory.value[dataHistory.value.length - 1]
 
-  // 检查是否连续n次完全相同（CPU、上行、下行网速都相同）
+  // 检查在线时间是否停滞（正常情况下 uptime 应该递增）
+  // 如果最后一条和第一条的 uptime 完全相同，说明数据可能陈旧
+  const uptimeStale = (first.uptime !== undefined && last.uptime !== undefined) &&
+    (first.uptime === last.uptime)
+
+  // 检查是否连续n次完全相同（CPU、上行、下行网速、内存、负载都相同）
   const allSame = dataHistory.value.every(d =>
     d.cpu === first.cpu &&
     d.upload === first.upload &&
-    d.download === first.download
+    d.download === first.download &&
+    d.memory === first.memory &&
+    d.loadAvg === first.loadAvg
   )
 
-  // 检查是否CPU相同且n次数据上下行都为空/0
+  // 检查是否CPU和内存都相同，且n次数据上下行都为空/0
   const allNetworkEmpty = dataHistory.value.every(d => (!d.upload) && (!d.download))
   const cpuAllSame = dataHistory.value.every(d => d.cpu === first.cpu)
+  const memoryAllSame = dataHistory.value.every(d => d.memory === first.memory)
+  const loadAllSame = dataHistory.value.every(d => d.loadAvg === first.loadAvg)
 
-  return allSame || (allNetworkEmpty && cpuAllSame)
+  // 陈旧数据判断条件：
+  // 1. 所有关键指标（CPU、网速、内存、负载）完全相同
+  // 2. 或者 CPU、内存、负载都相同 且 网络流量都为空
+  // 3. 或者 在线时间停滞（uptime 没有增加）且 CPU相同
+  const isStale = allSame ||
+    (allNetworkEmpty && cpuAllSame && memoryAllSame && loadAllSame) ||
+    (uptimeStale && cpuAllSame)
+
+  if (isStale) {
+    console.warn('server-status: 陈旧数据检测详情:', {
+      uptimeStale,
+      allSame,
+      allNetworkEmpty,
+      cpuAllSame,
+      memoryAllSame,
+      loadAllSame,
+      firstData: first,
+      lastData: last
+    })
+  }
+
+  return isStale
 }
 
 // 触发陈旧数据重连
@@ -452,9 +491,12 @@ const connectWebSocket = () => {
         const downloadMb = data.netstatInfo.total.inputMb || 0
         updateNetworkHistory(uploadMb, downloadMb)
 
-        // 检测数据是否陈旧（连续n次相同）
+        // 检测数据是否陈旧（综合检测：CPU、网速、在线时间、内存、负载）
         const currentCpuUsage = Number(data.cpuInfo?.cpuUsage) || 0
-        if (checkStaleData(currentCpuUsage, uploadMb, downloadMb)) {
+        const currentUptime = data.osInfo?.uptime
+        const currentMemoryUsage = Number(data.memInfo?.usedMemPercentage) || 0
+        const currentLoadAvg = data.cpuInfo?.loadAvg || []
+        if (checkStaleData(currentCpuUsage, uploadMb, downloadMb, currentUptime, currentMemoryUsage, currentLoadAvg)) {
           triggerStaleDataReconnect()
           return // 触发重连后，不再处理后续逻辑
         }
@@ -463,7 +505,10 @@ const connectWebSocket = () => {
         const currentCpuUsage = Number(data.cpuInfo?.cpuUsage) || 0
         const uploadMb = 0
         const downloadMb = 0
-        if (checkStaleData(currentCpuUsage, uploadMb, downloadMb)) {
+        const currentUptime = data.osInfo?.uptime
+        const currentMemoryUsage = Number(data.memInfo?.usedMemPercentage) || 0
+        const currentLoadAvg = data.cpuInfo?.loadAvg || []
+        if (checkStaleData(currentCpuUsage, uploadMb, downloadMb, currentUptime, currentMemoryUsage, currentLoadAvg)) {
           triggerStaleDataReconnect()
           return
         }
