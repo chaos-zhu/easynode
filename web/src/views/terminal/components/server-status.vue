@@ -257,7 +257,6 @@ const serverData = ref({
   osInfo: {}
 })
 
-const pingData = ref({})
 const socket = ref(null)
 const reconnectTimer = ref(null)
 const reconnectAttempts = ref(0)

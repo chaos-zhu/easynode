@@ -6,6 +6,7 @@
     :append-to-body="false"
     :title="title"
     :close-on-click-modal="false"
+    :close-on-press-escape="false"
     @open="handleOpen"
     @closed="handleClosed"
   >
