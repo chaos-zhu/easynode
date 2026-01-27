@@ -1,15 +1,17 @@
 const path = require('path')
-const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const { verifyAuthSync } = require('../utils/verify-auth')
 const { sendNoticeAsync } = require('../utils/notify')
-const { isAllowedIp, ping } = require('../utils/tools')
+const { ping } = require('../utils/tools')
 const { AESDecryptAsync } = require('../utils/encrypt')
-const { HostListDB, CredentialsDB, ProxyDB } = require('../utils/db-class')
+const { KeyDB, HostListDB, CredentialsDB, ProxyDB } = require('../utils/db-class')
 const decryptAndExecuteAsync = require('../utils/decrypt-file')
+const { sessionManager, SessionStatus } = require('./session-manager')
+const { createSecureWs } = require('../utils/ws-tool')
+
 const hostListDB = new HostListDB().getInstance()
 const credentialsDB = new CredentialsDB().getInstance()
 const proxyDB = new ProxyDB().getInstance()
+const keyDB = new KeyDB().getInstance()
 
 async function getConnectionOptions(hostId) {
   const hostInfo = await hostListDB.findOneAsync({ _id: hostId })
@@ -220,7 +222,8 @@ async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShel
 
             try {
               let stream = await createInteractiveShell(socket, targetSSHClient)
-              resolve({ stream, jumpSshClients })
+              // 返回连接配置，用于会话重连
+              resolve({ stream, jumpSshClients, connectionOptions: targetConnectionOptions })
             } catch (shellError) {
               logger.error('创建交互式终端失败:', host, shellError.message)
               // 连接已经成功但创建shell失败，需要清理连接
@@ -228,7 +231,7 @@ async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShel
               jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
             }
           } else {
-            resolve({ jumpSshClients })
+            resolve({ jumpSshClients, connectionOptions: targetConnectionOptions })
           }
         })
         .on('close', (err) => {
@@ -258,32 +261,109 @@ async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShel
   })
 }
 
+/**
+ * 恢复挂起的会话
+ * @param {Object} socket - Socket.IO socket实例
+ * @param {Object} session - 要恢复的会话
+ */
+function resumeSession(socket, session) {
+  const { sessionId, stream, sshClient } = session
+
+  // 恢复会话状态
+  const resumedSession = sessionManager.resumeSession(sessionId)
+  if (!resumedSession) {
+    socket.emit('terminal_connect_fail', '恢复会话失败：SSH连接已断开')
+    return false
+  }
+
+  // 绑定socket
+  sessionManager.bindSocket(socket.id, sessionId)
+
+  // 获取并发送缓存的输出
+  const bufferedOutput = session.flushBuffer()
+
+  // 重新绑定stream的data事件，发送到前端
+  stream.removeAllListeners('data')
+  stream.on('data', (data) => {
+    socket.emit('output', data.toString())
+  })
+
+  // 设置输入监听
+  const listenerInput = (key) => {
+    if (!sshClient?._sock?.writable) {
+      logger.info('终端连接已关闭,禁止输入')
+      return
+    }
+    stream?.write(key)
+  }
+
+  const resizeShell = ({ rows, cols }) => {
+    stream?.setWindow(rows, cols)
+  }
+
+  socket.on('input', listenerInput)
+  socket.on('resize', resizeShell)
+
+  // 通知前端恢复成功
+  socket.emit('terminal_resumed', {
+    sessionId,
+    hostId: session.hostId,
+    bufferedOutput
+  })
+
+  socket.emit('session_created', { sessionId })
+  socket.emit('terminal_connect_success', '终端恢复连接成功')
+  socket.emit('terminal_connect_shell_success')
+
+  logger.info(`终端已恢复: ${ sessionId }`)
+  return true
+}
+
 function createServerIo(serverIo) {
   let connectionCount = 0
 
   serverIo.on('connection', async (socket) => {
-    // IP白名单检查
-    const requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
-    if (!isAllowedIp(requestIP)) {
-      socket.emit('ip_forbidden', 'IP地址不在白名单中')
-      socket.disconnect()
-      return
-    }
-    // 登录态校验
-    const { token, uid } = socket.handshake.query
-    const { success } = await verifyAuthSync(token, uid)
-    if (!success) {
-      socket.emit('user_verify_fail')
-      socket.disconnect()
-      return
-    }
     connectionCount++
     logger.info(`terminal websocket 已连接 - 当前连接数: ${ connectionCount }`)
-    let targetSSHClient = null
-    let jumpSshClients = []
-    socket.on('ws_terminal', async ({ hostId }) => {
+
+    const { _id: userId } = await keyDB.findOneAsync({})
+    // 处理终端连接请求
+    socket.on('ws_terminal', async ({ hostId, forceNew = false, resumeSessionId = null }) => {
       try {
-        targetSSHClient = new SSHClient()
+        // 如果指定了resumeSessionId，尝试恢复该会话
+        if (resumeSessionId) {
+          const session = sessionManager.getSession(resumeSessionId)
+          if (session && session.userId === userId && session.hostId === hostId) {
+            logger.info(`尝试恢复指定会话 ${ resumeSessionId }`)
+            const resumed = resumeSession(socket, session)
+            if (resumed) {
+              return // 恢复成功，直接返回
+            }
+            // 恢复失败，继续创建新连接
+            logger.info('恢复指定会话失败，创建新连接')
+          } else {
+            logger.warn(`会话 ${ resumeSessionId } 不存在或无权访问`)
+            socket.emit('terminal_connect_fail', '会话不存在或已过期')
+            return
+          }
+        }
+
+        // 检查是否有该主机的挂起会话（仅在非forceNew时自动恢复）
+        if (!forceNew && !resumeSessionId) {
+          const suspendedSession = sessionManager.findSuspendedSession(userId, hostId)
+          if (suspendedSession) {
+            logger.info(`发现挂起会话 ${ suspendedSession.sessionId }，尝试自动恢复`)
+            const resumed = resumeSession(socket, suspendedSession)
+            if (resumed) {
+              return // 恢复成功，直接返回
+            }
+            // 恢复失败，继续创建新连接
+            logger.info('自动恢复会话失败，创建新连接')
+          }
+        }
+
+        // 创建新连接
+        const targetSSHClient = new SSHClient()
         let result = await createTerminal(hostId, socket, targetSSHClient, true)
 
         // 如果创建终端失败，result可能为undefined
@@ -292,29 +372,141 @@ function createServerIo(serverIo) {
           return
         }
 
-        let { stream = null, jumpSshClients: jumpSshClientsFromCreate } = result
-        jumpSshClients = jumpSshClientsFromCreate || []
+        let { stream = null, jumpSshClients = [], connectionOptions = null } = result
 
+        // 创建会话并注册
+        const session = sessionManager.createSession({
+          hostId,
+          userId,
+          sshClient: targetSSHClient,
+          stream,
+          jumpSshClients,
+          connectionOptions // 保存连接配置，用于重连
+        })
+
+        // 绑定socket与会话
+        sessionManager.bindSocket(socket.id, session.sessionId)
+
+        // 通知前端会话ID
+        socket.emit('session_created', { sessionId: session.sessionId })
+
+        // 设置输入监听
         const listenerInput = (key) => {
-          if (!targetSSHClient || !targetSSHClient._sock || !targetSSHClient._sock.writable) {
+          if (!targetSSHClient?._sock?.writable) {
             logger.info('终端连接已关闭,禁止输入')
             return
           }
-          stream && stream.write(key)
+          stream?.write(key)
         }
 
         const resizeShell = ({ rows, cols }) => {
-          stream && stream.setWindow(rows, cols)
+          stream?.setWindow(rows, cols)
         }
 
         socket.on('input', listenerInput)
         socket.on('resize', resizeShell)
+
       } catch (error) {
         logger.error('ws_terminal事件处理失败:', error.message)
         socket.emit('terminal_connect_fail', `连接失败: ${ error.message }`)
       }
     })
 
+    // 挂起终端
+    socket.on('suspend_terminal', ({ sessionId }) => {
+      const session = sessionManager.getSession(sessionId)
+      if (!session) {
+        socket.emit('suspend_fail', '会话不存在')
+        return
+      }
+
+      if (session.userId !== userId) {
+        socket.emit('suspend_fail', '无权操作此会话')
+        return
+      }
+
+      // 标记为挂起状态（内部会检查挂起数量限制）
+      const suspendResult = sessionManager.suspendSession(sessionId)
+      if (!suspendResult.success) {
+        socket.emit('suspend_fail', suspendResult.error)
+        return
+      }
+
+      // 解绑socket，但保持SSH连接
+      sessionManager.unbindSocket(socket.id)
+
+      // 重新绑定stream的data事件用于缓存输出
+      session.stream.removeAllListeners('data')
+      session.stream.on('data', (data) => {
+        session.appendOutput(data)
+      })
+
+      // 监听SSH连接关闭事件（挂起期间SSH断开）
+      session.sshClient.once('close', () => {
+        if (session.status === SessionStatus.SUSPENDED) {
+          logger.warn(`挂起会话 ${ sessionId } 的SSH连接已断开`)
+          session.appendOutput('\r\n\x1b[91m═══ SSH连接已断开 ═══\x1b[0m\r\n')
+        }
+      })
+
+      session.sshClient.once('error', (err) => {
+        if (session.status === SessionStatus.SUSPENDED) {
+          logger.error(`挂起会话 ${ sessionId } SSH错误: ${ err.message }`)
+          session.appendOutput(`\r\n\x1b[91m═══ SSH错误: ${ err.message } ═══\x1b[0m\r\n`)
+        }
+      })
+
+      socket.emit('terminal_suspended', {
+        sessionId,
+        hostId: session.hostId
+      })
+
+      logger.info(`终端已挂起: ${ sessionId }`)
+    })
+
+    // 获取挂起的会话列表
+    socket.on('get_suspended_sessions', async ({ hostId } = {}) => {
+      const sessions = sessionManager.getSuspendedSessions(userId, hostId)
+
+      // 补充主机名信息
+      const sessionsWithHostInfo = await Promise.all(
+        sessions.map(async (s) => {
+          const hostInfo = await hostListDB.findOneAsync({ _id: s.hostId })
+          return {
+            ...s,
+            hostName: hostInfo?.name || '未知主机',
+            host: hostInfo?.host || ''
+          }
+        })
+      )
+
+      socket.emit('suspended_sessions_list', sessionsWithHostInfo)
+    })
+
+    // 销毁挂起的会话（不恢复，直接关闭）
+    socket.on('destroy_suspended_session', ({ sessionId }) => {
+      const session = sessionManager.getSession(sessionId)
+      if (!session) {
+        socket.emit('destroy_session_fail', '会话不存在')
+        return
+      }
+
+      if (session.userId !== userId) {
+        socket.emit('destroy_session_fail', '无权操作此会话')
+        return
+      }
+
+      if (session.status !== SessionStatus.SUSPENDED) {
+        socket.emit('destroy_session_fail', '只能销毁挂起状态的会话')
+        return
+      }
+
+      sessionManager.destroySession(sessionId)
+      socket.emit('session_destroyed', { sessionId })
+      logger.info(`挂起会话已销毁: ${ sessionId }`)
+    })
+
+    // ping检测
     socket.on('get_ping', async (ip) => {
       try {
         socket.emit('ping_data', await ping(ip, 2500))
@@ -323,24 +515,30 @@ function createServerIo(serverIo) {
       }
     })
 
+    // 断开连接处理
     socket.on('disconnect', (reason) => {
       connectionCount--
-      targetSSHClient && targetSSHClient.end()
-      jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
-      targetSSHClient = null
-      jumpSshClients = null
+
+      // 检查是否有关联的会话
+      const session = sessionManager.getSessionBySocket(socket.id)
+      if (session) {
+        if (session.status === SessionStatus.SUSPENDED) {
+          // 已挂起的会话，保持SSH连接
+          logger.info(`会话 ${ session.sessionId } 已挂起，保持SSH连接`)
+        } else {
+          // 未挂起的会话，正常销毁
+          sessionManager.destroySession(session.sessionId)
+        }
+        sessionManager.unbindSocket(socket.id)
+      }
+
       logger.info(`终端socket连接断开: ${ reason } - 当前连接数: ${ connectionCount }`)
     })
   })
 }
 
 module.exports = (httpServer) => {
-  const serverIo = new Server(httpServer, {
-    path: '/terminal',
-    cors: {
-      origin: '*'
-    }
-  })
+  const serverIo = createSecureWs(httpServer, '/terminal')
   createServerIo(serverIo)
 }
 

@@ -11,7 +11,6 @@ const instance = axios.create()
 
 instance.interceptors.request.use((config) => {
   config.headers.token = useStore().token
-  config.headers.uid = useStore().uid
   return config
 }, (error) => {
   ElMessage.error({ message: '请求超时！' })

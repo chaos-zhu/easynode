@@ -1,16 +1,17 @@
 const { getSSHList, addSSH, updateSSH, removeSSH, getCommand, decryptPrivateKey, getRdpToken } = require('../controller/ssh')
-const { getHostList, addHost, updateHost, batchUpdateHost, removeHost, importHost } = require('../controller/host')
+const { getHostList, addHost, updateHost, batchUpdateHost, removeHost, importHost, updateLastConnectTime } = require('../controller/host')
 const { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2, getPlusInfo, getPlusDiscount, getPlusConf, updatePlusKey } = require('../controller/user')
 const { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
 const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript, batchRemoveScript, importScript } = require('../controller/scripts')
 const { getScriptGroupList, addScriptGroup, removeScriptGroup, updateScriptGroup } = require('../controller/script-group')
 const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
-const { getLog, saveIpWhiteList, removeSomeLoginRecords, removeLoginSid } = require('../controller/sessionLog')
+const { getLog, saveIpWhiteList, removeSomeLoginRecords, revokeLoginSid } = require('../controller/sessionLog')
 const { getAIConfig, saveAIConfig, getAIModels, getChatHistory, saveChatHistory, removeChatHistory } = require('../controller/chat')
 const { getProxyList, addProxy, updateProxy, removeProxy } = require('../controller/proxy')
 const { getTerminalConfig, saveTerminalConfig } = require('../controller/terminal-config')
 const { getServerListConfig, saveServerListConfig } = require('../controller/server-list-config')
+const { getSuspendedSessions } = require('../controller/terminal')
 
 const ssh = [
   {
@@ -79,6 +80,11 @@ const host = [
     method: 'post',
     path: '/import-host',
     controller: importHost
+  },
+  {
+    method: 'post',
+    path: '/host-last-connect',
+    controller: updateLastConnectTime
   }
 ]
 const user = [
@@ -281,8 +287,8 @@ const log = [
   },
   {
     method: 'delete',
-    path: '/remove-login-sid/:id',
-    controller: removeLoginSid
+    path: '/revoke-login/:id',
+    controller: revokeLoginSid
   }
 ]
 
@@ -368,6 +374,14 @@ const serverListConfig = [
   }
 ]
 
+const terminal = [
+  {
+    method: 'get',
+    path: '/suspended-sessions',
+    controller: getSuspendedSessions
+  }
+]
+
 module.exports = [].concat(
   ssh,
   host,
@@ -381,5 +395,6 @@ module.exports = [].concat(
   aiConfig,
   proxy,
   terminalConfig,
-  serverListConfig
+  serverListConfig,
+  terminal
 )

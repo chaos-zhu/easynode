@@ -3,7 +3,9 @@ export const terminalStatus = {
   CONNECT_READY: 'connect_ready',
   CONNECTING: 'connecting',
   CONNECT_FAIL: 'connect_fail',
-  CONNECT_SUCCESS: 'connect_success'
+  CONNECT_SUCCESS: 'connect_success',
+  SUSPENDED: 'suspended', // 新增：已挂起
+  RESUMING: 'resuming' // 新增：恢复中
 }
 
 export const terminalStatusList = [
@@ -11,6 +13,8 @@ export const terminalStatusList = [
   { value: terminalStatus.CONNECTING, label: '连接中', color: '#FFA500' },
   { value: terminalStatus.CONNECT_FAIL, label: '连接失败', color: '#DC3545' },
   { value: terminalStatus.CONNECT_SUCCESS, label: '已连接', color: '#28A745' },
+  { value: terminalStatus.SUSPENDED, label: '已挂起', color: '#909399' }, // 新增
+  { value: terminalStatus.RESUMING, label: '恢复中', color: '#409EFF' }, // 新增
 ]
 
 // RDP连接状态

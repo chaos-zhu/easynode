@@ -34,12 +34,13 @@ import { SearchAddon } from '@xterm/addon-search'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import themeList from 'xterm-theme'
 import { terminalStatus } from '@/utils/enum'
+
 import { useContextMenu } from '@/composables/useContextMenu'
 import { EventBus, isDockerId, isDockerComposeYml, generateSocketInstance } from '@/utils'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { TerminalHighlighter } from '@/utils/highlighter'
 
-const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL } = terminalStatus
+const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL, SUSPENDED, RESUMING } = terminalStatus
 
 const instance = getCurrentInstance()
 const { uid } = instance
@@ -86,6 +87,7 @@ const searchBarRef = ref(null) // TerminalSearch组件引用
 // const searchBar = ref(null)
 const socketConnected = ref(false)
 const curStatus = ref(CONNECTING)
+const sessionId = ref(null) // 会话ID，用于挂起/恢复
 const terminalRef = ref(null)
 const { showMenu, closeMenu, isVisible } = useContextMenu()
 
@@ -238,7 +240,52 @@ const connectIO = () => {
     console.log('/terminal socket已连接：', hostId.value)
 
     socketConnected.value = true
-    socket.value.emit('ws_terminal', { hostId: hostId.value })
+
+    // 检查是否是恢复会话
+    if (hostObj.value.resumeSessionId) {
+      // 恢复会话模式：直接尝试恢复
+      socket.value.emit('ws_terminal', {
+        hostId: hostId.value,
+        resumeSessionId: hostObj.value.resumeSessionId
+      })
+    } else {
+      // 正常连接模式：forceNew=true，不自动恢复
+      socket.value.emit('ws_terminal', {
+        hostId: hostId.value,
+        forceNew: true
+      })
+    }
+
+    // 接收会话ID
+    socket.value.on('session_created', ({ sessionId: sid }) => {
+      sessionId.value = sid
+      console.log('会话已创建:', sid)
+    })
+
+    // 处理恢复成功
+    socket.value.on('terminal_resumed', ({ sessionId: sid, bufferedOutput }) => {
+      sessionId.value = sid
+      curStatus.value = CONNECT_SUCCESS
+
+      // 回放缓存的输出
+      if (bufferedOutput) {
+        if (keywordHighlight.value && highlighter.value) {
+          const highlightedStr = highlighter.value.highlightText(bufferedOutput)
+          term.value.write(highlightedStr)
+        } else {
+          term.value.write(bufferedOutput)
+        }
+      }
+
+      term.value.write('\r\n\x1b[92m═══ 终端已从挂起状态恢复 ═══\x1b[0m\r\n')
+      handleResize()
+
+      // 自动发送回车以显示命令提示符
+      setTimeout(() => {
+        socket.value?.emit('input', '\r')
+      }, 100)
+    })
+
     socket.value.on('terminal_connect_success', () => {
       socket.value.on('output', (str) => {
         // 如果有临时路径同步回调，先调用它
@@ -276,11 +323,6 @@ const connectIO = () => {
     socket.value.on('ping_data', (pingMs) => {
       const time = Number(pingMs?.time)?.toFixed(0) || 0
       emit('ping-data', { host: host.value, time: Number.isNaN(time) ? '--' : time })
-    })
-
-    socket.value.on('user_verify_fail', () => {
-      $notification({ title: 'Error', message: '登录态校验失败，请重新登录', type: 'error' })
-      $router.push('/login')
     })
 
     socket.value.on('terminal_print_info', (msg) => {
@@ -889,11 +931,81 @@ onBeforeUnmount(() => {
   tempPathSyncCallback.value = null
 })
 
+// 挂起终端
+const suspendTerminal = () => {
+  return new Promise((resolve) => {
+    if (!sessionId.value) {
+      $message.warning('会话未建立，无法挂起')
+      resolve(false)
+      return
+    }
+
+    if (curStatus.value !== CONNECT_SUCCESS) {
+      $message.warning('终端未连接，无法挂起')
+      resolve(false)
+      return
+    }
+
+    let resolved = false // 防止重复resolve
+    let timeoutId = null
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+      socket.value?.off('terminal_suspended', onSuspended)
+      socket.value?.off('suspend_fail', onFail)
+    }
+
+    const onSuspended = ({ sessionId: sid }) => {
+      if (resolved) return
+      resolved = true
+      cleanup()
+
+      curStatus.value = SUSPENDED
+
+      // 断开WebSocket（不触发重连）
+      socket.value.removeAllListeners()
+      socket.value.disconnect()
+      socket.value = null
+      socketConnected.value = false
+
+      resolve(true)
+    }
+
+    const onFail = (msg) => {
+      if (resolved) return
+      resolved = true
+      cleanup()
+
+      $message.error(`挂起失败: ${ msg }`)
+      resolve(false)
+    }
+
+    socket.value.emit('suspend_terminal', { sessionId: sessionId.value })
+    socket.value.once('terminal_suspended', onSuspended)
+    socket.value.once('suspend_fail', onFail)
+
+    // 超时处理
+    timeoutId = setTimeout(() => {
+      if (resolved) return
+      resolved = true
+      cleanup()
+
+      $message.warning('挂起操作超时')
+      resolve(false)
+    }, 5000)
+  })
+}
+
 defineExpose({
   focusTab,
   handleResize,
   inputCommand,
-  handleClear
+  handleClear,
+  suspendTerminal, // 新增
+  sessionId // 新增
 })
 </script>
 

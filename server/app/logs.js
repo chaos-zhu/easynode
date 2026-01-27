@@ -20,7 +20,7 @@ log4js.configure({
   },
   categories: {
     default: {
-      appenders: ['console', 'file'],
+      appenders: process.env.EXEC_ENV === 'local' ? ['file'] : ['console', 'file'],
       level: 'debug'
     }
   }

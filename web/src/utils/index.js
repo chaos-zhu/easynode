@@ -199,10 +199,12 @@ export const isValidDate = (dateString) => {
 const serviceURI = import.meta.env.DEV ? process.env.serviceURI : location.origin
 export const generateSocketInstance = (path, config = { forceNew: false, reconnection: true, reconnectionAttempts: 3 }, query = {}) => {
   return socketIo(serviceURI, {
+    withCredentials: true,
+    auth: {
+      token: useStore().token
+    },
     path,
     query: {
-      uid: useStore().uid,
-      token: useStore().token,
       ...query
     },
     ...config

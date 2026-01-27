@@ -130,7 +130,6 @@ const handleUpdate = () => {
         newPwd = RSAEncrypt(newPwd)
         let { msg } = await $api.updatePwd({ oldLoginName, oldPwd, newLoginName, newPwd })
         $message({ type: 'success', center: true, message: msg })
-        $store.setUser(newLoginName)
         formData.oldLoginName = ''
         formData.oldPwd = ''
         formData.newLoginName = ''

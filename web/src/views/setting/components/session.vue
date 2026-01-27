@@ -182,7 +182,7 @@ const handleRemoveSid = async (id) => {
     .then(async () => {
       removeSidLoading.value = true
       try {
-        const { msg } = await $api.removeLoginSid(id)
+        const { msg } = await $api.revokeLoginSid(id)
         handleLookupLoginRecord()
         $message.success(msg)
       } finally {

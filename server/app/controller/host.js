@@ -107,11 +107,26 @@ async function importHost({ res, request }) {
   res.success({ data: { len: newHostList.length } })
 }
 
+async function updateLastConnectTime({ res, request }) {
+  let { body: { id } } = request
+  if (!id) return res.fail({ msg: '参数错误：缺少id' })
+
+  try {
+    const timestamp = Date.now()
+    await hostListDB.updateAsync({ _id: id }, { $set: { lastConnectTime: timestamp } })
+    res.success({ msg: '更新成功' })
+  } catch (error) {
+    logger.error('updateLastConnectTime error: ', error.message)
+    res.fail({ msg: '更新失败' })
+  }
+}
+
 module.exports = {
   getHostList,
   addHost,
   updateHost,
   removeHost,
   importHost,
-  batchUpdateHost
+  batchUpdateHost,
+  updateLastConnectTime
 }

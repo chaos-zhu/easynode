@@ -1,9 +1,8 @@
 const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
 const { sendNoticeAsync } = require('../utils/notify')
-const { verifyAuthSync } = require('../utils/verify-auth')
 const { shellThrottle } = require('../utils/tools')
-const { isAllowedIp } = require('../utils/tools')
+const { createSecureWs } = require('../utils/ws-tool')
 const { HostListDB, OnekeyDB } = require('../utils/db-class')
 const { getConnectionOptions, handleProxyAndJumpHostConnection } = require('./terminal')
 const hostListDB = new HostListDB().getInstance()
@@ -90,28 +89,9 @@ function execShell(socket, sshClient, curRes, resolve) {
 }
 
 module.exports = (httpServer) => {
-  const serverIo = new Server(httpServer, {
-    path: '/onekey',
-    cors: {
-      origin: '*'
-    }
-  })
+  const serverIo = createSecureWs(httpServer, '/onekey')
+
   serverIo.on('connection', async (socket) => {
-    // IP白名单检查
-    const requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
-    if (!isAllowedIp(requestIP)) {
-      socket.emit('ip_forbidden', 'IP地址不在白名单中')
-      socket.disconnect()
-      return
-    }
-    // 登录态校验
-    const { token, uid } = socket.handshake.query
-    const { success } = await verifyAuthSync(token, uid)
-    if (!success) {
-      socket.emit('user_verify_fail')
-      socket.disconnect()
-      return
-    }
     logger.info('onekey-terminal websocket 已连接')
     if (isExecuting) {
       socket.emit('create_fail', '正在执行中, 请稍后再试')

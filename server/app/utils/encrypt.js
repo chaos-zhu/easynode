@@ -37,9 +37,14 @@ const SHA1Encrypt = (clearText) => {
   return rawCrypto.createHash('sha1').update(clearText).digest('hex')
 }
 
+const SHA256Encrypt = (clearText) => {
+  return rawCrypto.createHash('sha256').update(clearText).digest('hex')
+}
+
 module.exports = {
   RSADecryptAsync,
   AESEncryptAsync,
   AESDecryptAsync,
-  SHA1Encrypt
+  SHA1Encrypt,
+  SHA256Encrypt
 }

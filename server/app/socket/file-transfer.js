@@ -1,8 +1,7 @@
 const path = require('path')
-const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const { verifyAuthSync } = require('../utils/verify-auth')
-const { isAllowedIp, fileTransferThrottle } = require('../utils/tools')
+const { fileTransferThrottle } = require('../utils/tools')
+const { createSecureWs } = require('../utils/ws-tool')
 const { getConnectionOptions } = require('./terminal')
 const { FileTransferDB, HostListDB } = require('../utils/db-class')
 const decryptAndExecuteAsync = require('../utils/decrypt-file')
@@ -55,34 +54,15 @@ async function getSortedTasksList() {
 }
 
 module.exports = (httpServer) => {
-  const transferIo = new Server(httpServer, {
-    path: '/file-transfer',
-    cors: { origin: '*' }
-  })
+  const serverIo = createSecureWs(httpServer, '/file-transfer')
 
   let connectionCount = 0
   const connectedSockets = new Set() // 跟踪所有连接的socket
 
-  transferIo.on('connection', async (socket) => {
+  serverIo.on('connection', async (socket) => {
     connectionCount++
     connectedSockets.add(socket)
     logger.info(`file-transfer websocket 已连接 - 当前连接数: ${ connectionCount }`)
-
-    // IP白名单检查
-    const requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
-    if (!isAllowedIp(requestIP)) {
-      socket.emit('ip_forbidden', 'IP地址不在白名单中')
-      socket.disconnect()
-      return
-    }
-    // 登录态校验
-    const { token, uid } = socket.handshake.query
-    const { success } = await verifyAuthSync(token, uid)
-    if (!success) {
-      socket.emit('user_verify_fail')
-      socket.disconnect()
-      return
-    }
 
     // 连接时发送当前所有任务状态
     socket.on('get_tasks', async () => {
@@ -219,8 +199,6 @@ module.exports = (httpServer) => {
       logger.info(`file-transfer websocket 断开连接 - 当前连接数: ${ connectionCount }`)
     })
   })
-
-  return transferIo
 }
 
 // 执行传输任务

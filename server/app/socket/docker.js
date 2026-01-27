@@ -1,10 +1,8 @@
 const path = require('path')
-const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const { verifyAuthSync } = require('../utils/verify-auth')
-const { isAllowedIp } = require('../utils/tools')
 const { createTerminal } = require('./terminal')
 const decryptAndExecuteAsync = require('../utils/decrypt-file')
+const { createSecureWs } = require('../utils/ws-tool')
 
 let executeCommand = () => {
   return new Promise((resolve) => {
@@ -114,31 +112,11 @@ async function deleteDockerContainer(targetSSHClient, containerId) {
 }
 
 module.exports = (httpServer) => {
-  const serverIo = new Server(httpServer, {
-    path: '/docker',
-    cors: {
-      origin: '*'
-    }
-  })
+  const serverIo = createSecureWs(httpServer, '/docker')
 
   let connectionCount = 0
 
   serverIo.on('connection', async (socket) => {
-    // IP白名单检查
-    const requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
-    if (!isAllowedIp(requestIP)) {
-      socket.emit('ip_forbidden', 'IP地址不在白名单中')
-      socket.disconnect()
-      return
-    }
-    // 登录态校验
-    const { token, uid } = socket.handshake.query
-    const { success } = await verifyAuthSync(token, uid)
-    if (!success) {
-      socket.emit('user_verify_fail')
-      socket.disconnect()
-      return
-    }
     connectionCount++
     logger.info(`docker websocket 已连接 - 当前连接数: ${ connectionCount }`)
 

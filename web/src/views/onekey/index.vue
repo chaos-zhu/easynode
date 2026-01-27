@@ -304,11 +304,6 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
       getOnekeyRecord()
     })
 
-    socket.value.on('user_verify_fail', () => {
-      $message.error('登录态校验失败，请重新登录')
-      $router.push('/login')
-    })
-
     socket.value.on('exec_complete', () => {
       $notification({
         title: '批量指令执行完成',

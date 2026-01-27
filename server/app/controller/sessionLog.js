@@ -7,7 +7,7 @@ async function getLog({ res }) {
   let { ipWhiteList } = await keyDB.findOneAsync({})
   sessionList = sessionList.map(item => {
     // eslint-disable-next-line no-unused-vars
-    const { sid, ...otherInfo } = item
+    const { session, ...otherInfo } = item
     return { ...otherInfo, id: item._id }
   })
   sessionList?.sort((a, b) => Number(b.create) - Number(a.create))
@@ -30,14 +30,21 @@ const removeSomeLoginRecords = async ({ res }) => {
   res.success({ msg: `已成功移除 ${ result } 条登录日志` })
 }
 
-const removeLoginSid = async ({ res, request }) => {
+const revokeLoginSid = async (ctx) => {
+  const { res, request, cookies } = ctx
   let { params: { id } } = request
+  const session = cookies.get('session')
+  const { _id: curId, deviceId: curDeviceId } = await sessionDB.findOneAsync({ session })
   let result = await sessionDB.updateAsync({
     $or: [
       { _id: id },
       { deviceId: id }
     ]
   }, { $set: { revoked: true } })
+  if (id === curId || id === curDeviceId) {
+    logger.warn('注销当前登录凭证，清除cookie')
+    ctx.cookies.set('session', '', { expires: new Date(0) })
+  }
   if (!result || !result.numAffected) return res.fail({ msg: '注销凭证失败' })
   res.success({ msg: '注销凭证成功' })
 }
@@ -46,5 +53,5 @@ module.exports = {
   getLog,
   saveIpWhiteList,
   removeSomeLoginRecords,
-  removeLoginSid
+  revokeLoginSid
 }

@@ -244,11 +244,6 @@ const initializeSocket = () => {
     $message.error(`${ message }: ${ error }`)
   })
 
-  socket.value.on('user_verify_fail', () => {
-    $message.error('登录态校验失败，请重新登录')
-    $router.push('/login')
-  })
-
   socket.value.on('task_deleted', ({ message }) => {
     $message.success(message)
     // 任务列表会通过 tasks_list 事件自动更新

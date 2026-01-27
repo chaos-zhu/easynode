@@ -1,8 +1,6 @@
-const { Server } = require('socket.io')
 const { Client: SSHClient } = require('ssh2')
-const { verifyAuthSync } = require('../utils/verify-auth')
-const { isAllowedIp } = require('../utils/tools')
 const { createTerminal } = require('./terminal')
+const { createSecureWs } = require('../utils/ws-tool')
 const monitorMap = new Map() // key -> { sockets: Set, statusData, stop }
 const pendingConnections = new Map() // key -> Promise，跟踪正在创建的连接
 const { HostListDB } = require('../utils/db-class')
@@ -19,32 +17,11 @@ function stripAnsi(s = '') {
 const safeDelta = (curr, prev) => (curr >= prev ? curr - prev : 0)
 
 module.exports = (httpServer) => {
-  const serverIo = new Server(httpServer, {
-    path: '/server-status',
-    cors: {
-      origin: '*'
-    }
-  })
+  const serverIo = createSecureWs(httpServer, '/server-status')
 
   let connectionCount = 0
 
   serverIo.on('connection', async (socket) => {
-    // IP白名单检查
-    let requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
-    if (!isAllowedIp(requestIP)) {
-      socket.emit('ip_forbidden', 'IP地址不在白名单中')
-      socket.disconnect()
-      return
-    }
-    // 登录态校验
-    const { token, uid } = socket.handshake.query
-    const { success } = await verifyAuthSync(token, uid)
-    if (!success) {
-      socket.emit('user_verify_fail')
-      socket.disconnect()
-      return
-    }
-
     connectionCount++
     logger.info(`server-status websocket 已连接 - 当前连接数: ${ connectionCount }`)
 

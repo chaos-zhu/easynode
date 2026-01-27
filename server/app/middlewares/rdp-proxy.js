@@ -6,7 +6,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware')
  */
 const createRdpProxyMiddleware = () => {
   const RDP_PORT = process.env.RDP_PORT || 8083
-  const RDP_HOST = process.env.RDP_HOST || '127.0.0.1' // 使用127.0.0.1更可靠
+  const RDP_HOST = process.env.RDP_HOST || '127.0.0.1'
   const target = `http://${ RDP_HOST }:${ RDP_PORT }`
 
   logger.info('创建RDP代理转发:', target)

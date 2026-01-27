@@ -8,7 +8,10 @@
     "prod": "cross-env EXEC_ENV=production nodemon index.js",
     "start": "node ./index.js",
     "lint": "eslint . --ext .js,.vue",
-    "lint:fix": "eslint . --ext .js,.jsx,.cjs,.mjs --fix"
+    "lint:fix": "eslint . --ext .js,.jsx,.cjs,.mjs --fix",
+    "test": "node test/test-rest-api-auth.js && node test/test-ws-comprehensive.js",
+    "test:api": "node test/test-rest-api-auth.js",
+    "test:ws": "node test/test-ws-comprehensive.js"
   },
   "keywords": [],
   "author": "",

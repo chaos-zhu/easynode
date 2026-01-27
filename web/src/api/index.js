@@ -52,6 +52,9 @@ export default {
   importHost(data) {
     return axios({ url: '/import-host', method: 'post', data })
   },
+  updateLastConnectTime(data) {
+    return axios({ url: '/host-last-connect', method: 'post', data })
+  },
   getPubPem() {
     return axios({ url: '/get-pub-pem', method: 'get' })
   },
@@ -172,8 +175,8 @@ export default {
   removeSomeLoginRecords() {
     return axios({ url: '/remove-some-login-records', method: 'delete' })
   },
-  removeLoginSid(id) {
-    return axios({ url: `/remove-login-sid/${ id }`, method: 'delete' })
+  revokeLoginSid(id) {
+    return axios({ url: `/revoke-login/${ id }`, method: 'delete' })
   },
   getProxyList() {
     return axios({ url: '/proxy', method: 'get' })
@@ -200,5 +203,9 @@ export default {
   },
   saveServerListConfig(data) {
     return axios({ url: '/server-list-config', method: 'post', data })
+  },
+  // 获取挂起的会话列表
+  getSuspendedSessions() {
+    return axios({ url: '/suspended-sessions', method: 'get' })
   }
 }

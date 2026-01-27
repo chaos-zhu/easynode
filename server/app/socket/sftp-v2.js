@@ -1,13 +1,11 @@
 const rawPath = require('path')
 const fs = require('fs-extra')
 const SFTPClient = require('ssh2-sftp-client')
-const { Server } = require('socket.io')
 const iconv = require('iconv-lite')
 const chardet = require('chardet')
 const { v4: uuidv4 } = require('uuid')
 const { sftpCacheDir } = require('../config')
-const { verifyAuthSync } = require('../utils/verify-auth')
-const { isAllowedIp } = require('../utils/tools')
+const { createSecureWs } = require('../utils/ws-tool')
 const { HostListDB, FavoriteSftpDB } = require('../utils/db-class')
 const { getConnectionOptions, handleProxyAndJumpHostConnection } = require('./terminal')
 const hostListDB = new HostListDB().getInstance()
@@ -1553,32 +1551,14 @@ const listenAction = (sftpClient, socket) => {
 }
 
 module.exports = (httpServer) => {
-  const serverIo = new Server(httpServer, {
-    path: '/sftp-v2',
-    cors: {
-      origin: '*'
-    },
+  const serverIo = createSecureWs(httpServer, '/sftp-v2', {
     // 增加消息大小限制，支持大文件上传（默认1MB）
     maxHttpBufferSize: 10 * 1024 * 1024, // 10MB
-    pingTimeout: 60000, // 60秒
-    pingInterval: 25000 // 25秒
+    pingTimeout: 10000, // 10秒
+    pingInterval: 10000
   })
+
   serverIo.on('connection', async (socket) => {
-    // IP白名单检查
-    const requestIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
-    if (!isAllowedIp(requestIP)) {
-      socket.emit('ip_forbidden', 'IP地址不在白名单中')
-      socket.disconnect()
-      return
-    }
-    // 登录态校验
-    const { token, uid } = socket.handshake.query
-    const { success } = await verifyAuthSync(token, uid)
-    if (!success) {
-      socket.emit('user_verify_fail')
-      socket.disconnect()
-      return
-    }
     let sftpClient = new SFTPClient()
     logger.info('sftp-v2 websocket 已连接')
     let jumpSshClients = []

@@ -525,12 +525,6 @@ const connectWebSocket = () => {
       }
     })
 
-    socket.value.on('user_verify_fail', (message) => {
-      console.log('token 验证失败:', message)
-      isConnecting.value = false
-      // token失败不重连，需要重新登录
-    })
-
     socket.value.on('disconnect', (reason) => {
       console.log('server-status websocket 连接断开:', reason)
       isConnecting.value = false

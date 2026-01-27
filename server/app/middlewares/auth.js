@@ -7,23 +7,31 @@ let whitePath = [
 ].map(item => (apiPrefix + item))
 logger.warn('路由白名单：', whitePath)
 
-const useAuth = async ({ request, res }, next) => {
-  const { path, headers: { token, uid } } = request
+const useAuth = async (ctx, next) => {
+  const { request, res, cookies } = ctx
+  const { path, headers } = request
   if (whitePath.includes(path)) {
     logger.info('白名单路由: ', path)
-    return next()
+    return await next()
   }
   logger.info('验证权限路由: ', path)
+
+  const { token } = headers
   if (!token) return res.fail({ msg: '未登录(token)', status: 401 })
-  if (!uid) return res.fail({ msg: '未登录(uid)', status: 401 })
+
+  const session = cookies.get('session')
+  if (!session) return res.fail({ msg: '未登录(session)', status: 401 })
   // 验证token
-  const { code } = await verifyAuthSync(token, uid)
+  const { code } = await verifyAuthSync(token, session)
   let failMsg = ''
   switch (code) {
     case enumLoginCode.SUCCESS:
       return await next()
     case enumLoginCode.EXPIRES:
       failMsg = 'TOKEN已过期, 请重新登录'
+      break
+    case enumLoginCode.SID_EXPIRES:
+      failMsg = 'SESSION过期, 请重新登录'
       break
     case enumLoginCode.ERROR_TOKEN:
       failMsg = 'TOKEN校验失败, 请重新登录'

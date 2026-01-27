@@ -136,9 +136,9 @@ const handleLogin = () => {
     loading.value = true
     try {
       let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, jwtExpireAt, mfa2Token })
-      const { token, uid, deviceId } = data
+      const { token, deviceId } = data
       $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
-      $store.setUser(loginName, uid, deviceId)
+      $store.setUser(loginName, deviceId)
       $message.success({ message: msg || 'success', center: true })
       if (isHttps) return $router.push('/')
       if (notHttpsTips) return $router.push('/')

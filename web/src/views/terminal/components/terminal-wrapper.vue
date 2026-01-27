@@ -23,17 +23,46 @@
             />
             <el-dropdown-menu v-else>
               <el-dropdown-item
-                class="link_close_all"
-                @click="handleCloseAllTab"
-              >
-                <span>关闭所有连接</span>
-              </el-dropdown-item>
-              <el-dropdown-item
                 v-for="(item, index) in hostList"
                 :key="index"
                 @click="handleLinkHost(item)"
               >
                 {{ item.name }} {{ item.host }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-dropdown
+          ref="resumeSessionDropdownRef"
+          v-model:visible="resumeSessionDropdownVisible"
+          trigger="click"
+          max-height="50vh"
+          class="dropdown_menu"
+          :teleported="isMobileScreen"
+          @visible-change="handleResumeSessionDropdownChange"
+        >
+          <span class="link_text">会话<el-icon class="link_icon"><arrow-down /></el-icon></span>
+          <template #dropdown>
+            <el-dropdown-menu v-loading="loadingSessions">
+              <el-dropdown-item v-if="!loadingSessions && suspendedSessions.length === 0" disabled>
+                <span>暂无挂起的会话</span>
+              </el-dropdown-item>
+              <el-dropdown-item
+                v-for="session in suspendedSessions"
+                :key="session.sessionId"
+                @click="handleResumeSessionFromDropdown(session)"
+              >
+                <div class="session_item">
+                  <span class="session_name">{{ session.hostName }}</span>
+                  <el-tag
+                    v-if="!session.connectionAlive"
+                    type="danger"
+                    size="small"
+                    style="margin-left: 8px"
+                  >
+                    断开
+                  </el-tag>
+                </div>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -207,12 +236,19 @@
         :closable="true"
       >
         <template #label>
-          <div class="tab_label">
+          <div
+            class="tab_label"
+            @contextmenu.prevent="handleTabContextMenu($event, item, index)"
+          >
             <span
               class="tab_status"
               :style="{ background: getStatusColor(item.status) }"
             />
             <span>{{ item.name }}</span>
+            <!-- 挂起状态图标 -->
+            <el-icon v-if="item.status === 'suspended'" class="suspended_icon" title="已挂起">
+              <VideoPause />
+            </el-icon>
           </div>
         </template>
         <div class="tab_content_wrap">
@@ -387,9 +423,10 @@ import {
   onMounted,
   onUnmounted
 } from 'vue'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, VideoPause } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
-import { terminalStatusList } from '@/utils/enum'
+import { terminalStatusList, terminalStatus } from '@/utils/enum'
+import { useContextMenu } from '@/composables/useContextMenu'
 import Terminal from './terminal.vue'
 import ServerStatus from './server-status.vue'
 import HostForm from '../../server/components/host-form.vue'
@@ -416,6 +453,7 @@ const props = defineProps({
 const emit = defineEmits(['closed', 'close-all-tab', 'removeTab', 'add-host',])
 const hostGroupAll = 'host-group-all-'
 const { isMobileScreen } = useMobileWidth()
+const { showMenu } = useContextMenu()
 const infoSideRef = ref(null)
 const pingData = ref({})
 const terminalRefs = ref([])
@@ -449,6 +487,11 @@ const hostDropdownRef = ref(null)
 const singleWindowRef = ref(null)
 const showDockerDialog = ref(false)
 const sftpRefs = ref([])
+const resumeSessionDropdownRef = ref(null)
+const resumeSessionDropdownVisible = ref(false)
+const loadingSessions = ref(false)
+const suspendedSessions = computed(() => $store.suspendedSessions)
+const hasSuspendedSessions = computed(() => suspendedSessions.value.length > 0)
 
 // 当前聚焦终端 uid
 const focusedUid = ref(null)
@@ -667,10 +710,6 @@ const formatHostGroupList = computed(() => {
         children
       }
     })
-  result.unshift({
-    value: 'closeAll',
-    label: '关闭所有连接'
-  })
   return result
 })
 const formatScriptList = computed(() => {
@@ -722,7 +761,6 @@ const resetLongPress = () => {
 const handleLinkHost = (hostDescObj) => {
   if (!hostDescObj) return // clearCheckedNodes二次触发change事件
   const id = Array.isArray(hostDescObj) ? hostDescObj.slice(-1)[0] : hostDescObj.id
-  if (id === 'closeAll') return handleCloseAllTab()
   if (id.startsWith(hostGroupAll)) {
     const groupId = id.split(hostGroupAll)[1]
     const hosts = hostList.value.filter((host) => host.group === groupId)
@@ -742,12 +780,66 @@ const handleLinkHost = (hostDescObj) => {
       updateHostData.value = { ...host }
       return
     }
+    // 正常新建连接，不恢复会话
     emit('add-host', host)
   }
   setTimeout(() => {
     hostGroupCascaderRef.value?.clearCheckedNodes()
     hostDropdownRef.value?.handleClose()
   }, 100)
+}
+
+// 处理恢复会话下拉菜单显示/隐藏
+const handleResumeSessionDropdownChange = (visible) => {
+  if (visible) {
+    // 下拉菜单打开时，获取挂起的会话列表
+    fetchSuspendedSessions()
+  }
+}
+
+// 获取挂起的会话列表
+const fetchSuspendedSessions = async () => {
+  loadingSessions.value = true
+  try {
+    await $store.getSuspendedSessions()
+  } catch (error) {
+    console.error('获取挂起会话列表失败:', error)
+    $message.error('获取挂起会话列表失败')
+  } finally {
+    loadingSessions.value = false
+  }
+}
+
+// 从下拉菜单恢复会话
+const handleResumeSessionFromDropdown = (session) => {
+  if (!session.connectionAlive) {
+    $message.warning('该会话的SSH连接已断开，无法恢复')
+    return
+  }
+
+  const { hostId, hostName, host, sessionId } = session
+
+  // 创建一个特殊的tab，标记为恢复会话
+  const targetHost = hostList.value.find(item => item.id === hostId)
+  if (!targetHost) {
+    $message.error('未找到对应的主机配置')
+    return
+  }
+
+  const { id, name, isConfig } = targetHost
+  terminalTabs.value.push({
+    key: sessionId, // 使用sessionId作为key
+    id,
+    name,
+    host,
+    status: terminalStatus.RESUMING,
+    isConfig,
+    resumeSessionId: sessionId // 标记为恢复会话
+  })
+
+  // 关闭下拉菜单
+  resumeSessionDropdownVisible.value = false
+  resumeSessionDropdownRef.value?.handleClose()
 }
 
 // scriptDescObj: 脚本库对象、脚本命令或者包含command和useBase64的对象
@@ -960,6 +1052,117 @@ const handleInputCommand = async (command, type = 'input', useBase64 = false) =>
   }
 }
 
+// Tab 右键菜单处理
+const handleTabContextMenu = (e, item, index) => {
+  e.preventDefault()
+  e.stopPropagation()
+
+  const menuItems = []
+
+  // 挂起终端选项（仅在已连接状态显示）
+  if (item.status === terminalStatus.CONNECT_SUCCESS) {
+    menuItems.push({
+      label: '挂起终端',
+      onClick: () => handleSuspendTerminal(item, index)
+    })
+  }
+
+  // 挂起所有会话（存在已连接会话时显示）
+  if (
+    terminalTabs.value.some(tab => tab.status === terminalStatus.CONNECT_SUCCESS)
+  ) {
+    menuItems.push({
+      label: '挂起所有会话',
+      onClick: () => handleSuspendAllSessions()
+    })
+  }
+
+  // 关闭其他终端
+  if (terminalTabs.value.length > 1) {
+    menuItems.push({
+      label: '关闭其他终端',
+      onClick: () => handleCloseOtherTabs(index)
+    })
+  }
+
+  // 关闭所有终端
+  menuItems.push({
+    label: '关闭所有终端',
+    onClick: () => handleCloseAllTab()
+  })
+
+  showMenu(e, menuItems)
+}
+
+// 挂起终端
+const handleSuspendTerminal = async (item, index, { silent = false } = {}) => {
+  const terminalRef = getFirstTerminalRefOfTab(index)
+  if (!terminalRef) {
+    if (!silent) $message.error('获取终端引用失败')
+    return false
+  }
+
+  const success = await terminalRef.suspendTerminal()
+  if (success) {
+    // 更新标签状态
+    item.status = terminalStatus.SUSPENDED
+    if (!silent) $message.success('终端已挂起')
+    // 立即关闭该tab
+    removeTab(index)
+    // 更新挂起会话状态，显示恢复会话菜单
+    hasSuspendedSessions.value = true
+    return true
+  }
+
+  return false
+}
+
+// 挂起所有会话（仅对已连接的终端生效）
+const handleSuspendAllSessions = async () => {
+  const indicesToSuspend = terminalTabs.value
+    .map((tab, index) => ({ tab, index }))
+    .filter(({ tab }) => tab.status === terminalStatus.CONNECT_SUCCESS)
+    .map(({ index }) => index)
+    .reverse()
+
+  if (indicesToSuspend.length === 0) {
+    $message.warning('暂无可挂起的已连接会话')
+    return
+  }
+
+  let successCount = 0
+  let failCount = 0
+  for (const index of indicesToSuspend) {
+    const tab = terminalTabs.value[index]
+    if (!tab) continue
+
+    const ok = await handleSuspendTerminal(tab, index, { silent: true })
+    if (ok) successCount += 1
+    else failCount += 1
+  }
+
+  if (successCount > 0) {
+    $message.success(`已挂起 ${ successCount } 个会话`)
+  }
+  if (failCount > 0) {
+    $message.warning(`有 ${ failCount } 个会话挂起失败`)
+  }
+}
+
+// 关闭其他终端
+const handleCloseOtherTabs = (keepIndex) => {
+  const toRemove = []
+  terminalTabs.value.forEach((_, index) => {
+    if (index !== keepIndex) {
+      toRemove.push(index)
+    }
+  })
+  // 从后往前删除，避免索引错乱
+  toRemove.reverse().forEach(index => {
+    removeTab(index)
+  })
+}
+
 // 单窗口模式相关函数
 const handleCloseTerminalSingle = (terminalKey) => {
   const tabIndex = terminalTabs.value.findIndex(tab => tab.key === terminalKey)
@@ -1009,6 +1212,8 @@ watch(isSingleWindowMode, async() => {
 
 onMounted(() => {
   document.addEventListener('fullscreenchange', fullScreenCb)
+  // 初始化时检查是否有挂起的会话
+  fetchSuspendedSessions()
 })
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', fullScreenCb)
@@ -1138,6 +1343,12 @@ onUnmounted(() => {
         margin-right: 5px;
         transition: all 0.5s;
         // background-color: var(--el-color-primary);
+      }
+
+      .suspended_icon {
+        margin-left: 4px;
+        color: #909399;
+        font-size: 14px;
       }
     }
 
@@ -1338,5 +1549,14 @@ onUnmounted(() => {
 
 .link_close_all:hover {
   color: #ff4949 !important;
+}
+
+.session_item {
+  display: flex;
+  align-items: center;
+
+  .session_name {
+    font-weight: 500;
+  }
 }
 </style>

@@ -13,9 +13,9 @@ const useStore = defineStore('global', {
     scriptGroupList: [],
     proxyList: [],
     localScriptList: [],
+    suspendedSessions: [], // 挂起的会话列表
     user: localStorage.getItem('user') || null,
     token: localStorage.getItem('token') || sessionStorage.getItem('token') || null,
-    uid: localStorage.getItem('uid') || sessionStorage.getItem('uid') || null,
     deviceId: localStorage.getItem('deviceId') || null,
     title: '',
     isDark: false,
@@ -88,11 +88,10 @@ const useStore = defineStore('global', {
       else localStorage.setItem('token', token)
       this.$patch({ token })
     },
-    async setUser(username, uid, deviceId) {
+    async setUser(username, deviceId) {
       localStorage.setItem('user', username)
-      localStorage.setItem('uid', uid)
       localStorage.setItem('deviceId', deviceId)
-      this.$patch({ user: username, uid, deviceId })
+      this.$patch({ user: username, deviceId })
     },
     async setTitle(title) {
       this.$patch({ title })
@@ -100,7 +99,7 @@ const useStore = defineStore('global', {
     async removeLoginInfo(removeSession = false) {
       try {
         if (removeSession && this.deviceId) {
-          await $api.removeLoginSid(this.deviceId)
+          await $api.revokeLoginSid(this.deviceId)
         }
       } catch (err) {
         console.error('注销登录凭证失败: ', err.message)
@@ -168,6 +167,10 @@ const useStore = defineStore('global', {
     async getProxyList() {
       const { data: proxyList } = await $api.getProxyList()
       this.$patch({ proxyList })
+    },
+    async getSuspendedSessions() {
+      const { data: suspendedSessions } = await $api.getSuspendedSessions()
+      this.$patch({ suspendedSessions: suspendedSessions || [] })
     },
     async getPlusInfo() {
       const { data: plusInfo = {} } = await $api.getPlusInfo()

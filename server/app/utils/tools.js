@@ -361,6 +361,18 @@ async function requestWithFailover(path, options = {}, timeout = 5000) {
   }
 }
 
+const timingSafeEqual = (a, b) => {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  if (bufA.length !== bufB.length) {
+    return crypto.timingSafeEqual(
+      Buffer.from(a.padEnd(256)),
+      Buffer.from(b.padEnd(256))
+    )
+  }
+  return crypto.timingSafeEqual(bufA, bufB)
+}
+
 module.exports = {
   getNetIPInfo,
   getLocalNetIP,
@@ -375,5 +387,6 @@ module.exports = {
   isProd,
   isAllowedIp,
   ping,
-  requestWithFailover
+  requestWithFailover,
+  timingSafeEqual
 }

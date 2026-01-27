@@ -1,46 +1,80 @@
 <template>
   <div class="terminal_container">
     <div v-if="showLinkTips" class="terminal_link_tips">
-      <h2 class="quick_link_text">最近连接</h2>
-      <el-table :data="displayHostList" :show-header="false">
-        <template #empty>
-          <span class="link" @click="handleToServer">去连接</span>
-        </template>
-        <el-table-column prop="name" label="name" />
-        <el-table-column>
-          <template #default="{ row }">
-            <span @click="handleCopy(row.host)">
-              {{
-                row.username ? `ssh ${row.username}@` : '' }}{{ row.host }}{{ row.port ? ` -p ${row.port}` : ''
-              }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="lastTime" label="lastTime" />
-        <el-table-column fixed="right" width="80px">
-          <template #default="{ row }">
-            <div class="actios_btns">
-              <el-button
-                v-if="row.isConfig"
-                type="primary"
-                link
-                @click="linkTerminal(row)"
-              >
-                连接
-              </el-button>
-              <el-button
-                v-else
-                type="primary"
-                link
-                @click="handleUpdateHost(row)"
-              >
-                配置ssh
-              </el-button>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
-      <span v-show="displayHostList.length" class="link clear_host" @click="handleClearRecentHostList">清空</span>
+      <div class="link_tables_wrapper">
+        <div class="table_section">
+          <h2 class="quick_link_text">最近连接</h2>
+          <el-table :data="displayHostList" :show-header="false">
+            <template #empty>
+              <span class="link" @click="handleToServer">去连接</span>
+            </template>
+            <el-table-column prop="name" label="name" />
+            <el-table-column width="220">
+              <template #default="{ row }">
+                <span @click="handleCopy(row.host)">
+                  {{
+                    row.username ? `ssh ${row.username}@` : '' }}{{ row.host }}{{ row.port ? ` -p ${row.port}` : ''
+                  }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="lastTime" label="lastTime" />
+            <el-table-column fixed="right" width="80px">
+              <template #default="{ row }">
+                <div class="actios_btns">
+                  <el-button
+                    v-if="row.isConfig"
+                    type="primary"
+                    link
+                    @click="linkTerminal(row)"
+                  >
+                    连接
+                  </el-button>
+                  <el-button
+                    v-else
+                    type="primary"
+                    link
+                    @click="handleUpdateHost(row)"
+                  >
+                    配置ssh
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <div class="table_section">
+          <h2 class="quick_link_text">挂起会话</h2>
+          <el-table v-loading="loadingSessions" :data="suspendedSessions" :show-header="false">
+            <template #empty>
+              <span>无挂起终端会话</span>
+            </template>
+            <el-table-column prop="hostName" label="主机名" />
+            <el-table-column label="状态">
+              <template #default="{ row }">
+                <el-tag v-if="!row.connectionAlive" type="danger" size="small">断开</el-tag>
+                <el-tag v-else type="success" size="small">活跃</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="suspendTime" label="挂起时间" />
+            <el-table-column fixed="right" width="80px">
+              <template #default="{ row }">
+                <div class="actios_btns">
+                  <el-button
+                    type="primary"
+                    link
+                    :disabled="!row.connectionAlive"
+                    @click="handleResumeSession(row)"
+                  >
+                    恢复
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
     </div>
     <div v-else>
       <TerminalWrapper
@@ -60,50 +94,78 @@
 </template>
 
 <script setup>
-import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick } from 'vue'
+import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import TerminalWrapper from './components/terminal-wrapper.vue'
 import HostForm from '../server/components/host-form.vue'
 import { randomStr } from '@utils/index.js'
 import { terminalStatus } from '@/utils/enum'
-const { CONNECTING } = terminalStatus
+const { CONNECTING, RESUMING } = terminalStatus
 
-const { proxy: { $store, $message } } = getCurrentInstance()
+const { proxy: { $store, $message, $api } } = getCurrentInstance()
 const router = useRouter()
 const route = useRoute()
 
 let terminalTabs = reactive([])
 let hostFormVisible = ref(false)
 let updateHostData = ref(null)
+let loadingSessions = ref(false)
+let suspendedSessions = computed(() => $store.suspendedSessions)
 
 let showLinkTips = computed(() => !Boolean(terminalTabs.length))
 let hostList = computed(() => $store.hostList)
-let recentHostList = ref(JSON.parse(localStorage.getItem('recentHostList')) || [])
+
+// 显示最近连接的主机列表（从后端获取后在前端排序）
 const displayHostList = computed(() => {
-  return recentHostList.value.filter(item => hostList.value.some(host => host.id === item.id))
+  return hostList.value
+    .filter(item => item.lastConnectTime) // 只显示有连接记录的
+    .map(item => ({
+      ...item,
+      lastTime: item.lastConnectTime ? dayjs(item.lastConnectTime).format('YYYY-MM-DD HH:mm:ss') : ''
+    }))
+    .sort((a, b) => {
+      // 按最近连接时间降序排列
+      const aTime = a.lastConnectTime || 0
+      const bTime = b.lastConnectTime || 0
+      return bTime - aTime
+    })
 })
 
-function updateRecentHostList(targetHost) {
-  if (!targetHost) return
-  targetHost.lastTime = dayjs().format('YYYY-MM-DD HH:mm:ss')
-  if (recentHostList.value.some(item => item.id === targetHost.id)) {
-    // 如果在最近列表中存在，则移动到首位
-    let index = recentHostList.value.findIndex(item => item.id === targetHost.id)
-    recentHostList.value.splice(index, 1)
-    recentHostList.value.unshift(targetHost)
-  } else {
-    // 如果不在最近列表中，则添加到首位
-    recentHostList.value.unshift(targetHost)
+// 防抖定时器
+let refreshHostListTimer = null
+
+// 防抖刷新hostList（避免批量连接时多次调用）
+function debouncedRefreshHostList() {
+  if (refreshHostListTimer) {
+    clearTimeout(refreshHostListTimer)
   }
-  recentHostList.value = recentHostList.value.slice(0, 20)
-  localStorage.setItem('recentHostList', JSON.stringify(recentHostList.value))
+  refreshHostListTimer = setTimeout(async () => {
+    try {
+      await $store.getHostList()
+    } catch (error) {
+      console.error('刷新实例列表失败:', error)
+    }
+  }, 500) // 500ms防抖
+}
+
+// 更新最近连接时间（调用后端API）
+async function updateRecentHostList(targetHost) {
+  if (!targetHost) return
+  try {
+    await $api.updateLastConnectTime({ id: targetHost.id })
+    // 防抖刷新本地store中的hostList
+    debouncedRefreshHostList()
+  } catch (error) {
+    console.error('更新最近连接时间失败:', error)
+  }
 }
 
 function linkTerminal(hostInfo) {
   let targetHost = hostList.value.find(item => item.id === hostInfo.id)
   const { id, host, name, isConfig } = targetHost
   terminalTabs.push({ key: randomStr(16), id, name, host, status: CONNECTING, isConfig })
+  // 异步更新最近连接时间
   updateRecentHostList(targetHost)
 }
 
@@ -145,8 +207,12 @@ onActivated(async () => {
   })
   if (!targetHosts || !targetHosts.length) return
   terminalTabs.push(...targetHosts)
+  // 为每个主机更新最近连接时间
   targetHosts.forEach(item => {
-    updateRecentHostList(item)
+    const targetHost = hostList.value.find(h => h.id === item.id)
+    if (targetHost) {
+      updateRecentHostList(targetHost)
+    }
   })
 })
 
@@ -155,10 +221,69 @@ const handleCopy = async (host) => {
   $message.success({ message: '复制成功', center: true })
 }
 
-const handleClearRecentHostList = () => {
-  recentHostList.value = []
-  localStorage.removeItem('recentHostList')
+// 获取挂起的会话列表
+const fetchSuspendedSessions = async () => {
+  loadingSessions.value = true
+  try {
+    await $store.getSuspendedSessions()
+  } catch (error) {
+    console.error('获取挂起会话列表失败:', error)
+    $message.error('获取挂起会话列表失败')
+  } finally {
+    loadingSessions.value = false
+  }
 }
+
+// 恢复挂起的会话
+const handleResumeSession = (session) => {
+  if (!session.connectionAlive) {
+    $message.warning('该会话的SSH连接已断开，无法恢复')
+    return
+  }
+
+  const { hostId, sessionId } = session
+
+  // 查找对应的主机配置
+  const targetHost = hostList.value.find(item => item.id === hostId)
+  if (!targetHost) {
+    $message.error('未找到对应的主机配置')
+    return
+  }
+
+  const { id, name, host, isConfig } = targetHost
+
+  // 创建恢复会话的tab
+  terminalTabs.push({
+    key: sessionId, // 使用sessionId作为key
+    id,
+    name,
+    host,
+    status: RESUMING,
+    isConfig,
+    resumeSessionId: sessionId // 标记为恢复会话
+  })
+}
+
+// 监听showLinkTips变化，当返回到初始界面时重新获取挂起会话列表
+watch(showLinkTips, (newValue) => {
+  if (newValue) {
+    // 当showLinkTips变为true时（即关闭所有终端返回到初始界面时），重新获取挂起会话列表
+    fetchSuspendedSessions()
+  }
+})
+
+onMounted(() => {
+  // 组件挂载时获取挂起的会话列表
+  fetchSuspendedSessions()
+})
+
+onUnmounted(() => {
+  // 清理防抖定时器
+  if (refreshHostListTimer) {
+    clearTimeout(refreshHostListTimer)
+    refreshHostListTimer = null
+  }
+})
 
 </script>
 
@@ -167,12 +292,35 @@ const handleClearRecentHostList = () => {
   height: calc(100% - 60px - 20px);
   overflow: auto;
   .terminal_link_tips {
-    width: 735px;
+    width: 100%;
+    max-width: 1500px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 20px;
+
+    .link_tables_wrapper {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      justify-content: center;
+      align-items: flex-start;
+
+      .table_section {
+        flex: 1;
+        min-width: 500px;
+        max-width: 750px;
+        display: flex;
+        flex-direction: column;
+
+        @media (max-width: 768px) {
+          min-width: 100%;
+          max-width: 100%;
+        }
+      }
+    }
 
     .quick_link_text {
       align-self: self-start;
@@ -181,15 +329,6 @@ const handleClearRecentHostList = () => {
       font-weight: 600;
       line-height: 22px;
       margin-bottom: 15px;
-    }
-
-    .clear_host {
-      color: #409EFF;
-      cursor: pointer;
-      margin-top: 20px;
-      font-size: 12px;
-      font-weight: 400;
-      line-height: 18px;
     }
 
     .actios_btns {
