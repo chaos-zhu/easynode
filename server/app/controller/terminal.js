@@ -1,6 +1,5 @@
 const { sessionManager } = require('../socket/session-manager')
 const { KeyDB, HostListDB } = require('../utils/db-class')
-const dayjs = require('dayjs')
 
 const keyDB = new KeyDB().getInstance()
 const hostListDB = new HostListDB().getInstance()
@@ -23,7 +22,7 @@ async function getSuspendedSessions({ res }) {
         sessionId: session.sessionId,
         hostId: session.hostId,
         hostName: host ? host.name : '未知主机',
-        suspendTime: dayjs(session.suspendedAt).format('YYYY-MM-DD HH:mm:ss'),
+        suspendTime: session.suspendedAt,
         connectionAlive: session.connectionAlive
       }
     })

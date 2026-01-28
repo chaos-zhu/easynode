@@ -170,7 +170,11 @@ const useStore = defineStore('global', {
     },
     async getSuspendedSessions() {
       const { data: suspendedSessions } = await $api.getSuspendedSessions()
-      this.$patch({ suspendedSessions: suspendedSessions || [] })
+      const formattedSessions = (suspendedSessions || []).map(session => ({
+        ...session,
+        suspendTime: session.suspendTime ? dayjs(session.suspendTime).format('YYYY-MM-DD HH:mm:ss') : ''
+      }))
+      this.$patch({ suspendedSessions: formattedSessions })
     },
     async getPlusInfo() {
       const { data: plusInfo = {} } = await $api.getPlusInfo()
