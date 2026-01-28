@@ -266,7 +266,7 @@ const isConnecting = ref(false)
 
 // 数据陈旧检测相关
 const dataHistory = ref([]) // 记录最近的数据快照
-const staleDataThreshold = 3 // 连续n次相同数据触发重连
+const staleDataThreshold = 10 // 连续n次相同数据触发重连
 
 // 网速图表相关
 const networkChart = ref(null) // canvas元素引用

@@ -1027,9 +1027,9 @@ module.exports = (httpServer) => {
       collectData()
 
       // 每n秒收集一次数据
-      monitorTimer = setInterval(collectData, 2500)
+      monitorTimer = setInterval(collectData, 2000)
       // 每n秒发送一次数据
-      sendDataTimer = setInterval(sendData, 2000)
+      sendDataTimer = setInterval(sendData, 1500)
     }
 
     socket.on('disconnect', (reason) => {
