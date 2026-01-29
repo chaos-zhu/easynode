@@ -60,7 +60,7 @@
     "uuid": "11.1.0"
   },
   "devDependencies": {
-    "eslint": "^8.56.0",
+    "eslint": "^9.26.0",
     "nodemon": "^3.1.4"
   }
 }
