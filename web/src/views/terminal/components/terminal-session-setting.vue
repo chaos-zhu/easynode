@@ -15,7 +15,7 @@
           :step="1"
         />
         <span style="margin-left: 10px">小时</span>
-        <div class="form_item_tip">超过该时间后将自动销毁</div>
+        <div class="form_item_tip">(超过该时间后会话将自动销毁)</div>
       </el-form-item>
 
       <el-form-item label="最大挂起数">
@@ -26,7 +26,7 @@
           :step="1"
         />
         <span style="margin-left: 10px">个</span>
-        <div class="form_item_tip">可同时挂起的会话数量上限</div>
+        <div class="form_item_tip">(可同时挂起的会话数量上限)</div>
       </el-form-item>
 
       <el-form-item label="心跳检测间隔">
@@ -37,7 +37,7 @@
           :step="10"
         />
         <span style="margin-left: 10px">秒</span>
-        <div class="form_item_tip">挂起时检测SSH连接状态的间隔</div>
+        <div class="form_item_tip">(挂起时检测会话连接状态的间隔)</div>
       </el-form-item>
 
       <el-form-item label="重连尝试次数">
@@ -48,7 +48,7 @@
           :step="1"
         />
         <span style="margin-left: 10px">次</span>
-        <div class="form_item_tip">连接断开后自动重连的最大尝试次数</div>
+        <div class="form_item_tip">(连接断开后自动重连的最大尝试次数)</div>
       </el-form-item>
 
       <el-form-item label="重连间隔">
@@ -59,7 +59,7 @@
           :step="10"
         />
         <span style="margin-left: 10px">秒</span>
-        <div class="form_item_tip">两次重连尝试之间的间隔时间</div>
+        <div class="form_item_tip">(两次重连尝试之间的间隔时间)</div>
       </el-form-item>
 
       <el-form-item label="输出缓存大小">
@@ -70,7 +70,7 @@
           :step="10"
         />
         <span style="margin-left: 10px">KB</span>
-        <div class="form_item_tip">挂起期间缓存的终端输出最大大小</div>
+        <div class="form_item_tip">(挂起期间缓存的终端输出最大大小)</div>
       </el-form-item>
     </el-form>
 
@@ -156,6 +156,7 @@ const handleClose = () => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 5px;
+  margin-left: 10px;
 }
 
 :deep(.el-input-number) {

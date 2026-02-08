@@ -937,6 +937,7 @@ onBeforeUnmount(() => {
 
 // 挂起终端
 const suspendTerminal = () => {
+  if (!plusTips()) return
   return new Promise((resolve) => {
     if (!sessionId.value) {
       $message.warning('会话未建立，无法挂起')
