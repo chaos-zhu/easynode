@@ -1,8 +1,8 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="终端会话设置"
     width="600px"
+    title="终端会话设置"
     :close-on-click-modal="false"
     @close="handleClose"
   >
@@ -75,9 +75,20 @@
     </el-form>
 
     <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+      <span class="footer">
+        <el-button
+          size="small"
+          link
+          type="primary"
+          @click="handleRestoreDefaults"
+          style="margin-right: 20px;"
+        >
+          恢复默认
+        </el-button>
+        <div class="btn_action">
+          <el-button @click="handleClose">取消</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+        </div>
       </span>
     </template>
   </el-dialog>
@@ -100,15 +111,18 @@ const emit = defineEmits(['update:show',])
 const visible = ref(false)
 const saving = ref(false)
 
-// 初始空配置，将从后端加载
-const formData = ref({
+// 默认配置（与后端DEFAULT_SESSION_CONFIG保持一致）
+const DEFAULT_CONFIG = {
   maxSuspendTime: 24,
-  maxSuspendedPerUser: 5,
+  maxSuspendedPerUser: 10,
   heartbeatInterval: 30,
   maxReconnectAttempts: 3,
   reconnectInterval: 60,
   maxBufferSize: 50
-})
+}
+
+// 初始配置
+const formData = ref({ ...DEFAULT_CONFIG })
 
 watch(() => props.show, (val) => {
   visible.value = val
@@ -144,6 +158,11 @@ const handleSave = async () => {
   }
 }
 
+// 恢复默认值
+const handleRestoreDefaults = () => {
+  formData.value = { ...DEFAULT_CONFIG }
+}
+
 // 关闭对话框
 const handleClose = () => {
   visible.value = false
@@ -160,5 +179,12 @@ const handleClose = () => {
 
 :deep(.el-input-number) {
   width: 150px;
+}
+
+.footer {
+  display: flex;
+  .btn_action {
+    margin-left: auto;
+  }
 }
 </style>

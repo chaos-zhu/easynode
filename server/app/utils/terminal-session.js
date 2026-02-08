@@ -9,6 +9,24 @@ const SessionStatus = {
   EXPIRED: 'expired' // 已过期，待清理
 }
 
+// 默认配置（统一配置来源）
+const DEFAULT_SESSION_CONFIG = {
+  maxSuspendTime: 24, // 小时
+  maxSuspendedPerUser: 10, // 最大挂起数
+  heartbeatInterval: 30, // 秒
+  maxReconnectAttempts: 3, // 最大重连次数
+  reconnectInterval: 60, // 秒
+  maxBufferSize: 50 // KB
+}
+
+/**
+ * 获取默认配置（供其他模块使用）
+ * @returns {Object} 默认配置
+ */
+function getDefaultSessionConfig() {
+  return { ...DEFAULT_SESSION_CONFIG }
+}
+
 /**
  * 单个终端会话
  */
@@ -24,15 +42,17 @@ class TerminalSession {
     this.createdAt = Date.now()
     this.suspendedAt = null
     this.outputBuffer = [] // 挂起期间的输出缓存
-    this.maxBufferSize = 50 * 1024 // 最大缓存50KB（防止内存爆炸）
+
+    // 从options中读取配置，如果没有则使用默认值
+    this.maxBufferSize = options.maxBufferSize || 50 * 1024 // 最大缓存（默认50KB）
     this.bufferSize = 0
 
-    // 心跳检测相关
-    this.heartbeatInterval = 30 * 1000 // 心跳间隔：30秒
+    // 心跳检测相关（从options中读取配置）
+    this.heartbeatInterval = options.heartbeatInterval || 30 * 1000 // 心跳间隔（默认30秒）
     this.heartbeatTimer = null // 心跳定时器
     this.reconnectAttempts = 0 // 当前重连尝试次数
-    this.maxReconnectAttempts = 3 // 最大重连次数
-    this.reconnectInterval = 60 * 1000 // 重连间隔：1分钟
+    this.maxReconnectAttempts = options.maxReconnectAttempts || 3 // 最大重连次数（默认3次）
+    this.reconnectInterval = options.reconnectInterval || 60 * 1000 // 重连间隔（默认60秒）
     this.reconnectTimer = null // 重连定时器
     this.lastHeartbeatAt = Date.now() // 最后一次心跳成功时间
     this.connectionAlive = true // 连接是否存活
@@ -255,11 +275,67 @@ class SessionManager {
     this.sessions = new Map() // sessionId -> TerminalSession
     this.userSessions = new Map() // `${userId}` -> Set<sessionId> (用户的所有会话)
     this.socketSessionMap = new Map() // socketId -> sessionId
-    this.maxSuspendTime = 30 * 60 * 1000 // 最大挂起时间：30分钟
+
+    // 使用统一的默认配置（会从数据库加载覆盖）
+    this.maxSuspendTime = DEFAULT_SESSION_CONFIG.maxSuspendTime * 60 * 60 * 1000 // 转换为毫秒
     this.cleanupInterval = 5 * 60 * 1000 // 清理间隔：5分钟
-    this.maxSuspendedPerUser = 10 // 最大挂起数
+    this.maxSuspendedPerUser = DEFAULT_SESSION_CONFIG.maxSuspendedPerUser
+    this.heartbeatInterval = DEFAULT_SESSION_CONFIG.heartbeatInterval * 1000 // 转换为毫秒
+    this.maxReconnectAttempts = DEFAULT_SESSION_CONFIG.maxReconnectAttempts
+    this.reconnectInterval = DEFAULT_SESSION_CONFIG.reconnectInterval * 1000 // 转换为毫秒
+    this.maxBufferSize = DEFAULT_SESSION_CONFIG.maxBufferSize * 1024 // 转换为字节
+
+    this.initialized = false // 标记是否已从数据库加载配置
 
     this.startCleanupTimer()
+    // 异步加载配置（不阻塞构造函数）
+    this.loadConfigFromDB().catch(err => {
+      logger.warn('从数据库加载终端会话配置失败，使用默认配置:', err.message)
+    })
+  }
+
+  /**
+   * 从数据库加载配置
+   */
+  async loadConfigFromDB() {
+    try {
+      const { TerminalSessionDB } = require('./db-class')
+      const terminalSessionDB = new TerminalSessionDB().getInstance()
+      const config = await terminalSessionDB.findOneAsync({})
+
+      if (config) {
+        // 加载所有配置字段
+        if (config.maxSuspendTime !== undefined) {
+          // 数据库中存储的是小时，需要转换为毫秒
+          this.maxSuspendTime = config.maxSuspendTime * 60 * 60 * 1000
+        }
+        if (config.maxSuspendedPerUser !== undefined) {
+          this.maxSuspendedPerUser = config.maxSuspendedPerUser
+        }
+        if (config.heartbeatInterval !== undefined) {
+          // 数据库中存储的是秒，需要转换为毫秒
+          this.heartbeatInterval = config.heartbeatInterval * 1000
+        }
+        if (config.maxReconnectAttempts !== undefined) {
+          this.maxReconnectAttempts = config.maxReconnectAttempts
+        }
+        if (config.reconnectInterval !== undefined) {
+          // 数据库中存储的是秒，需要转换为毫秒
+          this.reconnectInterval = config.reconnectInterval * 1000
+        }
+        if (config.maxBufferSize !== undefined) {
+          // 数据库中存储的是KB，需要转换为字节
+          this.maxBufferSize = config.maxBufferSize * 1024
+        }
+        logger.info(`已从数据库加载终端会话配置: maxSuspendedPerUser=${this.maxSuspendedPerUser}, maxSuspendTime=${this.maxSuspendTime / 1000 / 60 / 60}小时`)
+      } else {
+        logger.info('数据库中无终端会话配置，使用默认配置')
+      }
+      this.initialized = true
+    } catch (error) {
+      logger.error('loadConfigFromDB error:', error.message)
+      this.initialized = true // 即使失败也标记为已初始化，使用默认值
+    }
   }
 
   /**
@@ -294,7 +370,18 @@ class SessionManager {
    */
   createSession(options) {
     const sessionId = this.generateSessionId(options.userId, options.hostId)
-    const session = new TerminalSession({ ...options, sessionId })
+
+    // 将SessionManager的配置传递给TerminalSession
+    const sessionOptions = {
+      ...options,
+      sessionId,
+      heartbeatInterval: this.heartbeatInterval,
+      maxReconnectAttempts: this.maxReconnectAttempts,
+      reconnectInterval: this.reconnectInterval,
+      maxBufferSize: this.maxBufferSize
+    }
+
+    const session = new TerminalSession(sessionOptions)
 
     this.sessions.set(sessionId, session)
 
@@ -378,6 +465,8 @@ class SessionManager {
     if (!session) return { success: false, error: '会话不存在' }
 
     // 检查用户挂起会话数量限制
+    // 注意：此时当前会话状态仍为ACTIVE，所以不会被计入挂起数量
+    // 因此需要检查 currentSuspendedCount + 1 是否会超过限制
     const currentSuspendedCount = this.getUserSuspendedCount(session.userId)
     if (currentSuspendedCount >= this.maxSuspendedPerUser) {
       return {
@@ -558,5 +647,6 @@ const sessionManager = new SessionManager()
 module.exports = {
   SessionStatus,
   TerminalSession,
-  sessionManager
+  sessionManager,
+  getDefaultSessionConfig
 }

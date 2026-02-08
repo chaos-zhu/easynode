@@ -54,6 +54,15 @@
             >
               <Setting />
             </el-icon>
+            <el-button
+              v-if="suspendedSessions.length > 0"
+              class="resume_btn"
+              size="small"
+              type="primary"
+              @click="handleResumeAll"
+            >
+              一键恢复
+            </el-button>
           </h2>
           <el-table v-loading="loadingSessions" :data="suspendedSessions" :show-header="false">
             <template #empty>
@@ -277,6 +286,24 @@ const handleResumeSession = (session) => {
   })
 }
 
+// 一键恢复所有挂起会话
+const handleResumeAll = () => {
+  // 过滤出可恢复的活跃会话
+  const sessionsToRestore = [...suspendedSessions.value].filter(s => s.connectionAlive)
+
+  if (sessionsToRestore.length === 0) {
+    $message.warning('没有可恢复的活跃会话')
+    return
+  }
+
+  // 为每个会话调用恢复逻辑（直接复用handleResumeSession）
+  sessionsToRestore.forEach(session => {
+    handleResumeSession(session)
+  })
+
+  $message.success(`正在恢复 ${sessionsToRestore.length} 个挂起的会话`)
+}
+
 // 监听showLinkTips变化，当返回到初始界面时重新获取挂起会话列表
 watch(showLinkTips, (newValue) => {
   if (newValue) {
@@ -336,7 +363,7 @@ onUnmounted(() => {
     }
 
     .quick_link_text {
-      align-self: self-start;
+      align-self: stretch;
       margin: 0 10px;
       font-size: 14px;
       font-weight: 600;
@@ -356,6 +383,10 @@ onUnmounted(() => {
           color: var(--el-color-primary);
           transform: rotate(90deg);
         }
+      }
+
+      .resume_btn {
+        margin-left: auto;
       }
     }
 

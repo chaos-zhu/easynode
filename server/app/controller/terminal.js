@@ -1,4 +1,4 @@
-const { sessionManager } = require('../utils/terminal-session')
+const { sessionManager, getDefaultSessionConfig } = require('../utils/terminal-session')
 const { KeyDB, HostListDB, TerminalSessionDB } = require('../utils/db-class')
 
 const keyDB = new KeyDB().getInstance()
@@ -35,22 +35,12 @@ async function getSuspendedSessions({ res }) {
   }
 }
 
-// 默认配置
-const defaultSessionConfig = {
-  maxSuspendTime: 24, // 小时
-  maxSuspendedPerUser: 5,
-  heartbeatInterval: 30, // 秒
-  maxReconnectAttempts: 3,
-  reconnectInterval: 60, // 秒
-  maxBufferSize: 50 // KB
-}
-
 async function getTerminalSessionConfig({ res }) {
   try {
     const config = await terminalSessionDB.findOneAsync({})
 
-    // 如果数据库中没有配置，返回默认配置
-    const resultConfig = config ?? defaultSessionConfig
+    // 如果数据库中没有配置，返回默认配置（从SessionManager获取）
+    const resultConfig = config ?? getDefaultSessionConfig()
 
     res.success({ data: { config: resultConfig } })
   } catch (error) {
@@ -80,13 +70,28 @@ async function updateTerminalSessionConfig({ request, res }) {
       await terminalSessionDB.insertAsync(config)
     }
 
-    // 更新 session manager 的配置
+    // 更新 session manager 的配置（实时生效）
     if (config.maxSuspendTime !== undefined) {
       // maxSuspendTime 前端传入的是小时，需要转换为毫秒
       sessionManager.maxSuspendTime = config.maxSuspendTime * 60 * 60 * 1000
     }
     if (config.maxSuspendedPerUser !== undefined) {
       sessionManager.maxSuspendedPerUser = config.maxSuspendedPerUser
+    }
+    if (config.heartbeatInterval !== undefined) {
+      // heartbeatInterval 前端传入的是秒，需要转换为毫秒
+      sessionManager.heartbeatInterval = config.heartbeatInterval * 1000
+    }
+    if (config.maxReconnectAttempts !== undefined) {
+      sessionManager.maxReconnectAttempts = config.maxReconnectAttempts
+    }
+    if (config.reconnectInterval !== undefined) {
+      // reconnectInterval 前端传入的是秒，需要转换为毫秒
+      sessionManager.reconnectInterval = config.reconnectInterval * 1000
+    }
+    if (config.maxBufferSize !== undefined) {
+      // maxBufferSize 前端传入的是KB，需要转换为字节
+      sessionManager.maxBufferSize = config.maxBufferSize * 1024
     }
 
     res.success({ msg: '保存成功' })
