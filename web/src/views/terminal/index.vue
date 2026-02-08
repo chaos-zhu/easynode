@@ -45,7 +45,16 @@
         </div>
 
         <div class="table_section">
-          <h2 class="quick_link_text">挂起会话</h2>
+          <h2 class="quick_link_text">
+            <span>挂起会话</span>
+            <el-icon
+              class="session_setting_icon"
+              title="会话设置"
+              @click="showSessionSetting = true"
+            >
+              <Setting />
+            </el-icon>
+          </h2>
           <el-table v-loading="loadingSessions" :data="suspendedSessions" :show-header="false">
             <template #empty>
               <span>无挂起终端会话</span>
@@ -90,6 +99,7 @@
       @update-list="handleUpdateList"
       @closed="updateHostData = null"
     />
+    <TerminalSessionSetting v-model:show="showSessionSetting" />
   </div>
 </template>
 
@@ -97,8 +107,10 @@
 import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
+import { Setting } from '@element-plus/icons-vue'
 import TerminalWrapper from './components/terminal-wrapper.vue'
 import HostForm from '../server/components/host-form.vue'
+import TerminalSessionSetting from './components/terminal-session-setting.vue'
 import { randomStr } from '@utils/index.js'
 import { terminalStatus } from '@/utils/enum'
 import clipboard from '@/utils/clipboard'
@@ -113,6 +125,7 @@ let hostFormVisible = ref(false)
 let updateHostData = ref(null)
 let loadingSessions = ref(false)
 let suspendedSessions = computed(() => $store.suspendedSessions)
+let showSessionSetting = ref(false)
 
 let showLinkTips = computed(() => !Boolean(terminalTabs.length))
 let hostList = computed(() => $store.hostList)
@@ -329,6 +342,21 @@ onUnmounted(() => {
       font-weight: 600;
       line-height: 22px;
       margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .session_setting_icon {
+        cursor: pointer;
+        font-size: 16px;
+        color: var(--el-text-color-secondary);
+        transition: all 0.3s;
+
+        &:hover {
+          color: var(--el-color-primary);
+          transform: rotate(90deg);
+        }
+      }
     }
 
     .actios_btns {

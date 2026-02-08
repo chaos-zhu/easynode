@@ -43,8 +43,8 @@
         >
           <span class="link_text">会话<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
-            <el-dropdown-menu v-loading="loadingSessions">
-              <el-dropdown-item v-if="!loadingSessions && suspendedSessions.length === 0" disabled>
+            <el-dropdown-menu>
+              <el-dropdown-item v-if="suspendedSessions.length === 0" disabled>
                 <span>暂无挂起的会话</span>
               </el-dropdown-item>
               <el-dropdown-item
@@ -63,6 +63,12 @@
                     断开
                   </el-tag>
                 </div>
+              </el-dropdown-item>
+              <el-dropdown-item divided @click="showSessionSetting = true">
+                <span style="display: flex; align-items: center; gap: 5px;">
+                  <el-icon><Setting /></el-icon>
+                  会话设置
+                </span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -409,6 +415,7 @@
     <TerminalHighlightSettings v-model:show="showHighlightSettings" />
     <OtherSettings v-model:show="showOtherSettings" />
     <MenuOptions v-model:show="showMenuOptions" />
+    <TerminalSessionSetting v-model:show="showSessionSetting" />
   </div>
 </template>
 
@@ -423,7 +430,7 @@ import {
   onMounted,
   onUnmounted
 } from 'vue'
-import { ArrowDown, VideoPause } from '@element-plus/icons-vue'
+import { ArrowDown, VideoPause, Setting } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { terminalStatusList, terminalStatus } from '@/utils/enum'
 import { useContextMenu } from '@/composables/useContextMenu'
@@ -438,6 +445,7 @@ import FooterBar from './footer-bar.vue'
 import SftpV2 from './sftp-v2.vue'
 import TerminalSingleWindow from './terminal-single-window.vue'
 import Docker from './docker.vue'
+import TerminalSessionSetting from './terminal-session-setting.vue'
 
 const {
   proxy: { $nextTick, $store, $message }
@@ -473,6 +481,7 @@ const showSetting = ref(false)
 const showHighlightSettings = ref(false)
 const showOtherSettings = ref(false)
 const showMenuOptions = ref(false)
+const showSessionSetting = ref(false)
 const showInfoSide = ref(isMobileScreen.value ? false : localStorage.getItem('showInfoSide') !== 'false')
 const showSftpSide = ref(isMobileScreen.value ? false : localStorage.getItem('showSftpSide') !== 'false')
 const showFooterBar = ref(localStorage.getItem('showFooterBar') === 'true')
@@ -489,7 +498,6 @@ const showDockerDialog = ref(false)
 const sftpRefs = ref([])
 const resumeSessionDropdownRef = ref(null)
 const resumeSessionDropdownVisible = ref(false)
-const loadingSessions = ref(false)
 const suspendedSessions = computed(() => $store.suspendedSessions)
 const hasSuspendedSessions = computed(() => suspendedSessions.value.length > 0)
 
@@ -792,22 +800,13 @@ const handleLinkHost = (hostDescObj) => {
 // 处理恢复会话下拉菜单显示/隐藏
 const handleResumeSessionDropdownChange = (visible) => {
   if (visible) {
-    // 下拉菜单打开时，获取挂起的会话列表
     fetchSuspendedSessions()
   }
 }
 
 // 获取挂起的会话列表
-const fetchSuspendedSessions = async () => {
-  loadingSessions.value = true
-  try {
-    await $store.getSuspendedSessions()
-  } catch (error) {
-    console.error('获取挂起会话列表失败:', error)
-    $message.error('获取挂起会话列表失败')
-  } finally {
-    loadingSessions.value = false
-  }
+const fetchSuspendedSessions = () => {
+  $store.getSuspendedSessions()
 }
 
 // 从下拉菜单恢复会话
@@ -817,7 +816,7 @@ const handleResumeSessionFromDropdown = (session) => {
     return
   }
 
-  const { hostId, hostName, host, sessionId } = session
+  const { hostId, host, sessionId } = session
 
   // 创建一个特殊的tab，标记为恢复会话
   const targetHost = hostList.value.find(item => item.id === hostId)
@@ -1062,7 +1061,7 @@ const handleTabContextMenu = (e, item, index) => {
   // 挂起终端选项（仅在已连接状态显示）
   if (item.status === terminalStatus.CONNECT_SUCCESS) {
     menuItems.push({
-      label: '挂起终端',
+      label: '挂起',
       onClick: () => handleSuspendTerminal(item, index)
     })
   }
@@ -1072,7 +1071,7 @@ const handleTabContextMenu = (e, item, index) => {
     terminalTabs.value.some(tab => tab.status === terminalStatus.CONNECT_SUCCESS)
   ) {
     menuItems.push({
-      label: '挂起所有会话',
+      label: '挂起所有',
       onClick: () => handleSuspendAllSessions()
     })
   }
@@ -1080,14 +1079,14 @@ const handleTabContextMenu = (e, item, index) => {
   // 关闭其他终端
   if (terminalTabs.value.length > 1) {
     menuItems.push({
-      label: '关闭其他终端',
+      label: '关闭其他',
       onClick: () => handleCloseOtherTabs(index)
     })
   }
 
   // 关闭所有终端
   menuItems.push({
-    label: '关闭所有终端',
+    label: '关闭所有',
     onClick: () => handleCloseAllTab()
   })
 

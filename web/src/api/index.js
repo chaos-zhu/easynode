@@ -207,5 +207,12 @@ export default {
   // 获取挂起的会话列表
   getSuspendedSessions() {
     return axios({ url: '/suspended-sessions', method: 'get' })
+  },
+  // 终端会话设置相关API
+  getTerminalSessionConfig() {
+    return axios({ url: '/terminal-session-config', method: 'get' })
+  },
+  updateTerminalSessionConfig(data) {
+    return axios({ url: '/terminal-session-config', method: 'post', data })
   }
 }

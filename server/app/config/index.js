@@ -27,6 +27,7 @@ module.exports = {
   terminalConfigDBPath: path.join(process.cwd(),'app/db/terminal-config.db'),
   serverListDBPath: path.join(process.cwd(),'app/db/server-list-config.db'),
   sessionDBPath: path.join(process.cwd(),'app/db/session.db'),
+  terminalSessionDBPath: path.join(process.cwd(),'app/db/terminal-session.db'),
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/db/logs'),

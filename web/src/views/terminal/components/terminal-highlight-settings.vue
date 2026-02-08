@@ -103,9 +103,30 @@
 
                   <!-- 样式标签 -->
                   <div class="style-tags">
-                    <el-tag v-if="rule.bold" size="small" type="danger" effect="dark">粗体</el-tag>
-                    <el-tag v-if="rule.italic" size="small" type="warning" effect="dark">斜体</el-tag>
-                    <el-tag v-if="rule.underline" size="small" type="info" effect="dark">下划线</el-tag>
+                    <el-tag
+                      v-if="rule.bold"
+                      size="small"
+                      type="danger"
+                      effect="dark"
+                    >
+                      粗体
+                    </el-tag>
+                    <el-tag
+                      v-if="rule.italic"
+                      size="small"
+                      type="warning"
+                      effect="dark"
+                    >
+                      斜体
+                    </el-tag>
+                    <el-tag
+                      v-if="rule.underline"
+                      size="small"
+                      type="info"
+                      effect="dark"
+                    >
+                      下划线
+                    </el-tag>
                   </div>
                 </div>
 
@@ -227,7 +248,7 @@ const importRulesText = ref('')
 // 将RegExp转换为可JSON化的对象
 const serializeRules = (rules) => {
   const serialized = {}
-  for (const [key, rule] of Object.entries(rules)) {
+  for (const [key, rule,] of Object.entries(rules)) {
     serialized[key] = {
       ...rule,
       pattern: rule.pattern instanceof RegExp ? {
@@ -242,7 +263,7 @@ const serializeRules = (rules) => {
 // 创建默认规则
 const createDefaultRules = () => {
   const defaults = {}
-  for (const [key, rule] of Object.entries(HIGHLIGHT_RULES)) {
+  for (const [key, rule,] of Object.entries(HIGHLIGHT_RULES)) {
     defaults[key] = {
       title: rule.title,
       pattern: rule.pattern,
@@ -299,7 +320,7 @@ const testOutputStyle = computed(() => {
     if (userBackground.value.startsWith('http')) {
       // 图片URL：透明背景 + 背景图
       style.backgroundColor = 'transparent'
-      style.backgroundImage = `url(${userBackground.value})`
+      style.backgroundImage = `url(${ userBackground.value })`
       style.backgroundSize = 'cover'
       style.backgroundPosition = 'center'
       style.backgroundRepeat = 'no-repeat'

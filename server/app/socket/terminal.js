@@ -5,7 +5,7 @@ const { ping } = require('../utils/tools')
 const { AESDecryptAsync } = require('../utils/encrypt')
 const { KeyDB, HostListDB, CredentialsDB, ProxyDB } = require('../utils/db-class')
 const decryptAndExecuteAsync = require('../utils/decrypt-file')
-const { sessionManager, SessionStatus } = require('./session-manager')
+const { sessionManager, SessionStatus } = require('../utils/terminal-session')
 const { createSecureWs } = require('../utils/ws-tool')
 
 const hostListDB = new HostListDB().getInstance()

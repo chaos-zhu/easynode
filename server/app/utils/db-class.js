@@ -17,7 +17,8 @@ const {
   fileTransferDBPath,
   terminalConfigDBPath,
   serverListDBPath,
-  sessionDBPath
+  sessionDBPath,
+  terminalSessionDBPath
 } = require('../config')
 
 module.exports.KeyDB = class KeyDB {
@@ -223,5 +224,16 @@ module.exports.SessionDB = class SessionDB {
   }
   getInstance() {
     return SessionDB.instance
+  }
+}
+
+module.exports.TerminalSessionDB = class TerminalSessionDB {
+  constructor() {
+    if (!TerminalSessionDB.instance) {
+      TerminalSessionDB.instance = new Datastore({ filename: terminalSessionDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return TerminalSessionDB.instance
   }
 }

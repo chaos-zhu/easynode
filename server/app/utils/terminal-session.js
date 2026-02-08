@@ -1,10 +1,6 @@
 /**
  * 终端会话管理器
- * 用于管理 SSH 会话的生命周期，支持挂起和恢复功能
  */
-
-// 使用全局 logger（在 server/app/logs.js 中定义）
-// logger 是全局变量，无需 require
 
 // 会话状态枚举
 const SessionStatus = {
@@ -261,7 +257,7 @@ class SessionManager {
     this.socketSessionMap = new Map() // socketId -> sessionId
     this.maxSuspendTime = 30 * 60 * 1000 // 最大挂起时间：30分钟
     this.cleanupInterval = 5 * 60 * 1000 // 清理间隔：5分钟
-    this.maxSuspendedPerUser = 5 // 单用户最大挂起数
+    this.maxSuspendedPerUser = 10 // 最大挂起数
 
     this.startCleanupTimer()
   }
@@ -560,8 +556,7 @@ class SessionManager {
 const sessionManager = new SessionManager()
 
 module.exports = {
-  SessionManager,
-  TerminalSession,
   SessionStatus,
+  TerminalSession,
   sessionManager
 }

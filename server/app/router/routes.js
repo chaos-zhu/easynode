@@ -11,7 +11,7 @@ const { getAIConfig, saveAIConfig, getAIModels, getChatHistory, saveChatHistory,
 const { getProxyList, addProxy, updateProxy, removeProxy } = require('../controller/proxy')
 const { getTerminalConfig, saveTerminalConfig } = require('../controller/terminal-config')
 const { getServerListConfig, saveServerListConfig } = require('../controller/server-list-config')
-const { getSuspendedSessions } = require('../controller/terminal')
+const { getSuspendedSessions, getTerminalSessionConfig, updateTerminalSessionConfig } = require('../controller/terminal')
 
 const ssh = [
   {
@@ -379,6 +379,16 @@ const terminal = [
     method: 'get',
     path: '/suspended-sessions',
     controller: getSuspendedSessions
+  },
+  {
+    method: 'get',
+    path: '/terminal-session-config',
+    controller: getTerminalSessionConfig
+  },
+  {
+    method: 'post',
+    path: '/terminal-session-config',
+    controller: updateTerminalSessionConfig
   }
 ]
 

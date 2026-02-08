@@ -1,8 +1,9 @@
-const { sessionManager } = require('../socket/session-manager')
-const { KeyDB, HostListDB } = require('../utils/db-class')
+const { sessionManager } = require('../utils/terminal-session')
+const { KeyDB, HostListDB, TerminalSessionDB } = require('../utils/db-class')
 
 const keyDB = new KeyDB().getInstance()
 const hostListDB = new HostListDB().getInstance()
+const terminalSessionDB = new TerminalSessionDB().getInstance()
 
 async function getSuspendedSessions({ res }) {
   try {
@@ -34,6 +35,69 @@ async function getSuspendedSessions({ res }) {
   }
 }
 
+// 默认配置
+const defaultSessionConfig = {
+  maxSuspendTime: 24, // 小时
+  maxSuspendedPerUser: 5,
+  heartbeatInterval: 30, // 秒
+  maxReconnectAttempts: 3,
+  reconnectInterval: 60, // 秒
+  maxBufferSize: 50 // KB
+}
+
+async function getTerminalSessionConfig({ res }) {
+  try {
+    const config = await terminalSessionDB.findOneAsync({})
+
+    // 如果数据库中没有配置，返回默认配置
+    const resultConfig = config ?? defaultSessionConfig
+
+    res.success({ data: { config: resultConfig } })
+  } catch (error) {
+    logger.error('getTerminalSessionConfig error: ', error.message)
+    res.fail({ msg: '获取终端会话配置失败' })
+  }
+}
+
+async function updateTerminalSessionConfig({ request, res }) {
+  try {
+    const { config } = request.body
+    if (!config) {
+      return res.fail({ msg: '配置信息不能为空' })
+    }
+
+    // 先查找是否存在配置
+    const existingConfig = await terminalSessionDB.findOneAsync({})
+
+    if (existingConfig) {
+      // 更新现有配置
+      await terminalSessionDB.updateAsync(
+        { _id: existingConfig._id },
+        { $set: config }
+      )
+    } else {
+      // 插入新配置
+      await terminalSessionDB.insertAsync(config)
+    }
+
+    // 更新 session manager 的配置
+    if (config.maxSuspendTime !== undefined) {
+      // maxSuspendTime 前端传入的是小时，需要转换为毫秒
+      sessionManager.maxSuspendTime = config.maxSuspendTime * 60 * 60 * 1000
+    }
+    if (config.maxSuspendedPerUser !== undefined) {
+      sessionManager.maxSuspendedPerUser = config.maxSuspendedPerUser
+    }
+
+    res.success({ msg: '保存成功' })
+  } catch (error) {
+    logger.error('updateTerminalSessionConfig error: ', error.message)
+    res.fail({ msg: '保存终端会话配置失败' })
+  }
+}
+
 module.exports = {
-  getSuspendedSessions
+  getSuspendedSessions,
+  getTerminalSessionConfig,
+  updateTerminalSessionConfig
 }
