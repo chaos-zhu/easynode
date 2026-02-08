@@ -99,10 +99,20 @@ docker run -d \
   chaoszhu/easynode
 ```
 
-环境变量：
-- `GUACD_HOST`: 自建guacd服务IP
-- `GUACD_PORT`: 自建guacd服务PORT
-- `DEBUG`: 启动日志 false：关闭 true：开启, 默认开启
+## 环境变量
+
+> 无特殊需求建议使用docker-compose.yml一键启动
+
+| 变量名称 | 说明 | 默认值 | 备注 |
+|---------|------|--------|------|
+| `GUACD_HOST` | 自建guacd服务IP | - | - |
+| `GUACD_PORT` | 自建guacd服务PORT | - | - |
+| `DEBUG` | 启动日志 | `true` | `false`：关闭，`true`：开启 |
+| `RDP_PORT` | RDP服务端口 | - | 无特殊需求保持默认即可 |
+| `ENABLE_HTTPS` | 是否启用HTTPS | `0` | `0`：关闭<br/>`1`：自签证书（适合内网）<br/>`2`：合法证书（适合外网）<br/>外网建议使用 nginx/caddy 进行 HTTPS 转发 |
+| `HTTPS_PORT` | HTTPS端口 | `8092` | - |
+| `SSL_CERT_PATH` | HTTPS证书文件路径 | - | 当 `ENABLE_HTTPS=2` 时必须配置 |
+| `SSL_KEY_PATH` | HTTPS私钥文件路径 | - | 当 `ENABLE_HTTPS=2` 时必须配置 |
 
 注意: **docker默认不启用ipv6，请自行配置或者使用支持ipv6的跳板机中转.**
 
