@@ -1656,25 +1656,39 @@ module.exports = (httpServer) => {
           let isRootUser = true
           let currentWorkingDir = '/'
 
-          try {
-            rootList = await sftpClient.list('/')
-            logger.info('获取根目录成功')
-          } catch (error) {
-            logger.error('获取根目录失败:', error.message)
-            logger.info('尝试获取当前目录')
-            isRootUser = false
-
+          // 如果是 root 用户，直接进入 root 家目录
+          if (username === 'root') {
             try {
-            // 获取当前工作目录的绝对路径
-              currentWorkingDir = await sftpClient.cwd()
-              logger.info('当前工作目录:', currentWorkingDir)
-              rootList = await sftpClient.list(currentWorkingDir)
-              logger.info('获取当前目录成功')
-            } catch (cwdError) {
-              logger.warn('获取工作目录失败，使用相对路径:', cwdError.message)
-              currentWorkingDir = '~'
-              rootList = await sftpClient.list('./')
-              logger.info('获取当前目录成功')
+              currentWorkingDir = '/root'
+              rootList = await sftpClient.list('/root')
+            } catch (rootError) {
+              // 如果 /root 不存在或无权限，降级到根目录
+              logger.warn('获取 /root 失败，降级到根目录:', rootError.message)
+              currentWorkingDir = '/'
+              rootList = await sftpClient.list('/')
+              logger.info('root 用户进入根目录成功')
+            }
+          } else {
+            try {
+              rootList = await sftpClient.list('/')
+              logger.info('获取根目录成功')
+            } catch (error) {
+              logger.error('获取根目录失败:', error.message)
+              logger.info('尝试获取当前目录')
+              isRootUser = false
+
+              try {
+              // 获取当前工作目录的绝对路径
+                currentWorkingDir = await sftpClient.cwd()
+                logger.info('当前工作目录:', currentWorkingDir)
+                rootList = await sftpClient.list(currentWorkingDir)
+                logger.info('获取当前目录成功')
+              } catch (cwdError) {
+                logger.warn('获取工作目录失败，使用相对路径:', cwdError.message)
+                currentWorkingDir = '~'
+                rootList = await sftpClient.list('./')
+                logger.info('获取当前目录成功')
+              }
             }
           }
 

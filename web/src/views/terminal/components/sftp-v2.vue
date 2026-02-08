@@ -737,10 +737,16 @@ function getRank(item) {
   const isHidden = item.name.startsWith('.')
   const isDir = item.type === 'd'
   const isLink = item.type === 'l'
-  if (isHidden && isDir) return 0 // hidden dir
-  if (isDir && item.name === 'root') return 1 // root directory special
-  if (isHidden) return 2 // hidden file
-  if (isDir) return 3 // visible dir
+
+  // .文件夹 -> 文件夹 -> .文件 -> 文件
+  if (isDir) {
+    if (isHidden) return 0 // hidden dir
+    if (item.name === 'root') return 1 // root directory special
+    return 2 // visible dir
+  }
+
+  // 非文件夹
+  if (isHidden) return 3 // hidden file
   if (isLink) return 4 // link
   return 5 // regular file
 }
