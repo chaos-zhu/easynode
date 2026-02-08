@@ -217,6 +217,7 @@
 import { ref, computed, getCurrentInstance, watch, onBeforeUnmount, nextTick, onMounted, toRaw, shallowRef } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import { generateSocketInstance } from '@/utils'
+import clipboard from '@/utils/clipboard'
 
 // 注册Chart.js所有组件
 Chart.register(...registerables)
@@ -604,9 +605,8 @@ watch(
 )
 
 // 工具函数
-const handleCopy = async () => {
-  await navigator.clipboard.writeText(host.value)
-  $message.success({ message: '复制成功', center: true })
+const handleCopy = () => {
+  clipboard.copy(host.value)
 }
 
 const handleUsedColor = (num) => {

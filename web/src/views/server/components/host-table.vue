@@ -137,6 +137,7 @@
 import { ref, computed, getCurrentInstance, nextTick } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
+import clipboard from '@/utils/clipboard'
 
 const { proxy: { $message, $messageBox, $api, $router, $store } } = getCurrentInstance()
 
@@ -246,9 +247,8 @@ const handleRemoveHost = async ({ id }) => {
   })
 }
 
-const handleCopy = async (host) => {
-  await navigator.clipboard.writeText(host)
-  $message.success({ message: '复制成功', center: true })
+const handleCopy = (host) => {
+  clipboard.copy(host)
 }
 
 const formatProxyType = ({ proxyType, jumpHosts, proxyServer }) => {

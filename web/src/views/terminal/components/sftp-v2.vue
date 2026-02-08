@@ -665,6 +665,7 @@ import unknowIcon from '@/assets/image/system/unknow.png'
 import { useContextMenu } from '@/composables/useContextMenu'
 import TextEditor from '@/components/text-editor/index.vue'
 import ImagePreview from '@/components/image-preview/index.vue'
+import clipboard from '@/utils/clipboard'
 
 const emit = defineEmits(['exec-script', ])
 
@@ -1592,11 +1593,7 @@ const cancelEditPath = () => {
 }
 
 const copyCurrentPath = () => {
-  navigator.clipboard.writeText(currentPath.value).then(() => {
-    $message.success('路径已复制')
-  }).catch(() => {
-    $message.error('复制失败')
-  })
+  clipboard.copy(currentPath.value)
 }
 
 const handleUpload = (type) => {
@@ -1962,8 +1959,7 @@ const onRowContextMenu = (row, _column, event) => {
         fullPath = `${ currentPathValue }/${ row.name }`
       }
       fullPath = fullPath.replace(/\/+/g, '/')
-      navigator.clipboard.writeText(fullPath)
-      $message.success('已复制路径')
+      clipboard.copy(fullPath)
     }
   })
 

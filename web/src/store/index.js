@@ -5,7 +5,6 @@ import { isValidDate } from '@/utils'
 
 const useStore = defineStore('global', {
   state: () => ({
-    serviceURI: null,
     hostList: [],
     groupList: [],
     sshList: [],

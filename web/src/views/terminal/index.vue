@@ -101,6 +101,7 @@ import TerminalWrapper from './components/terminal-wrapper.vue'
 import HostForm from '../server/components/host-form.vue'
 import { randomStr } from '@utils/index.js'
 import { terminalStatus } from '@/utils/enum'
+import clipboard from '@/utils/clipboard'
 const { CONNECTING, RESUMING } = terminalStatus
 
 const { proxy: { $store, $message, $api } } = getCurrentInstance()
@@ -216,9 +217,8 @@ onActivated(async () => {
   })
 })
 
-const handleCopy = async (host) => {
-  await navigator.clipboard.writeText(host)
-  $message.success({ message: '复制成功', center: true })
+const handleCopy = (host) => {
+  clipboard.copy(host)
 }
 
 // 获取挂起的会话列表

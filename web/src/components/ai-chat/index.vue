@@ -271,6 +271,7 @@ import { useAIChat } from '@/composables/useAIChat'
 import AiApiConfig from './ai-api-config.vue'
 import { EventBus } from '@/utils'
 import CustomCodeBlock from './custom-code-block.vue'
+import clipboard from '@/utils/clipboard'
 
 const { proxy: { $message, $store } } = getCurrentInstance()
 
@@ -444,13 +445,8 @@ const submit = async function (questionStr) {
   await sendMessage(questionStr, activeModel.value)
 }
 
-const copyContent = async (content) => {
-  try {
-    await navigator.clipboard.writeText(content)
-    $message.success('复制成功')
-  } catch (err) {
-    $message.error('复制失败')
-  }
+const copyContent = (content) => {
+  clipboard.copy(content)
 }
 
 const handleSetting = () => {

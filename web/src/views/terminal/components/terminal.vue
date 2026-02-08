@@ -39,6 +39,7 @@ import { useContextMenu } from '@/composables/useContextMenu'
 import { EventBus, isDockerId, isDockerComposeYml, generateSocketInstance } from '@/utils'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { TerminalHighlighter } from '@/utils/highlighter'
+import clipboard from '@/utils/clipboard'
 
 const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL, SUSPENDED, RESUMING } = terminalStatus
 
@@ -552,11 +553,8 @@ const onData = () => {
 const handleCopySelection = async () => {
   let str = term.value.getSelection().trim()
   if (!str) return
-  const text = new Blob([str,], { type: 'text/plain' })
-  const item = new ClipboardItem({
-    'text/plain': text
-  })
-  await navigator.clipboard.write([item,])
+
+  await clipboard.copy(str)
   term.value.clearSelection()
 }
 
@@ -855,18 +853,24 @@ const handleClear = () => {
 }
 
 const handlePaste = async () => {
-  let key = await navigator.clipboard.readText()
-  // 规范换行符：无论来自 Windows (\r\n) 还是 Unix (\n)，都统一替换成 \r
-  key = key.replace(/\r\n/g, '\r').replace(/\n/g, '\r')
-  // 如果粘贴的内容以换行符结尾则去掉换行符(防止自动执行)
-  while (key.endsWith('\n')) {
-    key = key.slice(0, -1)
-  }
+  try {
+    let key = await clipboard.paste()
+    // 规范换行符：无论来自 Windows (\r\n) 还是 Unix (\n)，都统一替换成 \r
+    key = key.replace(/\r\n/g, '\r').replace(/\n/g, '\r')
+    // 如果粘贴的内容以换行符结尾则去掉换行符(防止自动执行)
+    while (key.endsWith('\n')) {
+      key = key.slice(0, -1)
+    }
 
-  emit('inputCommand', key, uid)
-  socket.value.emit('input', key)
-  term.value.focus()
-  term.value.clearSelection()
+    emit('inputCommand', key, uid)
+    socket.value.emit('input', key)
+    term.value.focus()
+    term.value.clearSelection()
+  } catch (err) {
+    // HTTP环境下无法读取剪贴板,提示用户使用浏览器原生粘贴
+    console.warn('剪贴板读取失败,请使用 Ctrl+V 或右键粘贴:', err.message)
+    // 不显示错误提示,因为 Ctrl+V 会触发浏览器原生粘贴事件
+  }
 }
 
 const focusTab = () => {

@@ -196,7 +196,8 @@ export const isValidDate = (dateString) => {
   return !isNaN(date.getTime()) && date instanceof Date
 }
 
-const serviceURI = import.meta.env.DEV ? process.env.serviceURI : location.origin
+const { protocol, hostname } = location
+const serviceURI = import.meta.env.DEV ? `${ protocol }//${ hostname }:8082` : location.origin
 export const generateSocketInstance = (path, config = { forceNew: false, reconnection: true, reconnectionAttempts: 3 }, query = {}) => {
   return socketIo(serviceURI, {
     withCredentials: true,

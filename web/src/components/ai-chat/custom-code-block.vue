@@ -32,6 +32,7 @@ import { computed } from 'vue'
 import { EventBus } from '@/utils'
 import { ElMessage } from 'element-plus'
 import hljs from 'highlight.js'
+import clipboard from '@/utils/clipboard'
 
 const props = defineProps({
   node: {
@@ -106,13 +107,7 @@ const highlightedCode = computed(() => {
 // 处理复制
 const handleCopy = () => {
   const code = props.node?.code || props.node?.value || ''
-  navigator.clipboard.writeText(code)
-    .then(() => {
-      ElMessage.success('复制成功')
-    })
-    .catch(() => {
-      ElMessage.error('复制失败')
-    })
+  clipboard.copy(code)
 }
 
 // 处理执行
