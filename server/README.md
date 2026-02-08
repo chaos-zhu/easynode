@@ -2,6 +2,23 @@
 
 - 基于Koa
 
+## HTTPS 配置
+
+服务支持三种 HTTPS 配置模式:
+
+- **模式 0**: 关闭 HTTPS (默认)
+- **模式 1**: 自动生成自签名证书
+- **模式 2**: 使用自定义证书路径
+
+详细配置说明请查看: [HTTPS 配置文档](../docs/https-configuration.md)
+
+快速开始:
+```env
+# .env 文件
+ENABLE_HTTPS=1  # 0:关闭 1:自签证书 2:传入证书路径
+HTTPS_PORT=8092
+```
+
 ## 遇到的问题
 
 > MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 input listeners added to [Socket]. Use emitter.setMaxListeners() to increase limit

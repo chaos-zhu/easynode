@@ -103,6 +103,24 @@
             <el-option label="大" value="large" />
           </el-select>
         </div>
+
+        <div class="toolbar-item">
+          <label>字号</label>
+          <el-select
+            v-model="fontSize"
+            size="small"
+            class="size-select"
+            @change="changeFontSize"
+          >
+            <el-option label="12" :value="12" />
+            <el-option label="14" :value="14" />
+            <el-option label="16" :value="16" />
+            <el-option label="18" :value="18" />
+            <el-option label="20" :value="20" />
+            <el-option label="22" :value="22" />
+            <el-option label="24" :value="24" />
+          </el-select>
+        </div>
       </div>
 
       <div
@@ -183,9 +201,24 @@ const selectedTheme = ref(getDefaultTheme())
 const selectedLanguage = ref('plaintext')
 const selectedEncoding = ref('auto') // 默认自动检测
 const selectedEOL = ref('LF')
-const wordWrapEnabled = ref(true)
-const minimapEnabled = ref(true)
-const minimapSize = ref('medium') // 默认中等大小
+
+// 从本地缓存读取配置，如果没有则使用默认值
+const getLocalConfig = (key, defaultValue) => {
+  const saved = localStorage.getItem(`text-editor-${ key }`)
+  if (saved !== null) {
+    try {
+      return JSON.parse(saved)
+    } catch {
+      return defaultValue
+    }
+  }
+  return defaultValue
+}
+
+const wordWrapEnabled = ref(getLocalConfig('wordWrap', true))
+const minimapEnabled = ref(getLocalConfig('minimap', true))
+const minimapSize = ref(getLocalConfig('minimapSize', 'medium'))
+const fontSize = ref(getLocalConfig('fontSize', 14))
 
 let editor = null
 let disposables = []
@@ -280,7 +313,7 @@ const initEditor = () => {
     value: '',
     language: language,
     theme: selectedTheme.value,
-    fontSize: 14,
+    fontSize: fontSize.value,
     wordWrap: wordWrapEnabled.value ? 'on' : 'off',
     automaticLayout: true,
     scrollBeyondLastLine: false,
@@ -477,6 +510,8 @@ const toggleWordWrap = (enabled) => {
       wordWrap: enabled ? 'on' : 'off'
     })
   }
+  // 保存到本地缓存
+  localStorage.setItem('text-editor-wordWrap', JSON.stringify(enabled))
 }
 
 const toggleMinimap = (enabled) => {
@@ -491,6 +526,8 @@ const toggleMinimap = (enabled) => {
       }
     })
   }
+  // 保存到本地缓存
+  localStorage.setItem('text-editor-minimap', JSON.stringify(enabled))
 }
 
 const changeMinimapSize = (size) => {
@@ -505,6 +542,18 @@ const changeMinimapSize = (size) => {
       }
     })
   }
+  // 保存到本地缓存
+  localStorage.setItem('text-editor-minimapSize', JSON.stringify(size))
+}
+
+const changeFontSize = (size) => {
+  if (editor) {
+    editor.updateOptions({
+      fontSize: size
+    })
+  }
+  // 保存到本地缓存
+  localStorage.setItem('text-editor-fontSize', JSON.stringify(size))
 }
 
 const resetFile = () => {
