@@ -10,9 +10,16 @@ services:
       - /root/easynode/db:/easynode/app/db
     environment:
       - TZ=Asia/Shanghai
-      - DEBUG=true
+      - DEBUG=1
       - GUACD_HOST=easynode-guacd
       - GUACD_PORT=4822
+      - allowedIPs=127.0.0.1,192.168,255.
+      - HTTP_PORT=8082
+      - RDP_PORT=8083
+      - ENABLE_HTTPS=0
+      - HTTPS_PORT=8092
+      - SSL_CERT_PATH=
+      - SSL_KEY_PATH=
     depends_on:
       easynode-guacd:
         condition: service_healthy

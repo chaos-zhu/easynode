@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@app/*": ["./app/*"],
+      "@controller/*": ["./app/controller/*"],
+      "@middlewares/*": ["./app/middlewares/*"],
+      "@router/*": ["./app/router/*"],
+      "@socket/*": ["./app/socket/*"],
+      "@utils/*": ["./app/utils/*"],
+      "@config/*": ["./app/config/*"]
+    },
+    "module": "commonjs",
+    "target": "ES2020"
+  },
+  "exclude": [
+    "node_modules",
+    "app/db"
+  ]
+}

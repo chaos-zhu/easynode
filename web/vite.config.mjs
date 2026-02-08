@@ -10,6 +10,7 @@ import viteCompression from 'vite-plugin-compression'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 
 const serviceURI = 'http://localhost:8082/'
+// const serviceURI = 'https://localhost:8092/'
 const serviceApiPrefix = '/api/v1'
 const sftpCachePrefix = '/sftp-cache'
 
@@ -22,11 +23,15 @@ export default defineConfig({
     cors: true,
     proxy: {
       [serviceApiPrefix]: {
-        target: serviceURI
+        target: serviceURI,
+        changeOrigin: true,
+        secure: false
         // rewrite: (p) => p.replace(/^\/api/, '')
       },
       [sftpCachePrefix]: {
-        target: serviceURI
+        target: serviceURI,
+        changeOrigin: true,
+        secure: false
         // rewrite: (p) => p.replace(/^\/api/, '')
       }
     }
