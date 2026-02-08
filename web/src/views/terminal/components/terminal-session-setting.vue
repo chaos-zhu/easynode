@@ -77,7 +77,6 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
-        <el-button @click="handleReset">恢复默认</el-button>
         <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </span>
     </template>

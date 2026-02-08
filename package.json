@@ -22,7 +22,7 @@
   "license": "ISC",
   "scripts": {
     "dev": "concurrently \"yarn workspace web run dev\" \"yarn workspace server run local\"",
-    "clean": "rimraf web/node_modules server/node_modules client/node_modules node_modules",
+    "clean": "rimraf web/node_modules server/node_modules node_modules",
     "encrypt": "node ./local-script/encrypt-file.js"
   },
   "bugs": {
