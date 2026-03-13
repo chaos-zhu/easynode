@@ -140,9 +140,9 @@ export const HIGHLIGHT_RULES = {
 export class TerminalHighlighter {
   // ANSI序列正则表达式
   // eslint-disable-next-line no-control-regex
-  static ANSI_DETECT = /\x1b(?:\[|\]|P|X|\^|_)/
+  static ANSI_DETECT = /\x1b(?:\[|\]|P|X|\^|_|[@-Z\\-_]|[78=><])/
   // eslint-disable-next-line no-control-regex
-  static ANSI_FULL = /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1bP[\s\S]*?\x1b\\|\x1bX[\s\S]*?\x1b\\|\x1b\^[\s\S]*?\x1b\\|\x1b_[\s\S]*?\x1b\\/g
+  static ANSI_FULL = /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1bP[\s\S]*?\x1b\\|\x1bX[\s\S]*?\x1b\\|\x1b\^[\s\S]*?\x1b\\|\x1b_[\s\S]*?\x1b\\|\x1b(?:[@-Z\\-_]|[78=><])/g
 
   constructor(terminal, options = {}) {
     this.terminal = terminal
