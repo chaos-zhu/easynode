@@ -140,9 +140,9 @@ export const HIGHLIGHT_RULES = {
 export class TerminalHighlighter {
   // ANSI序列正则表达式
   // eslint-disable-next-line no-control-regex
-  static ANSI_DETECT = /\x1b\[/
+  static ANSI_DETECT = /\x1b(?:\[|\]|P|X|\^|_)/
   // eslint-disable-next-line no-control-regex
-  static ANSI_FULL = /\x1b\[[0-9;]*[mGKH]|\x1b\[[?0-9;]*[lh]|\x1b\[[0-9]*[ABCD]|\x1b\[2J|\x1b\[H|\x1b\[K|\x1b>|\x1b\[7m|\x1b\[27m/g
+  static ANSI_FULL = /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1bP[\s\S]*?\x1b\\|\x1bX[\s\S]*?\x1b\\|\x1b\^[\s\S]*?\x1b\\|\x1b_[\s\S]*?\x1b\\/g
 
   constructor(terminal, options = {}) {
     this.terminal = terminal
@@ -295,6 +295,14 @@ export class TerminalHighlighter {
         return text
       }
 
+      // 包含复杂控制序列（如OSC标题更新）时直接旁路，避免破坏提示符刷新
+      if (this.hasComplexControlSequences(text)) {
+        if (this.debugMode) {
+          console.log('检测到复杂控制序列，跳过高亮:', text.replace(/\x1b/g, '\\x1b'))
+        }
+        return text
+      }
+
       // 对于包含少量ANSI但有实际内容的文本，尝试着去处理
       try {
         const result = this.applyRulesWithAnsi(text)
@@ -329,6 +337,12 @@ export class TerminalHighlighter {
   // 检测ANSI序列
   hasAnsiSequences(text) {
     return TerminalHighlighter.ANSI_DETECT.test(text)
+  }
+
+  // 检测复杂控制序列（OSC / DCS / PM / APC 等）
+  hasComplexControlSequences(text) {
+    // eslint-disable-next-line no-control-regex
+    return /\x1b(?:\]|P|X|\^|_)/.test(text)
   }
 
   // 检查是否主要是控制序列
