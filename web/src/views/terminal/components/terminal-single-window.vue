@@ -18,7 +18,10 @@
         :style="panel.style"
       >
         <!-- 终端标题栏 -->
-        <div class="terminal_header">
+        <div
+          class="terminal_header"
+          @contextmenu.prevent="handleHeaderContextMenu($event, panel.terminal, index)"
+        >
           <div class="terminal_title">
             <span class="terminal_index">{{ String(index + 1).padStart(2, '0') }}</span>
             <span
@@ -61,6 +64,7 @@
             @ping-data="getPingData"
             @reset-long-press="resetLongPress"
             @tab-focus="handleTabFocus"
+            @request-suspend="() => handleRequestSuspendSingle(panel.terminal)"
           />
         </div>
         <el-dialog
@@ -96,12 +100,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 import { Close, FullScreen, Aim } from '@element-plus/icons-vue'
 import Terminal from './terminal.vue'
-import { terminalStatusList } from '@/utils/enum'
+import { terminalStatusList, terminalStatus } from '@/utils/enum'
 import ScriptInput from './script-input.vue'
 import PlusLimitTip from '@/components/common/PlusLimitTip.vue'
+import { useContextMenu } from '@/composables/useContextMenu'
+import { useTerminalTabContextMenu } from '@/composables/useTerminalTabContextMenu'
 
 const props = defineProps({
   terminalTabs: {
@@ -133,7 +139,10 @@ const props = defineProps({
 // 容器引用
 const containerRef = ref(null)
 
-const emit = defineEmits(['close-terminal', 'terminal-input', 'ping-data', 'reset-long-press',])
+const { proxy: { $message } } = getCurrentInstance()
+const { showMenu } = useContextMenu()
+
+const emit = defineEmits(['close-terminal', 'terminal-input', 'ping-data', 'reset-long-press', 'suspend-terminal'])
 
 // 响应式数据
 const focusedTerminalKey = ref(null)
@@ -584,6 +593,62 @@ const handleCloseTerminal = (terminalKey) => {
   })
 }
 
+// 挂起单个终端（单窗口模式下）
+const handleSuspendTerminalSingle = async (terminalItem, { silent = false } = {}) => {
+  const terminalRef = terminalRefs.value[terminalItem.key]
+  if (!terminalRef) {
+    if (!silent) $message.error('获取终端引用失败')
+    return false
+  }
+  const success = await terminalRef.suspendTerminal()
+  if (success) {
+    if (!silent) $message.success('终端已挂起')
+    // 通知父组件关闭该终端
+    emit('suspend-terminal', terminalItem.key)
+    return true
+  }
+  return false
+}
+
+// 挂起所有已连接终端（单窗口模式下）
+const handleSuspendAllSessionsSingle = async () => {
+  const connectedTabs = props.terminalTabs.filter(tab => tab.status === terminalStatus.CONNECT_SUCCESS)
+  if (connectedTabs.length === 0) {
+    $message.warning('暂无可挂起的已连接会话')
+    return
+  }
+  let successCount = 0
+  let failCount = 0
+  for (const tab of [...connectedTabs].reverse()) {
+    const ok = await handleSuspendTerminalSingle(tab, { silent: true })
+    if (ok) successCount += 1
+    else failCount += 1
+  }
+  if (successCount > 0) {
+    $message.success(`已挂起 ${ successCount } 个会话`)
+  }
+  if (failCount > 0) {
+    $message.warning(`有 ${ failCount } 个会话挂起失败`)
+  }
+}
+
+// 关闭其他终端（单窗口模式下）
+const handleCloseOtherSingle = (keepKey) => {
+  const toClose = props.terminalTabs.filter(tab => tab.key !== keepKey)
+  toClose.forEach(tab => handleCloseTerminal(tab.key))
+}
+
+// 关闭所有终端（单窗口模式下）
+const handleCloseAllSingle = () => {
+  const allKeys = [...props.terminalTabs].map(tab => tab.key)
+  allKeys.forEach(key => handleCloseTerminal(key))
+}
+
+// 处理 Terminal 组件的 request-suspend 事件（终端内右键挂起）
+const handleRequestSuspendSingle = (terminalItem) => {
+  handleSuspendTerminalSingle(terminalItem)
+}
+
 const handleInputCommand = (cmd, uid, terminalKey) => {
   // 如果启用了同步所有会话，则同步输入到其他终端
   if (props.isSyncAllSession) {
@@ -840,6 +905,24 @@ watch(() => props.layoutMode, () => {
     }, 100)
   })
 })
+
+// 初始化 Tab 右键菜单 composable（单窗口模式下的 header 右键）
+// 注意：单窗口模式下 terminalTabs 是 prop（Array），需要包装为 getter
+const { handleTabContextMenu: _headerCtxMenu } = useTerminalTabContextMenu({
+  terminalTabs: { value: props.terminalTabs },
+  onSuspend: (item) => handleSuspendTerminalSingle(item),
+  onSuspendAll: () => handleSuspendAllSessionsSingle(),
+  // onCloseOther 的第二个参数是当前 tab item（由 composable 传入）
+  onCloseOther: (index, item) => handleCloseOtherSingle(item.key),
+  onCloseAll: () => handleCloseAllSingle(),
+  showMenu,
+  terminalStatus
+})
+
+// header 右键菜单入口（单窗口模式）
+const handleHeaderContextMenu = (e, terminalItem, index) => {
+  _headerCtxMenu(e, terminalItem, index)
+}
 
 // 暴露方法
 defineExpose({

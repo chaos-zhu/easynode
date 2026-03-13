@@ -73,7 +73,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['inputCommand', 'ping-data', 'reset-long-press', 'tab-focus', 'sync-path-to-sftp',])
+const emit = defineEmits(['inputCommand', 'ping-data', 'reset-long-press', 'tab-focus', 'sync-path-to-sftp', 'request-suspend'])
 
 const socket = ref(null)
 // const commandHistoryList = ref([])
@@ -831,6 +831,15 @@ const handleRightClick = async (e) => {
     ]
   } : null
 
+  // 挂起选项（仅在已连接状态显示）
+  const suspend = curStatus.value === CONNECT_SUCCESS ? {
+    label: '挂起',
+    onClick: () => {
+      emit('request-suspend')
+      term.value.clearSelection()
+    }
+  } : null
+
   const menu = [
     sendToAI,
     copySelection,
@@ -839,6 +848,7 @@ const handleRightClick = async (e) => {
     search,
     clear,
     reconnect,
+    suspend,
     syncToSftp,
     dockerId,
     dockerComposeYml,

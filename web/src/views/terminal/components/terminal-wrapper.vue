@@ -221,6 +221,7 @@
         @close-terminal="handleCloseTerminalSingle"
         @ping-data="getPingData"
         @reset-long-press="resetLongPress"
+        @suspend-terminal="handleSuspendTerminalSingleDone"
       />
     </div>
 
@@ -337,6 +338,7 @@
                     @reset-long-press="resetLongPress"
                     @tab-focus="handleTabFocus"
                     @sync-path-to-sftp="(path) => handleSyncPathToSftp(path)"
+                    @request-suspend="() => handleSuspendTerminal(item, index)"
                   />
                 </div>
               </template>
@@ -434,6 +436,7 @@ import { ArrowDown, VideoPause, Setting } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { terminalStatusList, terminalStatus } from '@/utils/enum'
 import { useContextMenu } from '@/composables/useContextMenu'
+import { useTerminalTabContextMenu } from '@/composables/useTerminalTabContextMenu'
 import Terminal from './terminal.vue'
 import ServerStatus from './server-status.vue'
 import HostForm from '../../server/components/host-form.vue'
@@ -1051,48 +1054,6 @@ const handleInputCommand = async (command, type = 'input', useBase64 = false) =>
   }
 }
 
-// Tab 右键菜单处理
-const handleTabContextMenu = (e, item, index) => {
-  e.preventDefault()
-  e.stopPropagation()
-
-  const menuItems = []
-
-  // 挂起终端选项（仅在已连接状态显示）
-  if (item.status === terminalStatus.CONNECT_SUCCESS) {
-    menuItems.push({
-      label: '挂起',
-      onClick: () => handleSuspendTerminal(item, index)
-    })
-  }
-
-  // 挂起所有会话（存在已连接会话时显示）
-  if (
-    terminalTabs.value.some(tab => tab.status === terminalStatus.CONNECT_SUCCESS)
-  ) {
-    menuItems.push({
-      label: '挂起所有',
-      onClick: () => handleSuspendAllSessions()
-    })
-  }
-
-  // 关闭其他终端
-  if (terminalTabs.value.length > 1) {
-    menuItems.push({
-      label: '关闭其他',
-      onClick: () => handleCloseOtherTabs(index)
-    })
-  }
-
-  // 关闭所有终端
-  menuItems.push({
-    label: '关闭所有',
-    onClick: () => handleCloseAllTab()
-  })
-
-  showMenu(e, menuItems)
-}
-
 // 挂起终端
 const handleSuspendTerminal = async (item, index, { silent = false } = {}) => {
   const terminalRef = getFirstTerminalRefOfTab(index)
@@ -1108,8 +1069,8 @@ const handleSuspendTerminal = async (item, index, { silent = false } = {}) => {
     if (!silent) $message.success('终端已挂起')
     // 立即关闭该tab
     removeTab(index)
-    // 更新挂起会话状态，显示恢复会话菜单
-    hasSuspendedSessions.value = true
+    // 刷新挂起会话列表
+    fetchSuspendedSessions()
     return true
   }
 
@@ -1162,12 +1123,38 @@ const handleCloseOtherTabs = (keepIndex) => {
   })
 }
 
+// Tab 右键菜单处理（复用 useTerminalTabContextMenu composable）
+// 在所有依赖函数定义后初始化 composable（避免 hoisting 问题）
+const { handleTabContextMenu: _tabCtxMenu } = useTerminalTabContextMenu({
+  terminalTabs,
+  onSuspend: (item, index) => handleSuspendTerminal(item, index),
+  onSuspendAll: () => handleSuspendAllSessions(),
+  onCloseOther: (index) => handleCloseOtherTabs(index),
+  onCloseAll: () => handleCloseAllTab(),
+  showMenu,
+  terminalStatus
+})
+
+const handleTabContextMenu = (e, item, index) => {
+  _tabCtxMenu(e, item, index)
+}
+
 // 单窗口模式相关函数
 const handleCloseTerminalSingle = (terminalKey) => {
   const tabIndex = terminalTabs.value.findIndex(tab => tab.key === terminalKey)
   if (tabIndex !== -1) {
     emit('removeTab', tabIndex)
   }
+}
+
+// 单窗口模式下挂起完成后的处理（TerminalSingleWindow emit suspend-terminal 时触发）
+const handleSuspendTerminalSingleDone = (terminalKey) => {
+  const tabIndex = terminalTabs.value.findIndex(tab => tab.key === terminalKey)
+  if (tabIndex !== -1) {
+    emit('removeTab', tabIndex)
+  }
+  // 刷新挂起会话列表
+  fetchSuspendedSessions()
 }
 
 const handleToFullScreen = () => {
