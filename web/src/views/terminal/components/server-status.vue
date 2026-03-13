@@ -1000,11 +1000,10 @@ onBeforeUnmount(() => {
       display: flex;
       align-items: center;
       // justify-content: center;
-      padding: 0 5px;
 
       img {
         width: 15px;
-        margin-right: 5px;
+        margin-right: 3px;
       }
 
       .upload {
