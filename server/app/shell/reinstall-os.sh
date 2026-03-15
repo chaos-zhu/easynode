@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+TTY_DEVICE="/dev/tty"
+
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
   echo "请使用 root 身份运行此脚本"
   exit 1
@@ -23,6 +25,31 @@ warn() {
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1
+}
+
+has_tty() {
+  [ -r "$TTY_DEVICE" ] && [ -w "$TTY_DEVICE" ]
+}
+
+read_from_tty() {
+  local __var_name="$1"
+  local __prompt="$2"
+  local __silent="${3:-false}"
+  local __input
+
+  if has_tty; then
+    if [ "$__silent" = "true" ]; then
+      read -r -s -p "$__prompt" __input < "$TTY_DEVICE"
+      printf '\n' > "$TTY_DEVICE"
+    else
+      read -r -p "$__prompt" __input < "$TTY_DEVICE"
+    fi
+  else
+    warn "当前没有可交互终端，无法读取用户输入"
+    return 1
+  fi
+
+  printf -v "$__var_name" '%s' "$__input"
 }
 
 install_basic_tools() {
@@ -51,13 +78,14 @@ download_reinstall_script() {
 }
 
 confirm_reinstall() {
+  local answer
   echo "--------------------------------"
   echo "该脚本仅封装 bin456789/reinstall 项目。"
   echo "重装会清空目标硬盘数据，存在失联风险。"
   echo "请提前备份重要数据，并确认可以接受自动重启。"
   echo "如果误操作，可在重启前执行: bash reinstall.sh reset"
   echo "--------------------------------"
-  read -r -p "确认继续吗？(Y/N): " answer
+  read_from_tty answer "确认继续吗？(Y/N): "
   case "$answer" in
     [Yy]) ;;
     *)
@@ -72,8 +100,7 @@ read_password_args() {
   local user_label="$2"
   local pass
   echo "默认用户名: $user_label"
-  read -r -s -p "$prompt" pass
-  echo
+  read_from_tty pass "$prompt" true
   if [ -n "$pass" ]; then
     PASSWORD_ARGS=(--password "$pass")
   else
@@ -139,7 +166,7 @@ main() {
 
   confirm_reinstall
   show_menu
-  read -r -p "请选择功能: " choice
+  read_from_tty choice "请选择功能: "
 
   case "$choice" in
     1)
@@ -237,7 +264,7 @@ main() {
       ;;
 
     51)
-      read -r -p "请输入 Raw/VHD 镜像链接: " img_url
+      read_from_tty img_url "请输入 Raw/VHD 镜像链接: "
       if [ -z "$img_url" ]; then
         echo "镜像链接不能为空"
         exit 1
