@@ -16,12 +16,6 @@ async function initKeyDB() {
     }
 
     const { _id, ipWhiteList = [] } = keyData
-    let allowedIPs = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : []
-    if (allowedIPs.length > 0) {
-      logger.info('[存在白名单IP环境变量,合并到本地数据库中]')
-      allowedIPs = [...new Set([...ipWhiteList, ...allowedIPs])].filter(item => item)
-      await keyDB.updateAsync({ _id }, { $set: { ipWhiteList: allowedIPs } })
-    }
     try {
       let { ipWhiteList = [] } = await keyDB.findOneAsync({})
       if (ipWhiteList.length > 0) global.ALLOWED_IPS = ipWhiteList

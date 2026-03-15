@@ -114,7 +114,7 @@ docker run -d \
 | `SSL_CERT_PATH` | HTTPS证书文件路径 | - | 当 `ENABLE_HTTPS=2` 时必须配置 |
 | `SSL_KEY_PATH` | HTTPS私钥文件路径 | - | 当 `ENABLE_HTTPS=2` 时必须配置 |
 
-注意: **docker默认不启用ipv6，请自行配置或者使用支持ipv6的跳板机中转.**
+注意: **docker默认不启用ipv6，请参考Q&A配置或者使用支持ipv6的跳板机中转.**
 
 ## 监控服务安装
 
