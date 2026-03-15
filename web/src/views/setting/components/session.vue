@@ -124,7 +124,7 @@ const handleLookupLoginRecord = () => {
     .then(({ data }) => {
       const { list, ipWhiteList } = data
       total.value = list.length
-      allowedIPs.value = ipWhiteList || []
+      allowedIPs.value = ipWhiteList?.filter(ip => Boolean(ip)) || []
       loginRecordList.value = list.map((item) => {
         item.create = dayjs(item.create).format('YYYY-MM-DD HH:mm:ss')
         item.expireAt = dayjs(item.expireAt).format('YYYY-MM-DD HH:mm:ss')
@@ -142,7 +142,7 @@ const handleLookupLoginRecord = () => {
 
 const handleSaveAllowedIPs = async () => {
   btnLoading.value = true
-  const ipWhiteList = [...new Set(allowedIPs.value),].filter(item => item)
+  const ipWhiteList = [...new Set(allowedIPs.value),].filter(item => /[\d\.]/.test(item))
   try {
     await $api.saveIpWhiteList({ ipWhiteList })
     handleLookupLoginRecord()

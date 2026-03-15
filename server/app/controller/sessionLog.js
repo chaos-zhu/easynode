@@ -5,6 +5,7 @@ const sessionDB = new SessionDB().getInstance()
 async function getLog({ res }) {
   let sessionList = await sessionDB.findAsync({})
   let { ipWhiteList } = await keyDB.findOneAsync({})
+  ipWhiteList = ipWhiteList.filter(ip => Boolean(ip))
   sessionList = sessionList.map(item => {
     // eslint-disable-next-line no-unused-vars
     const { session, ...otherInfo } = item
