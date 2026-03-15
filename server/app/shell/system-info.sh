@@ -160,12 +160,12 @@ main() {
   os_info=$(grep '^PRETTY_NAME=' /etc/os-release 2>/dev/null | cut -d= -f2- | tr -d '"')
   kernel_version=$(uname -r 2>/dev/null)
   cpu_arch=$(uname -m 2>/dev/null)
-  cpu_model=$(awk -F': *' '/^Model name:/{print $2; exit}' < <(lscpu 2>/dev/null))
+  cpu_model=$(lscpu 2>/dev/null | awk -F': *' '/^Model name:/{print $2; exit}')
   [ -n "$cpu_model" ] || cpu_model=$(awk -F': *' '/^model name[[:space:]]*:/{print $2; exit}' /proc/cpuinfo 2>/dev/null)
   cpu_cores=$(nproc 2>/dev/null)
-  cpu_freq=$(awk -F': *' '/^CPU max MHz:/{printf "%.1f GHz", $2/1000; found=1; exit}
+  cpu_freq=$(lscpu 2>/dev/null | awk -F': *' '/^CPU max MHz:/{printf "%.1f GHz", $2/1000; found=1; exit}
                    /^CPU MHz:/{printf "%.1f GHz", $2/1000; found=1; exit}
-                   END{if (!found) exit 1}' < <(lscpu 2>/dev/null) 2>/dev/null)
+                   END{if (!found) exit 1}' 2>/dev/null)
   [ -n "$cpu_freq" ] || cpu_freq=$(awk -F': *' '/^cpu MHz[[:space:]]*:/{printf "%.1f GHz", $2/1000; exit}' /proc/cpuinfo 2>/dev/null)
   [ -n "$cpu_freq" ] || cpu_freq="N/A"
 
@@ -187,9 +187,9 @@ main() {
 
   disk_info=$(get_disk_usage)
 
-  read -r rx tx <<< "$(get_total_traffic)"
-  rx=$(format_bytes_compact "${rx:-0}")
-  tx=$(format_bytes_compact "${tx:-0}")
+  set -- $(get_total_traffic)
+  rx=$(format_bytes_compact "${1:-0}")
+  tx=$(format_bytes_compact "${2:-0}")
 
   congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null || echo "N/A")
   queue_algorithm=$(sysctl -n net.core.default_qdisc 2>/dev/null || echo "N/A")
