@@ -174,8 +174,8 @@ main() {
   tcp_count=$(ss -tanH 2>/dev/null | wc -l | awk '{print $1}')
   udp_count=$(ss -uanH 2>/dev/null | wc -l | awk '{print $1}')
 
-  mem_total=$(awk '/MemTotal:/ {print $2*1024; exit}' /proc/meminfo 2>/dev/null)
-  mem_available=$(awk '/MemAvailable:/ {print $2*1024; exit}' /proc/meminfo 2>/dev/null)
+  mem_total=$(awk '/MemTotal:/ {printf "%.0f", $2 * 1024; exit}' /proc/meminfo 2>/dev/null)
+  mem_available=$(awk '/MemAvailable:/ {printf "%.0f", $2 * 1024; exit}' /proc/meminfo 2>/dev/null)
   mem_total=${mem_total:-0}
   mem_available=${mem_available:-0}
   mem_used=$((mem_total - mem_available))
