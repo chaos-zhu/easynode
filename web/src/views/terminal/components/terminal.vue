@@ -895,10 +895,12 @@ const inputCommand = (command, type = 'input', useBase64 = false) => {
   if (type === 'script') {
     if (useBase64) {
       // 使用Base64管道模式执行
+      // 粘贴自 Windows/VSCode 的脚本可能包含 CRLF，先统一为 LF，避免 bash 将 \r 带入 read/case 等逻辑
+      const normalizedCommand = command.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
       // 处理 UTF-8 字符：使用现代浏览器的 TextEncoder API
-      const utf8Bytes = new TextEncoder().encode(command)
+      const utf8Bytes = new TextEncoder().encode(normalizedCommand)
       const encodedScript = btoa(String.fromCharCode(...utf8Bytes))
-      command = `echo '${ encodedScript }' | base64 -d | bash${ autoExecuteScript.value ? '\n' : '' }`
+      command = `tmp_script=$(mktemp /tmp/easynode-script-XXXXXX.sh) && printf '%s' '${ encodedScript }' | base64 -d > "$tmp_script" && chmod +x "$tmp_script" && bash "$tmp_script"; script_status=$?; [ -n "$tmp_script" ] && rm -f "$tmp_script"; unset tmp_script${ autoExecuteScript.value ? '\n' : '' }`
     } else {
       // 直接发送模式：根据脚本执行模式添加换行符
       command = command + (autoExecuteScript.value ? '\n' : '')
@@ -915,10 +917,12 @@ const execExternalCommand = (command, useBase64 = false) => {
 
   if (useBase64) {
     // 使用Base64管道模式执行
+    // 粘贴自 Windows/VSCode 的脚本可能包含 CRLF，先统一为 LF，避免 bash 将 \r 带入 read/case 等逻辑
+    const normalizedCommand = command.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
     // 处理 UTF-8 字符：使用现代浏览器的 TextEncoder API
-    const utf8Bytes = new TextEncoder().encode(command)
+    const utf8Bytes = new TextEncoder().encode(normalizedCommand)
     const encodedScript = btoa(String.fromCharCode(...utf8Bytes))
-    command = `echo '${ encodedScript }' | base64 -d | bash${ autoExecuteScript.value ? '\n' : '' }`
+    command = `tmp_script=$(mktemp /tmp/easynode-script-XXXXXX.sh) && printf '%s' '${ encodedScript }' | base64 -d > "$tmp_script" && chmod +x "$tmp_script" && bash "$tmp_script"; script_status=$?; [ -n "$tmp_script" ] && rm -f "$tmp_script"; unset tmp_script${ autoExecuteScript.value ? '\n' : '' }`
   } else {
     // 直接发送模式：根据脚本执行模式添加换行符
     command = command + (autoExecuteScript.value ? '\n' : '')
