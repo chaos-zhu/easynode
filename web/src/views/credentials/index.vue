@@ -1,19 +1,19 @@
 <template>
   <div class="credentials_container">
     <div class="header">
-      <el-button type="primary" @click="addCredentials">添加凭证</el-button>
+      <el-button type="primary" @click="addCredentials">{{ t('credentials.add') }}</el-button>
     </div>
     <el-table v-loading="loading" :data="sshList">
-      <el-table-column prop="name" label="名称" />
-      <el-table-column prop="authType" label="类型">
+      <el-table-column prop="name" :label="t('credentials.name')" />
+      <el-table-column prop="authType" :label="t('credentials.type')">
         <template #default="{ row }">
-          {{ row.authType === 'privateKey' ? '密钥' : '密码' }}
+          {{ row.authType === 'privateKey' ? t('credentials.key') : t('credentials.password') }}
         </template>
       </el-table-column>
-      <el-table-column width="160px" label="操作">
+      <el-table-column width="160px" :label="t('credentials.actions')">
         <template #default="{ row }">
-          <el-button type="primary" @click="handleChange(row)">修改</el-button>
-          <el-button v-show="row.id !== 'default'" type="danger" @click="removeSSH(row)">删除</el-button>
+          <el-button type="primary" @click="handleChange(row)">{{ t('credentials.edit') }}</el-button>
+          <el-button v-show="row.id !== 'default'" type="danger" @click="removeSSH(row)">{{ t('credentials.delete') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -21,7 +21,7 @@
       v-model="sshFormVisible"
       width="600px"
       top="150px"
-      :title="isModify ? '修改凭证' : '添加凭证'"
+      :title="isModify ? t('credentials.editTitle') : t('credentials.addTitle')"
       :close-on-click-modal="false"
       @close="clearFormInfo"
     >
@@ -34,7 +34,7 @@
         label-width="100px"
         :show-message="false"
       >
-        <el-form-item label="凭证名称" prop="name">
+        <el-form-item :label="t('credentials.credentialName')" prop="name">
           <el-input
             v-model="sshForm.name"
             clearable
@@ -42,13 +42,13 @@
             autocomplete="off"
           />
         </el-form-item>
-        <el-form-item label="认证方式" prop="type">
-          <el-radio v-model="sshForm.authType" value="privateKey">密钥</el-radio>
-          <el-radio v-model="sshForm.authType" value="password">密码</el-radio>
+        <el-form-item :label="t('credentials.authType')" prop="type">
+          <el-radio v-model="sshForm.authType" value="privateKey">{{ t('credentials.key') }}</el-radio>
+          <el-radio v-model="sshForm.authType" value="password">{{ t('credentials.password') }}</el-radio>
         </el-form-item>
-        <el-form-item v-if="sshForm.authType === 'privateKey'" prop="privateKey" label="密钥">
+        <el-form-item v-if="sshForm.authType === 'privateKey'" prop="privateKey" :label="t('credentials.key')">
           <el-button type="primary" size="small" @click="handleClickUploadBtn">
-            本地私钥...
+            {{ t('credentials.localPrivateKey') }}
           </el-button>
           <input
             ref="privateKeyRef"
@@ -67,18 +67,18 @@
             placeholder="-----BEGIN RSA PRIVATE KEY-----"
           />
         </el-form-item>
-        <el-form-item v-if="sshForm.authType === 'privateKey' && showOpenSSHKeyField" label="私钥密码">
+        <el-form-item v-if="sshForm.authType === 'privateKey' && showOpenSSHKeyField" :label="t('credentials.privateKeyPassword')">
           <el-input
             v-model="sshForm.openSSHKeyPassword"
             type="password"
             :disabled="!isPlusActive"
-            placeholder="请输入openssh私钥密码(没有密码请留空)"
+            :placeholder="t('credentials.opensshPasswordPlaceholder')"
             show-password
             autocomplete="off"
             clearable
           />
         </el-form-item>
-        <el-form-item v-if="sshForm.authType === 'password'" prop="password" label="密码">
+        <el-form-item v-if="sshForm.authType === 'password'" prop="password" :label="t('credentials.password')">
           <el-input
             v-model="sshForm.password"
             type="text"
@@ -88,29 +88,29 @@
           />
           <div v-if="passwordHasSpace" class="password-warning">
             <el-icon><WarningFilled /></el-icon>
-            <span>密码中包含空格字符</span>
+            <span>{{ t('credentials.passwordContainsSpace') }}</span>
           </div>
         </el-form-item>
       </el-form>
       <template #footer>
         <span>
-          <el-button @click="sshFormVisible = false">关闭</el-button>
-          <el-button type="primary" @click="updateForm">{{ isModify ? '修改' : '添加' }}</el-button>
+          <el-button @click="sshFormVisible = false">{{ t('credentials.close') }}</el-button>
+          <el-button type="primary" @click="updateForm">{{ isModify ? t('credentials.edit') : t('credentials.add') }}</el-button>
         </span>
       </template>
     </el-dialog>
     <el-dialog
       v-model="keyPasswordVisible"
-      title="输入密钥密码"
+      :title="t('credentials.inputKeyPasswordTitle')"
       width="400px"
       :close-on-click-modal="false"
     >
       <el-form @submit.prevent>
-        <el-form-item label="密码">
+        <el-form-item :label="t('credentials.password')">
           <el-input
             v-model="keyPassword"
             type="password"
-            placeholder="请输入密钥密码"
+            :placeholder="t('credentials.inputKeyPasswordPlaceholder')"
             show-password
             autocomplete="off"
             clearable
@@ -120,9 +120,9 @@
       </el-form>
       <template #footer>
         <span>
-          <el-button @click="keyPasswordVisible = false">取消</el-button>
+          <el-button @click="keyPasswordVisible = false">{{ t('common.cancel') }}</el-button>
           <PlusSupportTip>
-            <el-button type="primary" :disabled="!isPlusActive" @click="handleDecryptKey">确认</el-button>
+            <el-button type="primary" :disabled="!isPlusActive" @click="handleDecryptKey">{{ t('common.confirm') }}</el-button>
           </PlusSupportTip>
         </span>
       </template>
@@ -132,11 +132,13 @@
 
 <script setup>
 import { ref, reactive, computed, nextTick, getCurrentInstance, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { randomStr, AESEncrypt, RSAEncrypt } from '@utils/index.js'
 import { WarningFilled } from '@element-plus/icons-vue'
 import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 
 const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const loading = ref(false)
 const sshFormVisible = ref(false)
@@ -151,7 +153,7 @@ const sshForm = reactive({
 
 const rules = computed(() => {
   return {
-    name: { required: true, message: '需输入凭证名称', trigger: 'change' },
+    name: { required: true, message: t('credentials.validation.nameRequired'), trigger: 'change' },
     password: [{ required: !isModify.value && sshForm.authType === 'password', trigger: 'change' },],
     privateKey: [{ required: !isModify.value && sshForm.authType === 'privateKey', trigger: 'change' },]
   }
@@ -196,7 +198,7 @@ const updateForm = () => {
       }
       sshFormVisible.value = false
       await $store.getSSHList()
-      $message.success('success')
+      $message.success(t('credentials.messages.success'))
     })
 }
 
@@ -205,16 +207,16 @@ const clearFormInfo = () => {
 }
 
 const removeSSH = ({ id, name }) => {
-  $messageBox.confirm(`确认删除该凭证：${ name }`, 'Warning', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('credentials.deleteConfirm', { name }), 'Warning', {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   })
     .then(async () => {
       await $api.removeSSH(id)
       await $store.getSSHList()
       await $store.getHostList()
-      $message.success('success')
+      $message.success(t('credentials.messages.success'))
     })
 }
 
@@ -254,7 +256,7 @@ const handleSelectPrivateKeyFile = (event) => {
 }
 
 const handleDecryptKey = async () => {
-  if (!keyPassword.value) return $message.error('请输入密钥密码')
+  if (!keyPassword.value) return $message.error(t('credentials.messages.inputKeyPassword'))
   const { data } = await $api.decryptPrivateKey({
     privateKey: tempPrivateKey.value,
     password: keyPassword.value
@@ -263,7 +265,7 @@ const handleDecryptKey = async () => {
   keyPasswordVisible.value = false
   keyPassword.value = ''
   tempPrivateKey.value = ''
-  $message.success('密钥解密成功')
+  $message.success(t('credentials.decryptSuccess'))
 }
 
 </script>

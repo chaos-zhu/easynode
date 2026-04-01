@@ -22,6 +22,7 @@
 
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 // import CommandHistory from './command_history.vue'
 // 自定义搜索组件，xterm-addon-search-bar已废弃
 import TerminalSearch from './terminal-search.vue'
@@ -47,6 +48,7 @@ const instance = getCurrentInstance()
 const { uid } = instance
 const { proxy: { $api, $store, $notification, $router, $message, $messageBox } } = instance
 
+const { t } = useI18n()
 const { isMobileScreen } = useMobileWidth()
 
 const props = defineProps({
@@ -207,7 +209,7 @@ watch(keywordHighlight, (newVal) => {
 watch(customHighlightRules, (newRules) => {
   if (highlighter.value) {
     if (highlightDebugMode.value) {
-      console.log('自定义高亮规则变化，更新高亮器:', newRules)
+      console.log('Custom highlight rules changed, updating highlighter:', newRules)
     }
     highlighter.value.updateCustomRules(newRules)
   }
@@ -238,7 +240,7 @@ const connectIO = () => {
     reconnectionAttempts: 0
   })
   socket.value.on('connect', () => {
-    console.log('/terminal socket已连接：', hostId.value)
+    console.log('/terminal socket connected:', hostId.value)
 
     socketConnected.value = true
 
@@ -260,7 +262,7 @@ const connectIO = () => {
     // 接收会话ID
     socket.value.on('session_created', ({ sessionId: sid }) => {
       sessionId.value = sid
-      console.log('会话已创建:', sid)
+      console.log('Session created:', sid)
     })
 
     // 处理恢复成功
@@ -278,7 +280,7 @@ const connectIO = () => {
         }
       }
 
-      term.value.write('\r\n\x1b[92m═══ 终端已从挂起状态恢复 ═══\x1b[0m\r\n')
+      term.value.write(`\r\n\x1b[92m${ t('terminal.sessionRestored') }\x1b[0m\r\n`)
       handleResize()
 
       // 自动发送回车以显示命令提示符
@@ -332,50 +334,50 @@ const connectIO = () => {
 
     socket.value.on('terminal_connect_close', () => {
       curStatus.value = CONNECT_FAIL
-      term.value.write('\r\n\x1b[91m终端主动断开连接, 回车重新发起连接\x1b[0m')
+      term.value.write(`\r\n\x1b[91m${ t('terminal.terminalClosed') }\x1b[0m`)
     })
 
     socket.value.on('terminal_connect_fail', (message) => {
       curStatus.value = CONNECT_FAIL
-      term.value.write(`\r\n\x1b[91m连接终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
+      term.value.write(`\r\n\x1b[91m${ t('terminal.terminalConnectFailed', { message }) }\x1b[0m`)
     })
 
     socket.value.on('terminal_create_fail', (message) => {
       curStatus.value = CONNECT_FAIL
-      term.value.write(`\r\n\x1b[91m创建终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
+      term.value.write(`\r\n\x1b[91m${ t('terminal.terminalCreateFailed', { message }) }\x1b[0m`)
     })
 
   })
 
   socket.value.on('disconnect', (reason) => {
-    console.warn('terminal websocket 连接断开:', reason)
+    console.warn('Terminal WebSocket disconnected:', reason)
     switch (reason) {
       case 'io server disconnect':
-        reconnectTerminal(true, '服务端主动断开连接')
+        reconnectTerminal(true, t('terminal.serverDisconnected'))
         break
       case 'io client disconnect': // 客户端主动断开连接
         break
       case 'transport close':
-        reconnectTerminal(true, '本地网络连接异常')
+        reconnectTerminal(true, t('terminal.networkError'))
         break
       case 'transport error':
-        reconnectTerminal(true, '建立连接错误')
+        reconnectTerminal(true, t('terminal.connectError'))
         break
       case 'parse error':
-        reconnectTerminal(true, '数据解析错误')
+        reconnectTerminal(true, t('terminal.parseError'))
         break
       default:
-        reconnectTerminal(true, '连接意外断开')
+        reconnectTerminal(true, t('terminal.unexpectedDisconnect'))
     }
   })
 
   socket.value.on('connect_error', (err) => {
-    console.error('EasyNode服务端连接错误：', err)
+    console.error('EasyNode server connection error:', err)
     curStatus.value = CONNECT_FAIL
-    term.value.write('\r\n\x1b[91mError: 连接失败,请检查EasyNode服务端是否正常, 回车重新发起连接\x1b[0m \r\n')
+    term.value.write(`\r\n\x1b[91m${ t('terminal.checkServerStatusWithReconnect') }\x1b[0m \r\n`)
     $notification({
-      title: '服务端连接失败',
-      message: '请检查EasyNode服务端是否正常',
+      title: t('terminal.serverConnectFailed'),
+      message: t('terminal.checkServerStatus'),
       type: 'error'
     })
   })
@@ -388,10 +390,10 @@ const reconnectTerminal = (isCommonTips = false, tips) => {
   socketConnected.value = false
   if (isCommonTips) {
     if (autoReconnect.value) {
-      term.value.write(`\r\n\x1b[91m${ tips },自动重连中...\x1b[0m \r\n`)
+      term.value.write(`\r\n\x1b[91m${ t('terminal.autoReconnecting', { reason: tips }) }\x1b[0m \r\n`)
       connectIO()
     } else {
-      term.value.write(`\r\n\x1b[91mError: ${ tips },请重新连接。([终端设置->其他设置]中开启自动重连)\x1b[0m \r\n`)
+      term.value.write(`\r\n\x1b[91m${ t('terminal.manualReconnectHint', { reason: tips }) }\x1b[0m \r\n`)
     }
   } else {
     term.value.write(`\r\n\x1b[91m${ tips }\x1b[0m \r\n`)
@@ -514,7 +516,7 @@ const enterTimer = ref(null)
 const onData = () => {
   term.value.onData((key) => {
     if ('\r' === key && curStatus.value === CONNECT_FAIL) {
-      reconnectTerminal(false, '重新连接中...')
+      reconnectTerminal(false, t('terminal.reconnecting'))
       return
     }
     if (!socket.value || !socketConnected.value) return
@@ -573,9 +575,9 @@ const handleMouseUp = async (e) => {
 const plusTips = () => {
   if (!isPlusActive.value) {
     // $message.warning('Plus功能未激活')
-    $messageBox.confirm('Plus功能未激活', 'Warning', {
-      confirmButtonText: '前往设置',
-      cancelButtonText: '取消',
+    $messageBox.confirm(t('terminal.plusInactive'), 'Warning', {
+      confirmButtonText: t('terminal.goToSettings'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning'
     })
       .then(async () => {
@@ -588,7 +590,7 @@ const plusTips = () => {
 
 const syncPathToSftp = () => {
   if (curStatus.value !== CONNECT_SUCCESS) {
-    $message.warning('终端未连接')
+    $message.warning(t('terminal.terminalNotConnected'))
     return
   }
 
@@ -618,7 +620,7 @@ const syncPathToSftp = () => {
           // 找到路径，通过emit发送给父组件
           emit('sync-path-to-sftp', cleanPath)
           tempPathSyncCallback.value = null
-          $message.success(`已同步路径: ${ cleanPath }`)
+          $message.success(t('terminal.pathSynced', { path: cleanPath }))
           break
         }
       }
@@ -628,7 +630,7 @@ const syncPathToSftp = () => {
     if (outputBuffer.length > 1000) {
       tempPathSyncCallback.value = null
       if (!pathFound) {
-        $message.error('未能获取路径')
+        $message.error(t('terminal.pathNotFound'))
       }
     }
   }
@@ -638,7 +640,7 @@ const syncPathToSftp = () => {
     if (tempPathSyncCallback.value) {
       tempPathSyncCallback.value = null
       if (!pathFound) {
-        $message.error('同步路径超时')
+        $message.error(t('terminal.syncPathTimeout'))
       }
     }
   }, 3000)
@@ -652,56 +654,56 @@ const syncPathToSftp = () => {
 const handleRightClick = async (e) => {
   let str = term.value.getSelection().trim()
   const sendToAI = str ? {
-    label: '发送到AI会话',
+    label: t('terminal.sendToAiSession'),
     onClick: () => {
       EventBus.$emit('sendToAIInput', `\`\`\`shell\n${ str }\n\`\`\`\n`)
       term.value.clearSelection()
     }
   } : null
   const search = {
-    label: '查找',
+    label: t('common.search'),
     onClick: () => {
       showSearchBar()
       term.value.clearSelection()
     }
   }
   const paste = {
-    label: '粘贴',
+    label: t('terminal.paste'),
     onClick: () => {
       handlePaste()
       term.value.clearSelection()
     }
   }
   const copySelection = str ? {
-    label: '复制',
+    label: t('terminal.copy'),
     onClick: async () => {
       await handleCopySelection()
       focusTab()
     }
   } : null
   const pasteSelection = str ? {
-    label: '粘贴选中内容',
+    label: t('terminal.pasteSelection'),
     onClick: async () => {
       await handleCopySelection()
       handlePaste()
     }
   } : null
   const clear = {
-    label: '清屏',
+    label: t('terminal.clearScreen'),
     onClick: () => {
       handleClear()
     }
   }
   const reconnect = {
-    label: '重新连接',
+    label: t('terminal.reconnect'),
     onClick: () => {
-      reconnectTerminal(false, '重新连接中...')
+      reconnectTerminal(false, t('terminal.reconnecting'))
       term.value.clearSelection()
       focusTab()
     }
   }
   const syncToSftp = props.showSftpSide ? {
-    label: '同步目录到SFTP',
+    label: t('terminal.syncDirectoryToSftp'),
     onClick: () => {
       syncPathToSftp()
       term.value.clearSelection()
@@ -709,14 +711,14 @@ const handleRightClick = async (e) => {
     }
   } : null
   const dockerId = isDockerId(str) ? {
-    label: 'docker容器ID',
+    label: t('terminal.dockerContainerId'),
     children: [
       {
-        label: '[plus]检测选中内容可能为docker容器ID',
+        label: t('terminal.dockerIdDetected'),
         disabled: true
       },
       {
-        label: `登录: docker exec -it ${ str } sh \n`,
+        label: `${ t('terminal.dockerLogin') }: docker exec -it ${ str } sh \n`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -724,7 +726,7 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: `停止: docker stop ${ str }`,
+        label: `${ t('terminal.dockerStop') }: docker stop ${ str }`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -732,7 +734,7 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: `重启: docker restart ${ str }`,
+        label: `${ t('terminal.dockerRestart') }: docker restart ${ str }`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -740,12 +742,12 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: `删除: docker rm -f ${ str }`,
+        label: `${ t('terminal.dockerRemove') }: docker rm -f ${ str }`,
         onClick: () => {
           if (!plusTips()) return
-          $messageBox.confirm(`确认删除该容器：${ str }`, 'Warning', {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
+          $messageBox.confirm(t('terminal.confirmDeleteContainer', { id: str }), 'Warning', {
+            confirmButtonText: t('common.confirm'),
+            cancelButtonText: t('common.cancel'),
             type: 'warning'
           })
             .then(async () => {
@@ -755,7 +757,7 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: `日志: docker logs -f ${ str }`,
+        label: `${ t('terminal.dockerLogs') }: docker logs -f ${ str }`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -766,14 +768,14 @@ const handleRightClick = async (e) => {
   } : null
 
   const dockerComposeYml = isDockerComposeYml(str) ? {
-    label: 'docker compose文件',
+    label: t('terminal.dockerComposeFile'),
     children: [
       {
-        label: '[plus]检测选中内容可能为docker compose文件',
+        label: t('terminal.dockerComposeDetected'),
         disabled: true
       },
       {
-        label: '启动: docker compose up -d',
+        label: `${ t('terminal.dockerComposeUp') }: docker compose up -d`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -781,7 +783,7 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: '停止并删除: docker compose down',
+        label: `${ t('terminal.dockerComposeDown') }: docker compose down`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -789,7 +791,7 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: '重启: docker compose restart',
+        label: `${ t('terminal.dockerComposeRestart') }: docker compose restart`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -797,7 +799,7 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: '查看日志: docker compose logs -f',
+        label: `${ t('terminal.dockerComposeLogs') }: docker compose logs -f`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -805,7 +807,7 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: '拉取新镜像: docker compose pull',
+        label: `${ t('terminal.dockerComposePull') }: docker compose pull`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -813,7 +815,7 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: '重建: docker compose up -d --force-recreate',
+        label: `${ t('terminal.dockerComposeRecreate') }: docker compose up -d --force-recreate`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -821,7 +823,7 @@ const handleRightClick = async (e) => {
         }
       },
       {
-        label: '升级镜像: pull && down && up -d',
+        label: `${ t('terminal.dockerComposeUpgrade') }: pull && down && up -d`,
         onClick: () => {
           if (!plusTips()) return
           focusTab()
@@ -833,7 +835,7 @@ const handleRightClick = async (e) => {
 
   // 挂起选项（仅在已连接状态显示）
   const suspend = curStatus.value === CONNECT_SUCCESS ? {
-    label: '挂起',
+    label: t('terminal.suspendedSessions'),
     onClick: () => {
       emit('request-suspend')
       term.value.clearSelection()
@@ -878,7 +880,7 @@ const handlePaste = async () => {
     term.value.clearSelection()
   } catch (err) {
     // HTTP环境下无法读取剪贴板,提示用户使用浏览器原生粘贴
-    console.warn('剪贴板读取失败,请使用 Ctrl+V 或右键粘贴:', err.message)
+    console.warn('Failed to read clipboard, please use Ctrl+V or right-click paste:', err.message)
     // 不显示错误提示,因为 Ctrl+V 会触发浏览器原生粘贴事件
   }
 }
@@ -911,7 +913,7 @@ const inputCommand = (command, type = 'input', useBase64 = false) => {
 
 const execExternalCommand = (command, useBase64 = false) => {
   if (!socket.value || !socket.value.connected || curStatus.value !== CONNECT_SUCCESS) {
-    $message.error('终端连接已断开,无法执行指令')
+    $message.error(t('terminal.terminalDisconnectedCannotExecute'))
     return
   }
 
@@ -954,13 +956,13 @@ const suspendTerminal = () => {
   if (!plusTips()) return
   return new Promise((resolve) => {
     if (!sessionId.value) {
-      $message.warning('会话未建立，无法挂起')
+      $message.warning(t('terminal.sessionNotEstablished'))
       resolve(false)
       return
     }
 
     if (curStatus.value !== CONNECT_SUCCESS) {
-      $message.warning('终端未连接，无法挂起')
+      $message.warning(t('terminal.terminalNotConnectedSuspend'))
       resolve(false)
       return
     }
@@ -998,7 +1000,7 @@ const suspendTerminal = () => {
       resolved = true
       cleanup()
 
-      $message.error(`挂起失败: ${ msg }`)
+      $message.error(t('terminal.suspendFailed', { message: msg }))
       resolve(false)
     }
 
@@ -1012,7 +1014,7 @@ const suspendTerminal = () => {
       resolved = true
       cleanup()
 
-      $message.warning('挂起操作超时')
+      $message.warning(t('terminal.suspendTimeout'))
       resolve(false)
     }, 5000)
   })

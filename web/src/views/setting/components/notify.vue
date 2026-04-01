@@ -9,7 +9,7 @@
     label-width="120px"
     label-suffix="："
   >
-    <el-form-item label="通知方式" prop="type" class="form_item">
+    <el-form-item :label="t('settings.notify.notifyMethod')" prop="type" class="form_item">
       <el-select v-model="noticeConfig.type" placeholder="" class="input">
         <el-option
           v-for="item in noticeTypeList"
@@ -19,7 +19,6 @@
         />
       </el-select>
     </el-form-item>
-    <!-- server酱 -->
     <template v-if="noticeConfig.type === 'sct'">
       <el-form-item label="SendKey" prop="sct.sendKey" class="form_item">
         <el-input
@@ -29,34 +28,30 @@
           autocomplete="off"
           class="input"
         />
-        <p class="tips">普通用户每日最多支持5条，有条件建议开通会员服务防止丢失重要通知。<a class="link" href="https://sct.ftqq.com/r/9338" target="_blank">Server酱官网</a> </p>
+        <p class="tips">{{ t('settings.notify.sctTip') }}<a class="link" href="https://sct.ftqq.com/r/9338" target="_blank">{{ t('settings.notify.serverChanOfficial') }}</a></p>
       </el-form-item>
     </template>
-    <!-- 邮箱 -->
     <template v-if="noticeConfig.type === 'email'">
-      <!-- 配置模式切换 -->
-      <el-form-item label="配置模式" class="form_item">
+      <el-form-item :label="t('settings.notify.configMode')" class="form_item">
         <el-radio-group v-model="noticeConfig.email.useCustom" @change="handleEmailModeChange">
-          <el-radio-button :value="false">服务商</el-radio-button>
-          <el-radio-button :value="true">自定义 SMTP</el-radio-button>
+          <el-radio-button :value="false">{{ t('settings.notify.serviceProvider') }}</el-radio-button>
+          <el-radio-button :value="true">{{ t('settings.notify.customSmtp') }}</el-radio-button>
         </el-radio-group>
       </el-form-item>
-      <!-- 服务商模式 -->
       <template v-if="!noticeConfig.email.useCustom">
-        <el-form-item label="服务商" prop="email.service" class="form_item">
+        <el-form-item :label="t('settings.notify.serviceProvider')" prop="email.service" class="form_item">
           <el-input
             v-model.trim="noticeConfig.email.service"
             clearable
-            placeholder="QQ、126、163、Gmail..."
+            :placeholder="t('settings.notify.emailProviderPlaceholder')"
             autocomplete="off"
             class="input"
           />
-          <span class="tips">邮箱服务商, 例如: QQ、126、163、Gmail, 支持列表: <a class="link" href="https://github.com/nodemailer/nodemailer/blob/master/lib/well-known/services.json" target="_blank">点击查询</a> </span>
+          <span class="tips">{{ t('settings.notify.emailProviderTipPrefix') }}<a class="link" href="https://github.com/nodemailer/nodemailer/blob/master/lib/well-known/services.json" target="_blank">{{ t('settings.notify.clickToView') }}</a> </span>
         </el-form-item>
       </template>
-      <!-- 自定义 SMTP 模式 -->
       <template v-else>
-        <el-form-item label="SMTP 服务器" prop="email.host" class="form_item">
+        <el-form-item :label="t('settings.notify.smtpServer')" prop="email.host" class="form_item">
           <el-input
             v-model.trim="noticeConfig.email.host"
             clearable
@@ -64,9 +59,9 @@
             autocomplete="off"
             class="input"
           />
-          <span class="tips">SMTP 服务器地址，例如：smtp.gmail.com、smtp.163.com</span>
+          <span class="tips">{{ t('settings.notify.smtpServerTip') }}</span>
         </el-form-item>
-        <el-form-item label="端口" class="form_item">
+        <el-form-item :label="t('settings.notify.port')" class="form_item">
           <el-select
             v-model="noticeConfig.email.port"
             placeholder=""
@@ -75,19 +70,18 @@
           >
             <el-option label="465 (SSL)" :value="465" />
             <el-option label="587 (STARTTLS)" :value="587" />
-            <el-option label="25 (无加密)" :value="25" />
+            <el-option :label="t('settings.notify.port25NoEncryption')" :value="25" />
           </el-select>
         </el-form-item>
-        <el-form-item label="加密连接" class="form_item">
+        <el-form-item :label="t('settings.notify.secureConnection')" class="form_item">
           <el-radio-group v-model="noticeConfig.email.secure">
             <el-radio-button :value="true">SSL/TLS</el-radio-button>
-            <el-radio-button :value="false">STARTTLS/无</el-radio-button>
+            <el-radio-button :value="false">{{ t('settings.notify.starttlsOrNone') }}</el-radio-button>
           </el-radio-group>
-          <span class="tips">端口 465 通常使用 SSL/TLS，端口 587 使用 STARTTLS</span>
+          <span class="tips">{{ t('settings.notify.secureConnectionTip') }}</span>
         </el-form-item>
       </template>
-      <!-- 通用字段 -->
-      <el-form-item label="邮箱地址" prop="email.user" class="form_item">
+      <el-form-item :label="t('settings.notify.emailAddress')" prop="email.user" class="form_item">
         <el-input
           v-model.trim="noticeConfig.email.user"
           clearable
@@ -96,28 +90,27 @@
           class="input"
         />
       </el-form-item>
-      <el-form-item label="SMTP 密码" prop="email.pass" class="form_item">
+      <el-form-item :label="t('settings.notify.smtpPassword')" prop="email.pass" class="form_item">
         <el-input
           v-model.trim="noticeConfig.email.pass"
           clearable
           type="password"
           show-password
-          placeholder="SMTP 授权码/密码"
+          :placeholder="t('settings.notify.smtpPasswordPlaceholder')"
           autocomplete="off"
           class="input"
         />
       </el-form-item>
-      <el-form-item label="收件人" class="form_item">
+      <el-form-item :label="t('settings.notify.recipient')" class="form_item">
         <el-input
           v-model.trim="noticeConfig.email.to"
           clearable
-          placeholder="留空则发送给自己"
+          :placeholder="t('settings.notify.recipientPlaceholder')"
           autocomplete="off"
           class="input"
         />
       </el-form-item>
     </template>
-    <!-- Telegram -->
     <template v-if="noticeConfig.type === 'tg'">
       <el-form-item label="Token" prop="tg.token" class="form_item">
         <el-input
@@ -136,10 +129,9 @@
           autocomplete="off"
           class="input"
         />
-        <span class="tips">Telegram Token/ChatId 获取: <a class="link" href="https://easynode.chaoszhu.com/zh/guide/get-tg-token" target="_blank">查看教程</a> </span>
+        <span class="tips">{{ t('settings.notify.telegramTipPrefix') }}<a class="link" href="https://easynode.chaoszhu.com/zh/guide/get-tg-token" target="_blank">{{ t('settings.notify.viewTutorial') }}</a> </span>
       </el-form-item>
     </template>
-    <!-- Webhook -->
     <template v-if="noticeConfig.type === 'webhook'">
       <el-form-item label="URL" prop="webhook.url" class="form_item">
         <el-input
@@ -150,7 +142,7 @@
           class="input"
         />
       </el-form-item>
-      <el-form-item label="请求方法" class="form_item">
+      <el-form-item :label="t('settings.notify.requestMethod')" class="form_item">
         <el-select v-model="noticeConfig.webhook.method" placeholder="" class="input">
           <el-option label="POST" value="POST" />
           <el-option label="GET" value="GET" />
@@ -170,29 +162,24 @@
           v-model="noticeConfig.webhook.headers"
           type="textarea"
           :rows="2"
-          placeholder="JSON 格式，可选。例如：{&quot;Authorization&quot;: &quot;Bearer xxx&quot;}"
+          :placeholder="t('settings.notify.headersPlaceholder')"
           autocomplete="off"
           class="input"
         />
       </el-form-item>
-      <el-form-item label="自定义模板" class="form_item">
+      <el-form-item :label="t('settings.notify.customTemplate')" class="form_item">
         <div class="template-wrapper">
           <el-input
             v-model="noticeConfig.webhook.template"
             type="textarea"
             :rows="6"
-            placeholder="{
-  &quot;msgtype&quot;: &quot;text&quot;,
-  &quot;text&quot;: {
-    &quot;content&quot;: &quot;{{title}}\n{{content}}&quot;
-  }
-}"
+            :placeholder="t('settings.notify.templatePlaceholder')"
             autocomplete="off"
             class="input"
           />
-          <el-button size="small" class="format-btn" @click="formatTemplate">格式化</el-button>
+          <el-button size="small" class="format-btn" @click="formatTemplate">{{ t('settings.notify.format') }}</el-button>
         </div>
-        <span class="tips">支持变量: <code v-pre>{{title}}</code>, <code v-pre>{{content}}</code>, <code v-pre>{{timestamp}}</code>, <code v-pre>{{datetime}}</code>。留空则使用默认格式</span>
+        <span class="tips">{{ t('settings.notify.templateVariablesTip') }}</span>
       </el-form-item>
     </template>
     <el-form-item label="" class="form_item">
@@ -201,18 +188,18 @@
         :loading="loading"
         @click="handleSave"
       >
-        测试并保存
+        {{ t('settings.notify.testAndSave') }}
       </el-button>
     </el-form-item>
   </el-form>
   <el-alert type="success" :closable="false">
     <template #title>
-      <span style="letter-spacing: 2px;"> 请确保通知方式能够正常收到测试通知 </span>
+      <span style="letter-spacing: 2px;"> {{ t('settings.notify.testNoticeHint') }} </span>
     </template>
   </el-alert>
   <el-table v-loading="notifyListLoading" :data="notifyList">
-    <el-table-column prop="desc" label="通知类型" />
-    <el-table-column prop="sw" label="开关">
+    <el-table-column prop="desc" :label="t('settings.notify.notificationType')" />
+    <el-table-column prop="sw" :label="t('settings.notify.switch')">
       <template #default="{row}">
         <el-switch
           v-model="row.sw"
@@ -229,8 +216,10 @@
 <script setup>
 import { ref, onMounted, computed, reactive } from 'vue'
 import { getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const { proxy: { $api, $store, $notification, $message } } = getCurrentInstance()
+const { t } = useI18n()
 
 const notifyListLoading = ref(false)
 const notifyList = ref([])
@@ -239,11 +228,11 @@ const noticeConfig = ref({})
 const noticeTypeList = ref([
   {
     type: 'email',
-    desc: '邮箱'
+    desc: t('settings.notify.email')
   },
   {
     type: 'sct',
-    desc: 'Server酱'
+    desc: t('settings.notify.serverChan')
   },
   {
     type: 'tg',
@@ -256,30 +245,28 @@ const noticeTypeList = ref([
 ])
 const formRef = ref(null)
 const rules = reactive({
-  'sct.sendKey': { required: true, message: '需输入sendKey', trigger: 'change' },
-  'email.service': { required: true, message: '需输入邮箱提供商', trigger: 'change' },
-  'email.host': { required: true, message: '需输入SMTP服务器地址', trigger: 'change' },
-  'email.user': { required: true, type: 'email', message: '需输入邮箱', trigger: 'change' },
-  'email.pass': { required: true, message: '需输入邮箱SMTP授权码', trigger: 'change' },
-  'tg.token': { required: true, message: '需输入Telegram Token', trigger: 'change' },
+  'sct.sendKey': { required: true, message: t('settings.notify.validation.enterSendKey'), trigger: 'change' },
+  'email.service': { required: true, message: t('settings.notify.validation.enterEmailProvider'), trigger: 'change' },
+  'email.host': { required: true, message: t('settings.notify.validation.enterSmtpHost'), trigger: 'change' },
+  'email.user': { required: true, type: 'email', message: t('settings.notify.validation.enterEmail'), trigger: 'change' },
+  'email.pass': { required: true, message: t('settings.notify.validation.enterSmtpPassword'), trigger: 'change' },
+  'tg.token': { required: true, message: t('settings.notify.validation.enterTelegramToken'), trigger: 'change' },
   'tg.chatId': [
-    { required: true, message: '需输入Telegram ChatId', trigger: 'change' },
+    { required: true, message: t('settings.notify.validation.enterTelegramChatId'), trigger: 'change' },
     {
       pattern: /^-?\d+$/,
-      message: 'ChatId必须为数字',
+      message: t('settings.notify.validation.chatIdMustBeNumber'),
       trigger: ['blur', 'change',]
     },
   ],
   'webhook.url': [
-    { required: true, message: '需输入Webhook URL', trigger: 'change' },
-    { type: 'url', message: '请输入有效的URL', trigger: 'change' },
+    { required: true, message: t('settings.notify.validation.enterWebhookUrl'), trigger: 'change' },
+    { type: 'url', message: t('settings.notify.validation.enterValidUrl'), trigger: 'change' },
   ]
 })
 
-// 邮箱模式切换时初始化默认值
 const handleEmailModeChange = (useCustom) => {
   if (useCustom) {
-    // 切换到自定义模式，设置默认值
     if (!noticeConfig.value.email.port) {
       noticeConfig.value.email.port = 465
     }
@@ -289,7 +276,6 @@ const handleEmailModeChange = (useCustom) => {
   }
 }
 
-// 端口变化时自动调整加密设置
 const handlePortChange = (port) => {
   if (port === 465) {
     noticeConfig.value.email.secure = true
@@ -304,26 +290,23 @@ const handleSave = () => {
   formRef.value.validate(async (valid) => {
     if (!valid) return
 
-    // Webhook 类型时校验 JSON 格式
     if (noticeConfig.value.type === 'webhook') {
       const { template, headers } = noticeConfig.value.webhook || {}
 
-      // 校验自定义模板
       if (template) {
         try {
           JSON.parse(template)
         } catch (e) {
-          $message.error('自定义模板不是有效的 JSON 格式，请检查后重试')
+          $message.error(t('settings.notify.invalidTemplateJson'))
           return
         }
       }
 
-      // 校验自定义请求头
       if (headers) {
         try {
           JSON.parse(headers)
         } catch (e) {
-          $message.error('自定义请求头不是有效的 JSON 格式，请检查后重试')
+          $message.error(t('settings.notify.invalidHeadersJson'))
           return
         }
       }
@@ -332,10 +315,9 @@ const handleSave = () => {
     try {
       loading.value = true
       await $api.updateNotifyConfig({ noticeConfig: { ...noticeConfig.value } })
-      // $message.success('保存成功')
       $notification.success({
-        title: '测试通过 | 保存成功',
-        message: '请确认通知方式是否已收到通知'
+        title: t('settings.notify.testPassedSaveSuccess'),
+        message: t('settings.notify.confirmReceiveTest')
       })
     } catch (error) {
       console.error(error)
@@ -371,7 +353,6 @@ const handleChangeSw = async (row) => {
   const { type, sw } = row
   try {
     await $api.updateNotifyList({ type, sw })
-    // if (this.userEmailList.length === 0) $message.warning('未配置邮箱, 此开关将不会生效')
   } finally {
     row.loading = false
   }
@@ -383,9 +364,9 @@ const formatTemplate = () => {
   try {
     const parsed = JSON.parse(noticeConfig.value.webhook.template)
     noticeConfig.value.webhook.template = JSON.stringify(parsed, null, 2)
-    $message.success('格式化成功')
+    $message.success(t('settings.notify.formatSuccess'))
   } catch (e) {
-    $message.warning('格式化失败：模板不是有效的 JSON 格式')
+    $message.warning(t('settings.notify.formatFailed'))
   }
 }
 
@@ -397,7 +378,6 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .form_item {
-  // width: 350px;
   .input {
     width: 450px;
   }
@@ -416,3 +396,4 @@ onMounted(() => {
   }
 }
 </style>
+

@@ -38,7 +38,7 @@
 
           <el-button size="small" style="margin-left: 8px;" @click="resetTransform">
             <el-icon><Refresh /></el-icon>
-            重置
+            {{ t('componentImagePreview.reset') }}
           </el-button>
 
           <el-button
@@ -48,7 +48,7 @@
             @click="downloadImage"
           >
             <el-icon><Download /></el-icon>
-            下载
+            {{ t('fileTransfer.sftp.download') }}
           </el-button>
         </div>
       </div>
@@ -75,13 +75,13 @@
         <!-- 加载状态 -->
         <div v-if="loading" class="loading_overlay">
           <el-icon class="is-loading loading_icon"><Loading /></el-icon>
-          <p>正在加载图片...</p>
+          <p>{{ t('componentImagePreview.loading') }}</p>
         </div>
 
         <!-- 错误状态 -->
         <div v-if="error" class="error_overlay">
           <el-icon class="error_icon"><WarningFilled /></el-icon>
-          <p>图片加载失败</p>
+          <p>{{ t('componentImagePreview.loadFailed') }}</p>
           <p class="error_message">{{ error }}</p>
         </div>
       </div>
@@ -89,32 +89,33 @@
       <!-- 图片信息面板 -->
       <div v-if="imageLoaded" class="info_panel">
         <div class="info_item">
-          <label>文件名：</label>
+          <label>{{ t('componentImagePreview.fileName') }}</label>
           <span>{{ fileName }}</span>
         </div>
         <div class="info_item">
-          <label>文件大小：</label>
+          <label>{{ t('componentImagePreview.fileSize') }}</label>
           <span>{{ formatFileSize(fileSize) }}</span>
         </div>
         <div class="info_item">
-          <label>图片尺寸：</label>
+          <label>{{ t('componentImagePreview.imageSize') }}</label>
           <span>{{ imageWidth }} × {{ imageHeight }}</span>
         </div>
         <div class="info_item">
-          <label>文件类型：</label>
+          <label>{{ t('componentImagePreview.fileType') }}</label>
           <span>{{ getFileType(fileName) }}</span>
         </div>
       </div>
     </div>
 
     <template #footer>
-      <el-button @click="closeDialog">关闭</el-button>
+      <el-button @click="closeDialog">{{ t('common.close') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ZoomIn, ZoomOut, RefreshLeft, RefreshRight, Refresh, Download, Loading, WarningFilled } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -141,6 +142,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'download',])
+
+const { t } = useI18n()
 
 // 对话框显示状态
 const showDialog = computed({
@@ -171,7 +174,7 @@ const dragStartTranslateX = ref(0)
 const dragStartTranslateY = ref(0)
 
 // 计算属性
-const title = computed(() => `图片预览 - ${ props.fileName }`)
+const title = computed(() => t('componentImagePreview.title', { fileName: props.fileName }))
 
 const imageInfo = computed(() => {
   if (!imageLoaded.value) return ''
@@ -202,18 +205,18 @@ const isImageFile = (filename) => {
 const getFileType = (filename) => {
   const ext = filename.split('.').pop()?.toLowerCase()
   const typeMap = {
-    'jpg': 'JPEG图片',
-    'jpeg': 'JPEG图片',
-    'png': 'PNG图片',
-    'gif': 'GIF动图',
-    'bmp': 'BMP图片',
-    'webp': 'WebP图片',
-    'svg': 'SVG矢量图',
-    'ico': 'ICO图标',
-    'tiff': 'TIFF图片',
-    'tif': 'TIFF图片'
+    'jpg': t('componentImagePreview.types.jpeg'),
+    'jpeg': t('componentImagePreview.types.jpeg'),
+    'png': t('componentImagePreview.types.png'),
+    'gif': t('componentImagePreview.types.gif'),
+    'bmp': t('componentImagePreview.types.bmp'),
+    'webp': t('componentImagePreview.types.webp'),
+    'svg': t('componentImagePreview.types.svg'),
+    'ico': t('componentImagePreview.types.ico'),
+    'tiff': t('componentImagePreview.types.tiff'),
+    'tif': t('componentImagePreview.types.tiff')
   }
-  return typeMap[ext] || '未知格式'
+  return typeMap[ext] || t('componentImagePreview.types.unknown')
 }
 
 // 格式化文件大小
@@ -256,7 +259,7 @@ const onImageError = (e) => {
   })
 
   loading.value = false
-  error.value = '图片加载失败，请检查文件格式或网络连接'
+  error.value = t('componentImagePreview.errorMessage')
   imageLoaded.value = false
 }
 

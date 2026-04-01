@@ -26,17 +26,17 @@
       <!-- 工具栏 -->
       <div class="viewer-toolbar">
         <div class="toolbar-item">
-          <label>自动换行</label>
+          <label>{{ t('componentLogViewer.wordWrap') }}</label>
           <el-switch v-model="wordWrapEnabled" size="small" @change="toggleWordWrap" />
         </div>
 
         <div class="toolbar-item">
-          <label>缩略图</label>
+          <label>{{ t('componentLogViewer.minimap') }}</label>
           <el-switch v-model="minimapEnabled" size="small" @change="toggleMinimap" />
         </div>
 
         <div class="toolbar-item">
-          <label>自动滚动</label>
+          <label>{{ t('componentLogViewer.autoScroll') }}</label>
           <el-switch v-model="autoScrollEnabled" size="small" />
         </div>
 
@@ -46,7 +46,7 @@
             :icon="RefreshRight"
             @click="manualRefresh"
           >
-            手动刷新
+            {{ t('componentLogViewer.manualRefresh') }}
           </el-button>
         </div>
       </div>
@@ -54,7 +54,7 @@
       <div
         v-loading="loading"
         class="viewer-wrapper"
-        element-loading-text="加载中..."
+        :element-loading-text="t('common.loading')"
       >
         <div ref="editorContainer" class="monaco-editor" />
       </div>
@@ -62,14 +62,14 @@
       <!-- 底部信息栏 -->
       <div class="viewer-footer">
         <div class="footer-info">
-          <span class="info-item">行数: {{ lineCount }}</span>
-          <span class="info-item">大小: {{ formatSize(contentSize) }}</span>
+          <span class="info-item">{{ t('componentLogViewer.lineCount') }}: {{ lineCount }}</span>
+          <span class="info-item">{{ t('componentLogViewer.size') }}: {{ formatSize(contentSize) }}</span>
           <span v-if="lastUpdateTime" class="info-item">
-            最后更新: {{ lastUpdateTime }}
+            {{ t('componentLogViewer.lastUpdated') }}: {{ lastUpdateTime }}
           </span>
         </div>
         <el-button size="small" @click="closeDialog">
-          关闭
+          {{ t('common.close') }}
         </el-button>
       </div>
     </div>
@@ -79,6 +79,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { Close, RefreshRight } from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor'
 import useStore from '@/store'
@@ -94,7 +95,7 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: '日志查看器'
+    default: ''
   },
   language: {
     type: String,
@@ -104,6 +105,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'refresh',])
 
+const { t } = useI18n()
 const store = useStore()
 
 const visible = ref(false)
@@ -231,7 +233,7 @@ const scrollToBottom = () => {
 
 const manualRefresh = () => {
   emit('refresh')
-  ElMessage.success('已请求刷新日志')
+  ElMessage.success(t('componentLogViewer.refreshRequested'))
 }
 
 const startAutoRefresh = (immediate = false) => {

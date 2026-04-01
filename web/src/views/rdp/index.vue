@@ -3,7 +3,7 @@
     <div class="header">
       <el-dropdown trigger="click">
         <el-button type="primary">
-          新建连接<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          {{ t('rdp.newConnection') }}<el-icon class="el-icon--right"><ArrowDown /></el-icon>
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
@@ -15,7 +15,7 @@
       </el-dropdown>
     </div>
     <div v-if="noRDPHost" class="no_rdp_host">
-      <el-empty description="无远程桌面连接" />
+      <el-empty :description="t('rdp.empty')" />
     </div>
     <div v-else class="rdp_host_list">
       <ul>
@@ -49,6 +49,7 @@
 
 <script setup>
 import { onActivated, computed, nextTick, getCurrentInstance, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { Monitor, Close, ArrowDown } from '@element-plus/icons-vue'
 import { rdpStatus, rdpStatusList } from '@/utils/enum'
@@ -57,6 +58,7 @@ import HostForm from '../server/components/host-form.vue'
 
 const route = useRoute()
 const { proxy: { $store, $message } } = getCurrentInstance()
+const { t } = useI18n()
 
 // RDP组件引用
 const rdpRefs = ref({})
@@ -76,7 +78,7 @@ const getStatusColor = (status) => {
 }
 const getStatusLabel = (status) => {
   return (
-    rdpStatusList.find((item) => item.value === status)?.label || '未知状态'
+    rdpStatusList.find((item) => item.value === status)?.label || t('rdp.unknownStatus')
   )
 }
 
@@ -84,7 +86,7 @@ onActivated(async () => {
   await nextTick()
   const { hostIds } = route.query
   if (!hostIds) return
-  if (rdpTabs.some(item => hostIds.includes(item.id))) return $message.warning('已存在该实例的RDP连接')
+  if (rdpTabs.some(item => hostIds.includes(item.id))) return $message.warning(t('rdp.existingConnection'))
   let targetHosts = hostList.value.filter(item => hostIds.includes(item.id)).map(item => {
     const { id, name, host, username } = item
     return { show: true, status: rdpStatus.IDLE, id, name, host, username }
@@ -137,8 +139,8 @@ const handleRemoveRdpTab = (item) => {
 
 const addRDP = (item) => {
   const { id, name, host, username, isConfig } = item
-  if (!isConfig) return $message.warning('请先配置RDP连接信息')
-  if (rdpTabs.some(tab => tab.id === id)) return $message.warning('已存在该实例的RDP连接')
+  if (!isConfig) return $message.warning(t('rdp.configRequired'))
+  if (rdpTabs.some(tab => tab.id === id)) return $message.warning(t('rdp.existingConnection'))
   rdpTabs.push({ show: true, status: rdpStatus.IDLE, id, name, host, username })
 }
 
@@ -148,7 +150,7 @@ const handleUpdateList = async ({ host }) => {
     let targetHost = hostList.value.find((item) => item.host === host)
     if (targetHost) addRDP(targetHost)
   } catch (err) {
-    $message.error('获取实例列表失败')
+    $message.error(t('common.fetchServerListFailed'))
     console.error('获取实例列表失败: ', err)
   }
 }

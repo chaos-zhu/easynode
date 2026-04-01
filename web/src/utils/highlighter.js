@@ -1,3 +1,7 @@
+import i18n from '@/i18n'
+
+const t = i18n.global.t
+
 /**
  * 终端高亮器和默认的规则定义
  */
@@ -26,7 +30,7 @@ export const DEFAULT_COLOR_MAPPING = {
 export const HIGHLIGHT_RULES = {
   // 规则1 - 错误类关键词
   rule1: {
-    title: '错误类关键词',
+    title: t('highlighter.rule1Title'),
     pattern: /\b(?:errors?|err|fail(?:ed|ure)?|fatal|critical|denied|refused|broken|crash(?:ed)?|exception|timeout|abort(?:ed)?|reject(?:ed)?|forbidden|unauthorized|conflict|corrupt(?:ed)?|missing|not found|unreachable|disconnect(?:ed)?|kill(?:ed)?|terminate(?:d)?|dead|died|panic|alarm|alert|emergency|severe|cannot|unable|impossible|blocked|locked|disaster|malformed|malicious|virus|breach|hack(?:ed)?|attack|exploit|vulnerability|damaged|destroyed|overload|overflow|outage|down|offline|inaccessible|unavailable|suspended|revoked|expired|expires|blacklisted|infected|compromised|hijacked|suspicious|illegal|loss|death|bad)\b/,
     flags: 'gi',
     fullLine: true,
@@ -40,7 +44,7 @@ export const HIGHLIGHT_RULES = {
 
   // 规则2 - 警告类关键词
   rule2: {
-    title: '警告类关键词',
+    title: t('highlighter.rule2Title'),
     pattern: /\b(?:warn(?:ing)?s?|deprecated|caution|retry|retrying|retried|skipped|ignored|pause(?:d)?|delay(?:ed)?|slow|slower|outdated|obsolete|insecure|vulnerable|risky|unstable|experimental|beta|alpha|preview|temporary|temp|pending|throttle(?:d)?|restrict(?:ed)?|downgrade(?:d)?|fallback|backup|migration|maintenance|partial|limited|degraded|reduced|minor|notice|advisory|reminder|important|security|urgent|attention|required|mandatory|danger|risk|permission)\b/,
     flags: 'gi',
     fullLine: false,
@@ -54,7 +58,7 @@ export const HIGHLIGHT_RULES = {
 
   // 规则3 - 成功类关键词
   rule3: {
-    title: '成功类关键词',
+    title: t('highlighter.rule3Title'),
     pattern: /\b(?:success(?:ful)?|successfully|complete(?:d)?|completed|finish(?:ed)?|finished|ok(?:ay)?|ready|active|running|begin|launch(?:ed)?|launched|connect(?:ed)?|connected|online|available|enabled|valid|verified|confirmed|approved|passed|accepted|resolved|fixed|repaired|restored|recovered|upgraded|updated|installed|deployed|built|compiled|loaded|mounted|synchronized|synced|healthy|stable|secure|safe|protected|authenticated|authorized|granted|allowed|permitted|working|alive|opened|succeeded|established)\b/,
     flags: 'gi',
     fullLine: false,
@@ -68,7 +72,7 @@ export const HIGHLIGHT_RULES = {
 
   // 规则4 - 信息类关键词
   rule4: {
-    title: '信息类关键词',
+    title: t('highlighter.rule4Title'),
     pattern: /\b(?:info|information|notification|message|msg|debug|trace|verbose|status|report|summary|loading|connecting|processing|monitoring|checking|scanning|analyzing|parsing|building|compiling|initializing|setup|preparing|progress|executing|stopped|stopping|resumed|resuming|restarted|restarting|closed|queued|removed|sleeping|zombie)\b/,
     flags: 'gi',
     fullLine: false,
@@ -82,7 +86,7 @@ export const HIGHLIGHT_RULES = {
 
   // 规则5 - 网络地址
   rule5: {
-    title: 'IP地址和端口',
+    title: t('highlighter.rule5Title'),
     pattern: /\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?::[1-9]\d{0,4})?\b|(?:(?:[0-9a-fA-F]{1,4}:)*)?::(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{0,4}|(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}/,
     flags: 'gi',
     fullLine: false,
@@ -96,7 +100,7 @@ export const HIGHLIGHT_RULES = {
 
   // 规则6 - URL链接、邮箱地址、文件路径
   rule6: {
-    title: 'URL链接和路径',
+    title: t('highlighter.rule6Title'),
     pattern: /(?:https?|ftp|ftps|ssh|telnet|ws|wss):\/\/[^\s]+|file:\/\/[^\s]+|mailto:[^\s]+|www\.[^\s]+\.[a-z]{2,}[^\s]*|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|(?<=^|\s)(?:[/~]|\.\.?\/)[a-zA-Z0-9_\-./]+|(?<=^|\s)[A-Z]:\\[a-zA-Z0-9_\-.\\\s]+/,
     flags: 'gi',
     fullLine: false,
@@ -110,7 +114,7 @@ export const HIGHLIGHT_RULES = {
 
   // 规则7 - 日期时间格式
   rule7: {
-    title: '日期时间',
+    title: t('highlighter.rule7Title'),
     pattern: /\b\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:[Tt\s]\d{1,2}:\d{1,2}(?::\d{1,2})?(?:\.\d+)?[Zz]?)?\b|\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?(?:\.\d+)?(?:\s?[AaPp][Mm])?\b|\[\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(?:\.\d+)?\]|\b\d{10,13}\b/,
     flags: 'gi',
     fullLine: false,
@@ -124,7 +128,7 @@ export const HIGHLIGHT_RULES = {
 
   // 规则8 - 带单位的数据
   rule8: {
-    title: '数据和单位',
+    title: t('highlighter.rule8Title'),
     pattern: /\b\d+(?:\.\d+)?\s*(?:TiB|GiB|MiB|KiB|TB|GB|MB|KB|Tbps|Gbps|Mbps|Kbps|bps|ns|μs|ms|min|hrs?|°C|°F|Hz|KHz|MHz|GHz|THz|mV|kV|mA|kA|mW|kW|MW|GW|fps|rpm|RPM|dpi|ppi|px|bits?|bytes?|cores?|threads?)\b|\b(?:\d+(?:\.\d+)?|100(?:\.0+)?)\s*%|\b\d+(?:\.\d+)?\s*(?:ops[/]s|req[/]s|qps|tps|rps|iops|IOPS|pps|PPS)\b|\b\d+(?:\.\d+)?\s+(?:milliseconds?|seconds?|minutes?|hours?|days?|weeks?|months?|years?)\b/,
     flags: 'gi',
     fullLine: false,
@@ -157,10 +161,10 @@ export class TerminalHighlighter {
     this.mergedPatterns = compiled.mergedPatterns
 
     if (this.debugMode) {
-      console.log('已初始化终端高亮器')
+      console.log('Terminal highlighter initialized')
       const totalRules = this.mergedPatterns.reduce((sum, group) =>
         sum + Object.keys(group.ruleMap).length, 0)
-      console.log('已启用规则数:', totalRules)
+      console.log('Enabled rule count:', totalRules)
     }
   }
 
@@ -180,7 +184,7 @@ export class TerminalHighlighter {
       // 使用通用方法处理pattern
       const patternSource = this.extractPatternSource(rule)
       if (!patternSource) {
-        console.warn(`跳过无效的规则 ${ name }:`, rule.pattern)
+        console.warn(`Skipping invalid rule ${ name }:`, rule.pattern)
         continue
       }
 
@@ -227,9 +231,9 @@ export class TerminalHighlighter {
     }
 
     if (this.debugMode) {
-      console.log('合并正则分组数:', mergedPatterns.length)
+      console.log('Merged regex group count:', mergedPatterns.length)
       mergedPatterns.forEach(group => {
-        console.log(`  flags=${ group.flags }, 规则数=${ Object.keys(group.ruleMap).length }`)
+        console.log(`  flags=${ group.flags }, rule count=${ Object.keys(group.ruleMap).length }`)
       })
     }
 
@@ -267,7 +271,7 @@ export class TerminalHighlighter {
     if (this.debugMode) {
       const totalRules = this.mergedPatterns.reduce((sum, group) =>
         sum + Object.keys(group.ruleMap).length, 0)
-      console.log('规则已更新，启用规则数:', totalRules)
+      console.log('Rules updated, enabled rule count:', totalRules)
     }
   }
 
@@ -280,7 +284,7 @@ export class TerminalHighlighter {
     // 跳过空白、极短文本、纯符号文本
     if (this.shouldSkip(text)) {
       if (this.debugMode) {
-        console.log('跳过特殊文本:', JSON.stringify(text))
+        console.log('Skipping special text:', JSON.stringify(text))
       }
       return text
     }
@@ -290,7 +294,7 @@ export class TerminalHighlighter {
       // 如果文本主要是控制序列（如光标移动、清屏等），则跳过
       if (this.isControlSequenceOnly(text)) {
         if (this.debugMode) {
-          console.log('跳过控制序列文本:', text.replace(/\x1b/g, '\\x1b'))
+          console.log('Skipping control-sequence-only text:', text.replace(/\x1b/g, '\\x1b'))
         }
         return text
       }
@@ -298,7 +302,7 @@ export class TerminalHighlighter {
       // 包含复杂控制序列（如OSC标题更新）时直接旁路，避免破坏提示符刷新
       if (this.hasComplexControlSequences(text)) {
         if (this.debugMode) {
-          console.log('检测到复杂控制序列，跳过高亮:', text.replace(/\x1b/g, '\\x1b'))
+          console.log('Detected complex control sequence, skipping highlight:', text.replace(/\x1b/g, '\\x1b'))
         }
         return text
       }
@@ -307,13 +311,13 @@ export class TerminalHighlighter {
       try {
         const result = this.applyRulesWithAnsi(text)
         if (this.debugMode && result !== text) {
-          console.log('原始文本 (含ANSI):', text.replace(/\x1b/g, '\\x1b'))
-          console.log('高亮后:', result.replace(/\x1b/g, '\\x1b'))
+          console.log('Original text (with ANSI):', text.replace(/\x1b/g, '\\x1b'))
+          console.log('Highlighted text:', result.replace(/\x1b/g, '\\x1b'))
         }
         return result
       } catch (error) {
         if (this.debugMode) {
-          console.log('ANSI文本处理失败，保持原样:', text.replace(/\x1b/g, '\\x1b'))
+          console.log('Failed to process ANSI text, keeping original:', text.replace(/\x1b/g, '\\x1b'))
         }
         return text
       }
@@ -323,13 +327,13 @@ export class TerminalHighlighter {
       const highlightedText = this.applyRules(text)
 
       if (this.debugMode && text !== highlightedText) {
-        console.log('原始文本:', JSON.stringify(text))
-        console.log('高亮后:', highlightedText.replace(/\x1b/g, '\\x1b'))
+        console.log('Original text:', JSON.stringify(text))
+        console.log('Highlighted text:', highlightedText.replace(/\x1b/g, '\\x1b'))
       }
 
       return highlightedText
     } catch (error) {
-      console.error('高亮处理失败:', error)
+      console.error('Highlight processing failed:', error)
       return text
     }
   }
@@ -532,9 +536,9 @@ export class TerminalHighlighter {
   setDebugMode(debugMode) {
     this.debugMode = debugMode
     if (debugMode) {
-      console.log('终端高亮调试模式已启用')
+      console.log('Terminal highlighter debug mode enabled')
     } else {
-      console.log('终端高亮调试模式已禁用')
+      console.log('Terminal highlighter debug mode disabled')
     }
   }
 
@@ -544,7 +548,7 @@ export class TerminalHighlighter {
       // 使用通用方法获取pattern源码
       const patternSource = this.extractPatternSource(rule)
       if (!patternSource) {
-        return '正则表达式格式错误'
+        return t('highlighter.invalidRegexFormat')
       }
 
       const flags = rule.flags || 'gi'
@@ -554,7 +558,7 @@ export class TerminalHighlighter {
         return this.applyHtmlStyle(match, rule)
       })
     } catch (error) {
-      return `正则表达式错误: ${ error.message }`
+      return t('highlighter.regexError', { message: error.message })
     }
   }
 

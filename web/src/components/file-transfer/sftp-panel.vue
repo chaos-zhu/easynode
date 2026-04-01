@@ -16,7 +16,7 @@
           size="small"
           disable-transitions
         >
-          已连接
+          {{ t('fileTransfer.sftpPanel.connected') }}
         </el-tag>
         <el-tag
           v-else-if="connectionStatus === 'connecting'"
@@ -24,7 +24,7 @@
           size="small"
           disable-transitions
         >
-          连接中
+          {{ t('fileTransfer.sftpPanel.connecting') }}
         </el-tag>
         <el-tag
           v-else-if="connectionStatus === 'failed'"
@@ -32,7 +32,7 @@
           size="small"
           disable-transitions
         >
-          连接断开
+          {{ t('fileTransfer.sftpPanel.failed') }}
         </el-tag>
         <el-tag
           v-else
@@ -40,7 +40,7 @@
           size="small"
           disable-transitions
         >
-          未连接
+          {{ t('fileTransfer.sftpPanel.disconnected') }}
         </el-tag>
       </div>
     </div>
@@ -63,7 +63,7 @@
       <template v-else>
         <div class="empty_state">
           <el-icon class="empty_icon"><Monitor /></el-icon>
-          <p>请选择一台服务器</p>
+          <p>{{ t('fileTransfer.sftpPanel.selectServer') }}</p>
         </div>
       </template>
     </div>
@@ -72,12 +72,14 @@
 
 <script setup>
 import { ref, watch, computed, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Monitor } from '@element-plus/icons-vue'
 import ServerSelector from '@/components/server-selector.vue'
 import SftpV2 from '@/views/terminal/components/sftp-v2.vue'
 import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 
 const { proxy: { $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   panelSide: {

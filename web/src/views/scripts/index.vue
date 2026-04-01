@@ -3,7 +3,7 @@
     <div class="header">
       <el-input
         v-model="searchKeyword"
-        placeholder="搜索名称、描述或指令内容"
+        :placeholder="t('scripts.searchPlaceholder')"
         class="search_input"
         clearable
         @input="handleSearch"
@@ -17,18 +17,18 @@
         type="danger"
         @click="handleBatchRemove"
       >
-        批量删除
+        {{ t('scripts.batchDelete') }}
       </el-button>
-      <el-button type="primary" @click="addScript">添加脚本</el-button>
+      <el-button type="primary" @click="addScript">{{ t('scripts.addScript') }}</el-button>
       <PlusSupportTip>
         <el-dropdown trigger="click" :disabled="!isPlusActive">
           <el-button type="primary" class="group_action_btn" :disabled="!isPlusActive">
-            导入导出<el-icon class="el-icon--right"><arrow-down /></el-icon>
+            {{ t('scripts.importExport') }}<el-icon class="el-icon--right"><arrow-down /></el-icon>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="importVisible = true">导入脚本</el-dropdown-item>
-              <el-dropdown-item @click="handleExport">导出脚本</el-dropdown-item>
+              <el-dropdown-item @click="importVisible = true">{{ t('scripts.importScript') }}</el-dropdown-item>
+              <el-dropdown-item @click="handleExport">{{ t('scripts.exportScript') }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -40,7 +40,7 @@
           :disabled="!isPlusActive"
           @click="ScriptGroupVisible = true"
         >
-          分组管理
+          {{ t('scripts.groupManagement') }}
         </el-button>
       </PlusSupportTip>
     </div>
@@ -64,23 +64,23 @@
               return row.index !== '--' && row.index !== '-' && row.index !== undefined && row.index !== null
             }"
           />
-          <el-table-column prop="index" label="序号" width="100px" />
-          <el-table-column prop="name" label="名称" />
-          <el-table-column prop="description" label="描述" />
-          <el-table-column prop="command" label="指令内容" show-overflow-tooltip />
+          <el-table-column prop="index" :label="t('scripts.index')" width="100px" />
+          <el-table-column prop="name" :label="t('scripts.name')" />
+          <el-table-column prop="description" :label="t('scripts.description')" />
+          <el-table-column prop="command" :label="t('scripts.commandContent')" show-overflow-tooltip />
           <el-table-column
             prop="useBase64"
-            label="编码方式"
+            :label="t('scripts.encodingMode')"
             width="140px"
             :formatter="formatExecutionMode"
           />
-          <el-table-column label="操作" fixed="right" width="160px">
+          <el-table-column :label="t('scripts.actions')" fixed="right" width="160px">
             <template #default="{ row }">
               <template v-if="row.index !== '--'">
-                <el-button type="primary" @click="handleChange(row)">修改</el-button>
-                <el-button v-show="row.id !== 'own'" type="danger" @click="handleRemove(row)">删除</el-button>
+                <el-button type="primary" @click="handleChange(row)">{{ t('scripts.edit') }}</el-button>
+                <el-button v-show="row.id !== 'own'" type="danger" @click="handleRemove(row)">{{ t('scripts.delete') }}</el-button>
               </template>
-              <span v-else>--</span>
+              <span v-else>{{ t('scripts.noAction') }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -120,6 +120,7 @@
 
 <script setup>
 import { ref, reactive, computed, nextTick, getCurrentInstance, h, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ImportScript from './components/import-script.vue'
 import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 import { ArrowDown, Search } from '@element-plus/icons-vue'
@@ -128,6 +129,7 @@ import ScriptGroup from './components/script-group.vue'
 import ScriptEdit from './components/script-edit.vue'
 
 const { proxy: { $api, $message, $messageBox, $store, $tools } } = getCurrentInstance()
+const { t } = useI18n()
 
 const loading = ref(false)
 const formVisible = ref(false)
@@ -136,12 +138,12 @@ const handleSelectionChange = (val) => {
   selectScripts.value = val
 }
 const handleBatchRemove = () => {
-  if (!selectScripts.value.length) return $message.warning('请选择要批量删除的脚本')
+  if (!selectScripts.value.length) return $message.warning(t('scripts.selectScriptsFirst'))
   let ids = selectScripts.value.map(item => item.id)
   let names = selectScripts.value.map(item => item.name)
-  $messageBox.confirm(() => h('p', { style: 'line-height: 18px;' }, `确认删除\n${ names.join(', ') }吗?`), 'Warning', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(() => h('p', { style: 'line-height: 18px;' }, t('scripts.deleteBatchConfirm', { names: names.join(', ') })), 'Warning', {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   }).then(async () => {
     await $api.batchRemoveScript({ ids })
@@ -168,9 +170,9 @@ const handleChange = (row) => {
 }
 
 const handleRemove = ({ id, name }) => {
-  $messageBox.confirm(`确认删除该脚本：${ name }`, 'Warning', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('scripts.deleteConfirm', { name }), 'Warning', {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   })
     .then(async () => {
@@ -183,7 +185,7 @@ const handleRemove = ({ id, name }) => {
 const importVisible = ref(false)
 
 const handleExport = () => {
-  if (!scriptList.value.length) return $message.warning('暂无可导出的脚本')
+  if (!scriptList.value.length) return $message.warning(t('scripts.noExportableScripts'))
   const fileName = `easynode-scripts-${ $tools.formatTimestamp(Date.now(), 'time', '.') }.json`
   exportFile(scriptList.value, fileName, 'application/json')
 }
@@ -247,9 +249,9 @@ const handleEditSuccess = () => {
 // 格式化编码方式显示
 const formatExecutionMode = (row, column, cellValue) => {
   if (cellValue === true) {
-    return 'Base64编码'
+    return t('scripts.base64Encoding')
   }
-  return '直接发送'
+  return t('scripts.sendDirectly')
 }
 
 </script>

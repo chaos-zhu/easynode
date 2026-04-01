@@ -1,7 +1,7 @@
 <template>
   <div class="transfer-preview">
     <div class="preview-header">
-      <h3>传输预览</h3>
+      <h3>{{ t('componentTransferPreview.title') }}</h3>
       <el-tag :type="getMethodType(preview.method)" size="large">
         {{ preview.method.toUpperCase() }}
       </el-tag>
@@ -11,7 +11,7 @@
       <div class="server-card source">
         <div class="server-header">
           <el-icon><Upload /></el-icon>
-          <span>源服务器</span>
+          <span>{{ t('componentTransferPreview.sourceServer') }}</span>
         </div>
         <div class="server-details">
           <h4>{{ preview.sourceHost.name }}</h4>
@@ -26,7 +26,7 @@
       <div class="server-card target">
         <div class="server-header">
           <el-icon><Download /></el-icon>
-          <span>目标服务器</span>
+          <span>{{ t('componentTransferPreview.targetServer') }}</span>
         </div>
         <div class="server-details">
           <h4>{{ preview.targetHost.name }}</h4>
@@ -37,10 +37,10 @@
 
     <div class="transfer-summary">
       <div class="summary-stats">
-        <el-statistic title="文件数量" :value="preview.fileCount" suffix="个" />
-        <el-statistic title="文件夹数量" :value="preview.folderCount" suffix="个" />
-        <el-statistic title="总大小" :value="formatSize(preview.totalSize)" />
-        <el-statistic title="预计时间" :value="preview.estimatedTime" />
+        <el-statistic :title="t('componentTransferPreview.fileCount')" :value="preview.fileCount" :suffix="countSuffix" />
+        <el-statistic :title="t('componentTransferPreview.folderCount')" :value="preview.folderCount" :suffix="countSuffix" />
+        <el-statistic :title="t('componentTransferPreview.totalSize')" :value="formatSize(preview.totalSize)" />
+        <el-statistic :title="t('componentTransferPreview.estimatedTime')" :value="preview.estimatedTime" />
       </div>
     </div>
 
@@ -48,7 +48,7 @@
       <div class="path-section">
         <h4>
           <el-icon><Folder /></el-icon>
-          源文件/文件夹
+          {{ t('componentTransferPreview.sourceFiles') }}
         </h4>
         <div class="path-list">
           <div
@@ -70,7 +70,7 @@
       <div class="path-section">
         <h4>
           <el-icon><Folder /></el-icon>
-          目标路径
+          {{ t('componentTransferPreview.targetPath') }}
         </h4>
         <div class="target-path">
           <el-icon><Folder /></el-icon>
@@ -80,7 +80,7 @@
     </div>
 
     <div class="method-info">
-      <h4>传输方法说明</h4>
+      <h4>{{ t('componentTransferPreview.methodDescription') }}</h4>
       <div class="method-description">
         <template v-if="preview.method === 'scp'">
           <el-alert
@@ -91,10 +91,10 @@
             <template #title>
               SCP (Secure Copy Protocol)
             </template>
-            <p>• 基于SSH协议的安全文件传输</p>
-            <p>• 适合传输小到中等大小的文件</p>
-            <p>• 简单快速，但不支持增量传输</p>
-            <p>• 传输过程中会保持文件权限和时间戳</p>
+            <p>{{ t('componentTransferPreview.scp1') }}</p>
+            <p>{{ t('componentTransferPreview.scp2') }}</p>
+            <p>{{ t('componentTransferPreview.scp3') }}</p>
+            <p>{{ t('componentTransferPreview.scp4') }}</p>
           </el-alert>
         </template>
         <template v-else-if="preview.method === 'rsync'">
@@ -106,10 +106,10 @@
             <template #title>
               Rsync (Remote Sync)
             </template>
-            <p>• 高效的增量同步工具</p>
-            <p>• 支持断点续传和增量更新</p>
-            <p>• 适合传输大文件或进行目录同步</p>
-            <p>• 内置压缩和进度显示功能</p>
+            <p>{{ t('componentTransferPreview.rsync1') }}</p>
+            <p>{{ t('componentTransferPreview.rsync2') }}</p>
+            <p>{{ t('componentTransferPreview.rsync3') }}</p>
+            <p>{{ t('componentTransferPreview.rsync4') }}</p>
           </el-alert>
         </template>
       </div>
@@ -121,17 +121,19 @@
         :closable="false"
         show-icon
       >
-        <template #title>注意事项</template>
-        <p>• 传输过程中请确保网络连接稳定</p>
-        <p>• 目标路径如果存在同名文件将会被覆盖</p>
-        <p>• 传输大文件时建议使用Rsync方法</p>
-        <p>• 传输过程可在任务管理器中查看进度</p>
+        <template #title>{{ t('componentTransferPreview.notes') }}</template>
+        <p>{{ t('componentTransferPreview.note1') }}</p>
+        <p>{{ t('componentTransferPreview.note2') }}</p>
+        <p>{{ t('componentTransferPreview.note3') }}</p>
+        <p>{{ t('componentTransferPreview.note4') }}</p>
       </el-alert>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Upload, Download, ArrowRight, Folder, Document } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -142,6 +144,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['confirm', 'cancel',])
+
+const { t, locale } = useI18n()
+
+const countSuffix = computed(() => (locale.value === 'en' ? '' : '个'))
 
 const getMethodType = (method) => {
   return method === 'rsync' ? 'success' : 'primary'

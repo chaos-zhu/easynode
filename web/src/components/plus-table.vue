@@ -1,10 +1,9 @@
 <template>
   <div class="comparison-container">
-    <!-- 基础版卡片 -->
     <el-card class="comparison-card basic-card">
       <template #header>
         <div class="card-header">
-          <span class="title">基础功能(免费)</span>
+          <span class="title">{{ t('plusTable.basicTitle') }}</span>
           <el-tag size="small">Basic</el-tag>
         </div>
       </template>
@@ -18,13 +17,12 @@
       </div>
     </el-card>
 
-    <!-- Plus版卡片 -->
     <el-card class="comparison-card plus-card">
       <template #header>
         <div class="card-header">
           <div>
-            <span class="title">Plus专属功能</span>
-            <span class="link" style="margin-right: 15px;" @click="() => plusTipsShow = true">Plus说明</span>
+            <span class="title">{{ t('plusTable.plusTitle') }}</span>
+            <span class="link" style="margin-right: 15px;" @click="() => plusTipsShow = true">{{ t('plusTable.plusDescription') }}</span>
           </div>
           <el-tag type="success" size="small">PLUS</el-tag>
         </div>
@@ -40,7 +38,7 @@
     </el-card>
     <el-dialog
       v-model="plusTipsShow"
-      title="Plus说明"
+      :title="t('plusTable.plusDescription')"
       top="20vh"
       width="30%"
       :append-to-body="false"
@@ -48,28 +46,26 @@
     >
       <div class="about_content">
         <p style="line-height: 2;letter-spacing: 1px;">
-          <!-- <strong style="color: #F56C6C;font-weight: 600;">PLUS说明:</strong><br> -->
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>EasyNode</strong>最初是一个简单的Web终端工具，随着用户群的不断扩大，功能需求也日益增长，为了实现大家的功能需求，我投入了大量的业余时间进行开发和维护。
-          一直在为爱发电，渐渐的也没了开发的动力。
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>EasyNode</strong>{{ t('plusTable.intro1') }}
+          {{ t('plusTable.intro2') }}
           <br>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;为了项目的可持续发展，<strong>后续</strong>版本开始推出<strong>PLUS</strong>版本。后续特性功能开发也会优先在<strong>PLUS</strong>版本中实现，但即使不升级到<strong>PLUS</strong>，也不会影响到<strong>EasyNode</strong>的基础功能使用【注意:
-          暂不支持纯内网用户激活PLUS功能】。
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ t('plusTable.intro3') }}
           <br>
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          注意：激活码只为激活面板<strong>PLUS</strong>功能使用，不作其他用途。您获取的激活码仅限本人使用，任何分享他人的行为都有可能导致激活码&服务器IP被永久封禁。
+          {{ t('plusTable.intro4') }}
           <br>
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
           <span style="text-decoration: underline;">
-            为了感谢前期赞赏过的用户, 在<strong>PLUS</strong>功能正式发布前，所有进行过赞赏的用户，无论金额大小，均可联系作者TG: <a
+            {{ t('plusTable.intro5Prefix') }}<a
               class="link"
               href="https://t.me/chaoszhu"
               target="_blank"
-            >@chaoszhu</a> 凭打赏记录免费获取永久<strong>PLUS</strong>授权码。
+            >@chaoszhu</a>{{ t('plusTable.intro5Suffix') }}
           </span>
         </p>
         <div class="about_footer">
-          <el-button type="info" @click="plusTipsShow = false">关闭</el-button>
-          <el-button type="primary" @click="handlePlusSupport">获取Plus Key</el-button>
+          <el-button type="info" @click="plusTipsShow = false">{{ t('plusTable.close') }}</el-button>
+          <el-button type="primary" @click="handlePlusSupport">{{ t('plusTable.getPlusKey') }}</el-button>
         </div>
       </div>
     </el-dialog>
@@ -77,38 +73,38 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Check } from '@element-plus/icons-vue'
 import { handlePlusSupport } from '@/utils'
 
 const plusTipsShow = ref(false)
+const { t } = useI18n()
 
-// 基础版功能列表
-const basicFeatures = [
-  '服务器管理',
-  '服务器导入导出',
-  '服务器分组',
-  '凭据管理',
-  '脚本库',
-  '批量连接',
-  '批量指令',
-  '通知方式(有限制)',
-]
+const basicFeatures = computed(() => [
+  t('plusTable.basicFeatures.serverManagement'),
+  t('plusTable.basicFeatures.serverImportExport'),
+  t('plusTable.basicFeatures.serverGrouping'),
+  t('plusTable.basicFeatures.credentials'),
+  t('plusTable.basicFeatures.scriptLibrary'),
+  t('plusTable.basicFeatures.batchConnect'),
+  t('plusTable.basicFeatures.batchCommand'),
+  t('plusTable.basicFeatures.notificationsLimited'),
+])
 
-// Plus版专属功能列表
-const plusFeatures = [
-  'AI Chat对话组件',
-  '服务器代理&跳板机功能',
-  'RDP远程win桌面连接',
-  '文件对传',
-  '终端单窗口模式',
-  '批量修改实例配置',
-  '脚本库批量导出导入',
-  '脚本库分组与终端功能栏支持',
-  '终端功能栏docker容器管理',
-  '凭据管理支持解密带密码保护的密钥',
-  '终端会话挂起',
-]
+const plusFeatures = computed(() => [
+  t('plusTable.plusFeatures.aiChat'),
+  t('plusTable.plusFeatures.proxyAndJumpHost'),
+  t('plusTable.plusFeatures.rdp'),
+  t('plusTable.plusFeatures.fileTransfer'),
+  t('plusTable.plusFeatures.singleWindow'),
+  t('plusTable.plusFeatures.batchModify'),
+  t('plusTable.plusFeatures.scriptImportExport'),
+  t('plusTable.plusFeatures.scriptGroupSupport'),
+  t('plusTable.plusFeatures.dockerManager'),
+  t('plusTable.plusFeatures.encryptedKey'),
+  t('plusTable.plusFeatures.sessionSuspend'),
+])
 </script>
 
 <style scoped lang="scss">

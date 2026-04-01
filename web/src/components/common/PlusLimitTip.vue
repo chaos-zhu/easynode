@@ -3,7 +3,7 @@
     <div class="plus_limit_content">
       <el-icon class="lock-icon"><Lock /></el-icon>
       <div class="plus_label">PLUS</div>
-      <p>此功能仅限PLUS版使用, <span class="to_active" @click="gotoPlusPage">去激活</span></p>
+      <p>{{ t('common.plusOnlyFeature') }}, <span class="to_active" @click="gotoPlusPage">{{ t('common.goActivate') }}</span></p>
     </div>
   </div>
   <slot />
@@ -11,11 +11,13 @@
 
 <script setup>
 import { computed, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Lock } from '@element-plus/icons-vue'
 
 const { proxy: { $store } } = getCurrentInstance()
 const router = useRouter()
+const { t } = useI18n()
 
 const isPlusActive = computed(() => $store.isPlusActive)
 
@@ -66,3 +68,4 @@ const gotoPlusPage = () => {
   }
 }
 </style>
+

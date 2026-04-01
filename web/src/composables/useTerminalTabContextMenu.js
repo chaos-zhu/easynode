@@ -11,6 +11,10 @@
  * @param {import('@/composables/useContextMenu').showMenu} options.showMenu - 显示右键菜单的方法
  * @param {import('@/utils/enum').terminalStatus} options.terminalStatus    - 终端状态枚举
  */
+import i18n from '@/i18n'
+
+const t = i18n.global.t
+
 export function useTerminalTabContextMenu({
   terminalTabs,
   onSuspend,
@@ -31,7 +35,7 @@ export function useTerminalTabContextMenu({
     // 挂起终端（仅在已连接状态显示）
     if (item.status === terminalStatus.CONNECT_SUCCESS) {
       menuItems.push({
-        label: '挂起',
+        label: t('terminal.suspend'),
         onClick: () => onSuspend(item, index)
       })
     }
@@ -40,7 +44,7 @@ export function useTerminalTabContextMenu({
     const tabs = typeof terminalTabs === 'function' ? terminalTabs() : terminalTabs.value
     if (tabs.some(tab => tab.status === terminalStatus.CONNECT_SUCCESS)) {
       menuItems.push({
-        label: '挂起所有',
+        label: t('terminal.suspendAll'),
         onClick: () => onSuspendAll()
       })
     }
@@ -48,14 +52,14 @@ export function useTerminalTabContextMenu({
     // 关闭其他终端
     if (tabs.length > 1) {
       menuItems.push({
-        label: '关闭其他',
+        label: t('terminal.closeOtherSessions'),
         onClick: () => onCloseOther(index, item)
       })
     }
 
     // 关闭所有终端
     menuItems.push({
-      label: '关闭所有',
+      label: t('terminal.closeAllSessions'),
       onClick: () => onCloseAll()
     })
 

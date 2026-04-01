@@ -31,8 +31,24 @@
         link
         @click="visible = true"
       >
-        版本更新 <span class="new_version">{{ isNew ? `(新版本可用)` : '' }}</span>
+        {{ t('topBar.versionUpdate') }} <span class="new_version">{{ isNew ? `(${t('topBar.newVersionAvailable')})` : '' }}</span>
       </el-button>
+
+      <el-dropdown trigger="click" @command="handleLanguageChange">
+        <span class="language_switch">
+          <el-icon>
+            <Operation />
+          </el-icon>
+          <span>{{ currentLanguageLabel }}</span>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="zh-CN">{{ t('topBar.languageNames.zhCN') }}</el-dropdown-item>
+            <el-dropdown-item command="en">{{ t('topBar.languageNames.en') }}</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+
       <el-dropdown trigger="click">
         <span class="username_wrap">
           <el-icon>
@@ -43,7 +59,7 @@
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item @click="handleLogout">
-              退出登录
+              {{ t('topBar.logout') }}
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -66,18 +82,19 @@
 
     <el-dialog
       v-model="visible"
-      title="版本更新"
+      :title="t('topBar.versionUpdate')"
       top="20vh"
       width="30%"
       :append-to-body="false"
       :close-on-click-modal="false"
     >
       <div class="about_content">
-        <!-- <h1>EasyNode</h1> -->
-        <p>当前版本: {{ currentVersion }} <span v-show="!isNew">(最新)</span> </p>
-        <p v-if="checkVersionErr" class="conspicuous">Error：版本更新检测失败(版本检测API需要外网环境),请手动访问GitHub查看</p>
+        <p>
+          {{ isNew ? t('topBar.currentVersion', { version: currentVersion }) : t('topBar.currentVersionLatest', { version: currentVersion }) }}
+        </p>
+        <p v-if="checkVersionErr" class="conspicuous">{{ t('topBar.versionCheckFailed') }}</p>
         <p v-if="isNew" class="conspicuous">
-          新版本可用: {{ latestVersion }} -> <a
+          {{ t('topBar.latestVersionAvailable', { version: latestVersion }) }} -> <a
             class="link"
             href="https://github.com/chaos-zhu/easynode?tab=readme-ov-file#%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2"
             target="_blank"
@@ -86,7 +103,7 @@
         <template v-if="features.length > 0 && isNew">
           <div class="version_features_title">
             <el-icon><Document /></el-icon>
-            最新版本更新了以下内容(<a href="https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md" target="_blank">更新日志</a>):
+            {{ t('topBar.latestFeaturesTitle') }}(<a href="https://github.com/chaos-zhu/easynode/blob/main/CHANGELOG.md" target="_blank">{{ t('topBar.changelog') }}</a>):
           </div>
           <ul class="conspicuous feature_list">
             <li v-for="feature in features" :key="feature">
@@ -95,17 +112,17 @@
           </ul>
         </template>
         <p>
-          TG更新通知频道：<a class="link" href="https://t.me/easynode_notify" target="_blank">https://t.me/easynode_notify</a>
+          {{ t('topBar.telegramChannel') }}<a class="link" href="https://t.me/easynode_notify" target="_blank">https://t.me/easynode_notify</a>
         </p>
         <p>
-          项目地址：<a
+          {{ t('topBar.projectUrl') }}<a
             class="link"
             href="https://github.com/chaos-zhu/easynode"
             target="_blank"
           >https://github.com/chaos-zhu/easynode</a>
         </p>
         <div class="about_footer">
-          <el-button type="info" @click="visible = false">关闭</el-button>
+          <el-button type="info" @click="visible = false">{{ t('common.close') }}</el-button>
         </div>
       </div>
     </el-dialog>
@@ -128,14 +145,17 @@
 <script setup>
 import { ref, getCurrentInstance, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Fold, Document } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
+import { User, Fold, Document, Operation } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 import MenuList from './menuList.vue'
 import AiButton from './ai-chat/ai-button.vue'
 import useMobileWidth from '@/composables/useMobileWidth'
+import { setLocale } from '@/i18n'
 
 const { proxy: { $router, $store, $api, $message } } = getCurrentInstance()
 const router = useRouter()
+const { t, locale } = useI18n()
 const visible = ref(false)
 const checkVersionErr = ref(false)
 const currentVersion = ref(`v${ packageJson.version }`)
@@ -144,6 +164,11 @@ const features = ref([])
 const menuCollapse = ref(false)
 const discount = ref(false)
 
+const languageOptions = {
+  'zh-CN': t('topBar.languageNames.zhCN'),
+  en: t('topBar.languageNames.en')
+}
+
 const { isMobileScreen } = useMobileWidth()
 
 const isNew = computed(() => latestVersion.value && latestVersion.value !== currentVersion.value)
@@ -151,16 +176,21 @@ const user = computed(() => $store.user)
 const title = computed(() => $store.title)
 const isPlusActive = computed(() => $store.isPlusActive)
 const menuPosition = computed(() => $store.menuPosition)
+const currentLanguageLabel = computed(() => languageOptions[locale.value] || languageOptions['zh-CN'])
 
 const handleCollapse = () => {
   menuCollapse.value = !menuCollapse.value
+}
+
+const handleLanguageChange = (lang) => {
+  setLocale(lang)
 }
 
 const handleLogout = async () => {
   try {
     await $store.removeLoginInfo(true)
   } finally {
-    $message({ type: 'success', message: '已安全退出', center: true })
+    $message({ type: 'success', message: t('topBar.logoutSuccess'), center: true })
     $router.push('/login')
   }
 }
@@ -178,7 +208,7 @@ async function checkLatestVersionByGitRelease() {
   const timeout = 5000
   try {
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('请求超时')), timeout)
+      setTimeout(() => reject(new Error(t('topBar.requestTimeout'))), timeout)
     )
     const url = `https://api.github.com/repos/chaos-zhu/easynode/releases?ts=${ new Date().getTime() }`
     const fetchPromise = fetch(url, {
@@ -188,17 +218,16 @@ async function checkLatestVersionByGitRelease() {
     })
     const response = await Promise.race([fetchPromise, timeoutPromise,])
     if (!response.ok) {
-      throw new Error('版本信息请求失败: ' + response.statusText)
+      throw new Error(`${t('topBar.versionRequestFailed')}: ${response.statusText}`)
     }
     const releases = await response.json()
-    // console.log('releases:', releases)
     const filteredReleases = releases.filter(release => !release.tag_name.startsWith('client'))
     if (filteredReleases.length > 0) {
       latestVersion.value = filteredReleases[0].tag_name
     }
   } catch (error) {
     checkVersionErr.value = true
-    console.error('版本信息请求失败:', error.message)
+    console.error(`${t('topBar.versionRequestFailed')}:`, error.message)
   }
 }
 
@@ -207,7 +236,6 @@ async function checkLatestVersionByJson() {
   try {
     let date = new Date()
     let lastGetVersionTime = localStorage.getItem('lastGetVersionTime')
-    // 10分钟内不重复请求
     if (lastGetVersionTime && (date.getTime() - Number(lastGetVersionTime) < 1000 * 60 * 10)) {
       let latestVersionFromLocal = localStorage.getItem('latestVersion')
       let featuresFromLocal = localStorage.getItem('features')
@@ -219,16 +247,15 @@ async function checkLatestVersionByJson() {
     }
 
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('请求超时')), timeout)
+      setTimeout(() => reject(new Error(t('topBar.requestTimeout'))), timeout)
     )
     const url = `https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/refs/heads/main/server/version.json?ts=${ new Date().getTime() }`
     const fetchPromise = fetch(url)
     const response = await Promise.race([fetchPromise, timeoutPromise,])
     if (!response.ok) {
-      throw new Error('版本信息请求失败: ' + response.statusText)
+      throw new Error(`${t('topBar.versionRequestFailed')}: ${response.statusText}`)
     }
     const releases = await response.json()
-    // console.log('releases:', releases)
     if (Array.isArray(releases) && releases.length > 0) {
       latestVersion.value = releases[0].version
       features.value = releases[0].features
@@ -238,7 +265,7 @@ async function checkLatestVersionByJson() {
     }
   } catch (error) {
     checkVersionErr.value = true
-    console.error('版本信息请求失败:', error.message)
+    console.error(`${t('topBar.versionRequestFailed')}:`, error.message)
     checkLatestVersionByGitRelease()
   }
 }
@@ -352,10 +379,24 @@ onBeforeUnmount(() => {
       }
     }
 
+    .language_switch,
     .username_wrap {
       display: flex;
       align-items: center;
+      cursor: pointer;
+    }
 
+    .language_switch {
+      margin-right: 15px;
+      color: var(--el-text-color-regular);
+      font-size: 14px;
+
+      span {
+        margin-left: 5px;
+      }
+    }
+
+    .username_wrap {
       .username {
         cursor: pointer;
         margin-left: 5px;

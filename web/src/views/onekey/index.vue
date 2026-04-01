@@ -7,7 +7,7 @@
         :loading="isExecuting"
         @click="addOnekey"
       >
-        {{ isExecuting ? `执行中，剩余${timeRemaining}秒` : '批量下发指令' }}
+        {{ isExecuting ? t('onekey.executingCountdown', { seconds: timeRemaining }) : t('onekey.batchCommand') }}
       </el-button>
       <!-- <el-button
         v-show="recordList.length"
@@ -23,7 +23,7 @@
         type="danger"
         @click="handleRemoveAll"
       >
-        删除全部记录
+        {{ t('onekey.deleteAllRecords') }}
       </el-button>
     </div>
     <!-- default-expand-all -->
@@ -42,7 +42,7 @@
       </el-table-column>
       <el-table-column
         prop="name"
-        label="实例"
+        :label="t('onekey.instance')"
         show-overflow-tooltip
         min-width="120px"
       >
@@ -54,7 +54,7 @@
       </el-table-column>
       <el-table-column
         prop="command"
-        label="指令"
+        :label="t('onekey.command')"
         show-overflow-tooltip
         min-width="150px"
       >
@@ -64,7 +64,7 @@
       </el-table-column>
       <el-table-column
         prop="startDate"
-        label="开始时间"
+        :label="t('onekey.startTime')"
         show-overflow-tooltip
         min-width="150px"
       >
@@ -74,7 +74,7 @@
       </el-table-column>
       <el-table-column
         prop="endDate"
-        label="结束时间"
+        :label="t('onekey.endTime')"
         show-overflow-tooltip
         min-width="150px"
       >
@@ -84,7 +84,7 @@
       </el-table-column>
       <el-table-column
         prop="status"
-        label="执行结果"
+        :label="t('onekey.executionResult')"
         show-overflow-tooltip
         min-width="100px"
       >
@@ -94,7 +94,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" fixed="right" width="90px">
+      <el-table-column :label="t('onekey.actions')" fixed="right" width="90px">
         <template #default="{ row }">
           <el-button
             v-if="!row.pending"
@@ -103,7 +103,7 @@
             type="danger"
             @click="handleRemove([row.id])"
           >
-            删除
+            {{ t('onekey.delete') }}
           </el-button>
         </template>
       </el-table-column>
@@ -112,7 +112,7 @@
       v-model="formVisible"
       width="600px"
       top="150px"
-      title="批量下发指令"
+      :title="t('onekey.batchCommand')"
       :close-on-click-modal="false"
       @close="clearFormInfo"
     >
@@ -125,7 +125,7 @@
         label-width="80px"
         :show-message="false"
       >
-        <el-form-item label="实例" prop="hostIds">
+        <el-form-item :label="t('onekey.instance')" prop="hostIds">
           <div class="select_host_wrap">
             <el-select
               v-model="formData.hostIds"
@@ -142,7 +142,7 @@
                   :indeterminate="indeterminate"
                   @change="selectAllHost"
                 >
-                  全选 <span class="tips">(未配置ssh连接信息的实例不会显示在列表中)</span>
+                  {{ t('onekey.selectAll') }} <span class="tips">{{ t('onekey.selectAllHint') }}</span>
                 </el-checkbox>
               </template>
               <el-option
@@ -155,7 +155,7 @@
             <!-- <el-button type="primary" class="btn" @click="selectAllHost">全选</el-button> -->
           </div>
         </el-form-item>
-        <el-form-item prop="command" label="指令">
+        <el-form-item prop="command" :label="t('onekey.command')">
           <div class="command_wrap">
             <el-dropdown
               trigger="click"
@@ -163,7 +163,7 @@
               :teleported="false"
               class="scripts_menu"
             >
-              <span class="link_text">从脚本库导入...<el-icon><arrow-down /></el-icon></span>
+              <span class="link_text">{{ t('onekey.importFromScriptLibrary') }}<el-icon><arrow-down /></el-icon></span>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item v-for="item in scriptList" :key="item.id" @click="handleImportScript(item)">
@@ -179,24 +179,24 @@
               :rows="5"
               clearable
               autocomplete="off"
-              placeholder="shell script, ex: ping -c 10 google.com"
+              :placeholder="t('onekey.shellPlaceholder')"
             />
           </div>
         </el-form-item>
-        <el-form-item prop="timeout" label="超时(s)">
+        <el-form-item prop="timeout" :label="t('onekey.timeoutSeconds')">
           <el-input
             v-model.trim.number="formData.timeout"
             type="number"
             clearable
             autocomplete="off"
-            placeholder="指令执行超时时间，单位秒，超时自动中断"
+            :placeholder="t('onekey.timeoutPlaceholder')"
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <span>
-          <el-button @click="formVisible = false">取消</el-button>
-          <el-button type="primary" @click="execOnekey">执行</el-button>
+          <el-button @click="formVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" @click="execOnekey">{{ t('terminal.execute') }}</el-button>
         </span>
       </template>
     </el-dialog>
@@ -205,10 +205,12 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch, nextTick, getCurrentInstance, onActivated } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { generateSocketInstance } from '@/utils'
 
 const { proxy: { $api, $notification,$messageBox, $message, $router, $store, $tools } } = getCurrentInstance()
+const { t } = useI18n()
 
 const loading = ref(false)
 const formVisible = ref(false)
@@ -297,7 +299,7 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
 
     socket.value.on('exec_timeout', ({ reason, result }) => {
       $notification({
-        title: '批量指令执行超时',
+        title: t('onekey.executionTimeoutTitle'),
         message: reason,
         type: 'error'
       })
@@ -306,8 +308,8 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
 
     socket.value.on('exec_complete', () => {
       $notification({
-        title: '批量指令执行完成',
-        message: '执行完成',
+        title: t('onekey.executionCompleteTitle'),
+        message: t('onekey.executionComplete'),
         type: 'success'
       })
       getOnekeyRecord()
@@ -327,8 +329,8 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
     loading.value = false
     console.error('onekey websocket 连接错误：', err)
     $notification({
-      title: 'onekey websocket 连接错误：',
-      message: '请检查socket服务是否正常',
+      title: t('onekey.websocketConnectErrorTitle'),
+      message: t('onekey.websocketServiceError'),
       type: 'error'
     })
   })
@@ -354,19 +356,19 @@ let handleImportScript = (scriptObj) => {
 
 let getStatusType = (status) => {
   switch (status) {
-    case '连接中':
+    case t('onekey.status.connecting'):
       return '#FFDEAD'
-    case '连接失败':
+    case t('onekey.status.connectFailed'):
       return '#FFCCCC'
-    case '执行中':
+    case t('onekey.status.executing'):
       return '#ADD8E6'
-    case '执行成功':
+    case t('onekey.status.success'):
       return '#90EE90'
-    case '执行失败':
+    case t('onekey.status.failed'):
       return '#FFCCCC'
-    case '执行超时':
+    case t('onekey.status.timeout'):
       return '#FFFFE0'
-    case '执行中断':
+    case t('onekey.status.interrupted'):
       return '#E6E6FA'
     default:
       return 'info'
@@ -391,10 +393,10 @@ function execOnekey() {
       let { hostIds, command, timeout } = formData
       timeout = Number(timeout)
       if (timeout < 1) {
-        return $message.error('超时时间不能小于1秒')
+        return $message.error(t('onekey.timeoutMinError'))
       }
       if (hostIds.length === 0) {
-        return $message.error('请选择主机')
+        return $message.error(t('onekey.selectHostRequired'))
       }
       await getOnekeyRecord() // 获取新纪录前会清空 pendingRecord，所以需要获取一次最新的list
       createExecShell(hostIds, command, timeout)
@@ -414,9 +416,9 @@ const handleRemove = async (ids = []) => {
 }
 
 const handleRemoveAll = async () => {
-  $messageBox.confirm(`确认删除所有执行记录：${ name }`, 'Warning', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('onekey.deleteAllConfirm'), 'Warning', {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   })
     .then(async () => {

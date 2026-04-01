@@ -1,19 +1,19 @@
 <template>
   <div class="setting_container">
     <el-tabs v-model="tabKey" tab-position="top">
-      <el-tab-pane label="修改密码" name="user">
+      <el-tab-pane :label="t('settings.changePassword')" name="user">
         <User />
       </el-tab-pane>
-      <el-tab-pane label="登录管理" name="session" lazy>
+      <el-tab-pane :label="t('settings.loginManagement')" name="session" lazy>
         <Session />
       </el-tab-pane>
-      <el-tab-pane label="通知配置" name="notify">
+      <el-tab-pane :label="t('settings.notificationConfig')" name="notify">
         <Notify />
       </el-tab-pane>
-      <el-tab-pane label="代理服务" name="proxy">
+      <el-tab-pane :label="t('settings.proxyService')" name="proxy">
         <Proxy />
       </el-tab-pane>
-      <el-tab-pane label="Plus激活" name="plus">
+      <el-tab-pane :label="t('settings.plusActivation')" name="plus">
         <UserPlus />
       </el-tab-pane>
     </el-tabs>
@@ -22,6 +22,7 @@
 
 <script setup>
 import { watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import Session from './components/session.vue'
 import User from './components/user.vue'
@@ -31,6 +32,7 @@ import Proxy from './components/proxy.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const tabKey = computed({
   get() {

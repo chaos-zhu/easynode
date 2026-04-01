@@ -2,18 +2,18 @@
   <div class="transfer-task-manager">
     <div class="task-filter">
       <el-radio-group v-model="filterStatus" size="">
-        <el-radio-button label="all">全部</el-radio-button>
-        <el-radio-button label="running">传输中</el-radio-button>
-        <el-radio-button label="completed">传输完成</el-radio-button>
-        <el-radio-button label="failed">传输失败</el-radio-button>
-        <el-radio-button label="cancelled">已取消</el-radio-button>
+        <el-radio-button label="all">{{ t('componentTransferTaskManager.filters.all') }}</el-radio-button>
+        <el-radio-button label="running">{{ t('componentTransferTaskManager.filters.running') }}</el-radio-button>
+        <el-radio-button label="completed">{{ t('componentTransferTaskManager.filters.completed') }}</el-radio-button>
+        <el-radio-button label="failed">{{ t('componentTransferTaskManager.filters.failed') }}</el-radio-button>
+        <el-radio-button label="cancelled">{{ t('componentTransferTaskManager.filters.cancelled') }}</el-radio-button>
       </el-radio-group>
     </div>
 
     <div class="task-list">
       <div v-if="filteredTasks.length === 0" class="empty-state">
         <el-icon class="empty-icon"><Document /></el-icon>
-        <p>{{ filterStatus === 'all' ? '暂无传输任务' : `暂无${getStatusText(filterStatus)}的任务` }}</p>
+        <p>{{ filterStatus === 'all' ? t('componentTransferTaskManager.empty') : t('componentTransferTaskManager.emptyWithStatus', { status: getStatusText(filterStatus) }) }}</p>
       </div>
 
       <div
@@ -43,7 +43,7 @@
               type="danger"
               @click="$emit('cancel-task', task.taskId)"
             >
-              取消
+              {{ t('common.cancel') }}
             </el-button>
             <el-button
               v-if="task.status === 'failed'"
@@ -51,7 +51,7 @@
               type="primary"
               @click="$emit('retry-task', task.taskId)"
             >
-              重试
+              {{ t('fileTransfer.sftp.retry') }}
             </el-button>
             <el-button
               v-if="task.status !== 'running'"
@@ -60,13 +60,13 @@
               plain
               @click="deleteTask(task.taskId)"
             >
-              删除
+              {{ t('fileTransfer.sftp.delete') }}
             </el-button>
             <el-button
               size="small"
               @click="toggleTaskDetails(task.taskId)"
             >
-              {{ expandedTasks.has(task.taskId) ? '收起' : '详情' }}
+              {{ expandedTasks.has(task.taskId) ? t('componentTransferTaskManager.collapse') : t('componentTransferTaskManager.details') }}
             </el-button>
           </div>
         </div>
@@ -76,12 +76,12 @@
           <div class="progress-info">
             <span v-if="task.isVerifying">
               <el-icon class="verifying-icon"><Loading /></el-icon>
-              传输完成，校验中...
+              {{ t('componentTransferTaskManager.verifying') }}
             </span>
             <template v-else>
-              <span>总体进度: {{ task.progress || 0 }}%</span>
-              <span v-if="task.fileProgress">文件进度: {{ task.completedFiles || 0 }}/{{ task.totalFiles || 1 }}</span>
-              <span v-if="task.speed">速度: {{ formatSpeed(task.speed) }}</span>
+              <span>{{ t('componentTransferTaskManager.overallProgress') }}: {{ task.progress || 0 }}%</span>
+              <span v-if="task.fileProgress">{{ t('componentTransferTaskManager.fileProgress') }}: {{ task.completedFiles || 0 }}/{{ task.totalFiles || 1 }}</span>
+              <span v-if="task.speed">{{ t('componentTransferTaskManager.speed') }}: {{ formatSpeed(task.speed) }}</span>
             </template>
           </div>
           <el-progress
@@ -115,15 +115,15 @@
           <div v-if="expandedTasks.has(task.taskId)" class="task-details">
             <div class="details-grid">
               <div class="detail-item">
-                <label>任务ID:</label>
+                <label>{{ t('componentTransferTaskManager.taskId') }}</label>
                 <span>{{ task.taskId }}</span>
               </div>
               <div class="detail-item">
-                <label>传输方法:</label>
+                <label>{{ t('componentTransferTaskManager.transferMethod') }}</label>
                 <span>{{ task.method.toUpperCase() }}</span>
               </div>
               <div class="detail-item">
-                <label>源路径:</label>
+                <label>{{ t('componentTransferTaskManager.sourcePath') }}</label>
                 <div class="path-list">
                   <div v-for="(path, index) in task.sourcePaths" :key="index" class="path-item">
                     <el-icon>
@@ -136,26 +136,26 @@
                 </div>
               </div>
               <div class="detail-item">
-                <label>目标路径:</label>
+                <label>{{ t('componentTransferTaskManager.targetPath') }}</label>
                 <span>{{ task.targetPath }}</span>
               </div>
               <div class="detail-item">
-                <label>总大小:</label>
+                <label>{{ t('componentTransferTaskManager.totalSize') }}</label>
                 <span>{{ formatSize(task.totalSize) }}</span>
               </div>
               <div class="detail-item">
-                <label>创建时间:</label>
+                <label>{{ t('componentTransferTaskManager.createdAt') }}</label>
                 <span>{{ formatDateTime(task.createTime) }}</span>
               </div>
               <div v-if="task.updateTime !== task.createTime" class="detail-item">
-                <label>更新时间:</label>
+                <label>{{ t('componentTransferTaskManager.updatedAt') }}</label>
                 <span>{{ formatDateTime(task.updateTime) }}</span>
               </div>
             </div>
 
             <!-- 传输选项 -->
             <div v-if="task.options && Object.keys(task.options).length > 0" class="transfer-options">
-              <h5>传输选项:</h5>
+              <h5>{{ t('fileTransfer.transferOptionsTitle') }}:</h5>
               <div class="options-list">
                 <el-tag
                   v-for="(value, key) in task.options"
@@ -163,7 +163,7 @@
                   size="small"
                   :type="value ? 'success' : 'info'"
                 >
-                  {{ getOptionName(key) }}: {{ value ? '是' : '否' }}
+                  {{ getOptionName(key) }}: {{ value ? t('terminal.yes') : t('terminal.no') }}
                 </el-tag>
               </div>
             </div>
@@ -176,6 +176,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Document, Folder, Loading } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 
@@ -187,6 +188,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['cancel-task', 'retry-task', 'delete-task', 'refresh',])
+
+const { t, locale } = useI18n()
 
 const filterStatus = ref('all')
 const expandedTasks = ref(new Set())
@@ -226,11 +229,11 @@ const deleteTask = async (taskId) => {
 
   try {
     await ElMessageBox.confirm(
-      `确定要删除传输任务 "${ task.sourceHostName } → ${ task.targetHostName }" 吗？`,
-      '删除任务',
+      t('componentTransferTaskManager.deleteConfirm', { source: task.sourceHostName, target: task.targetHostName }),
+      t('componentTransferTaskManager.deleteTask'),
       {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
+        confirmButtonText: t('fileTransfer.sftp.delete'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning',
         confirmButtonClass: 'el-button--danger'
       }
@@ -254,19 +257,19 @@ const getStatusType = (status) => {
 
 const getStatusText = (status) => {
   const statusMap = {
-    running: '传输中',
-    completed: '传输完成',
-    failed: '传输失败',
-    cancelled: '已取消'
+    running: t('componentTransferTaskManager.filters.running'),
+    completed: t('componentTransferTaskManager.filters.completed'),
+    failed: t('componentTransferTaskManager.filters.failed'),
+    cancelled: t('componentTransferTaskManager.filters.cancelled')
   }
   return statusMap[status] || status
 }
 
 const getOptionName = (key) => {
   const optionMap = {
-    delete: '删除多余文件',
-    partial: '断点续传',
-    compress: '压缩传输'
+    delete: t('fileTransfer.deleteExtraFiles'),
+    partial: t('fileTransfer.resumeTransfer'),
+    compress: t('fileTransfer.enableCompression')
   }
   return optionMap[key] || key
 }
@@ -274,7 +277,7 @@ const getOptionName = (key) => {
 const formatDateTime = (timestamp) => {
   if (!timestamp) return ''
   const date = new Date(timestamp)
-  return date.toLocaleString('zh-CN')
+  return date.toLocaleString(locale.value === 'en' ? 'en-US' : 'zh-CN')
 }
 
 const formatSize = (bytes) => {

@@ -12,14 +12,14 @@
           class="select_all_checkbox"
           @change="handleSelectAll"
         >
-          全选
+          {{ t('docker.selectAll') }}
         </el-checkbox>
         <div v-if="selectedContainers.length > 0 || batchOperating" class="batch_info_tag">
           <template v-if="batchOperating">
-            正在{{ batchProgress.action }}... <span class="progress">{{ batchProgress.current }}/{{ batchProgress.total }}</span>
+            {{ t('docker.batchInProgress', { action: batchProgress.action }) }} <span class="progress">{{ batchProgress.current }}/{{ batchProgress.total }}</span>
           </template>
           <template v-else>
-            已选中 <span class="count">{{ selectedContainers.length }}</span> 个
+            {{ t('docker.selectedCount', { count: selectedContainers.length }) }}
           </template>
         </div>
       </div>
@@ -35,7 +35,7 @@
                 :disabled="batchOperating"
                 @click="handleBatchStart"
               >
-                批量启动
+                {{ t('docker.batchStart') }}
               </el-button>
               <el-button
                 type="primary"
@@ -43,7 +43,7 @@
                 :disabled="batchOperating"
                 @click="handleBatchRestart"
               >
-                重启
+                {{ t('docker.restart') }}
               </el-button>
               <el-button
                 type="warning"
@@ -51,7 +51,7 @@
                 :disabled="batchOperating"
                 @click="handleBatchStop"
               >
-                停止
+                {{ t('docker.stop') }}
               </el-button>
               <el-button
                 type="danger"
@@ -59,14 +59,14 @@
                 :disabled="batchOperating"
                 @click="handleBatchDelete"
               >
-                删除
+                {{ t('docker.delete') }}
               </el-button>
             </el-button-group>
           </div>
         </transition>
 
         <div v-if="dockerServerErr" style="margin-right: 10px;">
-          <el-tag type="danger" effect="light" size="small">Docker服务连接失败</el-tag>
+          <el-tag type="danger" effect="light" size="small">{{ t('docker.serviceConnectFailed') }}</el-tag>
         </div>
         <el-button
           type="primary"
@@ -75,14 +75,14 @@
           :icon="RefreshRight"
           @click="() => reconnectDocker(true)"
         >
-          刷新
+          {{ t('docker.refresh') }}
         </el-button>
       </div>
     </div>
 
     <!-- 卡片列表区域 -->
     <div v-loading="loading" class="card_container_wrapper">
-      <el-empty v-if="dockerContainers.length === 0 && !loading" description="暂无容器" />
+      <el-empty v-if="dockerContainers.length === 0 && !loading" :description="t('docker.empty')" />
 
       <el-row :gutter="12">
         <el-col
@@ -137,23 +137,23 @@
               </div>
 
               <div class="info_row">
-                <span class="label">镜像:</span>
+                <span class="label">{{ t('docker.image') }}:</span>
                 <span class="value text-truncate" :title="row.image">{{ row.image }}</span>
               </div>
 
               <div class="info_row">
-                <span class="label">时长:</span>
+                <span class="label">{{ t('docker.uptime') }}:</span>
                 <span class="value">{{ row.uptime }}</span>
               </div>
 
               <div class="info_row ports_row">
-                <span class="label">端口:</span>
+                <span class="label">{{ t('docker.ports') }}:</span>
                 <div class="ports_wrapper">
                   <template v-if="Array.isArray(row.ports) && row.ports.length > 0">
                     <template v-for="port in row.ports" :key="port">
                       <el-tooltip
                         v-if="!isPortMapped(port)"
-                        content="此端口未映射到宿主机"
+                        :content="t('docker.portNotMapped')"
                         placement="top"
                       >
                         <el-tag size="small" type="info" class="port_tag">{{ port || '--' }}</el-tag>
@@ -176,7 +176,7 @@
 
             <!-- 卡片底部：操作按钮 -->
             <div class="card_actions">
-              <el-tooltip content="启动" placement="top" :hide-after="0">
+              <el-tooltip :content="t('docker.start')" placement="top" :hide-after="0">
                 <el-button
                   type="success"
                   :icon="VideoPlay"
@@ -188,7 +188,7 @@
                 />
               </el-tooltip>
 
-              <el-tooltip content="重启" placement="top" :hide-after="0">
+              <el-tooltip :content="t('docker.restart')" placement="top" :hide-after="0">
                 <el-button
                   type="primary"
                   :icon="RefreshRight"
@@ -200,7 +200,7 @@
                 />
               </el-tooltip>
 
-              <el-tooltip content="停止" placement="top" :hide-after="0">
+              <el-tooltip :content="t('docker.stop')" placement="top" :hide-after="0">
                 <el-button
                   type="warning"
                   :icon="VideoPause"
@@ -212,7 +212,7 @@
                 />
               </el-tooltip>
 
-              <el-tooltip content="删除" placement="top" :hide-after="0">
+              <el-tooltip :content="t('docker.delete')" placement="top" :hide-after="0">
                 <el-button
                   type="danger"
                   :icon="Delete"
@@ -223,7 +223,7 @@
                 />
               </el-tooltip>
 
-              <el-tooltip content="日志" placement="top" :hide-after="0">
+              <el-tooltip :content="t('docker.logs')" placement="top" :hide-after="0">
                 <el-button
                   type="info"
                   :icon="Document"
@@ -251,6 +251,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { VideoPlay, VideoPause, RefreshRight, Delete, Document } from '@element-plus/icons-vue'
 import LogViewer from '@/components/log-viewer/index.vue'
 import PlusLimitTip from '@/components/common/PlusLimitTip.vue'
@@ -258,6 +259,7 @@ import { generateSocketInstance } from '@/utils'
 import dayjs from 'dayjs'
 
 const { proxy: { $store, $message, $messageBox } } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   hostId: {
@@ -287,7 +289,7 @@ const selectedContainers = ref([])
 const batchOperating = ref(false)
 const batchProgress = ref({ current: 0, total: 0, action: '' }) // 批量操作进度
 const hostId = computed(() => props.hostId)
-const containerName = computed(() => `${ currentContainer.value?.name }.log(自动刷新)` || '')
+const containerName = computed(() => `${ currentContainer.value?.name }.log` || '')
 const isPlusActive = computed(() => $store.isPlusActive)
 
 // 全选相关计算属性
@@ -363,7 +365,7 @@ const getStatusType = (status) => {
 }
 
 const connectDocker = () => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('docker.plusOnly'))
   socket.value = generateSocketInstance('/docker')
   socket.value.on('connect', () => {
     console.log('/docker socket已连接：', hostId.value)
@@ -452,7 +454,7 @@ const reconnectDocker = () => {
 
 const handleStart = async (row) => {
   if (!socket.value || !socket.value.connected) {
-    $message.error('连接已断开，正在刷新')
+    $message.error(t('docker.disconnectedRefreshing'))
     refreshDockerContainers(true, 0)
     return
   }
@@ -462,7 +464,7 @@ const handleStart = async (row) => {
 
 const handleStop = async (row) => {
   if (!socket.value || !socket.value.connected) {
-    $message.error('连接已断开，正在刷新')
+    $message.error(t('docker.disconnectedRefreshing'))
     refreshDockerContainers(true, 0)
     return
   }
@@ -472,7 +474,7 @@ const handleStop = async (row) => {
 
 const handleRestart = async (row) => {
   if (!socket.value || !socket.value.connected) {
-    $message.error('连接已断开，正在刷新')
+    $message.error(t('docker.disconnectedRefreshing'))
     refreshDockerContainers(true, 0)
     return
   }
@@ -481,13 +483,13 @@ const handleRestart = async (row) => {
 }
 
 const handleDelete = (row) => {
-  $messageBox.confirm(`确认删除容器 ${ row.name }？`, '警告', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('docker.deleteConfirm', { name: row.name }), t('docker.warningTitle'), {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   }).then(async () => {
     if (!socket.value || !socket.value.connected) {
-      $message.error('连接已断开，正在刷新')
+      $message.error(t('docker.disconnectedRefreshing'))
       refreshDockerContainers(true, 0)
       return
     }
@@ -510,13 +512,13 @@ const handlePortClick = (portStr) => {
     const url = `http://${ props.host }:${ port }`
     window.open(url, '_blank')
   } else {
-    $message.warning('无法解析端口信息')
+    $message.warning(t('docker.parsePortFailed'))
   }
 }
 
 const handleLogs = (row) => {
   if (!socket.value || !socket.value.connected) {
-    $message.error('连接已断开,正在刷新')
+    $message.error(t('docker.disconnectedRefreshing'))
     refreshDockerContainers(true, 0)
     return
   }
@@ -529,7 +531,7 @@ const handleLogs = (row) => {
 
 const intervalLogs = () => {
   if (!socket.value || !socket.value.connected) {
-    $message.error('连接已断开,正在刷新')
+    $message.error(t('docker.disconnectedRefreshing'))
     refreshDockerContainers(true, 0)
     return
   }
@@ -565,13 +567,13 @@ const handleSelectAll = (val) => {
 // 批量操作 - 串行执行
 const executeBatchOperation = async (operation, containers, actionName) => {
   if (!socket.value || !socket.value.connected) {
-    $message.error('连接已断开，正在刷新')
+    $message.error(t('docker.disconnectedRefreshing'))
     refreshDockerContainers(true, 0)
     return
   }
 
   if (batchOperating.value) {
-    $message.warning('批量操作正在进行中，请稍候')
+    $message.warning(t('docker.batchOperatingWait'))
     return
   }
 
@@ -597,7 +599,7 @@ const executeBatchOperation = async (operation, containers, actionName) => {
     try {
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error('操作超时(30s)'))
+          reject(new Error(t('docker.operationTimeout')))
         }, 30 * 1000)
 
         const handleResult = (result) => {
@@ -638,11 +640,11 @@ const executeBatchOperation = async (operation, containers, actionName) => {
 
   // 显示结果
   if (failCount === 0) {
-    $message.success(`批量${ actionName }完成：全部成功（${ successCount }/${ containers.length }）`)
+    $message.success(t('docker.batchResultSuccess', { action: actionName, success: successCount, total: containers.length }))
   } else {
     const failedNames = failedContainers.slice(0, 3).join('、')
-    const moreText = failedContainers.length > 3 ? ` 等${ failedContainers.length }个` : ''
-    $message.warning(`批量${ actionName }完成：成功 ${ successCount } 个，失败 ${ failCount } 个（${ failedNames }${ moreText }）`)
+    const moreText = failedContainers.length > 3 ? t('docker.moreCount', { count: failedContainers.length }) : ''
+    $message.warning(t('docker.batchResultPartial', { action: actionName, success: successCount, failed: failCount, names: failedNames, moreText }))
   }
 
   // 刷新列表
@@ -653,12 +655,12 @@ const executeBatchOperation = async (operation, containers, actionName) => {
 const handleBatchStart = () => {
   const canStart = selectedContainers.value.filter(c => c.status !== 'running')
   if (canStart.length === 0) {
-    $message.warning('没有可启动的容器（已选容器都在运行中）')
+    $message.warning(t('docker.noStartableContainers'))
     return
   }
-  $messageBox.confirm(`确认批量启动 ${ canStart.length } 个容器？`, '确认', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('docker.confirmBatchStart', { count: canStart.length }), t('docker.confirmTitle'), {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'info'
   }).then(() => {
     executeBatchOperation('docker_start_container', canStart, '启动')
@@ -669,12 +671,12 @@ const handleBatchStart = () => {
 const handleBatchRestart = () => {
   const canRestart = selectedContainers.value.filter(c => c.status === 'running')
   if (canRestart.length === 0) {
-    $message.warning('没有可重启的容器（已选容器都未运行）')
+    $message.warning(t('docker.noRestartableContainers'))
     return
   }
-  $messageBox.confirm(`确认批量重启 ${ canRestart.length } 个容器？`, '确认', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('docker.confirmBatchRestart', { count: canRestart.length }), t('docker.confirmTitle'), {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   }).then(() => {
     executeBatchOperation('docker_restart_container', canRestart, '重启')
@@ -685,12 +687,12 @@ const handleBatchRestart = () => {
 const handleBatchStop = () => {
   const canStop = selectedContainers.value.filter(c => c.status === 'running')
   if (canStop.length === 0) {
-    $message.warning('没有可停止的容器（已选容器都未运行）')
+    $message.warning(t('docker.noStoppableContainers'))
     return
   }
-  $messageBox.confirm(`确认批量停止 ${ canStop.length } 个容器？`, '警告', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('docker.confirmBatchStop', { count: canStop.length }), t('docker.warningTitle'), {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   }).then(() => {
     executeBatchOperation('docker_stop_container', canStop, '停止')
@@ -700,11 +702,11 @@ const handleBatchStop = () => {
 // 批量删除
 const handleBatchDelete = () => {
   $messageBox.confirm(
-    `确认批量删除 ${ selectedContainers.value.length } 个容器？此操作不可恢复！`,
-    '危险操作',
+    t('docker.confirmBatchDelete', { count: selectedContainers.value.length }),
+    t('docker.dangerTitle'),
     {
-      confirmButtonText: '确定删除',
-      cancelButtonText: '取消',
+      confirmButtonText: t('docker.confirmDelete'),
+      cancelButtonText: t('common.cancel'),
       type: 'error'
     }
   ).then(() => {

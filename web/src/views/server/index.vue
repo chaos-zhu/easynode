@@ -4,7 +4,7 @@
       <el-input
         v-if="hostList.length > 2"
         v-model="searchKeyword"
-        placeholder="搜索实例"
+        :placeholder="t('server.searchInstance')"
         class="search_input"
         clearable
       >
@@ -18,38 +18,38 @@
         :class="{ 'first_btn': hostList.length <= 2 }"
         @click="hostFormVisible = true"
       >
-        添加实例
+        {{ t('server.addInstance') }}
       </el-button>
       <el-dropdown trigger="click">
         <el-button type="primary" class="group_action_btn">
-          批量操作<el-icon class="el-icon--right"><arrow-down /></el-icon>
+          {{ t('server.batchActions') }}<el-icon class="el-icon--right"><arrow-down /></el-icon>
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item @click="handleBatchConnect">连接终端</el-dropdown-item>
-            <el-dropdown-item @click="handleBatchModify">批量修改</el-dropdown-item>
-            <el-dropdown-item @click="handleBatchRemove">批量删除</el-dropdown-item>
-            <el-dropdown-item @click="handleSelectAll">反选所有</el-dropdown-item>
-            <el-dropdown-item @click="importVisible = true">导入实例</el-dropdown-item>
-            <el-dropdown-item @click="handleBatchExport">导出实例</el-dropdown-item>
+            <el-dropdown-item @click="handleBatchConnect">{{ t('server.connectTerminal') }}</el-dropdown-item>
+            <el-dropdown-item @click="handleBatchModify">{{ t('server.batchModify') }}</el-dropdown-item>
+            <el-dropdown-item @click="handleBatchRemove">{{ t('server.batchDelete') }}</el-dropdown-item>
+            <el-dropdown-item @click="handleSelectAll">{{ t('server.invertSelection') }}</el-dropdown-item>
+            <el-dropdown-item @click="importVisible = true">{{ t('server.importInstance') }}</el-dropdown-item>
+            <el-dropdown-item @click="handleBatchExport">{{ t('server.exportInstance') }}</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <el-button type="primary" @click="groupDialogVisible = true">分组管理</el-button>
+      <el-button type="primary" @click="groupDialogVisible = true">{{ t('server.groupManagement') }}</el-button>
       <el-button
         type="primary"
         class="table_header_setting_btn"
         @click="listSettingsVisible = true"
       >
-        列表设置
+        {{ t('server.listSettings') }}
       </el-button>
     </div>
     <div class="server_group_collapse">
       <div v-if="isNoHost">
-        <el-empty description="暂无实例">
-          <el-button type="primary" @click="hostFormVisible = true">添加实例配置</el-button>
-          <span class="or">或</span>
-          <el-button type="primary" @click="importVisible = true">批量导入实例</el-button>
+        <el-empty :description="t('server.empty')">
+          <el-button type="primary" @click="hostFormVisible = true">{{ t('server.addInstanceConfig') }}</el-button>
+          <span class="or">{{ t('server.or') }}</span>
+          <el-button type="primary" @click="importVisible = true">{{ t('server.batchImportInstance') }}</el-button>
         </el-empty>
       </div>
       <!-- 分组展示模式 -->
@@ -119,6 +119,7 @@
 
 <script setup>
 import { h, ref, getCurrentInstance, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 // import HostCard from './components/host-card.vue'
 import HostTable from './components/host-table.vue'
 import HostForm from './components/host-form.vue'
@@ -129,6 +130,7 @@ import { ArrowDown, ArrowUp, Search } from '@element-plus/icons-vue'
 import { exportFile } from '@/utils'
 
 const { proxy: { $api, $store, $router, $message, $messageBox, $tools } } = getCurrentInstance()
+const { t } = useI18n()
 
 const updateHostData = ref(null)
 const hostFormVisible = ref(false)
@@ -151,17 +153,17 @@ const scrollContainer = ref(null)
 
 // 列配置定义
 const columnConfig = {
-  selection: { label: '选择', disabled: false },
-  index: { label: '序号', disabled: false },
-  name: { label: '名称', disabled: false },
-  username: { label: '用户名', disabled: false },
-  host: { label: 'IP', disabled: false },
-  port: { label: '端口', disabled: false },
-  authType: { label: '认证类型', disabled: false },
-  proxyType: { label: '代理类型', disabled: false },
-  expired: { label: '到期时间', disabled: false },
-  consoleUrl: { label: '控制台URL', disabled: false },
-  tag: { label: 'Tag', disabled: false }
+  selection: { label: t('server.selection'), disabled: false },
+  index: { label: t('server.index'), disabled: false },
+  name: { label: t('common.name'), disabled: false },
+  username: { label: t('server.username'), disabled: false },
+  host: { label: t('server.ip'), disabled: false },
+  port: { label: t('server.port'), disabled: false },
+  authType: { label: t('server.authType'), disabled: false },
+  proxyType: { label: t('server.proxyType'), disabled: false },
+  expired: { label: t('server.expiredAt'), disabled: false },
+  consoleUrl: { label: t('server.consoleUrl'), disabled: false },
+  tag: { label: t('server.tag'), disabled: false }
 }
 
 // 列设置状态（从store获取）
@@ -172,9 +174,9 @@ const handleSettingsConfirm = async (settings) => {
   try {
     // 保存到数据库
     await $store.setServerListConfig(settings)
-    $message.success('设置已保存')
+    $message.success(t('server.settingsSaved'))
   } catch (error) {
-    $message.error('保存设置失败')
+    $message.error(t('server.saveSettingsFailed'))
     console.error('保存设置失败:', error)
   }
 }
@@ -183,7 +185,7 @@ const handleUpdateList = async () => {
   try {
     await $store.getHostList()
   } catch (err) {
-    $message.error('获取实例列表失败')
+    $message.error(t('common.fetchServerListFailed'))
     console.error('获取实例列表失败: ', err)
   }
 }
@@ -206,24 +208,24 @@ const collectSelectHost = () => {
 
 const handleBatchConnect = () => {
   collectSelectHost()
-  if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
+  if (!selectHosts.value.length) return $message.warning(t('server.selectInstancesFirst'))
   let ids = selectHosts.value.filter(item => item.isConfig).map(item => item.id)
-  if (!ids.length) return $message.warning('所选实例未配置ssh连接信息')
+  if (!ids.length) return $message.warning(t('server.sshConfigMissing'))
   // $router.push({ path: '/terminal', query: { hostIds: ids.join(',') } })
   if (selectHosts.value.every(item => item.connectType === 'rdp')) {
     $router.push({ path: '/rdp', query: { hostIds: ids.join(',') } })
   } else if (selectHosts.value.every(item => !item.connectType || item.connectType === 'ssh')) {
     $router.push({ path: '/terminal', query: { hostIds: ids.join(',') } })
   } else {
-    $message.warning('所选实例包含rdp和ssh连接信息,请选择同一终端类型进行批量连接')
+    $message.warning(t('server.mixedTerminalType'))
     return
   }
-  if (ids.length < selectHosts.value.length) $message.warning('部分实例未配置ssh连接信息,已忽略')
+  if (ids.length < selectHosts.value.length) $message.warning(t('server.partialIgnored'))
 }
 
 const handleBatchModify = async () => {
   collectSelectHost()
-  if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
+  if (!selectHosts.value.length) return $message.warning(t('server.selectInstancesFirst'))
   isBatchModify.value = true
   hostFormVisible.value = true
 }
@@ -238,13 +240,13 @@ const handleSelectAll = () => {
 
 const handleBatchRemove = async () => {
   collectSelectHost()
-  if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
+  if (!selectHosts.value.length) return $message.warning(t('server.selectInstancesFirst'))
   let ids = selectHosts.value.map(item => item.id)
   let names = selectHosts.value.map(item => item.name)
 
-  $messageBox.confirm(() => h('p', { style: 'line-height: 18px;' }, `确认删除\n${ names.join(', ') }吗?`), 'Warning', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(() => h('p', { style: 'line-height: 18px;' }, t('server.deleteBatchConfirm', { names: names.join(', ') })), 'Warning', {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   }).then(async () => {
     let { data } = await $api.removeHost({ ids })
@@ -262,7 +264,7 @@ const handleUpdateHost = (defaultData) => {
 
 const handleBatchExport = () => {
   collectSelectHost()
-  if (!selectHosts.value.length) return $message.warning('请选择要批量操作的实例')
+  if (!selectHosts.value.length) return $message.warning(t('server.selectInstancesFirst'))
   let exportData = JSON.parse(JSON.stringify(selectHosts.value))
   exportData = exportData.map(item => {
     delete item.monitorData
@@ -307,8 +309,8 @@ const groupHostList = computed(() => {
     if (group?.name) {
       res[group.name].push(item)
     } else {
-      if (!res['默认分组']) res['默认分组'] = []
-      res['默认分组'].push(item)
+      if (!res[t('server.groupDefaultName')]) res[t('server.groupDefaultName')] = []
+      res[t('server.groupDefaultName')].push(item)
     }
   })
   Object.keys(res).map(groupName => {

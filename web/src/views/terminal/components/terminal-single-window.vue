@@ -69,7 +69,7 @@
         </div>
         <el-dialog
           v-model="scriptInputStates[panel.terminal.key]"
-          title="脚本输入"
+          :title="t('terminal.scriptInput')"
           top="20vh"
           width="60%"
           height="50vh"
@@ -101,6 +101,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Close, FullScreen, Aim } from '@element-plus/icons-vue'
 import Terminal from './terminal.vue'
 import { terminalStatusList, terminalStatus } from '@/utils/enum'
@@ -140,6 +141,7 @@ const props = defineProps({
 const containerRef = ref(null)
 
 const { proxy: { $message } } = getCurrentInstance()
+const { t } = useI18n()
 const { showMenu } = useContextMenu()
 
 const emit = defineEmits(['close-terminal', 'terminal-input', 'ping-data', 'reset-long-press', 'suspend-terminal'])
@@ -597,12 +599,12 @@ const handleCloseTerminal = (terminalKey) => {
 const handleSuspendTerminalSingle = async (terminalItem, { silent = false } = {}) => {
   const terminalRef = terminalRefs.value[terminalItem.key]
   if (!terminalRef) {
-    if (!silent) $message.error('获取终端引用失败')
+    if (!silent) $message.error(t('terminal.terminalRefMissing'))
     return false
   }
   const success = await terminalRef.suspendTerminal()
   if (success) {
-    if (!silent) $message.success('终端已挂起')
+    if (!silent) $message.success(t('terminal.terminalSuspended'))
     // 通知父组件关闭该终端
     emit('suspend-terminal', terminalItem.key)
     return true
@@ -614,7 +616,7 @@ const handleSuspendTerminalSingle = async (terminalItem, { silent = false } = {}
 const handleSuspendAllSessionsSingle = async () => {
   const connectedTabs = props.terminalTabs.filter(tab => tab.status === terminalStatus.CONNECT_SUCCESS)
   if (connectedTabs.length === 0) {
-    $message.warning('暂无可挂起的已连接会话')
+    $message.warning(t('terminal.noSuspendableSessions'))
     return
   }
   let successCount = 0
@@ -625,10 +627,10 @@ const handleSuspendAllSessionsSingle = async () => {
     else failCount += 1
   }
   if (successCount > 0) {
-    $message.success(`已挂起 ${ successCount } 个会话`)
+    $message.success(t('terminal.suspendedSessionCount', { count: successCount }))
   }
   if (failCount > 0) {
-    $message.warning(`有 ${ failCount } 个会话挂起失败`)
+    $message.warning(t('terminal.suspendSessionFailCount', { count: failCount }))
   }
 }
 

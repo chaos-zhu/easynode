@@ -3,7 +3,7 @@
     v-model="visible"
     width="600px"
     top="150px"
-    :title="isModify ? '修改脚本' : '添加脚本'"
+    :title="isModify ? t('scripts.editScriptTitle') : t('scripts.addScriptTitle')"
     :close-on-click-modal="false"
     @open="handleOpen"
     @close="handleClose"
@@ -17,7 +17,7 @@
       label-width="100px"
       :show-message="false"
     >
-      <el-form-item key="group" label="分组" prop="group">
+      <el-form-item key="group" :label="t('scripts.group')" prop="group">
         <el-select
           v-model="formData.group"
           placeholder=""
@@ -33,7 +33,7 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="名称" prop="name">
+      <el-form-item :label="t('scripts.name')" prop="name">
         <el-input
           v-model="formData.name"
           clearable
@@ -41,7 +41,7 @@
           autocomplete="off"
         />
       </el-form-item>
-      <el-form-item label="描述" prop="description">
+      <el-form-item :label="t('scripts.description')" prop="description">
         <el-input
           v-model="formData.description"
           clearable
@@ -49,7 +49,7 @@
           autocomplete="off"
         />
       </el-form-item>
-      <el-form-item label="序号" prop="index">
+      <el-form-item :label="t('scripts.order')" prop="index">
         <el-input
           v-model.trim.number="formData.index"
           clearable
@@ -57,7 +57,7 @@
           autocomplete="off"
         />
       </el-form-item>
-      <el-form-item prop="command" label="内容">
+      <el-form-item prop="command" :label="t('scripts.content')">
         <el-input
           v-model="formData.command"
           type="textarea"
@@ -65,35 +65,35 @@
           clearable
           autocomplete="off"
           style="margin-top: 5px;"
-          placeholder="shell script"
+          :placeholder="t('scripts.shellScriptPlaceholder')"
         />
       </el-form-item>
-      <el-form-item label="编码方式" prop="useBase64">
+      <el-form-item :label="t('scripts.encodingMode')" prop="useBase64">
         <el-radio-group v-model="formData.useBase64">
           <el-radio :value="false">
-            <span>直接发送</span>
+            <span>{{ t('scripts.directSend') }}</span>
             <el-tooltip placement="right">
               <template #content>
                 <div style="max-width: 300px;">
-                  适用于单行简单脚本。<br>
-                  脚本内容会直接发送到终端。<br>
-                  注意：多行脚本会逐行自动执行。
+                  {{ t('scripts.directSendTip1') }}<br>
+                  {{ t('scripts.directSendTip2') }}<br>
+                  {{ t('scripts.directSendTip3') }}
                 </div>
               </template>
               <el-icon style="margin-left: 4px; cursor: help;"><QuestionFilled /></el-icon>
             </el-tooltip>
           </el-radio>
           <el-radio :value="true">
-            <span>Base64编码</span>
+            <span>{{ t('scripts.base64Encoding') }}</span>
             <el-tooltip placement="right">
               <template #content>
                 <div style="max-width: 300px;">
-                  适用于多行复杂脚本。<br>
-                  脚本通过Base64编码后发送，可以避免：<br>
-                  • 特殊字符转义问题<br>
-                  • heredoc标记冲突<br>
-                  • 换行符兼容问题<br>
-                  命令格式: echo '&lt;script&gt;' | base64 -d | bash
+                  {{ t('scripts.base64Tip1') }}<br>
+                  {{ t('scripts.base64Tip2') }}<br>
+                  {{ t('scripts.base64TipEscape') }}<br>
+                  {{ t('scripts.base64TipHeredoc') }}<br>
+                  {{ t('scripts.base64TipNewline') }}<br>
+                  {{ t('scripts.commandFormat') }}
                 </div>
               </template>
               <el-icon style="margin-left: 4px; cursor: help;"><QuestionFilled /></el-icon>
@@ -104,8 +104,8 @@
     </el-form>
     <template #footer>
       <span>
-        <el-button @click="visible = false">关闭</el-button>
-        <el-button type="primary" @click="handleSubmit">{{ isModify ? '修改' : '添加' }}</el-button>
+        <el-button @click="visible = false">{{ t('scripts.close') }}</el-button>
+        <el-button type="primary" @click="handleSubmit">{{ isModify ? t('scripts.edit') : t('scripts.add') }}</el-button>
       </span>
     </template>
   </el-dialog>
@@ -114,6 +114,7 @@
 <script setup>
 import { ref, computed, reactive, watch } from 'vue'
 import { getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { QuestionFilled } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -138,6 +139,7 @@ const props = defineProps({
 const emit = defineEmits(['update:show', 'success',])
 
 const { proxy: { $api, $message, $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const visible = computed({
   get: () => props.show,
@@ -161,13 +163,13 @@ const formData = reactive({
 })
 const isModify = computed(() => Boolean(formData.id))
 
-const rules = {
-  group: { required: true, message: '选择一个分组' },
+const rules = computed(() => ({
+  group: { required: true, message: t('scripts.selectGroupRequired') },
   name: { required: true, trigger: 'change' },
   description: { required: false, trigger: 'change' },
   index: { required: false, type: 'number', trigger: 'change' },
   command: { required: true, trigger: 'change' }
-}
+}))
 
 watch(() => props.defaultData, (newVal) => {
   if (newVal?.id) {

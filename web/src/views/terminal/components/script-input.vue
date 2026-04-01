@@ -16,7 +16,7 @@
           @click="handleShowGroupManage"
         >
           <el-icon><Setting /></el-icon>
-          分组管理
+          {{ t('terminal.groupManagement') }}
         </div>
       </div>
       <div class="script_list">
@@ -33,7 +33,7 @@
             <div class="hover_icons">
               <el-icon
                 class="action_icon"
-                title="执行"
+                :title="t('terminal.execute')"
                 @click="handleExecScript(script)"
               >
                 <VideoPlay />
@@ -41,14 +41,14 @@
               <el-icon
                 v-if="activeGroup !== 'builtin'"
                 class="action_icon"
-                title="编辑脚本"
+                :title="t('terminal.editScript')"
                 @click="handleEditScript(script)"
               >
                 <Edit />
               </el-icon>
               <el-icon
                 class="action_icon"
-                title="发送到脚本编辑器"
+                :title="t('terminal.sendToScriptEditor')"
                 @click="handleSendToEditor(script)"
               >
                 <ArrowRightBold />
@@ -61,39 +61,38 @@
             @click="handleAddScript"
           >
             <el-icon><Plus /></el-icon>
-            <span>新建脚本</span>
+            <span>{{ t('terminal.createScript') }}</span>
           </div>
         </template>
         <div v-else class="empty-list">
           <el-empty
             :image-size="38"
-            description="暂无脚本"
+            :description="t('terminal.noScripts')"
           >
             <template #description>
-              <p>当前分组暂无脚本</p>
+              <p>{{ t('terminal.noScriptsInGroup') }}</p>
             </template>
             <el-button
               size="small"
               type="primary"
               @click="handleAddScript"
             >
-              添加脚本
+              {{ t('terminal.addScript') }}
             </el-button>
           </el-empty>
         </div>
       </div>
     </div>
     <div class="right_box">
-      <div class="editor_title">脚本编辑器</div>
+      <div class="editor_title">{{ t('terminal.scriptEditor') }}</div>
       <div class="editor_content">
         <el-input
           v-model="scriptContent"
           type="textarea"
           :rows="10"
-          placeholder="请输入脚本内容..."
+          :placeholder="t('terminal.inputScriptContent')"
         />
 
-        <!-- 脚本编辑器中的脚本编码模式选项 -->
         <div class="execution_mode_selector">
           <el-select
             v-model="editorUseBase64"
@@ -101,8 +100,8 @@
             style="width: 100px;"
             :teleported="false"
           >
-            <el-option :value="false" label="直接发送" />
-            <el-option :value="true" label="Base64编码" />
+            <el-option :value="false" :label="t('terminal.directSend')" />
+            <el-option :value="true" :label="t('terminal.base64Encoding')" />
           </el-select>
         </div>
         <div class="action_btn">
@@ -117,13 +116,11 @@
           >
             <template #dropdown>
               <el-dropdown-menu>
-                <!-- <el-dropdown-item>发送至当前窗口终端</el-dropdown-item> -->
-                <!-- <el-dropdown-item>发送至所有窗口终端</el-dropdown-item> -->
-                <el-dropdown-item @click="handleSaveAsScript">保存至脚本库</el-dropdown-item>
-                <el-dropdown-item @click="handleSendClearContent">发送后清空内容: {{ isClearContent ? '是' : '否' }}</el-dropdown-item>
+                <el-dropdown-item @click="handleSaveAsScript">{{ t('terminal.saveToScriptLibrary') }}</el-dropdown-item>
+                <el-dropdown-item @click="handleSendClearContent">{{ t('terminal.clearAfterSend') }}: {{ isClearContent ? t('terminal.yes') : t('terminal.no') }}</el-dropdown-item>
               </el-dropdown-menu>
             </template>
-            发送至终端
+            {{ t('terminal.sendToTerminal') }}
           </el-dropdown>
         </div>
       </div>
@@ -145,6 +142,7 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { VideoPlay, Edit, Setting, Plus, ArrowRightBold } from '@element-plus/icons-vue'
 import ScriptEdit from '@/views/scripts/components/script-edit.vue'
@@ -161,6 +159,7 @@ defineProps({
 const emit = defineEmits(['exec-command',])
 
 const { proxy: { $store, $message } } = getCurrentInstance()
+const { t } = useI18n()
 
 const router = useRouter()
 const scriptContent = ref('')
@@ -184,28 +183,28 @@ const filteredScripts = computed(() => {
 })
 
 const handleSelectGroup = (group) => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.plusOnlyFeature'))
   activeGroup.value = group.id
 }
 
 const handleExecScript = (script) => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.plusOnlyFeature'))
   emit('exec-command', { command: script.command, useBase64: script.useBase64 || false })
 }
 
 const handleEditScript = (script) => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.plusOnlyFeature'))
   editScriptData.value = script
   scriptEditVisible.value = true
 }
 
 const handleSendToEditor = (script) => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.plusOnlyFeature'))
   scriptContent.value = script.command
 }
 
 const handleSendToTerminal = () => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.plusOnlyFeature'))
   emit('exec-command', { command: scriptContent.value, useBase64: editorUseBase64.value })
   if (isClearContent.value) {
     scriptContent.value = ''
@@ -217,23 +216,23 @@ const handleSendClearContent = () => {
 }
 
 const handleAddScript = () => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.plusOnlyFeature'))
   editScriptData.value = null
   scriptEditVisible.value = true
 }
 
 const handleScriptEditSuccess = () => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.plusOnlyFeature'))
   editScriptData.value = null
 }
 
 const handleShowGroupManage = () => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.plusOnlyFeature'))
   scriptGroupVisible.value = true
 }
 
 const handleGroupDeleted = (deletedGroupId) => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.plusOnlyFeature'))
   if (deletedGroupId === activeGroup.value) {
     // 如果删除的是当前选中的分组，切换到第一个分组
     if (scriptGroupList.value.length) {
@@ -243,9 +242,9 @@ const handleGroupDeleted = (deletedGroupId) => {
 }
 
 const handleSaveAsScript = () => {
-  if (!isPlusActive.value) return $message.warning('此功能仅限PLUS版使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.plusOnlyFeature'))
   if (!scriptContent.value) {
-    return $message.warning('请先输入脚本内容')
+    return $message.warning(t('terminal.inputScriptFirst'))
   }
   scriptEditVisible.value = true
 }

@@ -1,3 +1,7 @@
+import i18n from '@/i18n'
+
+const t = i18n.global.t
+
 export class AIChatService {
   constructor(baseUrl, apiKey) {
     this.baseUrl = baseUrl
@@ -130,7 +134,7 @@ export class AIChatService {
               }
               // ======
             } catch (error) {
-              console.error('解析消息失败:', error)
+              console.error('Failed to parse AI stream message:', error)
               if (callbacks.onError) {
                 callbacks.onError(error)
               }
@@ -139,9 +143,9 @@ export class AIChatService {
         }
       }
     } catch (error) {
-      console.error('连接错误:', error.message)
+      console.error('AI connection error:', error.message)
       if (error.message === 'BodyStreamBuffer was aborted') {
-        callbacks.onMessage('用户取消请求')
+        callbacks.onMessage(t('aiChat.requestCancelled'))
         this.closeConnection()
         return
       }
@@ -153,13 +157,13 @@ export class AIChatService {
 
   async generateTitle(messages, model, options = {}) {
     if (!messages || messages.length === 0) {
-      return '闲聊'
+      return t('aiChat.fallbackTitle')
     }
 
-    const titleMessages = JSON.parse(JSON.stringify(messages)).splice(1) // 移除打招呼的内容
+    const titleMessages = JSON.parse(JSON.stringify(messages)).splice(1)
     titleMessages.push({
       role: 'user',
-      content: '使用四到五个字直接返回这句话的简要主题，不要解释、不要标点、不要语气词、不要多余文本，不要加粗，如果没有主题，请直接返回"闲聊"'
+      content: t('aiChat.titlePrompt')
     })
 
     const defaultOptions = {
@@ -195,20 +199,20 @@ export class AIChatService {
           const errorData = await response.json()
           errorMessage = errorData.error?.message || errorMessage
         } catch (e) {
-          // 如果无法解析错误响应，使用默认错误信息
+          // ignore invalid error payload
         }
-        console.error('生成标题失败:', errorMessage)
-        return '闲聊'
+        console.error('Failed to generate title:', errorMessage)
+        return t('aiChat.fallbackTitle')
       }
 
       const data = await response.json()
       if (data.choices && data.choices[0] && data.choices[0].message) {
-        return data.choices[0].message.content.trim() || '闲聊'
+        return data.choices[0].message.content.trim() || t('aiChat.fallbackTitle')
       }
-      return '闲聊'
+      return t('aiChat.fallbackTitle')
     } catch (error) {
-      console.error('生成标题错误:', error)
-      return '闲聊'
+      console.error('Title generation error:', error)
+      return t('aiChat.fallbackTitle')
     }
   }
 

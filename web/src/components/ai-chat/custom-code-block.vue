@@ -6,17 +6,17 @@
       <div class="code_header_actions">
         <span
           class="code_action_btn code_copy_btn"
-          title="复制代码"
+          :title="t('common.copy')"
           @click="handleCopy"
         >
-          复制
+          {{ t('common.copy') }}
         </span>
         <span
           class="code_action_btn code_exec_btn"
-          title="在终端执行"
+          :title="t('terminal.sendToTerminal')"
           @click="handleExec"
         >
-          执行
+          {{ t('terminal.execute') }}
         </span>
       </div>
     </div>
@@ -29,6 +29,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { EventBus } from '@/utils'
 import { ElMessage } from 'element-plus'
 import hljs from 'highlight.js'
@@ -61,6 +62,7 @@ const props = defineProps({
 import useStore from '@/store'
 const $store = useStore()
 const isDark = computed(() => $store.isDark)
+const { t } = useI18n()
 
 // 获取语言标签
 const languageLabel = computed(() => {
@@ -114,7 +116,7 @@ const handleCopy = () => {
 const handleExec = () => {
   const code = (props.node?.code || props.node?.value || '').trim()
   if (!code) {
-    ElMessage.warning('代码内容为空')
+    ElMessage.warning(t('common.emptyCodeContent'))
     return
   }
   // 通过 EventBus 发送执行命令

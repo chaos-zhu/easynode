@@ -1,4 +1,7 @@
-// 终端连接状态
+import i18n from '@/i18n'
+
+const t = i18n.global.t
+
 export const terminalStatus = {
   CONNECT_READY: 'connect_ready',
   CONNECTING: 'connecting',
@@ -9,12 +12,12 @@ export const terminalStatus = {
 }
 
 export const terminalStatusList = [
-  { value: terminalStatus.CONNECT_READY, label: '待连接', color: 'gray' },
-  { value: terminalStatus.CONNECTING, label: '连接中', color: '#FFA500' },
-  { value: terminalStatus.CONNECT_FAIL, label: '连接失败', color: '#DC3545' },
-  { value: terminalStatus.CONNECT_SUCCESS, label: '已连接', color: '#28A745' },
-  { value: terminalStatus.SUSPENDED, label: '已挂起', color: '#909399' }, // 新增
-  { value: terminalStatus.RESUMING, label: '恢复中', color: '#409EFF' }, // 新增
+  { value: terminalStatus.CONNECT_READY, label: t('enum.terminalStatus.ready'), color: 'gray' },
+  { value: terminalStatus.CONNECTING, label: t('enum.terminalStatus.connecting'), color: '#FFA500' },
+  { value: terminalStatus.CONNECT_FAIL, label: t('enum.terminalStatus.connectFailed'), color: '#DC3545' },
+  { value: terminalStatus.CONNECT_SUCCESS, label: t('enum.terminalStatus.connected'), color: '#28A745' },
+  { value: terminalStatus.SUSPENDED, label: t('enum.terminalStatus.suspended'), color: '#909399' },
+  { value: terminalStatus.RESUMING, label: t('enum.terminalStatus.resuming'), color: '#409EFF' },
 ]
 
 // RDP连接状态
@@ -30,14 +33,14 @@ export const rdpStatus = {
 }
 
 export const rdpStatusList = [
-  { value: rdpStatus.IDLE, label: '准备连接', color: '#909399' },
-  { value: rdpStatus.CONNECTING, label: '正在连接...', color: '#E6A23C' },
-  { value: rdpStatus.WAITING, label: '等待响应...', color: '#409EFF' },
-  { value: rdpStatus.CONNECTED, label: '已连接', color: '#67C23A' },
-  { value: rdpStatus.DISCONNECTING, label: '正在断开...', color: '#E6A23C' },
-  { value: rdpStatus.DISCONNECTED, label: '已断开', color: '#909399' },
-  { value: rdpStatus.TIMEOUT, label: '连接超时', color: '#F56C6C' },
-  { value: rdpStatus.ERROR, label: '连接错误', color: '#F56C6C' },
+  { value: rdpStatus.IDLE, label: t('enum.rdpStatus.idle'), color: '#909399' },
+  { value: rdpStatus.CONNECTING, label: t('enum.rdpStatus.connecting'), color: '#E6A23C' },
+  { value: rdpStatus.WAITING, label: t('enum.rdpStatus.waiting'), color: '#409EFF' },
+  { value: rdpStatus.CONNECTED, label: t('enum.rdpStatus.connected'), color: '#67C23A' },
+  { value: rdpStatus.DISCONNECTING, label: t('enum.rdpStatus.disconnecting'), color: '#E6A23C' },
+  { value: rdpStatus.DISCONNECTED, label: t('enum.rdpStatus.disconnected'), color: '#909399' },
+  { value: rdpStatus.TIMEOUT, label: t('enum.rdpStatus.timeout'), color: '#F56C6C' },
+  { value: rdpStatus.ERROR, label: t('enum.rdpStatus.error'), color: '#F56C6C' },
 ]
 
 export const virtualKeyType = {

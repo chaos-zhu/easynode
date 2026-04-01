@@ -4,18 +4,18 @@
     <div v-if="connectionStatus !== 'connected'" class="connection_status">
       <div v-if="connectionStatus === 'connecting'" class="status_connecting">
         <el-icon class="is-loading"><Loading /></el-icon>
-        <span>正在连接 SFTP...</span>
+        <span>{{ t('terminal.sftp.connecting') }}</span>
       </div>
       <div v-else-if="connectionStatus === 'reconnecting'" class="status_reconnecting">
         <el-icon class="is-loading"><Loading /></el-icon>
-        <span>重新连接中...</span>
+        <span>{{ t('terminal.sftp.reconnecting') }}</span>
       </div>
       <div v-else-if="connectionStatus === 'failed'" class="status_failed">
         <el-icon class="error_icon"><WarningFilled /></el-icon>
         <div class="error_content">
-          <h3>SFTP连接断开</h3>
-          <p>{{ connectionError || '请检查服务端状态或网络连接' }}</p>
-          <el-button type="primary" size="small" @click="connectSftp">重新连接</el-button>
+          <h3>{{ t('terminal.sftp.disconnectedTitle') }}</h3>
+          <p>{{ connectionError || t('terminal.sftp.disconnectedHint') }}</p>
+          <el-button type="primary" size="small" @click="connectSftp">{{ t('terminal.sftp.reconnect') }}</el-button>
         </div>
       </div>
     </div>
@@ -27,12 +27,12 @@
         <!-- 上传 -->
         <el-dropdown trigger="click">
           <el-button type="" size="small">
-            上传 <el-icon><ArrowDown /></el-icon>
+            {{ t('terminal.sftp.upload') }} <el-icon><ArrowDown /></el-icon>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="handleUpload('file')">上传文件</el-dropdown-item>
-              <el-dropdown-item @click="handleUpload('folder')">上传文件夹</el-dropdown-item>
+              <el-dropdown-item @click="handleUpload('file')">{{ t('terminal.sftp.uploadFile') }}</el-dropdown-item>
+              <el-dropdown-item @click="handleUpload('folder')">{{ t('terminal.sftp.uploadFolder') }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -41,12 +41,12 @@
         <div style="position: relative;">
           <el-dropdown trigger="click">
             <el-button ref="newBtnRef" size="small">
-              新建 <el-icon><ArrowDown /></el-icon>
+              {{ t('terminal.sftp.create') }} <el-icon><ArrowDown /></el-icon>
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="handleNew('file')">新建文件</el-dropdown-item>
-                <el-dropdown-item @click="handleNew('folder')">新建文件夹</el-dropdown-item>
+                <el-dropdown-item @click="handleNew('file')">{{ t('terminal.sftp.createFile') }}</el-dropdown-item>
+                <el-dropdown-item @click="handleNew('folder')">{{ t('terminal.sftp.createFolder') }}</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -57,7 +57,7 @@
         <!-- 收藏 -->
         <el-dropdown v-if="hasFavorites" trigger="click">
           <el-button type="" size="small">
-            收藏 <el-icon><ArrowDown /></el-icon>
+            {{ t('terminal.sftp.favorites') }} <el-icon><ArrowDown /></el-icon>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu class="favorite_dropdown">
@@ -71,7 +71,7 @@
                   <span class="favorite_path" :title="favorite.path">{{ favorite.path }}</span>
                   <el-icon
                     class="delete_icon"
-                    title="删除收藏"
+                    :title="t('terminal.sftp.removeFavorite')"
                     @click.stop="removeFavorite(favorite)"
                   >
                     <Delete />
@@ -84,7 +84,7 @@
 
         <el-tooltip
           effect="dark"
-          content="重新连接"
+          :content="t('terminal.sftp.reconnect')"
           placement="left"
         >
           <span class="reconnect_btn" @click="reconnectSftp">
@@ -124,25 +124,25 @@
             @blur="cancelEditPath"
           />
         </template>
-        <el-icon class="action_icon" title="编辑路径" @click="toggleEditPath"><Edit /></el-icon>
+        <el-icon class="action_icon" :title="t('terminal.sftp.editPath')" @click="toggleEditPath"><Edit /></el-icon>
         <el-icon
           ref="searchPopoverRef"
           class="action_icon"
-          title="搜索"
+          :title="t('common.search')"
           @click="search"
         >
           <Search />
         </el-icon>
-        <el-icon class="action_icon" title="复制当前路径" @click="copyCurrentPath"><DocumentCopy /></el-icon>
-        <el-icon class="action_icon" title="刷新" @click="refresh"><Refresh /></el-icon>
-        <el-icon class="action_icon" :title="showHidden ? '隐藏隐藏文件' : '显示隐藏文件'" @click="toggleHidden">
+        <el-icon class="action_icon" :title="t('terminal.sftp.copyCurrentPath')" @click="copyCurrentPath"><DocumentCopy /></el-icon>
+        <el-icon class="action_icon" :title="t('terminal.sftp.refresh')" @click="refresh"><Refresh /></el-icon>
+        <el-icon class="action_icon" :title="showHidden ? t('terminal.sftp.hideHiddenFiles') : t('terminal.sftp.showHiddenFiles')" @click="toggleHidden">
           <View v-if="showHidden" />
           <Hide v-else />
         </el-icon>
         <el-icon
           ref="columnsConfigPopoverRef"
           class="action_icon"
-          title="列配置"
+          :title="t('terminal.sftp.columnsConfig')"
           @click="showColumnsConfig = !showColumnsConfig"
         >
           <Setting />
@@ -150,7 +150,7 @@
         <el-icon
           v-if="hasDownloadTasks"
           class="action_icon download_icon"
-          :title="`下载管理 - 正在下载 ${activeDownloadTasks.length} 个任务`"
+          :title="t('terminal.sftp.downloadManagerTitleWithCount', { count: activeDownloadTasks.length })"
           @click="showDownloadManager"
         >
           <Download />
@@ -158,7 +158,7 @@
         <el-icon
           v-if="hasUploadTasks"
           class="action_icon upload_icon"
-          :title="`上传管理 - 正在上传 ${activeUploadTasks.length} 个任务`"
+          :title="t('terminal.sftp.uploadManagerTitleWithCount', { count: activeUploadTasks.length })"
           @click="showUploadManager"
         >
           <Upload />
@@ -174,14 +174,14 @@
         size="small"
         :default-sort="{ prop: 'name' }"
         class="file_table"
-        element-loading-text="loading..."
+        :element-loading-text="t('terminal.sftp.tableLoading')"
         @row-click="onRowClick"
         @row-contextmenu="onRowContextMenu"
         @selection-change="onSelectionChange"
       >
         <el-table-column type="selection" width="32" />
         <el-table-column
-          label="名称"
+          :label="t('terminal.sftp.fileName')"
           width="auto"
           min-width="120"
           show-overflow-tooltip
@@ -194,13 +194,13 @@
             >
               <template #content>
                 <div style="font-size: 12px; line-height: 1.6;">
-                  <div><strong>名称:</strong> {{ row.name }}</div>
-                  <div><strong>类型:</strong> {{ row.type === 'd' ? '文件夹' : row.type === 'l' ? '链接' : '文件' }}</div>
-                  <div v-if="row.size"><strong>大小:</strong> {{ sizeFormatter(row, null, row.size) }}</div>
-                  <div v-if="row.modifyTime"><strong>修改时间:</strong> {{ timeFormatter(row, null, row.modifyTime) }}</div>
-                  <div v-if="row.permissions"><strong>权限:</strong> {{ row.permissions }}</div>
-                  <div v-if="row.ownerName"><strong>所有者:</strong> {{ row.ownerName }}</div>
-                  <div v-if="row.groupName"><strong>组:</strong> {{ row.groupName }}</div>
+                  <div><strong>{{ t('terminal.sftp.fileName') }}:</strong> {{ row.name }}</div>
+                  <div><strong>{{ t('terminal.sftp.fileType') }}:</strong> {{ row.type === 'd' ? t('terminal.sftp.folder') : row.type === 'l' ? t('terminal.sftp.link') : t('terminal.sftp.file') }}</div>
+                  <div v-if="row.size"><strong>{{ t('terminal.sftp.size') }}:</strong> {{ sizeFormatter(row, null, row.size) }}</div>
+                  <div v-if="row.modifyTime"><strong>{{ t('terminal.sftp.modifiedTime') }}:</strong> {{ timeFormatter(row, null, row.modifyTime) }}</div>
+                  <div v-if="row.permissions"><strong>{{ t('terminal.sftp.permissions') }}:</strong> {{ row.permissions }}</div>
+                  <div v-if="row.ownerName"><strong>{{ t('terminal.sftp.owner') }}:</strong> {{ row.ownerName }}</div>
+                  <div v-if="row.groupName"><strong>{{ t('terminal.sftp.group') }}:</strong> {{ row.groupName }}</div>
                 </div>
               </template>
               <div class="file_name_cell">
@@ -222,7 +222,7 @@
                   <el-icon
                     class="star_icon"
                     :class="{ 'favorited': isFavorited(row) }"
-                    :title="isFavorited(row) ? '取消收藏' : '收藏'"
+                    :title="isFavorited(row) ? t('terminal.sftp.unfavorite') : t('terminal.sftp.favorite')"
                     @click.stop="toggleFavorite(row)"
                   >
                     <StarFilled v-if="isFavorited(row)" />
@@ -236,27 +236,27 @@
         <el-table-column
           v-if="columnsConfig.size"
           prop="size"
-          label="大小"
+          :label="t('terminal.sftp.size')"
           :formatter="sizeFormatter"
           width="55"
         />
         <el-table-column
           v-if="columnsConfig.modifyTime"
           prop="modifyTime"
-          label="修改时间"
+          :label="t('terminal.sftp.modifiedTime')"
           width="80"
           :formatter="timeFormatter"
         />
         <el-table-column
           v-if="columnsConfig.permissions"
           prop="permissions"
-          label="权限"
+          :label="t('terminal.sftp.permissions')"
           width="80"
         />
         <el-table-column
           v-if="columnsConfig.owner"
           prop="ownerName"
-          label="所有者"
+          :label="t('terminal.sftp.owner')"
           width="70"
         />
       <!-- 权限列已隐藏，根据需求可再启用 -->
@@ -278,7 +278,7 @@
                 ref="createInputRef"
                 v-model.trim="createName"
                 size="small"
-                :placeholder="createType === 'folder' ? '输入文件夹名称' : '输入文件名称'"
+                :placeholder="createType === 'folder' ? t('terminal.sftp.inputFolderName') : t('terminal.sftp.inputFileName')"
                 clearable
                 @keyup.enter="confirmCreate"
                 @input="handleInputChange"
@@ -290,7 +290,7 @@
                 style="margin-left: 10px;"
                 @click="confirmCreate"
               >
-                确认
+                {{ t('terminal.sftp.confirm') }}
               </el-button>
             </div>
             <div v-if="showSuggestions && filteredSuggestions.length > 0" class="suggestions_dropdown">
@@ -320,7 +320,7 @@
             ref="searchInputRef"
             v-model.trim="searchKeyword"
             size="small"
-            placeholder="输入文件名进行过滤..."
+            :placeholder="t('terminal.sftp.filterFileName')"
             clearable
           >
             <template #prefix>
@@ -340,7 +340,7 @@
       >
         <template #default>
           <div style="padding: 8px 0;">
-            <div style="font-weight: 500; margin-bottom: 8px; padding: 0 12px;">显示列</div>
+            <div style="font-weight: 500; margin-bottom: 8px; padding: 0 12px;">{{ t('terminal.sftp.visibleColumns') }}</div>
             <el-checkbox-group v-model="selectedColumns" style="display: flex; flex-direction: column; gap: 8px; padding: 0 12px;">
               <el-checkbox
                 v-for="col in availableColumns"
@@ -392,19 +392,19 @@
       <!-- 下载任务管理对话框 -->
       <el-dialog
         v-model="showDownloadDialog"
-        title="下载管理"
+        :title="t('terminal.sftp.downloadManager')"
         width="600px"
         :close-on-click-modal="true"
       >
         <el-alert type="success" :closable="false" style="margin-bottom: 16px;">
           <template #title>
-            <p style="font-size: 12px;"> 下列文件只在本次会话保留,连接断开后自动清理 </p>
+            <p style="font-size: 12px;">{{ t('terminal.sftp.sessionFileCleanupHint') }}</p>
           </template>
         </el-alert>
         <div class="download_manager_container">
           <!-- 正在下载的任务 -->
           <div v-if="activeDownloadTasks.length > 0" class="download_section">
-            <h4 class="section_title">正在下载 ({{ activeDownloadTasks.length }})</h4>
+            <h4 class="section_title">{{ t('terminal.sftp.downloadingCount', { count: activeDownloadTasks.length }) }}</h4>
             <div class="download_task_list">
               <div
                 v-for="task in activeDownloadTasks"
@@ -421,7 +421,7 @@
                     type="danger"
                     @click="cancelDownload(task.taskId)"
                   >
-                    取消
+                    {{ t('common.cancel') }}
                   </el-button>
                 </div>
 
@@ -448,7 +448,7 @@
 
           <!-- 已完成的任务 -->
           <div v-if="completedDownloadTasks.length > 0" class="download_section">
-            <h4 class="section_title">已完成 ({{ completedDownloadTasks.length }})</h4>
+            <h4 class="section_title">{{ t('terminal.sftp.completedCount', { count: completedDownloadTasks.length }) }}</h4>
             <div class="download_task_list">
               <div
                 v-for="task in completedDownloadTasks"
@@ -466,7 +466,7 @@
                       type="primary"
                       @click="downloadFile(task)"
                     >
-                      下载
+                      {{ t('terminal.sftp.download') }}
                     </el-button>
                   </div>
                 </div>
@@ -477,26 +477,26 @@
           <!-- 无任务时的提示 -->
           <div v-if="!hasDownloadTasks" class="no_tasks">
             <el-icon class="empty_icon"><Download /></el-icon>
-            <p>暂无下载任务</p>
+            <p>{{ t('terminal.sftp.noDownloadTasks') }}</p>
           </div>
         </div>
 
         <template #footer>
-          <el-button @click="showDownloadDialog = false">关闭</el-button>
+          <el-button @click="showDownloadDialog = false">{{ t('common.close') }}</el-button>
         </template>
       </el-dialog>
 
       <!-- 上传任务管理对话框 -->
       <el-dialog
         v-model="showUploadDialog"
-        title="上传管理"
+        :title="t('terminal.sftp.uploadManager')"
         width="600px"
         :close-on-click-modal="true"
       >
         <div class="upload_manager_container">
           <!-- 正在上传的任务 -->
           <div v-if="activeUploadTasks.length > 0" class="upload_section">
-            <h4 class="section_title">正在上传 ({{ activeUploadTasks.length }})</h4>
+            <h4 class="section_title">{{ t('terminal.sftp.uploadingCount', { count: activeUploadTasks.length }) }}</h4>
             <div class="upload_task_list">
               <div
                 v-for="task in activeUploadTasks"
@@ -513,7 +513,7 @@
                     type="danger"
                     @click="cancelUpload(task.taskId)"
                   >
-                    取消
+                    {{ t('common.cancel') }}
                   </el-button>
                 </div>
 
@@ -521,7 +521,7 @@
                   <!-- 分片上传进度条 -->
                   <div class="progress_section">
                     <div class="progress_label">
-                      上传到面板: {{ formatSize(task.chunkUploadedSize) }} / {{ formatSize(task.chunkTotalSize) }}
+                      {{ t('terminal.sftp.uploadToPanel') }}: {{ formatSize(task.chunkUploadedSize) }} / {{ formatSize(task.chunkTotalSize) }}
                       ({{ task.chunkProgress.toFixed(1) }}%)
                     </div>
                     <el-progress
@@ -536,14 +536,14 @@
                   <div class="progress_section">
                     <div class="progress_label">
                       <template v-if="task.stage === 'merging'">
-                        合并文件中...
+                        {{ t('terminal.sftp.mergingFiles') }}
                       </template>
                       <template v-else-if="task.stage === 'transferring'">
-                        传输到服务器: {{ formatSize(task.sftpUploadedSize) }} / {{ formatSize(task.sftpTotalSize) }}
+                        {{ t('terminal.sftp.transferringToServer') }}: {{ formatSize(task.sftpUploadedSize) }} / {{ formatSize(task.sftpTotalSize) }}
                         ({{ task.sftpProgress.toFixed(1) }}%)
                       </template>
                       <template v-else>
-                        传输到服务器: 0 B / {{ formatSize(task.sftpTotalSize) }} (0.0%)
+                        {{ t('terminal.sftp.transferringToServer') }}: 0 B / {{ formatSize(task.sftpTotalSize) }} (0.0%)
                       </template>
                     </div>
                     <el-progress
@@ -557,11 +557,11 @@
                   <!-- 速度和时间信息 -->
                   <div class="progress_details">
                     <span class="progress_text">
-                      总进度: {{ task.progress.toFixed(1) }}%
+                      {{ t('terminal.sftp.totalProgress') }}: {{ task.progress.toFixed(1) }}%
                     </span>
                     <span class="speed_text">
                       <template v-if="task.stage === 'merging'">
-                        合并中...
+                        {{ t('terminal.sftp.merging') }}
                       </template>
                       <template v-else-if="task.stage === 'transferring' && task.speed > 0">
                         {{ formatSpeed(task.speed) }} · {{ formatTime(task.eta) }}
@@ -578,7 +578,7 @@
 
           <!-- 已完成的任务 -->
           <div v-if="completedUploadTasks.length > 0" class="upload_section">
-            <h4 class="section_title">已完成 ({{ completedUploadTasks.length }})</h4>
+            <h4 class="section_title">{{ t('terminal.sftp.completedCount', { count: completedUploadTasks.length }) }}</h4>
             <div class="upload_task_list">
               <div
                 v-for="task in completedUploadTasks"
@@ -591,7 +591,7 @@
                     <span class="file_name" :title="task.fileName">{{ task.fileName }}</span>
                   </div>
                   <div class="task_actions">
-                    <span class="completed_text">上传完成</span>
+                    <span class="completed_text">{{ t('terminal.sftp.uploadCompleted') }}</span>
                   </div>
                 </div>
               </div>
@@ -600,7 +600,7 @@
 
           <!-- 失败的任务 -->
           <div v-if="failedUploadTasks.length > 0" class="upload_section">
-            <h4 class="section_title">上传失败 ({{ failedUploadTasks.length }})</h4>
+            <h4 class="section_title">{{ t('terminal.sftp.uploadFailedCount', { count: failedUploadTasks.length }) }}</h4>
             <div class="upload_task_list">
               <div
                 v-for="task in failedUploadTasks"
@@ -618,19 +618,19 @@
                       type="primary"
                       @click="retryUpload(task)"
                     >
-                      重试
+                      {{ t('terminal.sftp.retry') }}
                     </el-button>
                     <el-button
                       size="small"
                       type="danger"
                       @click="removeUploadTask(task.taskId)"
                     >
-                      删除
+                      {{ t('terminal.sftp.delete') }}
                     </el-button>
                   </div>
                 </div>
                 <div class="error_info">
-                  <span class="error_text">错误: {{ task.error }}</span>
+                  <span class="error_text">{{ t('terminal.sftp.errorLabel') }}: {{ task.error }}</span>
                 </div>
               </div>
             </div>
@@ -639,14 +639,14 @@
           <!-- 无任务时的提示 -->
           <div v-if="!hasUploadTasks" class="no_tasks">
             <el-icon class="empty_icon"><Upload /></el-icon>
-            <p>暂无上传任务</p>
+            <p>{{ t('terminal.sftp.noUploadTasks') }}</p>
           </div>
         </div>
 
         <template #footer>
           <div class="upload_dialog_footer">
-            <el-button @click="clearCompletedTasks">清空已完成</el-button>
-            <el-button @click="showUploadDialog = false">关闭</el-button>
+            <el-button @click="clearCompletedTasks">{{ t('terminal.sftp.clearCompleted') }}</el-button>
+            <el-button @click="showUploadDialog = false">{{ t('common.close') }}</el-button>
           </div>
         </template>
       </el-dialog>
@@ -656,6 +656,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, getCurrentInstance, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowDown, ArrowLeft, Refresh, View, Hide, Edit, Search, ArrowRight, HomeFilled, Check, Close as CloseIcon, Download, Upload, DocumentCopy, Loading, WarningFilled, Star, StarFilled, Delete, RefreshRight, Setting } from '@element-plus/icons-vue'
 import { generateSocketInstance } from '@/utils'
 import dirIcon from '@/assets/image/system/dir.png'
@@ -686,17 +687,18 @@ const props = defineProps({
 
 // 组件实例上下文
 const { proxy: { $message, $messageBox, $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 // 列配置
 const COLUMNS_CONFIG_KEY = 'easynode_sftp_columns_config'
-const availableColumns = [
-  { key: 'size', label: '大小', width: 70, defaultShow: true },
-  { key: 'modifyTime', label: '修改时间', width: 80, defaultShow: true },
-  { key: 'permissions', label: '权限', width: 80, defaultShow: false },
-  { key: 'owner', label: '所有者', width: 70, defaultShow: false },
-]
+const availableColumns = computed(() => [
+  { key: 'size', label: t('terminal.sftp.size'), width: 70, defaultShow: true },
+  { key: 'modifyTime', label: t('terminal.sftp.modifiedTime'), width: 80, defaultShow: true },
+  { key: 'permissions', label: t('terminal.sftp.permissions'), width: 80, defaultShow: false },
+  { key: 'owner', label: t('terminal.sftp.owner'), width: 70, defaultShow: false },
+])
 
-const defaultColumnsConfig = availableColumns.reduce((acc, col) => {
+const defaultColumnsConfig = availableColumns.value.reduce((acc, col) => {
   acc[col.key] = col.defaultShow
   return acc
 }, {})
@@ -1008,49 +1010,49 @@ const connectSftp = () => {
     })
 
     socket.value.on('rename_success', () => {
-      $message.success('重命名成功')
+      $message.success(t('terminal.sftp.renameSuccess'))
       loading.value = false
       cancelRename()
     })
 
     socket.value.on('rename_fail', (msg) => {
-      $message.error(`重命名失败: ${ msg }`)
+      $message.error(t('terminal.sftp.renameFailed', { message: msg }))
       loading.value = false
       cancelRename()
     })
 
     socket.value.on('delete_success', () => {
-      $message.success('删除成功')
+      $message.success(t('terminal.sftp.deleteSuccess'))
       loading.value = false
     })
 
     socket.value.on('delete_fail', (msg) => {
-      $message.error(`删除失败: ${ msg }`)
+      $message.error(t('terminal.sftp.deleteFailed', { message: msg }))
       loading.value = false
     })
 
     socket.value.on('move_success', () => {
-      $message.success('移动成功')
+      $message.success(t('terminal.sftp.moveSuccess'))
       loading.value = false
     })
 
     socket.value.on('move_fail', (msg) => {
-      $message.error(`移动失败: ${ msg }`)
+      $message.error(t('terminal.sftp.moveFailed', { message: msg }))
       loading.value = false
     })
 
     socket.value.on('copy_success', () => {
-      $message.success('复制成功')
+      $message.success(t('terminal.sftp.copySuccess'))
       loading.value = false
     })
 
     socket.value.on('copy_fail', (msg) => {
-      $message.error(`复制失败: ${ msg }`)
+      $message.error(t('terminal.sftp.copyFailed', { message: msg }))
       loading.value = false
     })
 
     socket.value.on('create_success', (msg) => {
-      $message.success(msg || '创建成功')
+      $message.success(msg || t('terminal.sftp.createSuccess'))
       loading.value = false
 
       // 如果创建的是文件夹，自动进入该文件夹
@@ -1078,29 +1080,29 @@ const connectSftp = () => {
     })
 
     socket.value.on('create_fail', (msg) => {
-      $message.error(`创建失败: ${ msg }`)
+      $message.error(t('terminal.sftp.createFailed', { message: msg }))
       loading.value = false
     })
 
     socket.value.on('compress_success', (msg) => {
-      $message.success(msg || '压缩成功')
+      $message.success(msg || t('terminal.sftp.compressSuccess'))
       loading.value = false
       refresh()
     })
 
     socket.value.on('compress_fail', (msg) => {
-      $message.error(`压缩失败: ${ msg }`)
+      $message.error(t('terminal.sftp.compressFailed', { message: msg }))
       loading.value = false
     })
 
     socket.value.on('decompress_success', (msg) => {
-      $message.success(msg || '解压成功')
+      $message.success(msg || t('terminal.sftp.decompressSuccess'))
       loading.value = false
       refresh()
     })
 
     socket.value.on('decompress_fail', (msg) => {
-      $message.error(`解压失败: ${ msg }`)
+      $message.error(t('terminal.sftp.decompressFailed', { message: msg }))
       loading.value = false
     })
 
@@ -1110,21 +1112,21 @@ const connectSftp = () => {
     })
 
     socket.value.on('favorite_added', (message) => {
-      $message.success(message || '收藏成功')
+      $message.success(message || t('terminal.sftp.favoriteAdded'))
       getFavoriteList()
       // 刷新文件列表以更新星标显示
       refresh()
     })
 
     socket.value.on('favorite_removed', (message) => {
-      $message.success(message || '取消收藏成功')
+      $message.success(message || t('terminal.sftp.favoriteRemoved'))
       getFavoriteList()
       // 刷新文件列表以更新星标显示
       refresh()
     })
 
     socket.value.on('favorite_error', (message) => {
-      $message.error(`收藏操作失败: ${ message }`)
+      $message.error(t('terminal.sftp.favoriteActionFailed', { message }))
     })
 
     // 软链接解析相关事件
@@ -1135,7 +1137,7 @@ const connectSftp = () => {
       if (isDirectory) {
         // 软链接指向目录，导航到真实目录
         switchToPath(realPath, true)
-        $message.success(`已跳转到软链接指向的目录: ${ realPath }`)
+        $message.success(t('terminal.sftp.symlinkDirectoryResolved', { path: realPath }))
       } else {
         // 软链接指向文件，尝试打开文件
         const fileName = realPath.split('/').pop()
@@ -1157,7 +1159,7 @@ const connectSftp = () => {
           }
           showTextEditor.value = true
         } else {
-          $message.info(`软链接指向文件: ${ realPath }，暂不支持在线预览`)
+          $message.info(t('terminal.sftp.symlinkFilePreviewUnsupported', { path: realPath }))
         }
       }
     })
@@ -1165,7 +1167,7 @@ const connectSftp = () => {
     socket.value.on('symlink_resolve_error', ({ error, symlinkPath }) => {
       loading.value = false
       console.error('解析软链接失败:', error, symlinkPath)
-      $message.error(`解析软链接失败: ${ error }`)
+      $message.error(t('terminal.sftp.symlinkResolveFailed', { error }))
     })
 
     // 下载相关事件
@@ -1208,7 +1210,7 @@ const connectSftp = () => {
     })
 
     socket.value.on('download_fail', (msg) => {
-      $message.error(`下载失败: ${ msg }`)
+      $message.error(t('terminal.sftp.downloadFailed', { message: msg }))
       loading.value = false
       // 清理失败的任务
       for (const [taskId, task,] of downloadTasks.value) {
@@ -1229,7 +1231,7 @@ const connectSftp = () => {
       if (task) {
         task.status = 'uploading'
         showUploadDialog.value = true
-        $message.success(`开始上传: ${ fileName }`)
+        $message.success(t('terminal.sftp.uploadStarted', { fileName }))
       }
     })
 
@@ -1261,7 +1263,7 @@ const connectSftp = () => {
       if (task) {
         task.status = 'completed'
         task.progress = 100
-        $message.success(`上传完成: ${ fileName }`)
+        $message.success(t('terminal.sftp.uploadCompletedWithName', { fileName }))
         // 刷新文件列表
         refresh()
       }
@@ -1272,7 +1274,7 @@ const connectSftp = () => {
       if (task) {
         task.status = 'failed'
         task.error = error
-        $message.error(`上传失败: ${ error }`)
+        $message.error(t('terminal.sftp.uploadFailed', { error }))
       }
     })
 
@@ -1288,7 +1290,7 @@ const connectSftp = () => {
       const task = uploadTasks.value.get(taskId)
       if (task) {
         task.status = 'failed'
-        task.error = `分片 ${ chunkIndex } 上传失败: ${ error }`
+        task.error = t('terminal.sftp.uploadChunkFailed', { chunkIndex, error })
         $message.error(task.error)
       }
     })
@@ -1306,7 +1308,7 @@ const connectSftp = () => {
       console.log('收到图片URL:', { filePath, fileName, fileSize, imageUrl })
 
       if (!imageUrl) {
-        $message.error('图片URL为空')
+        $message.error(t('terminal.sftp.imageUrlEmpty'))
         loading.value = false
         return
       }
@@ -1326,7 +1328,7 @@ const connectSftp = () => {
 
     socket.value.on('image_read_error', ({ error, filePath }) => {
       console.error('图片读取错误:', error, filePath)
-      $message.error(`图片预览失败: ${ error }`)
+      $message.error(t('terminal.sftp.imagePreviewFailed', { error }))
       loading.value = false
     })
   })
@@ -1351,7 +1353,7 @@ const connectSftp = () => {
   socket.value.on('connect_error', (err) => {
     console.error('sftp-v2 websocket 连接错误：', err)
     connectionStatus.value = 'failed'
-    connectionError.value = 'WebSocket连接失败，请检查网络或服务器状态'
+    connectionError.value = t('terminal.sftp.websocketConnectionFailed')
     loading.value = false
     // 清空路径状态
     previousPath.value = ''
@@ -1369,7 +1371,7 @@ const disconnectSftp = () => {
   }
 
   connectionStatus.value = 'failed'
-  connectionError.value = '手动断开连接'
+  connectionError.value = t('terminal.sftp.manualDisconnect')
   loading.value = false
 
   // 清理状态
@@ -1575,7 +1577,7 @@ const columnsConfigPopoverRef = ref(null)
 const selectedColumns = computed({
   get: () => Object.keys(columnsConfig.value).filter(key => columnsConfig.value[key]),
   set: (newValue) => {
-    availableColumns.forEach(col => {
+    availableColumns.value.forEach(col => {
       columnsConfig.value[col.key] = newValue.includes(col.key)
     })
   }
@@ -1740,7 +1742,7 @@ const handleFileOpen = (row) => {
     // 检查图片文件大小限制（10MB）
     const maxImageSize = 10 * 1024 * 1024 // 10MB
     if (row.size > maxImageSize) {
-      $message.warning(`图片过大（${ sizeFormatter(row, null, row.size) }），仅支持预览小于10MB的图片`)
+      $message.warning(t('terminal.sftp.imageTooLarge', { size: sizeFormatter(row, null, row.size) }))
       return
     }
 
@@ -1770,7 +1772,7 @@ const handleFileOpen = (row) => {
   // 检查文件大小限制（1MB）
   const maxFileSize = 1024 * 1024 // 1MB
   if (row.size > maxFileSize) {
-    $message.warning(`文件过大（${ sizeFormatter(row, null, row.size) }），仅支持编辑小于1MB的文件`)
+    $message.warning(t('terminal.sftp.fileTooLarge', { size: sizeFormatter(row, null, row.size) }))
     return
   }
 
@@ -1798,7 +1800,7 @@ const handleFileOpen = (row) => {
     showTextEditor.value = true
   } else {
     // 非文本文件，暂时提示
-    $message.info(`文件 "${ row.name }" 暂不支持预览，请下载后查看`)
+    $message.info(t('terminal.sftp.previewNotSupported', { name: row.name }))
   }
 }
 
@@ -1871,21 +1873,21 @@ const onRowContextMenu = (row, _column, event) => {
 
   // 始终显示下载菜单（支持单文件和多文件下载）
   items.push({
-    label: '下载',
+    label: t('terminal.sftp.download'),
     onClick: () => handleDownload(row)
   })
 
   items.push(
     {
-      label: '复制到...',
+      label: t('terminal.sftp.copyTo'),
       onClick: () => handleCopy(row)
     },
     {
-      label: '移动到...',
+      label: t('terminal.sftp.moveTo'),
       onClick: () => handleMove(row)
     },
     {
-      label: '压缩',
+      label: t('terminal.sftp.compress'),
       onClick: () => handleCompress(row)
     }
   )
@@ -1893,20 +1895,20 @@ const onRowContextMenu = (row, _column, event) => {
   // 解压功能只在单选且为压缩文件时显示
   if (!isMultiSelected && row.type === '-' && isArchiveFile(row.name)) {
     items.push({
-      label: '解压',
+      label: t('terminal.sftp.decompress'),
       onClick: () => handleDecompress(row)
     })
   }
 
   items.push({
-    label: '删除',
+    label: t('terminal.sftp.delete'),
     onClick: () => handleDelete(row)
   })
 
   // 重命名只在单选时显示
   if (!isMultiSelected) {
     items.push({
-      label: '重命名',
+      label: t('terminal.sftp.rename'),
       onClick: () => startRename(row)
     })
   }
@@ -1914,34 +1916,34 @@ const onRowContextMenu = (row, _column, event) => {
   // Docker-compose 操作（仅单选且为 docker-compose.yml/yaml 文件时显示）
   if (!isMultiSelected && row.type === '-' && isDockerComposeFile(row.name)) {
     items.push({
-      label: 'docker compose',
+      label: t('terminal.sftp.dockerCompose'),
       children: [
         {
-          label: '启动(up)',
+          label: t('terminal.sftp.startUp'),
           onClick: () => handleDockerComposeAction(row, 'up')
         },
         {
-          label: '重启(restart)',
+          label: t('terminal.sftp.restartAction'),
           onClick: () => handleDockerComposeAction(row, 'restart')
         },
         {
-          label: '移除(down)',
+          label: t('terminal.sftp.removeDown'),
           onClick: () => handleDockerComposeAction(row, 'down')
         },
         {
-          label: '拉取(pull)',
+          label: t('terminal.sftp.pull'),
           onClick: () => handleDockerComposeAction(row, 'pull')
         },
         {
-          label: '重建(rebuild)',
+          label: t('terminal.sftp.rebuild'),
           onClick: () => handleDockerComposeAction(row, 'rebuild')
         },
         {
-          label: '升级(pull_down_up)',
+          label: t('terminal.sftp.upgrade'),
           onClick: () => handleDockerComposeAction(row, 'upgrade')
         },
         {
-          label: '日志(logs)',
+          label: t('terminal.sftp.logs'),
           onClick: () => handleDockerComposeAction(row, 'logs')
         },
       ]
@@ -1949,7 +1951,7 @@ const onRowContextMenu = (row, _column, event) => {
   }
 
   items.push({
-    label: row.type === 'd' ? '复制文件夹路径' : '复制文件路径',
+    label: row.type === 'd' ? t('terminal.sftp.copyFolderPath') : t('terminal.sftp.copyFilePath'),
     onClick: () => {
       let fullPath
       const currentPathValue = currentPath.value
@@ -1970,7 +1972,7 @@ const onRowContextMenu = (row, _column, event) => {
       // 文件夹：cd到该文件夹
       cdPath = `${ currentPath.value }/${ row.name }`.replace(/\/+/g, '/')
       items.push({
-        label: 'cd到该文件夹',
+        label: t('terminal.sftp.cdToFolder'),
         onClick: () => {
           emit('exec-script', `cd ${ cdPath }\n`)
         }
@@ -1979,7 +1981,7 @@ const onRowContextMenu = (row, _column, event) => {
       // 文件：cd到文件所在目录
       cdPath = currentPath.value
       items.push({
-        label: 'cd到文件所在目录',
+        label: t('terminal.sftp.cdToFileDirectory'),
         onClick: () => {
           emit('exec-script', `cd ${ cdPath }\n`)
         }
@@ -2030,12 +2032,12 @@ const handleDelete = (row) => {
   const fileCount = targets.length
 
   const message = fileCount === 1
-    ? `确认删除以下文件(夹)：\n${ namesStr }`
-    : `确认删除以下 ${ fileCount } 个文件(夹)：\n${ namesStr }`
+    ? t('terminal.sftp.deleteConfirmSingle', { name: namesStr })
+    : t('terminal.sftp.deleteConfirmMultiple', { count: fileCount, names: namesStr })
 
-  $messageBox.confirm(message, '删除确认', {
-    confirmButtonText: '确定删除',
-    cancelButtonText: '取消',
+  $messageBox.confirm(message, t('terminal.sftp.deleteConfirmTitle'), {
+    confirmButtonText: t('terminal.sftp.confirmDelete'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning',
     customClass: 'delete_confirm_dialog'
   }).then(() => {
@@ -2046,13 +2048,13 @@ const handleDelete = (row) => {
 
 const handleMove = (row) => {
   const targets = selectedRows.value.length > 1 && selectedRows.value.includes(row) ? selectedRows.value : [row,]
-  $messageBox.prompt('', '移动到...', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.prompt('', t('terminal.sftp.moveDialogTitle'), {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     inputType: 'text',
     inputValue: currentPath.value === '/' ? '/' : currentPath.value + '/',
-    inputPlaceholder: '目标路径',
-    inputValidator: (v)=> !!v || '请输入目标路径'
+    inputPlaceholder: t('terminal.sftp.targetPathPlaceholder'),
+    inputValidator: (v)=> !!v || t('terminal.sftp.inputTargetPath')
   }).then(({ value }) => {
     const destDir = value.trim()
     if (!destDir) return
@@ -2068,13 +2070,13 @@ const handleMove = (row) => {
 
 const handleCopy = (row) => {
   const targets = selectedRows.value.length > 1 && selectedRows.value.includes(row) ? selectedRows.value : [row,]
-  $messageBox.prompt('', '复制到...', {
+  $messageBox.prompt('', t('terminal.sftp.copyDialogTitle'), {
     inputType: 'text',
     inputValue: currentPath.value === '/' ? '/' : currentPath.value + '/',
-    inputPlaceholder: '目标路径',
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    inputValidator: (v)=> !!v || '请输入目标路径'
+    inputPlaceholder: t('terminal.sftp.targetPathPlaceholder'),
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
+    inputValidator: (v)=> !!v || t('terminal.sftp.inputTargetPath')
   }).then(({ value }) => {
     const destDir = value.trim()
     if (!destDir) return
@@ -2089,13 +2091,13 @@ const handleCompress = (row) => {
     `${ targets[0].name }.tar.gz` :
     `archive-${ Date.now() }.tar.gz`
 
-  $messageBox.prompt('', '压缩文件', {
+  $messageBox.prompt('', t('terminal.sftp.compressDialogTitle'), {
     inputType: 'text',
     inputValue: defaultName,
-    inputPlaceholder: '压缩文件名（建议以.tar.gz结尾）',
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    inputValidator: (v) => !!v?.trim() || '请输入压缩文件名'
+    inputPlaceholder: t('terminal.sftp.archiveNamePlaceholder'),
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
+    inputValidator: (v) => !!v?.trim() || t('terminal.sftp.inputArchiveName')
   }).then(({ value }) => {
     const archiveName = value.trim()
     if (!archiveName) return
@@ -2112,17 +2114,17 @@ const handleCompress = (row) => {
 const handleDecompress = (row) => {
   // 解压功能只对单个压缩文件有效
   if (row.type !== '-' || !isArchiveFile(row.name)) {
-    $message.error('只能解压压缩文件')
+    $message.error(t('terminal.sftp.onlyArchiveCanDecompress'))
     return
   }
 
   // 获取文件名（去掉扩展名）用于创建同名文件夹
   const baseName = row.name.replace(/\.(tar\.gz|tgz|tar|zip)$/i, '')
 
-  $messageBox.confirm('', '选择解压方式', {
-    confirmButtonText: '解压到当前文件夹',
-    cancelButtonText: '解压到同名文件夹',
-    message: `文件: ${ row.name }\n\n`,
+  $messageBox.confirm('', t('terminal.sftp.selectDecompressMode'), {
+    confirmButtonText: t('terminal.sftp.decompressToCurrentFolder'),
+    cancelButtonText: t('terminal.sftp.decompressToNamedFolder'),
+    message: `${ t('terminal.sftp.fileLabel') }: ${ row.name }\n\n`,
     type: 'question',
     showCancelButton: true,
     cancelButtonClass: 'el-button--primary',
@@ -2148,7 +2150,7 @@ const handleDecompress = (row) => {
 }
 
 const handleDockerComposeAction = (row, action) => {
-  if (!isPlusActive.value) return $message.warning('该功能仅限 Plus 版用户使用')
+  if (!isPlusActive.value) return $message.warning(t('terminal.sftp.plusOnly'))
   // 构建文件的完整路径
   let fullPath
   const currentPathValue = currentPath.value
@@ -2188,7 +2190,7 @@ const handleDockerComposeAction = (row, action) => {
       command = `docker compose -f ${ fullPath } logs -f\n`
       break
     default:
-      $message.error('未知操作')
+      $message.error(t('terminal.sftp.unknownAction'))
       return
   }
   emit('exec-script', command)
@@ -2229,7 +2231,7 @@ const showUploadManager = () => {
 const downloadFile = (task) => {
   if (task.downloadUrl) {
     window.open(task.downloadUrl, '_blank')
-    $message.success(`开始下载: ${ task.fileName }`)
+    $message.success(t('terminal.sftp.downloadStarted', { fileName: task.fileName }))
   }
 }
 
@@ -2251,10 +2253,10 @@ const formatSpeed = (bytesPerSec) => {
 
 // 格式化时间
 const formatTime = (seconds) => {
-  if (!seconds || seconds <= 0) return '计算中...'
-  if (seconds < 60) return Math.round(seconds) + ' 秒'
-  if (seconds < 3600) return Math.round(seconds / 60) + ' 分钟'
-  return Math.round(seconds / 3600) + ' 小时'
+  if (!seconds || seconds <= 0) return t('terminal.sftp.calculating')
+  if (seconds < 60) return `${Math.round(seconds)} ${t('terminal.sftp.secondsUnit')}`
+  if (seconds < 3600) return `${Math.round(seconds / 60)} ${t('terminal.sftp.minutesUnit')}`
+  return `${Math.round(seconds / 3600)} ${t('terminal.sftp.hoursUnit')}`
 }
 
 // 收藏相关功能
@@ -2384,7 +2386,7 @@ const handleFileSelect = (event) => {
 
   // 检查是否有正在进行的任务
   if (activeUploadTasks.value.length > 0) {
-    $message.warning('请等待当前上传任务完成后再添加新任务')
+    $message.warning(t('terminal.sftp.waitCurrentUploadComplete'))
     event.target.value = ''
     return
   }
@@ -2406,7 +2408,7 @@ const handleDirSelect = (event) => {
 
   // 检查是否有正在进行的任务
   if (activeUploadTasks.value.length > 0) {
-    $message.warning('请等待当前上传任务完成后再添加新任务')
+    $message.warning(t('terminal.sftp.waitCurrentUploadComplete'))
     event.target.value = ''
     return
   }
@@ -2479,7 +2481,7 @@ const startFileUpload = (file, relativePath = null) => {
 const performFileUpload = async (task) => {
   try {
     if (!socket.value) {
-      throw new Error('WebSocket连接未建立')
+      throw new Error(t('terminal.sftp.websocketNotConnected'))
     }
 
     // 发送上传开始事件
@@ -2513,7 +2515,7 @@ const performFileUpload = async (task) => {
         }
 
         reader.onerror = () => {
-          reject(new Error(`读取文件分片 ${ i + 1 }/${ totalChunks } 失败`))
+          reject(new Error(t('terminal.sftp.readFileChunkFailed', { current: i + 1, total: totalChunks })))
         }
 
         reader.readAsArrayBuffer(fileSlice)
@@ -2531,7 +2533,7 @@ const performFileUpload = async (task) => {
       // 等待分片上传确认
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error(`分片 ${ i + 1 }/${ totalChunks } 上传超时`))
+          reject(new Error(t('terminal.sftp.uploadChunkTimeout', { current: i + 1, total: totalChunks })))
         }, 30000) // 30秒超时
 
         const handleSuccess = ({ taskId: responseTaskId, chunkIndex }) => {
@@ -2567,7 +2569,7 @@ const performFileUpload = async (task) => {
       currentTask.status = 'failed'
       currentTask.error = error.message
     }
-    $message.error(`上传失败: ${ error.message }`)
+    $message.error(t('terminal.sftp.uploadFailed', { error: error.message }))
   }
 }
 
@@ -2590,7 +2592,7 @@ const retryUpload = (task) => {
 
     // 重新开始上传
     startFileUpload(task.originalFile, task.targetPath.includes('/') ? task.targetPath.split('/').slice(0, -1).join('/') : null)
-    $message.info('重新开始上传...')
+    $message.info(t('terminal.sftp.restartUpload'))
   }
 }
 
@@ -2607,7 +2609,7 @@ const clearCompletedTasks = () => {
   })
 
   if (completedTasks.length > 0) {
-    $message.success(`已清空 ${ completedTasks.length } 个完成任务`)
+    $message.success(t('terminal.sftp.clearedCompletedTasks', { count: completedTasks.length }))
   }
 }
 

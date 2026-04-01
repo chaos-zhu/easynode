@@ -9,73 +9,77 @@
     label-width="86px"
     :show-message="false"
   >
-    <el-form-item label="原用户名" prop="oldLoginName" class="form_item">
+    <el-form-item :label="t('settings.user.oldUsername')" prop="oldLoginName" class="form_item">
       <el-input
         v-model.trim="formData.oldLoginName"
         clearable
-        placeholder=""
+        :placeholder="t('settings.user.oldUsername')"
         autocomplete="off"
         class="input"
       />
     </el-form-item>
-    <el-form-item label="原密码" prop="oldPwd" class="form_item">
+    <el-form-item :label="t('settings.user.oldPassword')" prop="oldPwd" class="form_item">
       <el-input
         v-model.trim="formData.oldPwd"
         type="password"
         clearable
         show-password
-        placeholder=""
+        :placeholder="t('settings.user.oldPassword')"
         autocomplete="off"
         class="input"
       />
     </el-form-item>
-    <el-form-item label="新用户名" prop="newLoginName" class="form_item">
+    <el-form-item :label="t('settings.user.newUsername')" prop="newLoginName" class="form_item">
       <el-input
         v-model.trim="formData.newLoginName"
         clearable
-        placeholder=""
+        :placeholder="t('settings.user.newUsername')"
         autocomplete="off"
         class="input"
       />
     </el-form-item>
-    <el-form-item label="新密码" prop="newPwd" class="form_item">
+    <el-form-item :label="t('settings.user.newPassword')" prop="newPwd" class="form_item">
       <el-input
         v-model.trim="formData.newPwd"
         type="password"
         show-password
         clearable
-        placeholder=""
+        :placeholder="t('settings.user.newPassword')"
         autocomplete="off"
         class="input"
         @keyup.enter="handleUpdate"
       />
     </el-form-item>
     <el-form-item>
-      <el-button type="primary" :loading="loading" @click="handleUpdate">确认</el-button>
+      <el-button type="primary" :loading="loading" @click="handleUpdate">{{ t('common.confirm') }}</el-button>
     </el-form-item>
   </el-form>
-  <h2 class="mfa2_title">两步验证（MFA2）</h2>
+  <h2 class="mfa2_title">{{ t('settings.user.mfaTitle') }}</h2>
   <div v-if="isEnableMFA2">
-    <span class="enable_text">已启用</span>
-    <el-button class="disable_btn" type="danger" @click="handleDisableMFA2">禁用</el-button>
+    <span class="enable_text">{{ t('settings.user.enabled') }}</span>
+    <el-button class="disable_btn" type="danger" @click="handleDisableMFA2">{{ t('settings.user.disable') }}</el-button>
   </div>
   <template v-else>
-    <el-button v-if="startEnableMFA2" type="primary" @click="handleMFA2">启用</el-button>
+    <el-button v-if="startEnableMFA2" type="primary" @click="handleMFA2">{{ t('settings.user.enable') }}</el-button>
     <template v-else>
       <div class="mfa2_container">
-        <!-- https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2 -->
-        <p>1. 使用MFA2应用(<a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2" target="_blank" class="link">Google Authenticator</a>)扫描下面二维码，或者输入秘钥 <span class="secret">{{ MFA2Data.secret }}</span></p>
+        <p>
+          {{ t('settings.user.mfaStep1Prefix') }}
+          <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2" target="_blank" class="link">Google Authenticator</a>
+          {{ t('settings.user.mfaStep1Middle') }}
+          <span class="secret">{{ MFA2Data.secret }}</span>
+        </p>
         <img :src="MFA2Data.qrImage" :alt="MFA2Data.secret">
-        <p>2. 输入MFA2应用上的6位数字</p>
+        <p>{{ t('settings.user.mfaStep2') }}</p>
         <el-input
           v-model="mfa2Token"
           class="mfa2_input"
           clearable
-          placeholder=""
+          :placeholder="t('settings.user.mfaTokenPlaceholder')"
           autofocus
           @keyup.enter="handleEnableMFA2"
         />
-        <el-button type="primary" @click="handleEnableMFA2">保存</el-button>
+        <el-button type="primary" @click="handleEnableMFA2">{{ t('common.save') }}</el-button>
       </div>
     </template>
   </template>
@@ -83,9 +87,11 @@
 
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RSAEncrypt } from '@utils/index.js'
 
 const { proxy: { $api, $message, $messageBox, $store, $router } } = getCurrentInstance()
+const { t } = useI18n()
 
 const loading = ref(false)
 const formRef = ref(null)
@@ -96,10 +102,10 @@ const formData = reactive({
   newPwd: ''
 })
 const rules = reactive({
-  oldLoginName: { required: true, message: '输入原用户名', trigger: 'change' },
-  oldPwd: { required: true, message: '输入原密码', trigger: 'change' },
-  newLoginName: { required: true, message: '输入新用户名', trigger: 'change' },
-  newPwd: { required: true, message: '输入新密码', trigger: 'change' }
+  oldLoginName: { required: true, message: t('settings.user.validation.enterOldUsername'), trigger: 'change' },
+  oldPwd: { required: true, message: t('settings.user.validation.enterOldPassword'), trigger: 'change' },
+  newLoginName: { required: true, message: t('settings.user.validation.enterNewUsername'), trigger: 'change' },
+  newPwd: { required: true, message: t('settings.user.validation.enterNewPassword'), trigger: 'change' }
 })
 
 const startEnableMFA2 = ref(true)
@@ -114,11 +120,11 @@ const handleUpdate = () => {
   formRef.value.validate()
     .then(async () => {
       $messageBox.confirm(
-        '修改用户名后会清除所有登录态，需重新登录',
-        '修改提示',
+        t('settings.user.changeLoginConfirm'),
+        t('settings.user.changeLoginTitle'),
         {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
+          confirmButtonText: t('common.confirm'),
+          cancelButtonText: t('common.cancel'),
           type: 'warning',
           showCancelButton: true,
           cancelButtonClass: 'el-button--info',
@@ -136,7 +142,7 @@ const handleUpdate = () => {
         formData.newPwd = ''
         formRef.value.resetFields()
         if (oldLoginName !== newLoginName) {
-          $message({ type: 'success', center: true, message: '用户名修改成功, 请重新登录' })
+          $message({ type: 'success', center: true, message: t('settings.user.usernameChangedRelogin') })
           $store.removeLoginInfo()
           $router.push('/login')
         }
@@ -155,23 +161,23 @@ const handleMFA2 = async () => {
 }
 
 const handleEnableMFA2 = async () => {
-  if (!mfa2Token.value) return $message({ type: 'error', center: true, message: '请输入MFA2应用上的6位数字' })
+  if (!mfa2Token.value) return $message({ type: 'error', center: true, message: t('settings.user.enterMfaToken') })
   let { msg } = await $api.enableMFA2({ token: mfa2Token.value })
   $message({ type: 'success', center: true, message: msg })
   getMFA2Status()
 }
 const handleDisableMFA2 = async () => {
-  $messageBox.prompt('请输入MFA2应用上的6位验证码来确认禁用', '禁用MFA2', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    inputPlaceholder: '请输入6位数字',
+  $messageBox.prompt(t('settings.user.disableMfaPrompt'), t('settings.user.disableMfaTitle'), {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
+    inputPlaceholder: t('settings.user.mfaTokenPlaceholder'),
     inputType: 'text',
     inputPattern: /^\d{6}$/,
-    inputErrorMessage: '请输入6位数字',
+    inputErrorMessage: t('settings.user.invalidMfaToken'),
     beforeClose: (action, instance, done) => {
       if (action === 'confirm') {
         instance.confirmButtonLoading = true
-        instance.confirmButtonText = '验证中...'
+        instance.confirmButtonText = t('settings.user.verifying')
         $api.disableMFA2({ token: instance.inputValue })
           .then(({ msg }) => {
             $message({ type: 'success', center: true, message: msg })
@@ -182,7 +188,7 @@ const handleDisableMFA2 = async () => {
           })
           .finally(() => {
             instance.confirmButtonLoading = false
-            instance.confirmButtonText = '确定'
+            instance.confirmButtonText = t('common.confirm')
           })
       } else {
         done()

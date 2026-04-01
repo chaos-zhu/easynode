@@ -5,11 +5,11 @@
     top="225px"
     modal-class="import_script_dialog"
     append-to-body
-    title="导入脚本配置"
+    :title="t('scripts.importConfigTitle')"
     :close-on-click-modal="false"
   >
-    <h2>1. 选择要导入的分组</h2>
-    <el-select v-model="targetGroup" placeholder="请选择分组" style="width: 50%;margin-bottom: 10px;">
+    <h2>{{ t('scripts.chooseImportGroup') }}</h2>
+    <el-select v-model="targetGroup" :placeholder="t('scripts.selectGroup')" style="width: 50%;margin-bottom: 10px;">
       <el-option
         v-for="item in groupList"
         :key="item.id"
@@ -18,7 +18,7 @@
       />
     </el-select>
 
-    <h2>2. 选择要导入的文件类型</h2>
+    <h2>{{ t('scripts.chooseImportType') }}</h2>
     <ul class="type_list">
       <li @click="handleFromJson">
         <svg-icon name="icon-json" class="icon" />
@@ -35,7 +35,7 @@
       </li>
       <li @click="() => manualInputVisible = true">
         <svg-icon name="icon-bianji1" class="icon" />
-        <span class="from">手动输入</span>
+        <span class="from">{{ t('scripts.manualInput') }}</span>
       </li>
     </ul>
   </el-dialog>
@@ -44,7 +44,7 @@
     v-model="manualInputVisible"
     width="600px"
     top="150px"
-    title="手动输入"
+    :title="t('scripts.manualInputTitle')"
     :close-on-click-modal="false"
     append-to-body
   >
@@ -52,12 +52,12 @@
       v-model="manualInput"
       type="textarea"
       :autosize="{ minRows: 15 }"
-      placeholder="请输入脚本内容，每行一条脚本"
+      :placeholder="t('scripts.manualInputPlaceholder')"
     />
     <template #footer>
       <div class="manual-input-footer">
-        <el-button @click="manualInputVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleManualImport">导入</el-button>
+        <el-button @click="manualInputVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="handleManualImport">{{ t('scripts.import') }}</el-button>
       </div>
     </template>
   </el-dialog>
@@ -65,8 +65,10 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const { proxy: { $api, $message, $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   show: {
@@ -97,7 +99,7 @@ function handleFromJson() {
 const handleJsonFile = (event) => {
   let files = event.target.files
   let jsonFiles = Array.from(files).filter(file => file.name.endsWith('.json'))
-  if (jsonFiles.length === 0) return $message.warning('未选择有效的JSON文件')
+  if (jsonFiles.length === 0) return $message.warning(t('scripts.invalidJsonFile'))
 
   let readerPromises = jsonFiles.map(file => {
     return new Promise((resolve, reject) => {
@@ -125,7 +127,7 @@ const handleJsonFile = (event) => {
       formatJson = formatJson.filter(({ _id, command }) => {
         return !existCommand.includes(command) && !existId.includes(_id)
       })
-      if (formatJson.length === 0) return $message.warning('导入的脚本已存在')
+      if (formatJson.length === 0) return $message.warning(t('scripts.importedScriptsExist'))
       formatJson = formatJson.map((item) => {
         return {
           ...item,
@@ -134,15 +136,15 @@ const handleJsonFile = (event) => {
       })
       try {
         let { data: { len } } = await $api.importScript({ scripts: formatJson })
-        $message({ type: 'success', center: true, message: `成功导入脚本: ${ len }条` })
+        $message({ type: 'success', center: true, message: t('scripts.importSuccess', { count: len }) })
         emit('update-list')
         visible.value = false
       } catch (error) {
-        $message.error('导入失败: ' + error.message)
+        $message.error(t('scripts.importFailed', { message: error.message }))
       }
     })
     .catch(error => {
-      $message.error('导入失败: ' + error.message)
+      $message.error(t('scripts.importFailed', { message: error.message }))
       console.error('导入失败: ', error)
     })
     .finally(() => {
@@ -152,7 +154,7 @@ const handleJsonFile = (event) => {
 
 const handleManualImport = async () => {
   if (!manualInput.value.trim()) {
-    return $message.warning('请输入脚本内容')
+    return $message.warning(t('scripts.inputScriptContent'))
   }
 
   try {
@@ -161,7 +163,7 @@ const handleManualImport = async () => {
       .filter(line => line.trim())
       .map((command) => ({ command: command.trim() }))
     if (scripts.length === 0) {
-      return $message.warning('未检测到有效的脚本内容')
+      return $message.warning(t('scripts.noValidScriptContent'))
     }
 
     let existCommand = scriptList.value.map(item => item.command)
@@ -169,26 +171,26 @@ const handleManualImport = async () => {
       return !existCommand.includes(command)
     })
     let filterScriptsLen = filterScripts.length
-    if (filterScriptsLen !== 0 && filterScriptsLen < scripts.length) $message.warning('已过滤重复的脚本')
-    if (filterScriptsLen === 0) return $message.warning('导入的脚本已存在')
+    if (filterScriptsLen !== 0 && filterScriptsLen < scripts.length) $message.warning(t('scripts.duplicateScriptsFiltered'))
+    if (filterScriptsLen === 0) return $message.warning(t('scripts.importedScriptsExist'))
     filterScripts = filterScripts.map((item, index) => {
       return {
         ...item,
-        name: `${ item.command.slice(0, 15) || `脚本${ index + 1 }` }`,
+        name: `${ item.command.slice(0, 15) || t('scripts.scriptDefaultName', { index: index + 1 }) }`,
         index: scriptList.value.length + index + 1,
-        description: '手动输入',
+        description: t('scripts.manualInputDescription'),
         group: targetGroup.value
       }
     })
 
     let { data: { len } } = await $api.importScript({ scripts: filterScripts })
-    $message({ type: 'success', center: true, message: `成功导入脚本: ${ len }条` })
+    $message({ type: 'success', center: true, message: t('scripts.importSuccess', { count: len }) })
     emit('update-list')
     manualInputVisible.value = false
     visible.value = false
     manualInput.value = ''
   } catch (error) {
-    $message.error('导入失败: ' + error.message)
+    $message.error(t('scripts.importFailed', { message: error.message }))
   }
 }
 </script>

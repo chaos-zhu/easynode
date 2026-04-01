@@ -8,6 +8,7 @@ import globalComponents from './plugins/components'
 import axios from '@/utils/axios'
 import api from './api'
 import App from './app.vue'
+import i18n from './i18n'
 import './assets/scss/reset.scss'
 import './assets/scss/global.scss'
 import './assets/scss/mobile.scss'
@@ -15,6 +16,7 @@ import './assets/scss/mobile.scss'
 const app = createApp(App)
 elementPlugins(app)
 globalComponents(app)
+app.use(i18n)
 app.use(createPinia())
 app.use(router)
 

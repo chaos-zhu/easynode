@@ -34,7 +34,7 @@
         <div class="right_wrap">
           <el-icon
             class="right_wrap_icon"
-            title="新建对话"
+            :title="t('aiChat.newChat')"
             @click="handleNewChat"
           >
             <Plus />
@@ -46,7 +46,7 @@
           >
             <el-icon
               class="right_wrap_icon"
-              title="历史记录"
+              :title="t('aiChat.history')"
             >
               <ChatDotRound />
             </el-icon>
@@ -74,7 +74,7 @@
           <el-icon
             :size="18"
             class="right_wrap_icon"
-            title="设置"
+            :title="t('aiChat.settings')"
             @click="handleSetting"
           >
             <Setting />
@@ -105,7 +105,7 @@
                   v-model="item.editingContent"
                   type="textarea"
                   :autosize="{ minRows: 3, maxRows: 10 }"
-                  placeholder="编辑消息内容"
+                  :placeholder="t('aiChat.editMessagePlaceholder')"
                   class="edit_textarea"
                 />
                 <div class="edit_actions">
@@ -115,13 +115,13 @@
                     :loading="loading"
                     @click="handleConfirmEdit(item.id, item.editingContent)"
                   >
-                    确认
+                    {{ t('aiChat.confirmEdit') }}
                   </el-button>
                   <el-button
                     size="small"
                     @click="handleCancelEdit(item.id)"
                   >
-                    取消
+                    {{ t('aiChat.cancelEdit') }}
                   </el-button>
                 </div>
               </div>
@@ -133,8 +133,8 @@
                     <template #title>
                       <div style="display: flex; align-items: center; justify-content: space-between;">
                         <span style="color: #887dfd;">
-                          {{ (isReasoning && item.isStreaming) ? '思考中' : '已深度思考' }}
-                          {{ item.reasoningTime ? `(用时:${(item.reasoningTime / 1000).toFixed(1)}s)` : '' }}
+                          {{ (isReasoning && item.isStreaming) ? t('aiChat.thinking') : t('aiChat.thoughtDeeply') }}
+                          {{ item.reasoningTime ? t('aiChat.reasoningTime', { seconds: (item.reasoningTime / 1000).toFixed(1) }) : '' }}
                         </span>
                         <el-icon class="header-icon" style="color: #887dfd;margin-left: 10px;">
                           <CircleCheck v-if="!isReasoning" style="color: #887dfd;" />
@@ -183,9 +183,9 @@
         </div>
         <el-divider v-show="chatList.length > 1" content-position="center" class="clear_history_divider">
           <svg-icon name="icon-saoba" style="width: 16px; height: 16px;" />
-          <el-popconfirm title="确定清空？" @confirm="clearChat">
+          <el-popconfirm :title="t('aiChat.clearConfirm')" @confirm="clearChat">
             <template #reference>
-              <span class="clear_history">清空历史记录</span>
+              <span class="clear_history">{{ t('aiChat.clearHistory') }}</span>
             </template>
           </el-popconfirm>
         </el-divider>
@@ -207,6 +207,7 @@ import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { ref, computed, h, nextTick, watch, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Bubble, Sender } from 'ant-design-x-vue'
 import { Avatar, Refresh, CopyDocument, Delete, EditPen, CircleCheck, Loading, Setting, ArrowDown, ChatDotRound, Plus } from '@element-plus/icons-vue'
 import { useAIChat } from '@/composables/useAIChat'
@@ -235,6 +236,7 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
   return self.renderToken(tokens, idx, options)
 }
 
+const { t } = useI18n()
 const { proxy: { $message, $store } } = getCurrentInstance()
 
 const props = defineProps({
@@ -349,7 +351,7 @@ const renderMarkdown = (content) => {
           const copyBtn = document.createElement('div')
           copyBtn.classList.add('code_btn')
           copyBtn.classList.add('code_copy_btn')
-          copyBtn.innerHTML = '复制'
+          copyBtn.innerHTML = t('aiChat.copy')
           copyBtn.addEventListener('click', (e) => {
             e.stopPropagation()
             const codeElement = pre.querySelector('code')
@@ -362,7 +364,7 @@ const renderMarkdown = (content) => {
           const execBtn = document.createElement('div')
           execBtn.classList.add('code_btn')
           execBtn.classList.add('code_exec_btn')
-          execBtn.innerHTML = '执行'
+          execBtn.innerHTML = t('terminal.execute')
           execBtn.addEventListener('click', (e) => {
             e.stopPropagation()
             const codeElement = pre.querySelector('code')
@@ -426,7 +428,7 @@ const scrollToBottom = () => {
 
 const handleStartEdit = (messageId) => {
   if (loading.value) {
-    $message.warning('请等待当前对话响应完成')
+    $message.warning(t('aiChat.waitForResponse'))
     return
   }
   startEditMessage(messageId)
@@ -438,7 +440,7 @@ const handleCancelEdit = (messageId) => {
 
 const handleConfirmEdit = async (messageId, newContent) => {
   if (!newContent || !newContent.trim()) {
-    $message.warning('内容不能为空')
+    $message.warning(t('aiChat.emptyContent'))
     return
   }
 
@@ -461,15 +463,15 @@ const submit = async function (questionStr) {
 const copyContent = async (content) => {
   try {
     await navigator.clipboard.writeText(content)
-    $message.success('复制成功')
+    $message.success(t('common.copySuccess'))
   } catch (err) {
-    $message.error('复制失败')
+    $message.error(t('common.copyFailed'))
   }
 }
 
 const handleSetting = () => {
   if (!isPlusActive.value) {
-    $message.warning('请先激活Plus')
+    $message.warning(t('aiChat.activatePlusFirst'))
     return
   }
   aiApiConfigVisible.value = true
@@ -477,7 +479,7 @@ const handleSetting = () => {
 
 const isLoadingTips = () => {
   if (loading.value) {
-    $message.warning('请等待当前对话响应完成')
+    $message.warning(t('aiChat.waitForResponse'))
     return true
   }
   return false

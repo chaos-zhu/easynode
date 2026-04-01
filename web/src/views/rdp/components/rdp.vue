@@ -41,37 +41,37 @@
               class="display_mode_select"
               size="small"
               :disabled="isConnecting"
-              placeholder="选择显示模式"
+              :placeholder="t('rdp.displayModePlaceholder')"
               @change="handleDisplayModeChange"
             >
-              <el-option label="最大化" value="maximize" />
-              <el-option label="自适应" value="adaptive" />
-              <el-option label="自定义" value="custom" @click="handleCustomOptionClick" />
+              <el-option :label="t('rdp.displayModeMaximize')" value="maximize" />
+              <el-option :label="t('rdp.displayModeAdaptive')" value="adaptive" />
+              <el-option :label="t('rdp.displayModeCustom')" value="custom" @click="handleCustomOptionClick" />
             </el-select>
             <el-select
               v-model="qualityLevel"
               class="quality_select"
               size="small"
               :disabled="isConnecting"
-              placeholder="清晰度"
+              :placeholder="t('rdp.qualityPlaceholder')"
               @change="handleQualityChange"
             >
-              <el-option label="流畅" value="low">
+              <el-option :label="t('rdp.qualityLow')" value="low">
                 <span style="display: flex; align-items: center; gap: 4px;">
-                  <span>流畅</span>
-                  <span style="color: var(--el-text-color-secondary); font-size: 12px;">省流</span>
+                  <span>{{ t('rdp.qualityLow') }}</span>
+                  <span style="color: var(--el-text-color-secondary); font-size: 12px;">{{ t('rdp.qualityLowHint') }}</span>
                 </span>
               </el-option>
-              <el-option label="清晰" value="medium">
+              <el-option :label="t('rdp.qualityMedium')" value="medium">
                 <span style="display: flex; align-items: center; gap: 4px;">
-                  <span>清晰</span>
-                  <span style="color: var(--el-text-color-secondary); font-size: 12px;">均衡</span>
+                  <span>{{ t('rdp.qualityMedium') }}</span>
+                  <span style="color: var(--el-text-color-secondary); font-size: 12px;">{{ t('rdp.qualityMediumHint') }}</span>
                 </span>
               </el-option>
-              <el-option label="高清" value="high">
+              <el-option :label="t('rdp.qualityHigh')" value="high">
                 <span style="display: flex; align-items: center; gap: 4px;">
-                  <span>高清</span>
-                  <span style="color: var(--el-text-color-secondary); font-size: 12px;">高带宽</span>
+                  <span>{{ t('rdp.qualityHigh') }}</span>
+                  <span style="color: var(--el-text-color-secondary); font-size: 12px;">{{ t('rdp.qualityHighHint') }}</span>
                 </span>
               </el-option>
             </el-select>
@@ -86,17 +86,17 @@
             :loading="isConnecting"
             @click="connectRdp"
           >
-            {{ isConnecting ? '连接中' : '重连' }}
+            {{ isConnecting ? t('rdp.connecting') : t('rdp.reconnect') }}
           </el-button>
-          <el-button type="info" size="small" @click="moveToBackground"> 挂起 </el-button>
-          <el-button type="danger" size="small" @click="() => $emit('disconnect')"> 断开 </el-button>
+          <el-button type="info" size="small" @click="moveToBackground">{{ t('rdp.suspend') }}</el-button>
+          <el-button type="danger" size="small" @click="() => $emit('disconnect')">{{ t('rdp.disconnect') }}</el-button>
           <el-button
             v-show="isMobile()"
             type="success"
             size="small"
             @click="toggleKeyboard"
           >
-            键盘
+            {{ t('rdp.keyboard') }}
           </el-button>
         </div>
       </div>
@@ -104,7 +104,7 @@
     <div
       ref="rdpContainer"
       v-loading="isConnecting"
-      element-loading-text="连接中..."
+      :element-loading-text="t('rdp.connectingWithEllipsis')"
       class="rdp_container"
     />
   </el-dialog>
@@ -112,27 +112,27 @@
   <!-- 自定义分辨率设置对话框 -->
   <el-dialog
     v-model="customDialogVisible"
-    title="自定义分辨率"
+    :title="t('rdp.customResolution')"
     width="400px"
     :close-on-click-modal="false"
   >
     <el-form label-width="60px">
-      <el-form-item label="宽度">
+      <el-form-item :label="t('rdp.width')">
         <el-input
           v-model="tempCustomWidth"
           type="number"
           :max="maxWidth"
-          :placeholder="`最大${maxWidth}`"
+          :placeholder="t('rdp.maxResolutionValue', { value: maxWidth })"
         >
           <template #append>px</template>
         </el-input>
       </el-form-item>
-      <el-form-item label="高度">
+      <el-form-item :label="t('rdp.height')">
         <el-input
           v-model="tempCustomHeight"
           type="number"
           :max="maxHeight"
-          :placeholder="`最大${maxHeight}`"
+          :placeholder="t('rdp.maxResolutionValue', { value: maxHeight })"
         >
           <template #append>px</template>
         </el-input>
@@ -140,7 +140,7 @@
       <el-alert type="info" :closable="false">
         <template #default>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span>最大可用分辨率:</span>
+            <span>{{ t('rdp.maxAvailableResolution') }}</span>
             <el-link
               type="primary"
               :underline="false"
@@ -154,14 +154,15 @@
       </el-alert>
     </el-form>
     <template #footer>
-      <el-button @click="cancelCustomSettings">取消</el-button>
-      <el-button type="primary" @click="confirmCustomSettings">确定</el-button>
+      <el-button @click="cancelCustomSettings">{{ t('common.cancel') }}</el-button>
+      <el-button type="primary" @click="confirmCustomSettings">{{ t('common.confirm') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
 import { ref, computed, getCurrentInstance, onBeforeUnmount, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus'
 import { Connection, Loading, Close, Clock } from '@element-plus/icons-vue'
 import Guacamole from 'guacamole-common-js'
@@ -169,6 +170,7 @@ import { rdpStatus, rdpStatusList } from '@/utils/enum'
 import { isMobile } from '@/utils'
 
 const { proxy: { $api, $message, $isDev } } = getCurrentInstance()
+const { t } = useI18n()
 const props = defineProps({
   host: {
     type: Object,
@@ -428,7 +430,7 @@ const moveToBackground = () => {
 const getRdpWsUrl = async () => {
   const { width, height, quality, dpi } = appliedConfig.value
   const { data } = await $api.getRdpToken({ hostId: hostId.value, width, height, quality, dpi })
-  if (!data) return $message.error('获取RDP WS URL失败')
+  if (!data) return $message.error(t('rdp.getWsUrlFailed'))
   const wsHost = $isDev ? `ws://${ location.hostname }:8082` : location.origin.replace('http', 'ws')
   return `${ wsHost }/rdp-proxy/guac?token=${ encodeURIComponent(data) }`
 }
@@ -465,7 +467,7 @@ const connectRdp = async () => {
       if (isConnecting.value) {
         console.warn('⏰ RDP连接超时')
         currentStatus.value = rdpStatus.TIMEOUT
-        $message.error('RDP连接超时，请检查网络或目标主机状态')
+        $message.error(t('rdp.connectTimeout'))
         disconnectRdp()
       }
     }, 30000)
@@ -477,7 +479,7 @@ const connectRdp = async () => {
     tunnel.value.onerror = (error) => {
       console.error('🚇 WebSocket 隧道错误:', error)
       currentStatus.value = rdpStatus.ERROR
-      $message.error('WebSocket连接错误')
+      $message.error(t('rdp.websocketError'))
       clearConnectionTimeout()
     }
 
@@ -496,7 +498,7 @@ const connectRdp = async () => {
   } catch (error) {
     console.error('RDP连接失败:', error)
     currentStatus.value = rdpStatus.ERROR
-    $message.error('RDP连接失败: ' + error.message)
+    $message.error(t('rdp.connectFailed', { message: error.message }))
     clearConnectionTimeout()
   }
 }
@@ -525,17 +527,17 @@ function mapGuacError(status) {
     msg.includes('authentication failure'))
   ) {
     ElMessageBox.confirm(
-      `用户名(${ username.value })长度小于8位，会有连接失败的可能，请使用Administrator或设置用户名大于等于8位。`,
-      '连接失败',
+      t('rdp.shortUsernameHint', { username: username.value }),
+      t('rdp.connectFailedTitle'),
       {
-        confirmButtonText: '确定',
+        confirmButtonText: t('common.confirm'),
         showCancelButton: false,
         type: 'error'
       }
     )
   }
 
-  return `连接失败：${ msg }`
+  return t('rdp.connectFailedMessage', { message: msg })
 }
 
 const setupEventHandlers = () => {
@@ -565,7 +567,7 @@ const setupEventHandlers = () => {
         onDisconnected()
         break
       default:
-        console.warn('未知RDP连接状态:', state)
+        console.warn('Unknown RDP connection state:', state)
         currentStatus.value = rdpStatus.ERROR
         break
     }
@@ -788,7 +790,7 @@ const onConnected = () => {
       if (!text) return
       sendClipboardToRemote(text)
     } catch (err) {
-      console.debug('无法读取本地剪贴板:', err.message)
+      console.debug('Unable to read local clipboard:', err.message)
     }
   })
   displayElement.addEventListener('blur', () => { if (keyboard) keyboard.reset() })
@@ -800,7 +802,7 @@ const onConnected = () => {
   // 处理显示尺寸变化
   const display = client.value.getDisplay()
   display.onresize = (width, height) => {
-    console.log('RDP显示尺寸变化:', width, 'x', height)
+    console.log('RDP display size changed:', width, 'x', height)
     // 确保显示缩放始终为1:1
     const scale = appliedConfig.value.scale || 1
     display.scale(scale)
@@ -815,7 +817,7 @@ const onConnected = () => {
 }
 
 const onDisconnected = () => {
-  console.log('RDP连接已断开')
+  console.log('RDP disconnected')
   clearConnectionTimeout()
   cleanupResources()
   disableMobileKeyboard()
@@ -826,7 +828,7 @@ const disconnectRdp = () => {
     try {
       client.value.disconnect()
     } catch (error) {
-      console.warn('断开RDP连接时出错:', error)
+      console.warn('Error while disconnecting RDP:', error)
     }
   }
   currentStatus.value = rdpStatus.DISCONNECTED
@@ -865,7 +867,7 @@ const cleanupResources = () => {
     try {
       tunnel.value.disconnect()
     } catch (error) {
-      console.warn('关闭WebSocket隧道时出错:', error)
+      console.warn('Error while closing WebSocket tunnel:', error)
     }
     tunnel.value = null
   }

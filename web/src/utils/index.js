@@ -2,7 +2,10 @@ import { reactive } from 'vue'
 import JSRsaEncrypt from 'jsencrypt'
 import CryptoJS from 'crypto-js'
 import socketIo from 'socket.io-client'
+import i18n from '@/i18n'
 import useStore from '../store'
+
+const t = i18n.global.t
 
 export const EventBus = reactive({})
 
@@ -39,7 +42,7 @@ export const randomStr = (e) =>{
 
 export const jwtExpireToTimestamp = (str) => {
   const match = /^(\d+)([smhd])$/.exec(str)
-  if (!match) throw new Error('jwt过期格式错误，必须是 [xx]s / [xx]h / [xx]d')
+  if (!match) throw new Error(t('utils.jwtExpireFormatError'))
 
   const n = Number(match[1])
   const unit = match[2]
@@ -137,12 +140,11 @@ export const sortDirTree = (tree = []) => {
 }
 
 export const downloadFile = ({ buffer, name }) => {
-  let contentUrl = window.URL.createObjectURL(new Blob([buffer,])) // params：object 可选: File对象、Blob对象、MediaSource对象。
+  let contentUrl = window.URL.createObjectURL(new Blob([buffer,]))
   let link = document.createElement('a')
   link.style.display = 'none'
   link.href = contentUrl
-  console.log(name)
-  link.setAttribute('download', name) // 文件名称
+  link.setAttribute('download', name)
   document.body.appendChild(link)
   link.click()
   setTimeout(() => {

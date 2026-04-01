@@ -1,5 +1,6 @@
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import dayjs from 'dayjs'
+import i18n from '@/i18n'
 import $api from '@/api'
 import { isValidDate } from '@/utils'
 
@@ -101,7 +102,7 @@ const useStore = defineStore('global', {
           await $api.revokeLoginSid(this.deviceId)
         }
       } catch (err) {
-        console.error('注销登录凭证失败: ', err.message)
+        console.error('Failed to revoke login credential:', err.message)
       } finally {
         localStorage.removeItem('token')
         sessionStorage.removeItem('token')
@@ -181,7 +182,7 @@ const useStore = defineStore('global', {
         const isPlusActive = new Date(plusInfo.expiryDate) > new Date()
         this.$patch({ isPlusActive })
         plusInfo.expiryDate = dayjs(plusInfo.expiryDate).format('YYYY-MM-DD')
-        plusInfo.expiryDate?.startsWith('9999') && (plusInfo.expiryDate = '永久授权')
+        plusInfo.expiryDate?.startsWith('9999') && (plusInfo.expiryDate = i18n.global.t('settings.plus.permanentLicense'))
         this.$patch({ plusInfo })
       } else {
         this.$patch({ isPlusActive: false })
@@ -262,7 +263,7 @@ const useStore = defineStore('global', {
       } else {
         const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)')
         const systemTheme = prefersDarkScheme.matches
-        console.log('当前系统使用的是深色模式：', systemTheme ? '是' : '否')
+        console.log('System theme is dark mode:', systemTheme ? 'yes' : 'no')
         isDark = systemTheme
       }
       this.setTheme(isDark, false)

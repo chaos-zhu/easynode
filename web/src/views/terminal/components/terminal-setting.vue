@@ -1,7 +1,7 @@
 <template>
   <el-drawer
     v-model="visible"
-    title="基础设置"
+    :title="t('terminal.basicSettings')"
     :direction="isMobileScreen ? 'ttb' : 'ltr'"
     :close-on-click-modal="true"
     :close-on-press-escape="true"
@@ -15,10 +15,10 @@
       label-width="100px"
       :show-message="false"
     >
-      <el-form-item label="终端主题" prop="theme">
+      <el-form-item :label="t('terminal.terminalTheme')" prop="theme">
         <el-select
           v-model="theme"
-          placeholder="选择主题"
+          :placeholder="t('terminal.selectTheme')"
           style="width: 100%;"
           :teleported="false"
         >
@@ -43,10 +43,10 @@
           </el-option>
         </el-select>
       </el-form-item>
-      <el-form-item label="终端字体" prop="fontFamily">
+      <el-form-item :label="t('terminal.terminalFont')" prop="fontFamily">
         <el-select
           v-model="fontFamily"
-          placeholder="选择字体"
+          :placeholder="t('terminal.selectFont')"
           style="width: 100%;"
           :teleported="false"
         >
@@ -58,13 +58,13 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="字体大小" prop="fontSize">
+      <el-form-item :label="t('terminal.fontSize')" prop="fontSize">
         <el-input-number v-model="fontSize" :min="6" :max="30" />
       </el-form-item>
-      <el-form-item label="字体颜色" prop="fontColor">
+      <el-form-item :label="t('terminal.fontColor')" prop="fontColor">
         <div class="font_color_list">
           <div :class="['color_item', 'theme_color', { 'active': !fontColor }]" @click="setThemeColor">
-            <span class="color_text">主题颜色</span>
+            <span class="color_text">{{ t('terminal.themeColor') }}</span>
           </div>
           <div :class="['color_item', 'color_picker_wrapper', { 'active': !!fontColor }]">
             <el-color-picker
@@ -77,10 +77,10 @@
           </div>
         </div>
       </el-form-item>
-      <el-form-item label="光标颜色" prop="cursorColor">
+      <el-form-item :label="t('terminal.cursorColor')" prop="cursorColor">
         <div class="font_color_list">
           <div :class="['color_item', 'theme_color', { 'active': !cursorColor }]" @click="setThemeCursorColor">
-            <span class="color_text">主题颜色</span>
+            <span class="color_text">{{ t('terminal.themeColor') }}</span>
           </div>
           <div :class="['color_item', 'color_picker_wrapper', { 'active': !!cursorColor }]">
             <el-color-picker
@@ -93,7 +93,7 @@
           </div>
         </div>
       </el-form-item>
-      <el-form-item label="选中颜色" prop="selectionColor">
+      <el-form-item :label="t('terminal.selectionColor')" prop="selectionColor">
         <div class="font_color_list">
           <div class="color_item color_picker_wrapper active">
             <el-color-picker
@@ -105,13 +105,13 @@
           </div>
         </div>
       </el-form-item>
-      <el-form-item label="终端背景" prop="backgroundImage">
+      <el-form-item :label="t('terminal.terminalBackground')" prop="backgroundImage">
         <ul class="background_list">
           <li :class="background ? '' : 'active'" @click="changeBackground('')">
             <el-image class="image">
               <template #error>
                 <div class="theme_background_text">
-                  主题背景
+                  {{ t('terminal.themeBackground') }}
                 </div>
               </template>
             </el-image>
@@ -128,7 +128,7 @@
           <el-input
             v-model="background"
             clearable
-            placeholder="自定义背景图片url"
+            :placeholder="t('terminal.customBackgroundUrl')"
             autocomplete="on"
           />
         </div>
@@ -136,7 +136,7 @@
     </el-form>
     <template #footer>
       <span class="dialog_footer">
-        <el-button @click="visible = false">关闭</el-button>
+        <el-button @click="visible = false">{{ t('common.close') }}</el-button>
       </span>
     </template>
   </el-drawer>
@@ -144,11 +144,13 @@
 
 <script setup>
 import { computed, getCurrentInstance, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import themeList from 'xterm-theme'
 import useMobileWidth from '@/composables/useMobileWidth'
 
 const { proxy: { $store } } = getCurrentInstance()
 const { isMobileScreen } = useMobileWidth()
+const { t } = useI18n()
 
 const props = defineProps({
   show: {
@@ -221,7 +223,6 @@ const fontColor = computed({
 
 const customFontColor = computed({
   get: () => {
-    // 如果有自定义颜色，显示自定义颜色；否则显示上次选择的颜色
     return fontColor.value || lastCustomColor.value
   },
   set: (newVal) => {

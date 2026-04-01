@@ -11,7 +11,7 @@
       <el-input
         ref="searchInputRef"
         v-model="searchKeyword"
-        placeholder="查找内容..."
+        :placeholder="t('terminal.searchPlaceholder')"
         size="small"
         class="search_input"
         clearable
@@ -28,7 +28,7 @@
                 <el-icon style="color: var(--el-color-warning)">
                   <CircleClose />
                 </el-icon>
-                <span class="status_text">未找到</span>
+                <span class="status_text">{{ t('common.notFound') }}</span>
               </template>
             </span>
           </div>
@@ -38,8 +38,8 @@
       <el-tooltip placement="bottom">
         <template #content>
           <div style="max-width: 300px;">
-            搜索范围：终端缓冲区内的内容<br>
-            超出缓冲区的内容无法搜索
+            {{ t('terminal.searchBufferScope') }}<br>
+            {{ t('terminal.searchBufferLimit') }}
           </div>
         </template>
         <el-icon class="search_info_icon" :size="16">
@@ -48,7 +48,7 @@
       </el-tooltip>
 
       <div class="search_actions">
-        <el-tooltip content="向上查找 (Shift+Enter)" placement="top">
+        <el-tooltip :content="t('terminal.findPrevious')" placement="top">
           <el-button
             :icon="ArrowUp"
             size="small"
@@ -57,7 +57,7 @@
           />
         </el-tooltip>
 
-        <el-tooltip content="向下查找 (Enter)" placement="top">
+        <el-tooltip :content="t('terminal.findNext')" placement="top">
           <el-button
             :icon="ArrowDown"
             size="small"
@@ -66,27 +66,27 @@
           />
         </el-tooltip>
 
-        <el-tooltip :content="isCaseSensitive ? '区分大小写' : '不区分大小写'" placement="top">
+        <el-tooltip :content="isCaseSensitive ? t('common.caseSensitive') : t('common.caseInsensitive')" placement="top">
           <el-button
             size="small"
             :type="isCaseSensitive ? 'primary' : ''"
             @click="toggleCaseSensitive"
           >
-            Aa  <!-- true=蓝色 false=灰色 -->
+            Aa
           </el-button>
         </el-tooltip>
 
-        <el-tooltip :content="isUseRegex ? '正则表达式' : '普通文本'" placement="top">
+        <el-tooltip :content="isUseRegex ? t('common.regex') : t('common.plainText')" placement="top">
           <el-button
             size="small"
             :type="isUseRegex ? 'primary' : ''"
             @click="toggleRegex"
           >
-            .*  <!-- true=蓝色 false=灰色 -->
+            .*
           </el-button>
         </el-tooltip>
 
-        <el-tooltip content="关闭" placement="top">
+        <el-tooltip :content="t('terminal.closeSearch')" placement="top">
           <el-button
             :icon="Close"
             size="small"
@@ -100,6 +100,7 @@
 
 <script setup>
 import { ref, watch, nextTick, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowUp, ArrowDown, Close, InfoFilled, CircleClose } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -114,6 +115,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close',])
+const { t } = useI18n()
 
 const visible = ref(false)
 const searchKeyword = ref('')
@@ -243,8 +245,7 @@ const performSearch = (isNext = true) => {
       regex: isUseRegex.value,
       wholeWord: false,
       decorations: {
-        // matchBackground: '#FFFF00', // 所有匹配项
-        activeMatchBackground: '#FF8C00', // 当前匹配项
+        activeMatchBackground: '#FF8C00',
         activeMatchBorder: '#FF0000'
       }
     })
@@ -253,17 +254,14 @@ const performSearch = (isNext = true) => {
       regex: isUseRegex.value,
       wholeWord: false,
       decorations: {
-        // matchBackground: '#FFFF00', // 所有匹配项
-        activeMatchBackground: '#FF8C00', // 当前匹配项
+        activeMatchBackground: '#FF8C00',
         activeMatchBorder: '#FF0000'
       }
     })
 
-  // 更新状态和索引值
   searchStatus.value = result ? 'found' : 'not-found'
 
   if (result && totalMatches.value > 0) {
-    // 根据方向更新索引值
     if (isNext) {
       currentMatchIndex.value = currentMatchIndex.value >= totalMatches.value ? 1 : currentMatchIndex.value + 1
     } else {
@@ -280,13 +278,10 @@ const findPrevious = () => {
   performSearch(false)
 }
 
-// 处理Enter和Shift+Enter
 const handleEnterKey = (event) => {
   if (event.shiftKey) {
-    // Shift+Enter是向上查找
     findPrevious()
   } else {
-    // 只有Enter是向下查找
     findNext()
   }
 }
@@ -309,9 +304,7 @@ const resetSearch = () => {
   searchStatus.value = ''
   currentMatchIndex.value = 0
   if (searchKeyword.value) {
-    // 重新计数
     countMatches()
-    // 从第一个开始
     currentMatchIndex.value = 1
     performSearch(true)
   }

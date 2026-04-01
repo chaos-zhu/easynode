@@ -1,27 +1,29 @@
 import { ref, onUnmounted, computed, watch } from 'vue'
 import { AIChatService } from '@/utils/aiChatService'
 import { ElMessage } from 'element-plus'
+import i18n from '@/i18n'
 import useStore from '@/store'
 import $api from '@/api'
-import { randomStr } from '@/utils'
 
 // const titlePrompt = '使用四到五个字直接返回这句话的简要主题，不要解释、不要标点、不要语气词、不要多余文本，不要加粗，如果没有主题，请直接返回"闲聊"'
+
+const t = i18n.global.t
 
 const defaultChatList = () => {
   return [{
     id: 1,
-    content: '您好，我是小助手，有什么可以帮您的吗？',
+    content: t('aiChat.defaultAssistantMessage'),
     role: 'assistant',
     timestamp: new Date(),
     isStreaming: false,
     error: false
-  },]
+  }]
 }
 
 const defaultCurChat = () => {
   return {
     id: '',
-    describe: '新对话',
+    describe: t('aiChat.newChatDefaultTitle'),
     chatList: defaultChatList()
   }
 }
@@ -54,7 +56,7 @@ export function useAIChat() {
 
   const sendMessage = async (messageContent, model, options = {}) => {
     if (!aiService.value) {
-      error.value = '请先配置API参数'
+      error.value = t('aiChat.configureApiFirst')
       ElMessage.error(error.value)
       return
     }
@@ -123,13 +125,13 @@ export function useAIChat() {
             }
           },
           onError: (err) => {
-            error.value = err?.message || err || '连接到 AI 服务时出错'
+            error.value = err?.message || err || t('aiChat.connectAiServiceError')
             loading.value = false
             const aiMessage = chatList.value.find(msg => msg.id === aiMessageId)
             if (aiMessage) {
               aiMessage.error = true
               aiMessage.isStreaming = false
-              aiMessage.content = error.value // 将错误信息设置为消息内容
+              aiMessage.content = error.value
             }
           }
         }
@@ -145,7 +147,7 @@ export function useAIChat() {
       saveChat() // 保存对话
 
     } catch (err) {
-      error.value = err?.message || err || '发送消息时出错'
+      error.value = err?.message || err || t('aiChat.sendMessageError')
       loading.value = false
       isConnecting.value = false
       isReasoning.value = false
@@ -153,7 +155,7 @@ export function useAIChat() {
       if (aiMessage) {
         aiMessage.error = true
         aiMessage.isStreaming = false
-        aiMessage.content = error.value // 将错误信息设置为消息内容
+        aiMessage.content = error.value
       }
     }
   }
@@ -162,8 +164,8 @@ export function useAIChat() {
     if (loading.value) return
     chatList.value.length = 1
     error.value = null
-    await saveChat() // 保存清空后的状态
-    ElMessage.success('清除成功')
+    await saveChat()
+    ElMessage.success(t('aiChat.clearSuccess'))
   }
 
   const stopGeneration = () => {
@@ -208,7 +210,7 @@ export function useAIChat() {
 
   const removeChat = async (id) => {
     await $api.removeChatHistory(id)
-    ElMessage.success('删除成功')
+    ElMessage.success(t('common.deleteSuccess'))
     await $store.getChatHistory()
     if (chatHistory.value.length > 0) {
       changeChat(chatHistory.value[0].id)
@@ -219,7 +221,7 @@ export function useAIChat() {
 
   const changeChat = (id) => {
     const chatItem = chatHistory.value.find(item => item.id === id)
-    if (!chatItem) return ElMessage.error('对话id不存在')
+    if (!chatItem) return ElMessage.error(t('aiChat.chatIdNotFound'))
     curChat.value = chatItem
   }
 
@@ -229,7 +231,7 @@ export function useAIChat() {
       curChat.value.describe = title
     }
     const { data } = await $api.saveChatHistory(curChat.value)
-    if (!data.updateChat) ElMessage.error('对话保存失败')
+    if (!data.updateChat) ElMessage.error(t('aiChat.saveFailed'))
     else {
       curChat.value.id = data.updateChat.id
       curChat.value.createdAt = data.updateChat.createdAt

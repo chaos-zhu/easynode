@@ -5,10 +5,10 @@
     top="225px"
     modal-class="import_form_dialog"
     append-to-body
-    title="导入实例配置"
+    :title="t('server.import.title')"
     :close-on-click-modal="false"
   >
-    <h2>选择要导入的文件类型</h2>
+    <h2>{{ t('server.import.chooseFileType') }}</h2>
     <ul class="type_list">
       <li @click="handleFromCsv">
         <svg-icon name="icon-csv" class="icon" />
@@ -50,9 +50,11 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { parse } from 'csv-parse/browser/esm/sync'
 
 const { proxy: { $api, $message } } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   show: {
@@ -89,7 +91,7 @@ const handleCsvFile = (event) => {
     return
   }
   const csvFiles = [...files,].filter(file => file.type === 'text/csv')
-  if (csvFiles.length === 0) return $message.warning('未选择有效的CSV文件')
+  if (csvFiles.length === 0) return $message.warning(t('server.import.invalidCsv'))
 
   let readerPromises = csvFiles.map(file => {
     return new Promise((resolve, reject) => {
@@ -123,7 +125,7 @@ const handleCsvFile = (event) => {
       handleImportHost(formatJson)
     })
     .catch(error => {
-      $message.error('导入失败: ', error.message)
+      $message.error(t('server.import.importFailed', { message: error.message }))
       console.error('导入失败: ', error)
     })
     .finally(() => {
@@ -134,7 +136,7 @@ const handleCsvFile = (event) => {
 const handleJsonFile = (event) => {
   let files = event.target.files
   let jsonFiles = Array.from(files).filter(file => file.name.endsWith('.json'))
-  if (jsonFiles.length === 0) return $message.warning('未选择有效的JSON文件')
+  if (jsonFiles.length === 0) return $message.warning(t('server.import.invalidJson'))
 
   let readerPromises = jsonFiles.map(file => {
     return new Promise((resolve, reject) => {
@@ -166,7 +168,7 @@ const handleJsonFile = (event) => {
       handleImportHost(formatJson)
     })
     .catch(error => {
-      $message.error('导入失败: ', error.message)
+      $message.error(t('server.import.importFailed', { message: error.message }))
       console.error('导入失败: ', error)
     })
     .finally(() => {
@@ -178,11 +180,11 @@ async function handleImportHost(importHost) {
   // console.log('导入: ', importHost)
   try {
     let { data: { len } } = await $api.importHost({ importHost, isEasyNodeJson: isEasyNodeJson.value })
-    $message({ type: 'success', center: true, message: `成功导入实例: ${ len }台` })
+    $message({ type: 'success', center: true, message: t('server.import.importSuccess', { count: len }) })
     emit('update-list')
     visible.value = false
   } catch (error) {
-    $message.error('导入失败:', error.message)
+    $message.error(t('server.import.importFailed', { message: error.message }))
   }
 }
 

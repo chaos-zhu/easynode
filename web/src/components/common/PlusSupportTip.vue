@@ -5,14 +5,14 @@
   >
     <template #content>
       <div class="plus_support_tip">
-        此功能需要激活Plus后使用,
+        {{ t('common.plusActivationRequired') }}
         <el-button
           size="small"
           type="primary"
           link
           @click="gotoPlusPage"
         >
-          去激活
+          {{ t('common.goActivate') }}
         </el-button>
       </div>
     </template>
@@ -22,10 +22,12 @@
 
 <script setup>
 import { computed, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 const { proxy: { $store } } = getCurrentInstance()
 const router = useRouter()
+const { t } = useI18n()
 
 const isPlusActive = computed(() => $store.isPlusActive)
 

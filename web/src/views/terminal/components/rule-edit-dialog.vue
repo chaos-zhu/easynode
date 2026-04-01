@@ -2,7 +2,7 @@
   <Teleport :to="teleportTarget">
     <el-dialog
       v-model="dialogVisible"
-      title="编辑高亮规则"
+      :title="t('terminal.editHighlightRule')"
       width="900px"
       :append-to-body="false"
       :close-on-click-modal="false"
@@ -15,20 +15,20 @@
         :rules="formRules"
         label-width="120px"
       >
-        <el-form-item label="规则标题" prop="title">
+        <el-form-item :label="t('terminal.ruleTitle')" prop="title">
           <el-input
             v-model="formData.title"
-            placeholder="留空则显示默认名称"
+            :placeholder="t('terminal.emptyUseDefaultName')"
             maxlength="10"
             show-word-limit
             clearable
           />
         </el-form-item>
 
-        <el-form-item label="颜色设置">
+        <el-form-item :label="t('terminal.colorSettings')">
           <div class="color-row">
             <div class="color-item">
-              <label>文本颜色</label>
+              <label>{{ t('terminal.textColor') }}</label>
               <el-color-picker
                 v-model="formData.displayColor"
                 size="small"
@@ -38,7 +38,7 @@
               />
             </div>
             <div class="color-item">
-              <label>背景颜色</label>
+              <label>{{ t('terminal.backgroundColor') }}</label>
               <el-color-picker
                 v-model="formData.backgroundColor"
                 size="small"
@@ -51,39 +51,39 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="文字样式">
+        <el-form-item :label="t('terminal.textStyle')">
           <el-checkbox-group v-model="textStyles" @change="handleStyleChange">
-            <el-checkbox value="bold">加粗</el-checkbox>
-            <el-checkbox value="italic">斜体</el-checkbox>
-            <el-checkbox value="underline">下划线</el-checkbox>
+            <el-checkbox value="bold">{{ t('terminal.boldText') }}</el-checkbox>
+            <el-checkbox value="italic">{{ t('terminal.italic') }}</el-checkbox>
+            <el-checkbox value="underline">{{ t('terminal.underline') }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
 
-        <el-form-item label="正则表达式" prop="pattern">
+        <el-form-item :label="t('terminal.regexExpression')" prop="pattern">
           <el-input
             v-model="patternSource"
             type="textarea"
             :rows="3"
-            placeholder="请输入正则表达式"
+            :placeholder="t('terminal.inputRegexExpression')"
             @input="updatePattern"
           />
         </el-form-item>
 
-        <el-form-item label="规则选项">
-          <el-checkbox v-model="ignoreCase" @change="updatePattern">忽略大小写</el-checkbox>
-          <el-checkbox v-model="fullLine">高亮整行</el-checkbox>
+        <el-form-item :label="t('terminal.ruleOptions')">
+          <el-checkbox v-model="ignoreCase" @change="updatePattern">{{ t('terminal.ignoreCase') }}</el-checkbox>
+          <el-checkbox v-model="fullLine">{{ t('terminal.highlightWholeLine') }}</el-checkbox>
         </el-form-item>
 
-        <el-form-item label="测试文本">
+        <el-form-item :label="t('terminal.testText')">
           <el-input
             v-model="testInput"
             type="textarea"
             :rows="2"
-            placeholder="输入测试文本"
+            :placeholder="t('terminal.inputTestText')"
           />
         </el-form-item>
 
-        <el-form-item label="匹配结果">
+        <el-form-item :label="t('terminal.matchResult')">
           <div class="test-result">
             <div v-if="testMatches.length" class="matches">
               <el-tag
@@ -97,16 +97,16 @@
               </el-tag>
             </div>
             <el-text v-else size="small" type="info">
-              无匹配结果
+              {{ t('terminal.noMatchResult') }}
             </el-text>
           </div>
         </el-form-item>
 
-        <el-form-item label="预览效果">
+        <el-form-item :label="t('terminal.preview')">
           <div class="preview-result" v-html="previewHtml" />
         </el-form-item>
 
-        <el-form-item label="常用模板">
+        <el-form-item :label="t('terminal.commonTemplates')">
           <div class="templates">
             <el-button
               v-for="template in getTemplates(ruleName)"
@@ -123,8 +123,8 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleCancel">取消</el-button>
-        <el-button type="primary" @click="handleSave">保存</el-button>
+        <el-button @click="handleCancel">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="handleSave">{{ t('common.save') }}</el-button>
       </div>
     </template>
     </el-dialog>
@@ -133,9 +133,11 @@
 
 <script setup>
 import { ref, computed, watch, getCurrentInstance, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { HIGHLIGHT_RULES, TerminalHighlighter } from '@/utils/highlighter'
 
 const { proxy: { $message, $messageBox } } = getCurrentInstance()
+const { t } = useI18n()
 
 // 全屏时teleport到fullscreenElement，否则teleport到body
 const teleportTarget = computed(() => {
@@ -207,20 +209,20 @@ const formData = ref({
 
 const formRules = {
   title: [
-    { max: 10, message: '标题长度最多 10 个字符', trigger: 'blur' },
+    { max: 10, message: t('terminal.titleMaxLength'), trigger: 'blur' },
   ],
   pattern: [
     {
       required: true,
       validator: (_rule, _value, callback) => {
         if (!patternSource.value || patternSource.value.trim() === '') {
-          callback(new Error('请输入正则表达式'))
+          callback(new Error(t('terminal.inputRegexRequired')))
         } else {
           try {
             new RegExp(patternSource.value, patternFlags.value)
             callback()
           } catch (error) {
-            callback(new Error('正则表达式格式错误'))
+            callback(new Error(t('terminal.regexInvalid')))
           }
         }
       },
@@ -246,7 +248,7 @@ const testMatches = computed(() => {
 
 const previewHtml = computed(() => {
   if (!patternSource.value || !testInput.value) {
-    return testInput.value || '请输入测试文本'
+    return testInput.value || t('terminal.inputPreviewText')
   }
 
   try {
@@ -266,7 +268,7 @@ const previewHtml = computed(() => {
     // 使用highlighter的HTML预览方法
     return previewHighlighter.applySingleRuleForHtml(testInput.value, currentRule)
   } catch (error) {
-    return `正则表达式错误: ${ error.message }`
+    return t('terminal.regexError', { message: error.message })
   }
 })
 
@@ -340,7 +342,7 @@ const handleColorChange = (newColor) => {
 
   // 检查颜色是否重复
   if (isColorUsed(newColor, props.allRules, props.ruleName)) {
-    $message.warning('该颜色已被其他规则使用,请选择其他颜色')
+    $message.warning(t('terminal.colorAlreadyUsed'))
     // 阻止更新，强制恢复原颜色
     const originalColor = props.ruleData?.displayColor || HIGHLIGHT_RULES[props.ruleName].displayColor
     // 使用nextTick确保在下一个事件循环中恢复颜色
@@ -373,7 +375,7 @@ const getTemplates = (ruleName) => {
   const templates = [
     // 第一个模板：真实的默认规则
     {
-      name: '默认规则（完整）',
+      name: t('terminal.defaultRuleFull'),
       pattern: defaultRule.pattern.source,
       flags: defaultRule.flags.split('')
     },
@@ -645,7 +647,7 @@ const updatePattern = () => {
   try {
     formData.value.pattern = new RegExp(patternSource.value, patternFlags.value)
   } catch (error) {
-    console.error('正则表达式无效:', error)
+    console.error(t('terminal.invalidRegex'), error)
   }
 }
 
@@ -663,12 +665,12 @@ const handleSave = async () => {
     updatePattern()
 
     if (!formData.value.pattern) {
-      throw new Error('正则表达式无效')
+      throw new Error(t('terminal.invalidRegex'))
     }
 
     // 最终检查颜色是否重复
     if (isColorUsed(formData.value.displayColor, props.allRules, props.ruleName)) {
-      $message.error('该颜色已被其他规则使用，无法保存')
+      $message.error(t('terminal.colorAlreadyUsedCannotSave'))
       return
     }
 
@@ -714,12 +716,12 @@ const handleBeforeClose = async (done) => {
   if (hasDataChanged()) {
     try {
       await $messageBox.confirm(
-        '您有未保存的修改，确定要关闭吗？',
-        '确认关闭',
+        t('terminal.unsavedChangesCloseConfirm'),
+        t('terminal.closeConfirmTitle'),
         {
           type: 'warning',
-          confirmButtonText: '确定关闭',
-          cancelButtonText: '继续编辑'
+          confirmButtonText: t('terminal.confirmClose'),
+          cancelButtonText: t('terminal.continueEditing')
         }
       )
       done()

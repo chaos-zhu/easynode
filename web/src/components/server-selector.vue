@@ -3,7 +3,7 @@
     <el-select
       v-model="selectedServer"
       :disabled="!isPlusActive"
-      placeholder="选择服务器"
+      :placeholder="t('common.selectServer')"
       filterable
       clearable
       class="server-select"
@@ -26,6 +26,7 @@
 
 <script setup>
 import { computed, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   modelValue: {
@@ -37,6 +38,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'change',])
 
 const { proxy: { $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const serverList = computed(() => $store.hostList?.filter(item => item.connectType !== 'rdp' && item.isConfig))
 const isPlusActive = computed(() => $store.isPlusActive)

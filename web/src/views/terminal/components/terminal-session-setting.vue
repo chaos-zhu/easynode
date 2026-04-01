@@ -2,75 +2,75 @@
   <el-dialog
     v-model="visible"
     width="600px"
-    title="终端会话设置"
+    :title="t('terminal.terminalSessionSettings')"
     :close-on-click-modal="false"
     @close="handleClose"
   >
     <el-form ref="formRef" :model="formData" label-width="140px">
-      <el-form-item label="最大挂起时间">
+      <el-form-item :label="t('terminal.sessionMaxSuspendTime')">
         <el-input-number
           v-model="formData.maxSuspendTime"
           :min="1"
           :max="9999"
           :step="1"
         />
-        <span style="margin-left: 10px">小时</span>
-        <div class="form_item_tip">(超过该时间后会话将自动销毁)</div>
+        <span style="margin-left: 10px">{{ t('terminal.hours') }}</span>
+        <div class="form_item_tip">{{ t('terminal.sessionMaxSuspendTimeTip') }}</div>
       </el-form-item>
 
-      <el-form-item label="最大挂起数">
+      <el-form-item :label="t('terminal.sessionMaxSuspendCount')">
         <el-input-number
           v-model="formData.maxSuspendedPerUser"
           :min="1"
           :max="20"
           :step="1"
         />
-        <span style="margin-left: 10px">个</span>
-        <div class="form_item_tip">(可同时挂起的会话数量上限)</div>
+        <span style="margin-left: 10px">{{ t('terminal.countUnit') }}</span>
+        <div class="form_item_tip">{{ t('terminal.sessionMaxSuspendCountTip') }}</div>
       </el-form-item>
 
-      <el-form-item label="心跳检测间隔">
+      <el-form-item :label="t('terminal.sessionHeartbeatInterval')">
         <el-input-number
           v-model="formData.heartbeatInterval"
           :min="10"
           :max="300"
           :step="10"
         />
-        <span style="margin-left: 10px">秒</span>
-        <div class="form_item_tip">(挂起时检测会话连接状态的间隔)</div>
+        <span style="margin-left: 10px">{{ t('terminal.seconds') }}</span>
+        <div class="form_item_tip">{{ t('terminal.sessionHeartbeatIntervalTip') }}</div>
       </el-form-item>
 
-      <el-form-item label="重连尝试次数">
+      <el-form-item :label="t('terminal.sessionReconnectAttempts')">
         <el-input-number
           v-model="formData.maxReconnectAttempts"
           :min="0"
           :max="10"
           :step="1"
         />
-        <span style="margin-left: 10px">次</span>
-        <div class="form_item_tip">(连接断开后自动重连的最大尝试次数)</div>
+        <span style="margin-left: 10px">{{ t('terminal.times') }}</span>
+        <div class="form_item_tip">{{ t('terminal.sessionReconnectAttemptsTip') }}</div>
       </el-form-item>
 
-      <el-form-item label="重连间隔">
+      <el-form-item :label="t('terminal.sessionReconnectInterval')">
         <el-input-number
           v-model="formData.reconnectInterval"
           :min="10"
           :max="300"
           :step="10"
         />
-        <span style="margin-left: 10px">秒</span>
-        <div class="form_item_tip">(两次重连尝试之间的间隔时间)</div>
+        <span style="margin-left: 10px">{{ t('terminal.seconds') }}</span>
+        <div class="form_item_tip">{{ t('terminal.sessionReconnectIntervalTip') }}</div>
       </el-form-item>
 
-      <el-form-item label="输出缓存大小">
+      <el-form-item :label="t('terminal.sessionBufferSize')">
         <el-input-number
           v-model="formData.maxBufferSize"
           :min="10"
           :max="500"
           :step="10"
         />
-        <span style="margin-left: 10px">KB</span>
-        <div class="form_item_tip">(挂起期间缓存的终端输出最大大小)</div>
+        <span style="margin-left: 10px">{{ t('terminal.kilobytes') }}</span>
+        <div class="form_item_tip">{{ t('terminal.sessionBufferSizeTip') }}</div>
       </el-form-item>
     </el-form>
 
@@ -83,11 +83,11 @@
           @click="handleRestoreDefaults"
           style="margin-right: 20px;"
         >
-          恢复默认
+          {{ t('common.restoreDefault') }}
         </el-button>
         <div class="btn_action">
-          <el-button @click="handleClose">取消</el-button>
-          <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+          <el-button @click="handleClose">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSave">{{ t('common.save') }}</el-button>
         </div>
       </span>
     </template>
@@ -96,8 +96,10 @@
 
 <script setup>
 import { ref, watch, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const { proxy: { $message, $api } } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   show: {
@@ -151,7 +153,7 @@ const handleSave = async () => {
   saving.value = true
   try {
     await $api.updateTerminalSessionConfig({ config: formData.value })
-    $message.success('保存成功')
+    $message.success(t('terminal.saveSuccess'))
     handleClose()
   } finally {
     saving.value = false

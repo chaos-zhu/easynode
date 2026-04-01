@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     width="600px"
-    title="AI API配置"
+    :title="t('aiChat.configTitle')"
     :top="isMobile() ? '45px' : '10vh'"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
@@ -17,7 +17,7 @@
       label-width="80px"
       class="config_form"
     >
-      <el-form-item label="接口地址" prop="apiUrl">
+      <el-form-item :label="t('aiChat.apiUrl')" prop="apiUrl">
         <el-autocomplete
           v-model.trim="AIconfigFormData.apiUrl"
           :fetch-suggestions="inputApiUrlSuggestion"
@@ -29,10 +29,10 @@
           </template>
         </el-autocomplete>
       </el-form-item>
-      <el-form-item label="API KEY" prop="apiKey">
-        <el-input v-model="AIconfigFormData.apiKey" clearable placeholder="例如: sk-xxx" />
+      <el-form-item :label="t('aiChat.apiKey')" prop="apiKey">
+        <el-input v-model="AIconfigFormData.apiKey" clearable :placeholder="t('aiChat.apiKeyPlaceholder')" />
       </el-form-item>
-      <el-form-item label="模型列表" prop="models">
+      <el-form-item :label="t('aiChat.modelList')" prop="models">
         <div class="models_input_wrap">
           <el-input-tag
             v-model="AIconfigFormData.models"
@@ -42,11 +42,11 @@
             clearable
             @change="handleModelsChange"
           />
-          <el-button type="primary" :loading="fetchingModels" @click="handleFetchModels">获取模型</el-button>
+          <el-button type="primary" :loading="fetchingModels" @click="handleFetchModels">{{ t('aiChat.fetchModels') }}</el-button>
         </div>
       </el-form-item>
-      <el-form-item label="标题生成" prop="titleGenMedel">
-        <el-select v-model="AIconfigFormData.titleGenMedel" clearable placeholder="请选择标题生成模型">
+      <el-form-item :label="t('aiChat.titleGeneration')" prop="titleGenMedel">
+        <el-select v-model="AIconfigFormData.titleGenMedel" clearable :placeholder="t('aiChat.selectTitleModel')">
           <el-option
             v-for="(item, index) in AIconfigFormData.models"
             :key="index"
@@ -56,19 +56,19 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <el-alert title="提示:" type="warning" :closable="false">
+    <el-alert :title="t('aiChat.alertTitle')" type="warning" :closable="false">
       <div class="ai_config_alert_content">
-        <p>1. 接口地址需填写完整，例如：<span class="ai_config_alert_content_span">https://api.openai.com/v1/chat/completions</span></p>
-        <p>2. 获取模型列表只支持通过<span class="ai_config_alert_content_span">https://{host}/v1/models API</span>获取</p>
-        <p>3. 模型对话在web端进行，因此需供应方支持<span class="ai_config_alert_content_span">cors跨域</span>, 例如阿里通义API<span class="ai_config_alert_content_span">不支持</span></p>
-        <p>4. 多渠道建议使用<a class="ai_config_alert_content_span one_api_link" href="https://github.com/songquanpeng/one-api" target="_blank">one-api</a>等专业AI平台聚合服务</p>
+        <p>{{ t('aiChat.alert1') }}<span class="ai_config_alert_content_span">https://api.openai.com/v1/chat/completions</span></p>
+        <p>{{ t('aiChat.alert2Prefix') }}<span class="ai_config_alert_content_span">https://{host}/v1/models API</span>{{ t('aiChat.alert2Suffix') }}</p>
+        <p>{{ t('aiChat.alert3Prefix') }}<span class="ai_config_alert_content_span">{{ t('aiChat.alert3Middle') }}</span>{{ t('aiChat.alert3Suffix') }}</p>
+        <p>{{ t('aiChat.alert4Prefix') }}<a class="ai_config_alert_content_span one_api_link" href="https://github.com/songquanpeng/one-api" target="_blank">one-api</a>{{ t('aiChat.alert4Suffix') }}</p>
       </div>
     </el-alert>
     <template #footer>
       <footer>
         <div class="footer_btns">
-          <el-button type="info" @click="handleClose">关闭</el-button>
-          <el-button type="primary" :loading="loading" @click="handleSave">保存</el-button>
+          <el-button type="info" @click="handleClose">{{ t('common.close') }}</el-button>
+          <el-button type="primary" :loading="loading" @click="handleSave">{{ t('common.save') }}</el-button>
         </div>
       </footer>
     </template>
@@ -77,9 +77,11 @@
 
 <script setup>
 import { ref, computed, watch, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { isMobile } from '@/utils'
 
 const { proxy: { $api, $message, $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   show: {
@@ -122,22 +124,22 @@ watch(props.aiConfig, (newVal) => {
 }, { immediate: true })
 
 const rules = {
-  apiUrl: [
-    { required: true, message: '请输入接口地址', trigger: 'change' },
-    {
-      pattern: /^https?:\/\/.+/,
-      message: '请输入以http或https开头的有效URL',
-      trigger: 'change'
-    },
-  ],
-  apiKey: [{ required: true, message: '请输入API KEY', trigger: 'change' },],
-  models: [{ required: true, message: '请输入或获取模型列表', trigger: 'change' },],
-  titleGenMedel: [{ required: true, message: '请选择标题生成模型', trigger: 'change' },]
+apiUrl: [
+  { required: true, message: t('aiChat.validation.apiUrlRequired'), trigger: 'change' },
+  {
+    pattern: /^https?:\/\/.+/,
+    message: t('aiChat.validation.apiUrlInvalid'),
+    trigger: 'change'
+  },
+],
+apiKey: [{ required: true, message: t('aiChat.validation.apiKeyRequired'), trigger: 'change' },],
+models: [{ required: true, message: t('aiChat.validation.modelListRequired'), trigger: 'change' },],
+titleGenMedel: [{ required: true, message: t('aiChat.validation.titleModelRequired'), trigger: 'change' },]
 }
 
 const handleFetchModels = async () => {
   if (!AIconfigFormData.value.apiUrl || !AIconfigFormData.value.apiKey) {
-    $message.warning('请先填写接口地址和API KEY')
+    $message.warning(t('aiChat.fillApiUrlAndKeyFirst'))
     return
   }
   fetchingModels.value = true
@@ -149,12 +151,12 @@ const handleFetchModels = async () => {
     console.log('models: ', data)
     if (Array.isArray(data)) {
       AIconfigFormData.value.models = data.map(item => item.id).filter(item => item)
-      $message.success('获取模型列表成功')
+      $message.success(t('aiChat.fetchModelsSuccess'))
     } else {
-      $message.error(`获取模型列表失败：${ data.msg }`)
+      $message.error(t('aiChat.fetchModelsFailed', { message: data.msg }))
     }
   } catch (error) {
-    $message.error(`获取模型列表失败：${ error.message }`)
+    $message.error(t('aiChat.fetchModelsFailed', { message: error.message }))
   } finally {
     fetchingModels.value = false
   }
@@ -167,7 +169,7 @@ const handleSave = async () => {
     loading.value = true
     await $api.saveAIConfig(AIconfigFormData.value)
     await $store.getAIConfig()
-    $message.success('保存成功')
+    $message.success(t('aiChat.saveSuccess'))
     visible.value = false
   } catch (error) {
     console.error(error)

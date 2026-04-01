@@ -9,7 +9,7 @@
           class="dropdown_menu"
           :teleported="isMobileScreen"
         >
-          <span class="link_text">连接<el-icon class="link_icon"><arrow-down /></el-icon></span>
+          <span class="link_text">{{ t('common.connect') }}<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-cascader-panel
               v-if="hostGroupCascader"
@@ -41,11 +41,11 @@
           :teleported="isMobileScreen"
           @visible-change="handleResumeSessionDropdownChange"
         >
-          <span class="link_text">会话<el-icon class="link_icon"><arrow-down /></el-icon></span>
+          <span class="link_text">{{ t('terminal.session') }}<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item v-if="suspendedSessions.length === 0" disabled>
-                <span>暂无挂起的会话</span>
+                <span>{{ t('terminal.noSuspendedSessionsShort') }}</span>
               </el-dropdown-item>
               <el-dropdown-item
                 v-for="session in suspendedSessions"
@@ -60,14 +60,14 @@
                     size="small"
                     style="margin-left: 8px"
                   >
-                    断开
+                    {{ t('common.disconnected') }}
                   </el-tag>
                 </div>
               </el-dropdown-item>
               <el-dropdown-item divided @click="showSessionSetting = true">
                 <span style="display: flex; align-items: center; gap: 5px;">
                   <el-icon><Setting /></el-icon>
-                  会话设置
+                  {{ t('terminal.sessionSettings') }}
                 </span>
               </el-dropdown-item>
             </el-dropdown-menu>
@@ -81,7 +81,7 @@
           class="dropdown_menu"
           :teleported="isMobileScreen"
         >
-          <span class="link_text">脚本库<el-icon class="link_icon"><arrow-down /></el-icon></span>
+          <span class="link_text">{{ t('menu.scripts') }}<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-cascader-panel
               v-if="scriptLibraryCascader"
@@ -108,17 +108,17 @@
           trigger="click"
           :teleported="isMobileScreen"
         >
-          <span class="link_text">终端设置<el-icon class="link_icon"><arrow-down /></el-icon></span>
+          <span class="link_text">{{ t('terminal.terminalSettingsMenu') }}<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="showSetting = true">
-                <span>基础设置</span>
+                <span>{{ t('terminal.basicSettings') }}</span>
               </el-dropdown-item>
               <el-dropdown-item @click="showHighlightSettings = true">
-                <span>高亮设置</span>
+                <span>{{ t('terminal.highlightSettings') }}</span>
               </el-dropdown-item>
               <el-dropdown-item @click="showOtherSettings = true">
-                <span>其他设置</span>
+                <span>{{ t('terminal.otherSettings') }}</span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -127,14 +127,14 @@
           trigger="click"
           :teleported="isMobileScreen"
         >
-          <span class="link_text">功能项<el-icon class="link_icon"><arrow-down /></el-icon></span>
+          <span class="link_text">{{ t('terminal.features') }}<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="handleFullScreen">
-                <span>全屏</span>
+                <span>{{ t('common.fullscreen') }}</span>
               </el-dropdown-item>
               <el-dropdown-item @click="showMenuOptions = true">
-                <span>菜单选项</span>
+                <span>{{ t('terminal.menuOptions') }}</span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -144,7 +144,7 @@
         <div class="switch_wrap">
           <el-tooltip
             effect="dark"
-            content="同步输入到所有终端"
+            :content="t('terminal.syncInputAll')"
             placement="bottom"
           >
             <el-switch
@@ -155,15 +155,15 @@
                 --el-switch-on-color: #13ce66;
                 --el-switch-off-color: #ff4949;
               "
-              active-text="同步"
-              inactive-text="同步"
+              :active-text="t('terminal.sync')"
+              :inactive-text="t('terminal.sync')"
             />
           </el-tooltip>
         </div>
         <div v-if="!isSingleWindowMode" class="switch_wrap">
           <el-tooltip
             effect="dark"
-            content="包含脚本库与长指令输入"
+            :content="t('terminal.includesScriptLibrary')"
             placement="bottom"
           >
             <el-switch
@@ -174,8 +174,8 @@
                 --el-switch-on-color: #13ce66;
                 --el-switch-off-color: #ff4949;
               "
-              active-text="长指令"
-              inactive-text="长指令"
+              :active-text="t('terminal.longCommand')"
+              :inactive-text="t('terminal.longCommand')"
               @change="changeShowFooterBar"
             />
           </el-tooltip>
@@ -184,7 +184,7 @@
           <el-tooltip
             effect="dark"
             placement="bottom"
-            :content="isSingleWindowMode ? '多窗口展示多个服务器终端' : '单窗口一屏展示不同的服务器终端'"
+            :content="isSingleWindowMode ? t('terminal.multiWindowModeTip') : t('terminal.singleWindowModeTip')"
           >
             <el-switch
               v-model="isSingleWindowMode"
@@ -194,21 +194,20 @@
                 --el-switch-on-color: #409eff;
                 --el-switch-off-color: #13ce66;
               "
-              active-text="单窗口"
-              inactive-text="多窗口"
+              :active-text="t('terminal.singleWindowMode')"
+              :inactive-text="t('terminal.multiWindowMode')"
               @change="changeIsSingleWindowMode"
             />
           </el-tooltip>
         </div>
         <div v-if="!isMobileScreen && isSingleWindowMode && terminalTabs.length > 4" class="layout_mode_wrap">
           <el-radio-group v-model="layoutMode" size="small">
-            <el-radio-button value="grid">一屏展示</el-radio-button>
-            <el-radio-button value="scroll">横向排列</el-radio-button>
+            <el-radio-button value="grid">{{ t('terminal.gridLayout') }}</el-radio-button>
+            <el-radio-button value="scroll">{{ t('terminal.scrollLayout') }}</el-radio-button>
           </el-radio-group>
         </div>
       </div>
     </div>
-    <!-- 单窗口模式 -->
     <div v-if="isSingleWindowMode" class="single_window_wrapper">
       <TerminalSingleWindow
         ref="singleWindowRef"
@@ -225,7 +224,6 @@
       />
     </div>
 
-    <!-- 多窗口模式 -->
     <el-tabs
       v-else
       v-model="activeTabIndex"
@@ -252,8 +250,7 @@
               :style="{ background: getStatusColor(item.status) }"
             />
             <span>{{ item.name }}</span>
-            <!-- 挂起状态图标 -->
-            <el-icon v-if="item.status === 'suspended'" class="suspended_icon" title="已挂起">
+            <el-icon v-if="item.status === 'suspended'" class="suspended_icon" :title="t('terminal.suspended')">
               <VideoPause />
             </el-icon>
           </div>
@@ -261,38 +258,37 @@
         <div class="tab_content_wrap">
           <div class="tab_content_header">
             <div :class="['tab_content_wrap_header_item', { 'active': showInfoSide }]">
-              <span title="状态" @click="changeInfoSide">
+              <span :title="t('terminal.statusPanel')" @click="changeInfoSide">
                 <svg-icon name="icon-zhuangtai" class="icon" />
               </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': showSftpSide }]">
-              <span title="SFTP文件管理" @click="changeSftp">
+              <span :title="t('terminal.sftpManager')" @click="changeSftp">
                 <svg-icon name="icon-sftp" class="icon" />
               </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': showDockerDialog }]">
-              <span title="docker容器管理" @click="() => (showDockerDialog = !showDockerDialog)">
+              <span :title="t('terminal.dockerManager')" @click="() => (showDockerDialog = !showDockerDialog)">
                 <svg-icon name="icon-docker" class="icon" />
               </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': getSyncCurTab(item.key) }]">
-              <span title="同步输入到分屏" @click="handleSyncCurTabInput">
+              <span :title="t('terminal.syncInputSplit')" @click="handleSyncCurTabInput">
                 <svg-icon name="icon-lianjie" class="icon" />
               </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': getSplitStatus(item.key).h }]">
-              <span title="左右分屏" @click="handleHorizontalScreen">
+              <span :title="t('terminal.splitHorizontal')" @click="handleHorizontalScreen">
                 <svg-icon name="icon-a-06gaodufenping" class="icon" />
               </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': getSplitStatus(item.key).v }]">
-              <span title="上下分屏" @click="handleVerticalScreen">
+              <span :title="t('terminal.splitVertical')" @click="handleVerticalScreen">
                 <svg-icon name="icon-a-05kuandufenping" class="icon" />
               </span>
             </div>
           </div>
           <div class="tab_content_main">
-            <!-- 移动端 -->
             <el-drawer
               v-if="isMobileScreen"
               v-model="showInfoSide"
@@ -307,7 +303,6 @@
                 :ping-ms="pingData[item.host] || 0"
               />
             </el-drawer>
-            <!-- PC端 -->
             <div v-else :class="['tab_content_main_info_side', { 'show_info_side': showInfoSide }]">
               <ServerStatus
                 ref="infoSideRef"
@@ -363,7 +358,6 @@
               :class="['tab_content_main_sftp', { 'show_sftp': showSftpSide }]"
               :style="showSftpSide ? { width: sftpWidth + 'px', minWidth: sftpWidth + 'px', maxWidth: sftpWidth + 'px' } : {}"
             >
-              <!-- 拖拽调整条 -->
               <div
                 v-if="showSftpSide"
                 class="sftp_resize_handle"
@@ -396,7 +390,7 @@
         <el-dialog
           v-model="showDockerDialog"
           align-center
-          :title="`Docker容器管理-${ item.name }`"
+          :title="t('terminal.dockerManagerTitle', { name: item.name })"
           :width="isMobileScreen ? '100vw' : '80vw'"
           :style="isMobileScreen ? 'max-width: 100vw;' : 'max-width: 1300px;'"
           :close-on-click-modal="false"
@@ -432,6 +426,7 @@ import {
   onMounted,
   onUnmounted
 } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowDown, VideoPause, Setting } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { terminalStatusList, terminalStatus } from '@/utils/enum'
@@ -453,6 +448,7 @@ import TerminalSessionSetting from './terminal-session-setting.vue'
 const {
   proxy: { $nextTick, $store, $message }
 } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   terminalTabs: {
@@ -468,13 +464,11 @@ const { showMenu } = useContextMenu()
 const infoSideRef = ref(null)
 const pingData = ref({})
 const terminalRefs = ref([])
-// const sftpRefs = ref([])
 const activeTabIndex = ref(0)
 const isSyncAllSession = ref(false)
 const isSingleWindowMode = ref(isMobileScreen.value ? false : localStorage.getItem('isSingleWindowMode') === 'true')
 const layoutMode = ref(localStorage.getItem('terminalLayoutMode') || 'grid')
 
-// 监听布局模式变化
 watch(layoutMode, (newMode) => {
   localStorage.setItem('terminalLayoutMode', newMode)
 })
@@ -502,31 +496,23 @@ const sftpRefs = ref([])
 const resumeSessionDropdownRef = ref(null)
 const resumeSessionDropdownVisible = ref(false)
 const suspendedSessions = computed(() => $store.suspendedSessions)
-const hasSuspendedSessions = computed(() => suspendedSessions.value.length > 0)
 
-// 当前聚焦终端 uid
 const focusedUid = ref(null)
 
 const handleTabFocus = (uid) => {
   focusedUid.value = uid
 }
 
-// ======================= 同步当前tab分屏状态 =======================
 const syncCurTabMap = reactive({})
-
 const getSyncCurTab = (key) => syncCurTabMap[key] || false
-
 const handleSyncCurTabInput = () => {
   const key = getTabKeyByIndex(activeTabIndex.value)
   if (!key) return
   syncCurTabMap[key] = !getSyncCurTab(key)
 }
 
-// ======================= 分屏面板激活状态 =======================
 const activeSplitMap = reactive({})
-
 const getActiveSplit = (key) => activeSplitMap[key] || 1
-
 const setActiveSplit = (key, idx) => {
   activeSplitMap[key] = idx
 }
@@ -534,23 +520,16 @@ const setActiveSplit = (key, idx) => {
 const getSplitItemClass = (key, panelIndex) => {
   const classes = []
   const { h, v } = getSplitStatus(key)
-  if (h && v) { // four split
+  if (h && v) {
     const activeIdx = getActiveSplit(key)
     if (panelIndex === activeIdx) classes.push(`active_split_${ panelIndex }`)
   }
-  // for two split no special class
   return classes
 }
 
-// ======================= 分屏状态 =======================
-// 每个 tab(key) 对应的分屏状态 { h: boolean, v: boolean }
 const splitStatusMap = reactive({})
-
 const getTabKeyByIndex = (idx) => terminalTabs.value[idx]?.key
-
 const getSplitStatus = (key) => splitStatusMap[key] || { h: false, v: false }
-
-// 计算某 tab 需要渲染的终端数量
 const getTerminalCountByIndex = (idx) => {
   const key = getTabKeyByIndex(idx)
   if (!key) return 0
@@ -576,7 +555,6 @@ const changeIsSingleWindowMode = () => {
   localStorage.setItem('isSingleWindowMode', isSingleWindowMode.value)
 }
 
-// 防抖函数
 const debounce = (func, delay) => {
   let timeoutId
   return (...args) => {
@@ -585,28 +563,20 @@ const debounce = (func, delay) => {
   }
 }
 
-// 防抖版本的终端尺寸重计算
 const debouncedResizeTerminal = debounce(() => {
   resizeTerminal()
 }, 100)
 
-// 防抖版本的localStorage保存
 const debouncedSaveToStorage = debounce((height) => {
   localStorage.setItem('footerBarHeight', height.toString())
 }, 300)
 
 const handleFooterBarHeightChange = (height) => {
-  // 立即更新响应式状态（保证UI实时更新）
   footerBarHeight.value = height
-
-  // 防抖保存到localStorage
   debouncedSaveToStorage(height)
-
-  // 防抖触发终端尺寸重计算
   debouncedResizeTerminal()
 }
 
-// SFTP宽度调整相关
 const SFTP_WIDTH_KEY = 'easynode_sftp_width'
 const isResizingSftp = ref(false)
 const startX = ref(0)
@@ -616,7 +586,6 @@ const startResizeSftp = (e) => {
   isResizingSftp.value = true
   startX.value = e.clientX
   startWidth.value = sftpWidth.value
-
   document.addEventListener('mousemove', handleResizeSftp)
   document.addEventListener('mouseup', stopResizeSftp)
   document.body.style.cursor = 'ew-resize'
@@ -626,10 +595,8 @@ const startResizeSftp = (e) => {
 
 const handleResizeSftp = (e) => {
   if (!isResizingSftp.value) return
-
-  const deltaX = startX.value - e.clientX // 向左拖拽为正值（增大宽度）
-  const newWidth = Math.max(200, Math.min(800, startWidth.value + deltaX)) // 最小200px，最大800px
-
+  const deltaX = startX.value - e.clientX
+  const newWidth = Math.max(200, Math.min(800, startWidth.value + deltaX))
   sftpWidth.value = newWidth
 }
 
@@ -639,7 +606,6 @@ const stopResizeSftp = () => {
   document.removeEventListener('mouseup', stopResizeSftp)
   document.body.style.cursor = ''
   document.body.style.userSelect = ''
-  // 保存宽度到 localStorage
   localStorage.setItem(SFTP_WIDTH_KEY, sftpWidth.value.toString())
   debouncedResizeTerminal()
 }
@@ -659,8 +625,6 @@ const getTerminalRefsOfTab = (idx) => {
 }
 
 const getFirstTerminalRefOfTab = (idx) => getTerminalRefsOfTab(idx)[0]
-
-// ======================= 提供给模板使用的辅助函数 =======================
 const getTerminalCount = (tabKey) => {
   const { h, v } = getSplitStatus(tabKey)
   return (h ? 2 : 1) * (v ? 2 : 1)
@@ -682,18 +646,12 @@ const hostList = computed(() => {
   if (!Array.isArray($store.hostList)) return []
   return $store.hostList.filter(item => item.connectType !== 'rdp')
 })
-// const curHost = computed(() =>
-//   hostList.value.find(
-//     (item) => item.host === terminalTabs.value[activeTabIndex.value]?.host
-//   )
-// )
 const scriptGroupList = computed(() => $store.scriptGroupList)
 const scriptList = computed(() => $store.scriptList)
 const scriptLibrary = computed(() => $store.menuSetting.scriptLibrary)
-const scriptLibraryCascader = computed(
-  () => $store.menuSetting.scriptLibraryCascader
-)
+const scriptLibraryCascader = computed(() => $store.menuSetting.scriptLibraryCascader)
 const hostGroupCascader = computed(() => $store.menuSetting.hostGroupCascader)
+
 const formatHostGroupList = computed(() => {
   const groupList = hostList.value.reduce((acc, item) => {
     const groupName = hostGroupList.value.find((group) => group.id === item.group)?.name
@@ -712,7 +670,7 @@ const formatHostGroupList = computed(() => {
       if (hosts.length > 1) {
         children.unshift({
           value: `${ hostGroupAll }${ hosts[0].group }`,
-          label: '全部连接'
+          label: t('terminal.allConnect')
         })
       }
       return {
@@ -723,6 +681,7 @@ const formatHostGroupList = computed(() => {
     })
   return result
 })
+
 const formatScriptList = computed(() => {
   const scriptsByGroup = scriptList.value.reduce((acc, script) => {
     const groupId = script.group || 'default'
@@ -732,7 +691,7 @@ const formatScriptList = computed(() => {
     acc[groupId].push({
       value: script.id,
       label: script.name,
-      command: script.command // 保存command用于执行脚本
+      command: script.command
     })
     return acc
   }, {})
@@ -744,9 +703,7 @@ const formatScriptList = computed(() => {
 })
 
 const getStatusColor = (status) => {
-  return (
-    terminalStatusList.find((item) => item.value === status)?.color || 'gray'
-  )
+  return terminalStatusList.find((item) => item.value === status)?.color || 'gray'
 }
 
 const handleUpdateList = async ({ host }) => {
@@ -755,7 +712,7 @@ const handleUpdateList = async ({ host }) => {
     let targetHost = hostList.value.find((item) => item.host === host)
     if (targetHost) emit('add-host', targetHost)
   } catch (err) {
-    $message.error('获取实例列表失败')
+    $message.error(t('common.fetchServerListFailed'))
     console.error('获取实例列表失败: ', err)
   }
 }
@@ -770,7 +727,7 @@ const resetLongPress = () => {
 }
 
 const handleLinkHost = (hostDescObj) => {
-  if (!hostDescObj) return // clearCheckedNodes二次触发change事件
+  if (!hostDescObj) return
   const id = Array.isArray(hostDescObj) ? hostDescObj.slice(-1)[0] : hostDescObj.id
   if (id.startsWith(hostGroupAll)) {
     const groupId = id.split(hostGroupAll)[1]
@@ -781,17 +738,16 @@ const handleLinkHost = (hostDescObj) => {
         emit('add-host', host)
       })
     } else {
-      $message.warning('请先配置SSH连接信息')
+      $message.warning(t('terminal.reconnectRequired'))
     }
   } else {
     const host = hostList.value.find((item) => item.id === id)
     if (!host.isConfig) {
-      $message.warning('请先配置SSH连接信息')
+      $message.warning(t('terminal.reconnectRequired'))
       hostFormVisible.value = true
       updateHostData.value = { ...host }
       return
     }
-    // 正常新建连接，不恢复会话
     emit('add-host', host)
   }
   setTimeout(() => {
@@ -800,57 +756,49 @@ const handleLinkHost = (hostDescObj) => {
   }, 100)
 }
 
-// 处理恢复会话下拉菜单显示/隐藏
 const handleResumeSessionDropdownChange = (visible) => {
   if (visible) {
     fetchSuspendedSessions()
   }
 }
 
-// 获取挂起的会话列表
 const fetchSuspendedSessions = () => {
   $store.getSuspendedSessions()
 }
 
-// 从下拉菜单恢复会话
 const handleResumeSessionFromDropdown = (session) => {
   if (!session.connectionAlive) {
-    $message.warning('该会话的SSH连接已断开，无法恢复')
+    $message.warning(t('terminal.sessionSshDisconnected'))
     return
   }
 
   const { hostId, host, sessionId } = session
-
-  // 创建一个特殊的tab，标记为恢复会话
   const targetHost = hostList.value.find(item => item.id === hostId)
   if (!targetHost) {
-    $message.error('未找到对应的主机配置')
+    $message.error(t('terminal.hostConfigNotFound'))
     return
   }
 
   const { id, name, isConfig } = targetHost
   terminalTabs.value.push({
-    key: sessionId, // 使用sessionId作为key
+    key: sessionId,
     id,
     name,
     host,
     status: terminalStatus.RESUMING,
     isConfig,
-    resumeSessionId: sessionId // 标记为恢复会话
+    resumeSessionId: sessionId
   })
 
-  // 关闭下拉菜单
   resumeSessionDropdownVisible.value = false
   resumeSessionDropdownRef.value?.handleClose()
 }
 
-// scriptDescObj: 脚本库对象、脚本命令或者包含command和useBase64的对象
 const handleExecScript = async (scriptDescObj) => {
-  if (!scriptDescObj) return // clearCheckedNodes二次触发change事件
+  if (!scriptDescObj) return
   let command = ''
   let useBase64 = false
 
-  // 处理从footerbar传来的对象格式{command,useBase64}
   if (scriptDescObj.command !== undefined) {
     command = scriptDescObj.command
     useBase64 = scriptDescObj.useBase64 || false
@@ -859,25 +807,21 @@ const handleExecScript = async (scriptDescObj) => {
     if (id) {
       const script = scriptList.value.find((item) => item.id === id)
       command = script?.command
-      useBase64 = script?.useBase64 || false // 读取脚本的base64配置
+      useBase64 = script?.useBase64 || false
     } else {
       command = scriptDescObj
-      useBase64 = false // 外部传入的命令默认不用base64
+      useBase64 = false
     }
   }
-  if (!command) return $message.warning('未找到对应的脚本')
+  if (!command) return $message.warning(t('terminal.scriptNotFound'))
 
   if (!isSyncAllSession.value) {
-    // 不同步时，使用 handleInputCommand（会处理分屏同步）
     await handleInputCommand(command, 'script', useBase64)
   } else {
-    // 同步输入到所有终端
     if (isSingleWindowMode.value) {
-      // 单窗口模式：inputCommand 方法内部会处理同步逻辑
       await $nextTick()
       singleWindowRef.value?.inputCommandToTerminal(command, 'script', useBase64)
     } else {
-      // 多窗口模式：遍历所有终端引用
       terminalRefs.value.forEach((terminalRef) => {
         terminalRef.inputCommand(command, 'script', useBase64)
       })
@@ -914,7 +858,6 @@ const getPingData = ({ host, time }) => {
 }
 
 const handleSyncPathToSftp = (path) => {
-  // 获取当前标签页的SFTP组件引用
   const sftpRef = sftpRefs.value[activeTabIndex.value]
   if (sftpRef && sftpRef.switchToPath && showSftpSide.value) {
     sftpRef.switchToPath(path, false)
@@ -930,7 +873,6 @@ watch(
   terminalTabsLen,
   () => {
     let len = terminalTabsLen.value
-    // console.log('add tab:', len)
     if (len > 0) {
       activeTabIndex.value = len - 1
       tabChange(activeTabIndex.value)
@@ -979,28 +921,24 @@ const handleFullScreen = () => {
 }
 
 const handleHorizontalScreen = () => {
-  // if (isMobileScreen.value) return $message.info('移动端暂不支持左右分屏')
   const key = getTabKeyByIndex(activeTabIndex.value)
   if (!key) return
   const status = splitStatusMap[key] || { h: false, v: false }
   splitStatusMap[key] = { ...status, h: !status.h }
   nextTick(() => {
     resizeTerminal()
-    // 重新聚焦原先终端
     const ref = terminalRefs.value.find(r => r?.$?.uid === focusedUid.value)
     ref?.focusTab ? ref.focusTab() : terminalRefs.value?.[0]?.focusTab()
   })
 }
 
 const handleVerticalScreen = () => {
-  // if (isMobileScreen.value) return
   const key = getTabKeyByIndex(activeTabIndex.value)
   if (!key) return
   const status = splitStatusMap[key] || { h: false, v: false }
   splitStatusMap[key] = { ...status, v: !status.v }
   nextTick(() => {
     resizeTerminal()
-    // focusLastTerminalOfActive()
     const ref = terminalRefs.value.find(r => r?.$?.uid === focusedUid.value)
     ref?.focusTab ? ref.focusTab() : terminalRefs.value?.[0]?.focusTab()
   })
@@ -1015,19 +953,13 @@ const resizeTerminal = () => {
 
 const handleInputCommand = async (command, type = 'input', useBase64 = false) => {
   if (isSingleWindowMode.value) {
-    // 单窗口模式下，使用 singleWindowRef 来执行命令
     await $nextTick()
     singleWindowRef.value?.inputCommandToTerminal(command, type, useBase64)
   } else {
-    // 多窗口模式下，优先使用当前聚焦的终端
     let targetTerminalRef = null
-
-    // 首先尝试找到当前聚焦的终端
     if (focusedUid.value) {
       targetTerminalRef = terminalRefs.value.find(ref => ref?.$?.uid === focusedUid.value)
     }
-
-    // 如果没有找到聚焦的终端，则使用当前活跃标签页的第一个终端
     if (!targetTerminalRef) {
       targetTerminalRef = getFirstTerminalRefOfTab(activeTabIndex.value)
     }
@@ -1036,12 +968,10 @@ const handleInputCommand = async (command, type = 'input', useBase64 = false) =>
     targetTerminalRef?.focusTab()
     targetTerminalRef?.inputCommand(command, type, useBase64)
 
-    // 处理分屏同步逻辑
     const curTabKey = getTabKeyByIndex(activeTabIndex.value)
     const isSyncCurTab = getSyncCurTab(curTabKey)
 
     if (isSyncCurTab) {
-      // 同步到当前标签页的其他分屏终端
       const tabTerminalRefs = getTerminalRefsOfTab(activeTabIndex.value)
       const targetUid = targetTerminalRef?.$?.uid
 
@@ -1054,22 +984,18 @@ const handleInputCommand = async (command, type = 'input', useBase64 = false) =>
   }
 }
 
-// 挂起终端
 const handleSuspendTerminal = async (item, index, { silent = false } = {}) => {
   const terminalRef = getFirstTerminalRefOfTab(index)
   if (!terminalRef) {
-    if (!silent) $message.error('获取终端引用失败')
+    if (!silent) $message.error(t('terminal.terminalRefMissing'))
     return false
   }
 
   const success = await terminalRef.suspendTerminal()
   if (success) {
-    // 更新标签状态
     item.status = terminalStatus.SUSPENDED
-    if (!silent) $message.success('终端已挂起')
-    // 立即关闭该tab
+    if (!silent) $message.success(t('terminal.terminalSuspended'))
     removeTab(index)
-    // 刷新挂起会话列表
     fetchSuspendedSessions()
     return true
   }
@@ -1077,7 +1003,6 @@ const handleSuspendTerminal = async (item, index, { silent = false } = {}) => {
   return false
 }
 
-// 挂起所有会话（仅对已连接的终端生效）
 const handleSuspendAllSessions = async () => {
   const indicesToSuspend = terminalTabs.value
     .map((tab, index) => ({ tab, index }))
@@ -1086,7 +1011,7 @@ const handleSuspendAllSessions = async () => {
     .reverse()
 
   if (indicesToSuspend.length === 0) {
-    $message.warning('暂无可挂起的已连接会话')
+    $message.warning(t('terminal.noSuspendableSessions'))
     return
   }
 
@@ -1102,14 +1027,13 @@ const handleSuspendAllSessions = async () => {
   }
 
   if (successCount > 0) {
-    $message.success(`已挂起 ${ successCount } 个会话`)
+    $message.success(t('terminal.suspendedSessionCount', { count: successCount }))
   }
   if (failCount > 0) {
-    $message.warning(`有 ${ failCount } 个会话挂起失败`)
+    $message.warning(t('terminal.suspendSessionFailCount', { count: failCount }))
   }
 }
 
-// 关闭其他终端
 const handleCloseOtherTabs = (keepIndex) => {
   const toRemove = []
   terminalTabs.value.forEach((_, index) => {
@@ -1117,14 +1041,11 @@ const handleCloseOtherTabs = (keepIndex) => {
       toRemove.push(index)
     }
   })
-  // 从后往前删除，避免索引错乱
   toRemove.reverse().forEach(index => {
     removeTab(index)
   })
 }
 
-// Tab 右键菜单处理（复用 useTerminalTabContextMenu composable）
-// 在所有依赖函数定义后初始化 composable（避免 hoisting 问题）
 const { handleTabContextMenu: _tabCtxMenu } = useTerminalTabContextMenu({
   terminalTabs,
   onSuspend: (item, index) => handleSuspendTerminal(item, index),
@@ -1139,7 +1060,6 @@ const handleTabContextMenu = (e, item, index) => {
   _tabCtxMenu(e, item, index)
 }
 
-// 单窗口模式相关函数
 const handleCloseTerminalSingle = (terminalKey) => {
   const tabIndex = terminalTabs.value.findIndex(tab => tab.key === terminalKey)
   if (tabIndex !== -1) {
@@ -1147,13 +1067,11 @@ const handleCloseTerminalSingle = (terminalKey) => {
   }
 }
 
-// 单窗口模式下挂起完成后的处理（TerminalSingleWindow emit suspend-terminal 时触发）
 const handleSuspendTerminalSingleDone = (terminalKey) => {
   const tabIndex = terminalTabs.value.findIndex(tab => tab.key === terminalKey)
   if (tabIndex !== -1) {
     emit('removeTab', tabIndex)
   }
-  // 刷新挂起会话列表
   fetchSuspendedSessions()
 }
 
@@ -1198,7 +1116,6 @@ watch(isSingleWindowMode, async() => {
 
 onMounted(() => {
   document.addEventListener('fullscreenchange', fullScreenCb)
-  // 初始化时检查是否有挂起的会话
   fetchSuspendedSessions()
 })
 onUnmounted(() => {
@@ -1232,24 +1149,18 @@ onUnmounted(() => {
     &.mobile {
       overflow-x: scroll;
       overflow-y: auto;
-      -ms-overflow-style: none; /* IE/Edge */
-      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none;
+      scrollbar-width: none;
       &::-webkit-scrollbar { display: none; }
     }
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 5px 0 15px;
-    // position: sticky;
-    // top: 0;
     background: var(--el-fill-color-light);
     color: var(--el-text-color-regular);
-    // z-index: 3;
     user-select: none;
 
-    // :deep(.el-dropdown) {
-    //   margin-top: -2px;
-    // }
     .dropdown_menu {
       :deep(.el-dropdown-menu) {
         min-width: 120px;
@@ -1261,7 +1172,6 @@ onUnmounted(() => {
       font-size: var(--el-font-size-base);
       color: var(--el-text-color-regular);
       white-space: nowrap;
-      // color: var(--el-color-primary);
       cursor: pointer;
       margin-right: 10px;
       display: flex;
@@ -1328,7 +1238,6 @@ onUnmounted(() => {
         border-radius: 50%;
         margin-right: 5px;
         transition: all 0.5s;
-        // background-color: var(--el-color-primary);
       }
 
       .suspended_icon {
@@ -1546,3 +1455,4 @@ onUnmounted(() => {
   }
 }
 </style>
+

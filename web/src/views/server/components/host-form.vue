@@ -11,7 +11,7 @@
     @closed="handleClosed"
   >
     <div v-if="isBatchModify" class="batch_info">
-      <el-alert title="正在进行批量修改操作,留空默认保留原值" type="warning" :closable="false" />
+      <el-alert :title="t('server.form.batchModifyHint')" type="warning" :closable="false" />
       <el-tag
         v-for="item in batchHosts"
         :key="item.id"
@@ -30,7 +30,7 @@
       label-width="100px"
       :show-message="false"
     >
-      <el-form-item key="connectType" label="连接类型" prop="connectType">
+      <el-form-item key="connectType" :label="t('server.form.connectType')" prop="connectType">
         <el-radio-group v-model="hostForm.connectType">
           <el-radio value="ssh">SSH <svg-icon name="icon-linux" class="icon" /></el-radio>
           <PlusSupportTip>
@@ -38,7 +38,7 @@
           </PlusSupportTip>
         </el-radio-group>
       </el-form-item>
-      <el-form-item key="group" label="分组" prop="group">
+      <el-form-item key="group" :label="t('server.form.group')" prop="group">
         <el-select
           v-model="hostForm.group"
           placeholder=""
@@ -58,7 +58,7 @@
           v-if="!isBatchModify"
           key="name"
           class="form_item_left"
-          label="名称"
+          :label="t('server.form.name')"
           prop="name"
         >
           <el-input
@@ -72,13 +72,13 @@
           v-if="!isBatchModify"
           key="index"
           class="form_item_right"
-          label="序号"
+          :label="t('server.form.index')"
           prop="index"
         >
           <el-input
             v-model.trim.number="hostForm.index"
             clearable
-            placeholder="用于实例列表中排序(填写数字)"
+            :placeholder="t('server.form.indexPlaceholder')"
             autocomplete="off"
           />
         </el-form-item>
@@ -88,20 +88,20 @@
           v-if="!isBatchModify"
           key="host"
           class="form_item_left"
-          label="主机"
+          :label="t('server.form.host')"
           prop="host"
         >
           <el-input
             v-model.trim="hostForm.host"
             clearable
-            placeholder="IP"
+            :placeholder="t('server.form.ipPlaceholder')"
             autocomplete="off"
           />
         </el-form-item>
         <el-form-item
           key="port"
           class="form_item_right"
-          label="端口"
+          :label="t('server.form.port')"
           prop="port"
         >
           <el-input
@@ -112,7 +112,7 @@
           />
         </el-form-item>
       </div>
-      <el-form-item key="username" label="用户名" prop="username">
+      <el-form-item key="username" :label="t('server.form.username')" prop="username">
         <el-autocomplete
           v-model.trim="hostForm.username"
           :fetch-suggestions="userSearch"
@@ -127,21 +127,21 @@
       <el-form-item
         v-if="isSSH"
         key="authType"
-        label="认证方式"
+        :label="t('server.form.authType')"
         prop="authType"
       >
-        <el-radio v-model="hostForm.authType" value="privateKey">密钥</el-radio>
-        <el-radio v-model="hostForm.authType" value="password">密码</el-radio>
-        <el-radio v-model="hostForm.authType" value="credential">凭据</el-radio>
+        <el-radio v-model="hostForm.authType" value="privateKey">{{ t('server.privateKey') }}</el-radio>
+        <el-radio v-model="hostForm.authType" value="password">{{ t('server.password') }}</el-radio>
+        <el-radio v-model="hostForm.authType" value="credential">{{ t('menu.credentials') }}</el-radio>
       </el-form-item>
       <el-form-item
         v-if="isSSH && hostForm.authType === 'privateKey'"
         key="privateKey"
         prop="privateKey"
-        label="密钥"
+        :label="t('server.privateKey')"
       >
         <el-button type="primary" size="small" @click="handleClickUploadBtn">
-          本地私钥...
+          {{ t('credentials.localPrivateKey') }}
         </el-button>
         <input
           ref="privateKeyRef"
@@ -162,16 +162,16 @@
         />
         <div v-if="hasEncryptedKey" class="key_warning">
           <el-icon><WarningFilled /></el-icon>
-          <span>如果该密钥需密码，需在</span>
-          <a href="javascript:void(0)" @click="toCredentials">凭据管理</a>
-          <span>中添加，未加密私钥可忽略此提示.</span>
+          <span>{{ t('server.form.encryptedKeyPrefix') }}</span>
+          <a href="javascript:void(0)" @click="toCredentials">{{ t('menu.credentials') }}</a>
+          <span>{{ t('server.form.encryptedKeySuffix') }}</span>
         </div>
       </el-form-item>
       <el-form-item
         v-if="hostForm.authType === 'password' || isRDP"
         key="password"
         prop="password"
-        label="密码"
+        :label="t('server.password')"
       >
         <el-input
           v-model.trim="hostForm.password"
@@ -186,14 +186,14 @@
         v-if="isSSH && hostForm.authType === 'credential'"
         key="credential"
         prop="credential"
-        label="凭据"
+        :label="t('menu.credentials')"
       >
         <el-select v-model="hostForm.credential" placeholder="">
           <template #empty>
             <div class="empty_text">
-              <span>无凭据数据,</span>
+              <span>{{ t('server.form.noCredentialData') }}</span>
               <el-button type="primary" link @click="toCredentials">
-                去添加
+                {{ t('server.form.goAdd') }}
               </el-button>
             </div>
           </template>
@@ -206,25 +206,25 @@
             <div class="select_warp">
               <span>{{ item.name }}</span>
               <span class="auth_type_text">
-                {{ item.authType === 'privateKey' ? '密钥' : '密码' }}
+                {{ item.authType === 'privateKey' ? t('server.privateKey') : t('server.password') }}
               </span>
             </div>
           </el-option>
         </el-select>
       </el-form-item>
       <el-collapse v-model="advancedSettingsCollapsed" accordion>
-        <el-collapse-item name="advanced" title="其他设置">
+        <el-collapse-item name="advanced" :title="t('terminal.otherSettings')">
           <PlusSupportTip>
             <el-form-item
               v-if="isSSH"
               key="proxyType"
-              label="代理类型"
+              :label="t('server.proxyType')"
               prop="proxyType"
             >
               <el-radio-group v-model="hostForm.proxyType" :disabled="!isPlusActive">
-                <el-radio value="">不使用代理</el-radio>
-                <el-radio value="proxyServer">代理服务</el-radio>
-                <el-radio value="jumpHosts">跳板机</el-radio>
+                <el-radio value="">{{ t('server.form.noProxy') }}</el-radio>
+                <el-radio value="proxyServer">{{ t('server.proxyServerLabel') }}</el-radio>
+                <el-radio value="jumpHosts">{{ t('server.jumpHost') }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </PlusSupportTip>
@@ -232,17 +232,17 @@
             v-if="isSSH && hostForm.proxyType === 'jumpHosts'"
             key="jumpHosts"
             prop="jumpHosts"
-            label="跳板机"
+            :label="t('server.jumpHost')"
           >
             <el-select
               v-model="hostForm.jumpHosts"
-              placeholder="支持多选,跳板机连接顺序从前到后"
+              :placeholder="t('server.form.jumpHostPlaceholder')"
               multiple
               :disabled="!isPlusActive"
             >
               <template #empty>
                 <div class="empty_text">
-                  <span>无可用跳板机器</span>
+                  <span>{{ t('server.form.noJumpHost') }}</span>
                 </div>
               </template>
               <el-option
@@ -261,7 +261,7 @@
             v-if="isSSH && hostForm.proxyType === 'proxyServer'"
             key="proxyServer"
             prop="proxyServer"
-            label="代理服务"
+            :label="t('server.proxyServerLabel')"
           >
             <el-select
               v-model="hostForm.proxyServer"
@@ -270,9 +270,9 @@
             >
               <template #empty>
                 <div class="empty_text">
-                  <span>无可用代理服务,</span>
+                  <span>{{ t('server.form.noProxyService') }}</span>
                   <el-button type="primary" link @click="toProxy">
-                    去添加
+                    {{ t('server.form.goAdd') }}
                   </el-button>
                 </div>
               </template>
@@ -295,7 +295,7 @@
             v-if="isSSH"
             key="command"
             prop="command"
-            label="登录指令"
+            :label="t('server.form.loginCommand')"
           >
             <el-input
               v-model="hostForm.command"
@@ -303,40 +303,40 @@
               :rows="3"
               clearable
               autocomplete="off"
-              placeholder="连接服务器后自动执行的指令(例如: sudo -i)"
+              :placeholder="t('server.form.loginCommandPlaceholder')"
             />
           </el-form-item>
 
-          <el-form-item key="expired" label="到期时间" prop="expired">
+          <el-form-item key="expired" :label="t('server.expiredAt')" prop="expired">
             <el-date-picker
               v-model="hostForm.expired"
               type="date"
               :editable="false"
               style="width: 100%;"
               value-format="x"
-              placeholder="实例到期时间"
+              :placeholder="t('server.form.expiredPlaceholder')"
             />
           </el-form-item>
           <el-form-item
             v-if="isValidDate(hostForm.expired)"
             key="expiredNotify"
-            label="到期提醒"
+            :label="t('server.form.expiredNotify')"
             prop="expiredNotify"
           >
-            <el-tooltip content="将在实例到期前7、3、1天发送提醒(需在设置中绑定有效邮箱)" placement="right">
+            <el-tooltip :content="t('server.form.expiredNotifyTip')" placement="right">
               <el-switch v-model="hostForm.expiredNotify" :active-value="true" :inactive-value="false" />
             </el-tooltip>
           </el-form-item>
-          <el-form-item key="consoleUrl" label="控制台URL" prop="consoleUrl">
+          <el-form-item key="consoleUrl" :label="t('server.consoleUrl')" prop="consoleUrl">
             <el-input
               v-model.trim="hostForm.consoleUrl"
               clearable
-              placeholder="用于直达云服务控制台"
+              :placeholder="t('server.form.consoleUrlPlaceholder')"
               autocomplete="off"
               @keyup.enter="handleSave"
             />
           </el-form-item>
-          <el-form-item key="tag" label="标签" prop="tag">
+          <el-form-item key="tag" :label="t('server.tag')" prop="tag">
             <el-input-tag v-model="hostForm.tag" tag-type="success" tag-effect="plain" />
           </el-form-item>
         </el-collapse-item>
@@ -354,10 +354,10 @@
     </el-form>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="visible = false">关闭</el-button>
-        <el-button v-if="!isBatchModify" type="primary" @click="handleSave">确认</el-button>
+        <el-button @click="visible = false">{{ t('common.close') }}</el-button>
+        <el-button v-if="!isBatchModify" type="primary" @click="handleSave">{{ t('common.confirm') }}</el-button>
         <PlusSupportTip v-else>
-          <el-button type="primary" :disabled="!isPlusActive" @click="handleSave">确认</el-button>
+          <el-button type="primary" :disabled="!isPlusActive" @click="handleSave">{{ t('common.confirm') }}</el-button>
         </PlusSupportTip>
       </span>
     </template>
@@ -366,12 +366,14 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance, nextTick, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 import { RSAEncrypt, AESEncrypt, randomStr } from '@utils/index.js'
 import { isValidDate } from '@/utils'
 import { WarningFilled } from '@element-plus/icons-vue'
 
 const { proxy: { $api, $router, $message, $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   show: {
@@ -434,13 +436,13 @@ const batchHosts = computed(() => props.batchHosts)
 const defaultData = computed(() => props.defaultData)
 const rules = computed(() => {
   return {
-    connectType: { required: true, message: '选择一个连接类型' },
-    group: { required: !isBatchModify.value, message: '选择一个分组' },
-    name: { required: !isBatchModify.value, message: '输入实例别名', trigger: 'change' },
-    host: { required: !isBatchModify.value, message: '输入IP/域名', trigger: 'change' },
-    port: { required: !isBatchModify.value, type: 'number', message: '输入ssh端口', trigger: 'change' },
+    connectType: { required: true, message: t('server.form.validation.connectType') },
+    group: { required: !isBatchModify.value, message: t('server.form.validation.group') },
+    name: { required: !isBatchModify.value, message: t('server.form.validation.name'), trigger: 'change' },
+    host: { required: !isBatchModify.value, message: t('server.form.validation.host'), trigger: 'change' },
+    port: { required: !isBatchModify.value, type: 'number', message: t('server.form.validation.port'), trigger: 'change' },
     jumpHosts: { required: false, type: 'array' },
-    index: { required: !isBatchModify.value, type: 'number', message: '输入数字', trigger: 'change' },
+    index: { required: !isBatchModify.value, type: 'number', message: t('server.group.numberRequired'), trigger: 'change' },
     // password: [{ required: hostForm.authType === 'password', trigger: 'change' },],
     // privateKey: [{ required: hostForm.authType === 'privateKey', trigger: 'change' },],
     expired: { required: false },
@@ -457,7 +459,7 @@ const visible = computed({
 })
 
 const title = computed(() => {
-  return isBatchModify.value ? '批量修改实例' : (defaultData.value ? '修改实例' : '添加实例')
+  return isBatchModify.value ? t('server.batchModify') : (defaultData.value ? t('server.form.editTitle') : t('server.form.addTitle'))
 })
 
 // 连接类型计算属性
@@ -604,7 +606,7 @@ const handleSave = () => {
           delete updateFieldData.password
           delete updateFieldData.credential
         }
-        if (Object.keys(updateFieldData).length === 0) return $message.warning('没有任何修改')
+        if (Object.keys(updateFieldData).length === 0) return $message.warning(t('server.form.noChanges'))
         console.log(updateFieldData)
         if (updateFieldData.authType) {
           let tempKey = randomStr(16)

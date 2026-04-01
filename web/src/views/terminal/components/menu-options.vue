@@ -1,7 +1,7 @@
 <template>
   <el-drawer
     v-model="visible"
-    title="菜单选项"
+    :title="t('terminal.menuOptions')"
     :direction="isMobileScreen ? 'ttb' : 'ltr'"
     :close-on-click-modal="true"
     :close-on-press-escape="true"
@@ -15,18 +15,18 @@
       label-width="100px"
       :show-message="false"
     >
-      <el-form-item label="实例" prop="instanceGroup">
+      <el-form-item :label="t('menu.serverList')" prop="instanceGroup">
         <el-radio-group
           v-model="hostGroupCascader"
           size="small"
           text-color="#fff"
           fill="#13ce66"
         >
-          <el-radio-button :value="true">分组级联展示</el-radio-button>
-          <el-radio-button :value="false">不分组单列展示</el-radio-button>
+          <el-radio-button :value="true">{{ t('terminal.groupCascader') }}</el-radio-button>
+          <el-radio-button :value="false">{{ t('terminal.flatList') }}</el-radio-button>
         </el-radio-group>
       </el-form-item>
-      <el-form-item label="脚本库" prop="scriptLibrary">
+      <el-form-item :label="t('menu.scripts')" prop="scriptLibrary">
         <el-radio-group
           v-model="scriptLibraryCascader"
           size="small"
@@ -34,8 +34,8 @@
           :fill="scriptLibrary ? '#13ce66' : '#999'"
           :disabled="!scriptLibrary"
         >
-          <el-radio-button :value="true">分组级联展示</el-radio-button>
-          <el-radio-button :value="false">不分组单列展示</el-radio-button>
+          <el-radio-button :value="true">{{ t('terminal.groupCascader') }}</el-radio-button>
+          <el-radio-button :value="false">{{ t('terminal.flatList') }}</el-radio-button>
         </el-radio-group>
         <span class="script_library_switch">
           <el-switch
@@ -43,15 +43,15 @@
             class="switch"
             inline-prompt
             style="--el-switch-on-color: #13ce66; --el-switch-off-color: #999"
-            active-text="显示"
-            inactive-text="隐藏"
+            :active-text="t('terminal.show')"
+            :inactive-text="t('terminal.hide')"
           />
         </span>
       </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog_footer">
-        <el-button @click="visible = false">关闭</el-button>
+        <el-button @click="visible = false">{{ t('common.close') }}</el-button>
       </span>
     </template>
   </el-drawer>
@@ -59,10 +59,12 @@
 
 <script setup>
 import { computed, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import useMobileWidth from '@/composables/useMobileWidth'
 
 const { proxy: { $store } } = getCurrentInstance()
 const { isMobileScreen } = useMobileWidth()
+const { t } = useI18n()
 
 const props = defineProps({
   show: {

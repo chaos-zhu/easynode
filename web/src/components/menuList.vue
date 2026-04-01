@@ -20,8 +20,9 @@
 </template>
 
 <script setup>
-import { reactive, markRaw, getCurrentInstance, computed, watchEffect } from 'vue'
+import { computed, markRaw, getCurrentInstance, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   Menu as IconMenu,
   Key,
@@ -30,7 +31,6 @@ import {
   ArrowRight,
   Pointer,
   FolderOpened
-  // FolderOpened
 } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -41,53 +41,54 @@ const props = defineProps({
 })
 
 const { proxy: { $router, $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const emit = defineEmits(['select',])
 
 const route = useRoute()
 
-const list = reactive([
+const list = computed(() => ([
   {
-    name: '实例列表',
+    name: t('menu.serverList'),
     icon: markRaw(IconMenu),
     index: '/server'
   },
   {
-    name: '远程终端',
+    name: t('menu.terminal'),
     icon: markRaw(ScaleToOriginal),
     index: '/terminal'
   },
   {
-    name: '远程桌面',
+    name: t('menu.rdp'),
     icon: markRaw(ScaleToOriginal),
     index: '/rdp'
   },
   {
-    name: '文件对传',
+    name: t('menu.fileTransfer'),
     icon: markRaw(FolderOpened),
     index: '/file'
   },
   {
-    name: '凭据管理',
+    name: t('menu.credentials'),
     icon: markRaw(Key),
     index: '/credentials'
   },
   {
-    name: '脚本库',
+    name: t('menu.scripts'),
     icon: markRaw(ArrowRight),
     index: '/scripts'
   },
   {
-    name: '批量指令',
+    name: t('menu.onekey'),
     icon: markRaw(Pointer),
     index: '/onekey'
   },
   {
-    name: '系统设置',
+    name: t('menu.settings'),
     icon: markRaw(Setting),
     index: '/setting'
   },
-])
+]))
 
 const menuCollapse = computed(() => props.mode === 'horizontal' ? false : $store.menuCollapse)
 
@@ -100,12 +101,11 @@ const defaultActiveMenu = computed(() => {
 
 watchEffect(() => {
   const idx = route.path.match(regex)[0]
-  const targetRoute = list.find(item => item.index === idx)
+  const targetRoute = list.value.find(item => item.index === idx)
   $store.setTitle(targetRoute?.name || '')
 })
 
 const handleSelect = (path) => {
-  // console.log(path)
   $router.push(path)
   emit('select', path)
 }

@@ -1,14 +1,14 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="列表设置"
+    :title="t('server.display.title')"
     width="500px"
     append-to-body
     @close="handleClose"
   >
     <el-tabs v-model="activeTab">
       <!-- 表头设置 Tab -->
-      <el-tab-pane label="表头设置" name="columns">
+      <el-tab-pane :label="t('server.display.columns')" name="columns">
         <div class="column_settings">
           <div v-for="(item, key) in columnConfig" :key="key" class="column_item">
             <el-checkbox
@@ -23,7 +23,7 @@
       </el-tab-pane>
 
       <!-- 展现形式 Tab -->
-      <el-tab-pane label="展现形式" name="display">
+      <el-tab-pane :label="t('server.display.mode')" name="display">
         <div class="display_settings">
           <div class="display_mode_cards">
             <div
@@ -32,8 +32,8 @@
               @click="localDisplayMode = 'group'"
             >
               <div class="card_content">
-                <div class="card_title">分组展示</div>
-                <div class="card_description">按照分组折叠展示主机列表</div>
+                <div class="card_title">{{ t('server.display.groupView') }}</div>
+                <div class="card_description">{{ t('server.display.groupViewDesc') }}</div>
               </div>
               <div class="card_check">
                 <el-icon v-if="localDisplayMode === 'group'" class="check_icon">
@@ -48,8 +48,8 @@
               @click="localDisplayMode = 'list'"
             >
               <div class="card_content">
-                <div class="card_title">列表展示</div>
-                <div class="card_description">在一个列表中展示所有主机</div>
+                <div class="card_title">{{ t('server.display.listView') }}</div>
+                <div class="card_description">{{ t('server.display.listViewDesc') }}</div>
               </div>
               <div class="card_check">
                 <el-icon v-if="localDisplayMode === 'list'" class="check_icon">
@@ -64,8 +64,8 @@
 
     <template #footer>
       <div class="dialog_footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleConfirm">确定</el-button>
+        <el-button @click="handleClose">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="handleConfirm">{{ t('common.confirm') }}</el-button>
       </div>
     </template>
   </el-dialog>
@@ -73,6 +73,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { CircleCheckFilled } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -95,6 +96,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:show', 'confirm',])
+const { t } = useI18n()
 
 const visible = computed({
   get: () => props.show,

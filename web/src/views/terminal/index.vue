@@ -3,10 +3,10 @@
     <div v-if="showLinkTips" class="terminal_link_tips">
       <div class="link_tables_wrapper">
         <div class="table_section">
-          <h2 class="quick_link_text">最近连接</h2>
+          <h2 class="quick_link_text">{{ t('terminal.recentConnections') }}</h2>
           <el-table :data="displayHostList" :show-header="false">
             <template #empty>
-              <span class="link" @click="handleToServer">去连接</span>
+              <span class="link" @click="handleToServer">{{ t('terminal.goConnect') }}</span>
             </template>
             <el-table-column prop="name" label="name" />
             <el-table-column width="220">
@@ -28,7 +28,7 @@
                     link
                     @click="linkTerminal(row)"
                   >
-                    连接
+                    {{ t('common.connect') }}
                   </el-button>
                   <el-button
                     v-else
@@ -36,7 +36,7 @@
                     link
                     @click="handleUpdateHost(row)"
                   >
-                    配置ssh
+                    {{ t('terminal.configureSsh') }}
                   </el-button>
                 </div>
               </template>
@@ -46,10 +46,10 @@
 
         <div class="table_section">
           <h2 class="quick_link_text">
-            <span>挂起会话</span>
+            <span>{{ t('terminal.suspendedSessions') }}</span>
             <el-icon
               class="session_setting_icon"
-              title="会话设置"
+              :title="t('terminal.sessionSettings')"
               @click="showSessionSetting = true"
             >
               <Setting />
@@ -61,21 +61,21 @@
               type="primary"
               @click="handleResumeAll"
             >
-              一键恢复
+              {{ t('terminal.resumeAll') }}
             </el-button>
           </h2>
           <el-table v-loading="loadingSessions" :data="suspendedSessions" :show-header="false">
             <template #empty>
-              <span>无挂起终端会话</span>
+              <span>{{ t('terminal.noSuspendedSessions') }}</span>
             </template>
-            <el-table-column prop="hostName" label="主机名" />
-            <el-table-column label="状态">
+            <el-table-column prop="hostName" :label="t('common.hostName')" />
+            <el-table-column :label="t('common.status')">
               <template #default="{ row }">
-                <el-tag v-if="!row.connectionAlive" type="danger" size="small">断开</el-tag>
-                <el-tag v-else type="success" size="small">活跃</el-tag>
+                <el-tag v-if="!row.connectionAlive" type="danger" size="small">{{ t('common.disconnected') }}</el-tag>
+                <el-tag v-else type="success" size="small">{{ t('common.active') }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="suspendTime" label="挂起时间" />
+            <el-table-column prop="suspendTime" :label="t('terminal.suspendTime')" />
             <el-table-column fixed="right" width="80px">
               <template #default="{ row }">
                 <div class="actios_btns">
@@ -85,7 +85,7 @@
                     :disabled="!row.connectionAlive"
                     @click="handleResumeSession(row)"
                   >
-                    恢复
+                    {{ t('common.resume') }}
                   </el-button>
                 </div>
               </template>
@@ -115,6 +115,7 @@
 <script setup>
 import { ref, computed, onActivated, getCurrentInstance, reactive, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import dayjs from 'dayjs'
 import { Setting } from '@element-plus/icons-vue'
 import TerminalWrapper from './components/terminal-wrapper.vue'
@@ -128,6 +129,7 @@ const { CONNECTING, RESUMING } = terminalStatus
 const { proxy: { $store, $message, $api } } = getCurrentInstance()
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 
 let terminalTabs = reactive([])
 let hostFormVisible = ref(false)
@@ -139,26 +141,22 @@ let showSessionSetting = ref(false)
 let showLinkTips = computed(() => !Boolean(terminalTabs.length))
 let hostList = computed(() => $store.hostList)
 
-// 显示最近连接的主机列表（从后端获取后在前端排序）
 const displayHostList = computed(() => {
   return hostList.value
-    .filter(item => item.lastConnectTime) // 只显示有连接记录的
+    .filter(item => item.lastConnectTime)
     .map(item => ({
       ...item,
       lastTime: item.lastConnectTime ? dayjs(item.lastConnectTime).format('YYYY-MM-DD HH:mm:ss') : ''
     }))
     .sort((a, b) => {
-      // 按最近连接时间降序排列
       const aTime = a.lastConnectTime || 0
       const bTime = b.lastConnectTime || 0
       return bTime - aTime
     })
 })
 
-// 防抖定时器
 let refreshHostListTimer = null
 
-// 防抖刷新hostList（避免批量连接时多次调用）
 function debouncedRefreshHostList() {
   if (refreshHostListTimer) {
     clearTimeout(refreshHostListTimer)
@@ -167,20 +165,18 @@ function debouncedRefreshHostList() {
     try {
       await $store.getHostList()
     } catch (error) {
-      console.error('刷新实例列表失败:', error)
+      console.error('Failed to refresh instance list:', error)
     }
-  }, 500) // 500ms防抖
+  }, 500)
 }
 
-// 更新最近连接时间（调用后端API）
 async function updateRecentHostList(targetHost) {
   if (!targetHost) return
   try {
     await $api.updateLastConnectTime({ id: targetHost.id })
-    // 防抖刷新本地store中的hostList
     debouncedRefreshHostList()
   } catch (error) {
-    console.error('更新最近连接时间失败:', error)
+    console.error('Failed to update recent connection time:', error)
   }
 }
 
@@ -188,7 +184,6 @@ function linkTerminal(hostInfo) {
   let targetHost = hostList.value.find(item => item.id === hostInfo.id)
   const { id, host, name, isConfig } = targetHost
   terminalTabs.push({ key: randomStr(16), id, name, host, status: CONNECTING, isConfig })
-  // 异步更新最近连接时间
   updateRecentHostList(targetHost)
 }
 
@@ -211,8 +206,8 @@ const handleUpdateList = async ({ host }) => {
     let targetHost = hostList.value.find(item => item.host === host)
     if (targetHost) linkTerminal(targetHost)
   } catch (err) {
-    $message.error('获取实例列表失败')
-    console.error('获取实例列表失败: ', err)
+    $message.error(t('common.fetchServerListFailed'))
+    console.error('Failed to fetch instance list:', err)
   }
 }
 
@@ -230,7 +225,6 @@ onActivated(async () => {
   })
   if (!targetHosts || !targetHosts.length) return
   terminalTabs.push(...targetHosts)
-  // 为每个主机更新最近连接时间
   targetHosts.forEach(item => {
     const targetHost = hostList.value.find(h => h.id === item.id)
     if (targetHost) {
@@ -243,88 +237,76 @@ const handleCopy = (host) => {
   clipboard.copy(host)
 }
 
-// 获取挂起的会话列表
 const fetchSuspendedSessions = async () => {
   loadingSessions.value = true
   try {
     await $store.getSuspendedSessions()
   } catch (error) {
-    console.error('获取挂起会话列表失败:', error)
-    $message.error('获取挂起会话列表失败')
+    console.error('Failed to fetch suspended sessions:', error)
+    $message.error(t('terminal.noSuspendedSessions'))
   } finally {
     loadingSessions.value = false
   }
 }
 
-// 恢复挂起的会话
 const handleResumeSession = (session) => {
   if (!session.connectionAlive) {
-    $message.warning('该会话的SSH连接已断开，无法恢复')
+    $message.warning(t('terminal.sessionSshDisconnected'))
     return
   }
 
   const { hostId, sessionId } = session
 
-  // 查找对应的主机配置
   const targetHost = hostList.value.find(item => item.id === hostId)
   if (!targetHost) {
-    $message.error('未找到对应的主机配置')
+    $message.error(t('terminal.hostConfigNotFound'))
     return
   }
 
   const { id, name, host, isConfig } = targetHost
 
-  // 创建恢复会话的tab
   terminalTabs.push({
-    key: sessionId, // 使用sessionId作为key
+    key: sessionId,
     id,
     name,
     host,
     status: RESUMING,
     isConfig,
-    resumeSessionId: sessionId // 标记为恢复会话
+    resumeSessionId: sessionId
   })
 }
 
-// 一键恢复所有挂起会话
 const handleResumeAll = () => {
-  // 过滤出可恢复的活跃会话
   const sessionsToRestore = [...suspendedSessions.value].filter(s => s.connectionAlive)
 
   if (sessionsToRestore.length === 0) {
-    $message.warning('没有可恢复的活跃会话')
+    $message.warning(t('terminal.noRestorableSessions'))
     return
   }
 
-  // 为每个会话调用恢复逻辑（直接复用handleResumeSession）
   sessionsToRestore.forEach(session => {
     handleResumeSession(session)
   })
 
-  $message.success(`正在恢复 ${sessionsToRestore.length} 个挂起的会话`)
+  $message.success(t('terminal.restoringSessions', { count: sessionsToRestore.length }))
 }
 
-// 监听showLinkTips变化，当返回到初始界面时重新获取挂起会话列表
 watch(showLinkTips, (newValue) => {
   if (newValue) {
-    // 当showLinkTips变为true时（即关闭所有终端返回到初始界面时），重新获取挂起会话列表
     fetchSuspendedSessions()
   }
 })
 
 onMounted(() => {
-  // 组件挂载时获取挂起的会话列表
   fetchSuspendedSessions()
 })
 
 onUnmounted(() => {
-  // 清理防抖定时器
   if (refreshHostListTimer) {
     clearTimeout(refreshHostListTimer)
     refreshHostListTimer = null
   }
 })
-
 </script>
 
 <style lang="scss" scoped>

@@ -1,11 +1,11 @@
 <template>
   <el-alert type="success" :closable="false">
     <template #title>
-      <span style="letter-spacing: 2px;"> 登录白名单IP设置: </span>
+      <span style="letter-spacing: 2px;"> {{ t('settings.session.ipWhitelistTitle') }} </span>
       <el-tooltip placement="top">
         <template #content>
           <div class="ip_tips">
-            IP地址为包含匹配, 如输入: 192.168则匹配IP地址包含192.168的所有IP
+            {{ t('settings.session.ipWhitelistTip') }}
           </div>
         </template>
         <el-icon>
@@ -19,17 +19,16 @@
         :loading="btnLoading"
         @click="handleSaveAllowedIPs"
       >
-        保存
+        {{ t('common.save') }}
       </el-button>
     </template>
   </el-alert>
 
-  <!-- table -->
   <el-table v-loading="loading" :data="loginRecordList">
     <el-table-column prop="ip" label="IP" />
     <el-table-column
       prop="address"
-      label="地点"
+      :label="t('settings.session.location')"
       min-width="126"
       show-overflow-tooltip
     >
@@ -39,7 +38,7 @@
     </el-table-column>
     <el-table-column
       prop="agentInfo"
-      label="设备信息"
+      :label="t('settings.session.deviceInfo')"
       min-width="126"
       show-overflow-tooltip
     >
@@ -51,24 +50,24 @@
           type="success"
           size="small"
         >
-          当前设备
+          {{ t('settings.session.currentDevice') }}
         </el-tag>
       </template>
     </el-table-column>
-    <el-table-column prop="create" label="登录时间" min-width="126" />
-    <el-table-column prop="expireAt" label="过期时间" min-width="126">
+    <el-table-column prop="create" :label="t('settings.session.loginTime')" min-width="126" />
+    <el-table-column prop="expireAt" :label="t('settings.session.expireTime')" min-width="126">
       <template #default="{ row }">
         {{ row.expireAt }}
       </template>
     </el-table-column>
-    <el-table-column label="状态">
+    <el-table-column :label="t('common.status')">
       <template #default="{ row }">
-        <el-tag v-if="row.isExpired" type="info" size="small">已过期</el-tag>
-        <el-tag v-else-if="row.revoked" type="warning" size="small">已注销</el-tag>
-        <el-tag v-else type="success" size="small">正常</el-tag>
+        <el-tag v-if="row.isExpired" type="info" size="small">{{ t('settings.session.expired') }}</el-tag>
+        <el-tag v-else-if="row.revoked" type="warning" size="small">{{ t('settings.session.revoked') }}</el-tag>
+        <el-tag v-else type="success" size="small">{{ t('settings.session.normal') }}</el-tag>
       </template>
     </el-table-column>
-    <el-table-column label="操作" width="200">
+    <el-table-column :label="t('settings.session.actions')" width="200">
       <template #header>
         <el-button
           type="info"
@@ -76,7 +75,7 @@
           :loading="removeLogLoading"
           @click="handleRemoveLogs"
         >
-          移除一周前的登录日志
+          {{ t('settings.session.removeOldLogs') }}
         </el-button>
       </template>
       <template #default="{ row }">
@@ -87,7 +86,7 @@
           :loading="removeSidLoading"
           @click="handleRemoveSid(row.id)"
         >
-          注销
+          {{ t('settings.session.revoke') }}
         </el-button>
       </template>
     </el-table-column>
@@ -96,12 +95,14 @@
 
 <script setup>
 import { ref, onMounted, getCurrentInstance, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { InfoFilled } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 
 const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
 const route = useRoute()
+const { t } = useI18n()
 
 const loginRecordList = ref([])
 const loading = ref(false)
@@ -146,16 +147,16 @@ const handleSaveAllowedIPs = async () => {
   try {
     await $api.saveIpWhiteList({ ipWhiteList })
     handleLookupLoginRecord()
-    $message.success('success')
+    $message.success(t('common.save'))
   } finally {
     btnLoading.value = false
   }
 }
 
 const handleRemoveLogs = async () => {
-  $messageBox.confirm('确定要移除一周前的登录日志吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('settings.session.confirmRemoveOldLogs'), t('settings.common.tip'), {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   })
     .then(async () => {
@@ -166,7 +167,7 @@ const handleRemoveLogs = async () => {
         $message.success(msg)
       } catch (error) {
         console.error(error)
-        $message.error('移除一周前的登录日志失败')
+        $message.error(t('settings.session.removeOldLogsFailed'))
       } finally {
         removeLogLoading.value = false
       }
@@ -174,9 +175,9 @@ const handleRemoveLogs = async () => {
 }
 
 const handleRemoveSid = async (id) => {
-  $messageBox.confirm('确定要注销该设备登录凭证吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('settings.session.confirmRevokeCredential'), t('settings.common.tip'), {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   })
     .then(async () => {
@@ -200,3 +201,4 @@ onMounted(() => {
   margin: 0 5px;
 }
 </style>
+

@@ -5,7 +5,7 @@
         <h2>EasyNode-{{ version }}</h2>
       </div>
       <div v-if="notKey">
-        <el-alert title="Error: 用于加密的公钥获取失败，请尝试重新启动或部署服务" type="error" show-icon />
+        <el-alert :title="t('login.publicKeyFetchFailed')" type="error" show-icon />
       </div>
       <div v-else>
         <el-form
@@ -18,7 +18,7 @@
           label-width="90px"
           label-position="top"
         >
-          <el-form-item prop="loginName" label="用户名">
+          <el-form-item prop="loginName" :label="t('login.username')">
             <el-input
               v-model.trim="loginForm.loginName"
               type="text"
@@ -29,7 +29,7 @@
               autofocus
             />
           </el-form-item>
-          <el-form-item prop="pwd" label="密码">
+          <el-form-item prop="pwd" :label="t('login.password')">
             <el-input
               v-model.trim="loginForm.pwd"
               type="password"
@@ -41,14 +41,14 @@
               @keyup.enter="handleLogin"
             />
           </el-form-item>
-          <el-form-item v-show="false" prop="pwd" label="密码">
+          <el-form-item v-show="false" prop="pwd" :label="t('login.password')">
             <el-input v-model.trim="loginForm.pwd" />
           </el-form-item>
-          <el-form-item prop="mfa2Token" label="MFA2验证码">
+          <el-form-item prop="mfa2Token" :label="t('login.mfa2Code')">
             <el-input
               v-model="loginForm.mfa2Token"
               type="text"
-              placeholder="MFA2应用上的6位数字(未设置可忽略)"
+              :placeholder="t('login.mfa2Placeholder')"
               autocomplete="off"
               :trigger-on-focus="false"
               clearable
@@ -56,12 +56,12 @@
               @keyup.enter="handleLogin"
             />
           </el-form-item>
-          <el-form-item prop="jwtExpires" label="登录有效期">
+          <el-form-item prop="jwtExpires" :label="t('login.loginValidPeriod')">
             <el-radio-group v-model="expireTime" class="login-indate">
-              <el-radio :value="expireEnum.ONE_SESSION">临时</el-radio>
-              <el-radio :value="expireEnum.CURRENT_DAY">当天</el-radio>
-              <el-radio :value="expireEnum.THREE_DAY">三天</el-radio>
-              <el-radio :value="expireEnum.SEVEN_DAY">七天</el-radio>
+              <el-radio :value="expireEnum.ONE_SESSION">{{ t('login.temporary') }}</el-radio>
+              <el-radio :value="expireEnum.CURRENT_DAY">{{ t('login.today') }}</el-radio>
+              <el-radio :value="expireEnum.THREE_DAY">{{ t('login.threeDays') }}</el-radio>
+              <el-radio :value="expireEnum.SEVEN_DAY">{{ t('login.sevenDays') }}</el-radio>
             </el-radio-group>
           </el-form-item>
         </el-form>
@@ -73,7 +73,7 @@
           :loading="loading"
           @click="handleLogin"
         >
-          登录
+          {{ t('login.login') }}
         </el-button>
       </div>
     </div>
@@ -83,11 +83,13 @@
 
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RSAEncrypt, jwtExpireToTimestamp } from '@utils/index.js'
 import Warn from './warn.vue'
 import { version } from '../../../package.json'
 
 const { proxy: { $store, $api, $message, $router, $messageBox } } = getCurrentInstance()
+const { t } = useI18n()
 
 const expireEnum = reactive({
   ONE_SESSION: 'one_session',
@@ -108,9 +110,9 @@ const loginForm = reactive({
   mfa2Token: ''
 })
 const rules = reactive({
-  loginName: { required: true, message: '需输入用户名', trigger: 'change' },
-  pwd: { required: true, message: '需输入密码', trigger: 'change' },
-  mfa2Token: { required: false, message: '需输入MFA2验证码', trigger: 'change' }
+  loginName: { required: true, message: t('login.validation.usernameRequired'), trigger: 'change' },
+  pwd: { required: true, message: t('login.validation.passwordRequired'), trigger: 'change' },
+  mfa2Token: { required: false, message: t('login.validation.mfa2Required'), trigger: 'change' }
 })
 
 const handleLogin = () => {
@@ -132,22 +134,22 @@ const handleLogin = () => {
     }
     const jwtExpireAt = jwtExpireToTimestamp(jwtExpires)
     const ciphertext = RSAEncrypt(pwd)
-    if (ciphertext === -1) return $message.error({ message: '公钥加载失败', center: true })
+    if (ciphertext === -1) return $message.error({ message: t('login.publicKeyLoadFailed'), center: true })
     loading.value = true
     try {
       let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, jwtExpireAt, mfa2Token })
       const { token, deviceId } = data
       $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
       $store.setUser(loginName, deviceId)
-      $message.success({ message: msg || 'success', center: true })
+      $message.success({ message: msg || t('login.messages.success'), center: true })
       if (isHttps) return $router.push('/')
       if (notHttpsTips) return $router.push('/')
       $messageBox.confirm(
-        'http协议下存在数据劫持风险，外网使用请配置https协议',
-        '安全提示',
+        t('login.securityRiskMessage'),
+        t('login.securityTipTitle'),
         {
-          confirmButtonText: '我知道了',
-          cancelButtonText: '不再提示',
+          confirmButtonText: t('login.understood'),
+          cancelButtonText: t('login.doNotShowAgain'),
           type: 'warning',
           showCancelButton: true,
           cancelButtonClass: 'el-button--info',

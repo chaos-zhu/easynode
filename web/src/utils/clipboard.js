@@ -5,6 +5,9 @@
  */
 
 import { ElMessage, ElMessageBox } from 'element-plus'
+import i18n from '@/i18n'
+
+const { t } = i18n.global
 
 /**
  * 检测是否支持现代剪贴板API
@@ -32,7 +35,7 @@ function copyWithLegacyAPI(text) {
     const successful = document.execCommand('copy')
     return successful
   } catch (err) {
-    console.error('复制失败:', err)
+    console.error('Copy failed:', err)
     return false
   } finally {
     document.body.removeChild(textarea)
@@ -47,7 +50,7 @@ function copyWithLegacyAPI(text) {
  */
 export async function copyText(text, showMessage = true) {
   if (!text) {
-    if (showMessage) ElMessage.warning('复制内容为空')
+    if (showMessage) ElMessage.warning(t('common.emptyCopyContent'))
     return false
   }
 
@@ -59,7 +62,7 @@ export async function copyText(text, showMessage = true) {
       await navigator.clipboard.writeText(text)
       success = true
     } catch (err) {
-      console.warn('现代API复制失败,降级到传统方法:', err)
+      console.warn('Modern clipboard API copy failed, falling back to legacy method:', err)
       success = copyWithLegacyAPI(text)
     }
   } else {
@@ -68,7 +71,7 @@ export async function copyText(text, showMessage = true) {
   }
 
   if (showMessage) {
-    success ? ElMessage.success('复制成功') : ElMessage.error('复制失败')
+    success ? ElMessage.success(t('common.copySuccess')) : ElMessage.error(t('common.copyFailed'))
   }
 
   return success
@@ -82,13 +85,13 @@ export async function copyText(text, showMessage = true) {
  */
 export async function pasteText(showMessage = false) {
   if (!isModernAPISupported()) {
-    ElMessageBox.confirm('浏览器安全限制,不支持剪贴板读取，需配置https', '提示', {
-      confirmButtonText: '好的',
+    ElMessageBox.confirm(t('common.clipboardReadRequiresHttps'), t('settings.common.tip'), {
+      confirmButtonText: t('common.gotIt'),
       showCancelButton: false,
       type: 'warning',
       dangerouslyUseHTMLString: true
     }).catch(() => {})
-    const errorMsg = 'HTTP环境不支持读取剪贴板,请使用 Ctrl+V 或右键粘贴'
+    const errorMsg = t('common.httpClipboardReadUnsupported')
     throw new Error(errorMsg)
   }
 
@@ -96,7 +99,7 @@ export async function pasteText(showMessage = false) {
     const text = await navigator.clipboard.readText()
     return text
   } catch (err) {
-    if (showMessage) ElMessage.error('读取剪贴板失败')
+    if (showMessage) ElMessage.error(t('common.readClipboardFailed'))
     throw err
   }
 }

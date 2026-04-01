@@ -14,7 +14,7 @@
       <el-input
         v-model.trim="formData.key"
         clearable
-        placeholder=""
+        :placeholder="t('settings.plus.plusKey')"
         autocomplete="off"
         class="input"
         @keyup.enter.prevent="handleUpdate"
@@ -22,9 +22,9 @@
     </el-form-item>
     <el-form-item>
       <div class="form_footer">
-        <el-button type="success" :loading="loading" @click="handleUpdate">立即激活</el-button>
+        <el-button type="success" :loading="loading" @click="handleUpdate">{{ t('settings.plus.activateNow') }}</el-button>
         <el-button type="primary" @click="handlePlusSupport">
-          获取 Plus Key
+          {{ t('settings.plus.getPlusKey') }}
           <el-icon class="el-icon--right"><TopRight /></el-icon>
         </el-button>
         <span v-if="!isPlusActive && discount" class="discount_wrapper" @click="handlePlusSupport">
@@ -38,26 +38,25 @@
       </div>
     </el-form-item>
   </el-form>
-  <!-- Plus 激活状态信息 -->
   <div v-if="isPlusActive" class="plus_status">
     <div class="status_header">
-      <span>Plus专属功能已激活</span>
+      <span>{{ t('settings.plus.activated') }}</span>
     </div>
     <div class="status_info">
       <div class="info_item">
-        <span class="label">到期时间:</span>
+        <span class="label">{{ t('settings.plus.expiryDate') }}</span>
         <span class="value holder">{{ plusInfo.expiryDate }}</span>
       </div>
       <div class="info_item">
-        <span class="label">授权IP数:</span>
+        <span class="label">{{ t('settings.plus.maxAuthorizedIps') }}</span>
         <span class="value">{{ plusInfo.maxIPs }}</span>
       </div>
       <div class="info_item">
-        <span class="label">已授权IP数:</span>
+        <span class="label">{{ t('settings.plus.usedAuthorizedIps') }}</span>
         <span class="value">{{ plusInfo.usedIPCount }}</span>
       </div>
       <div class="info_item ip_list">
-        <span class="label">已授权IP:</span>
+        <span class="label">{{ t('settings.plus.authorizedIps') }}</span>
         <div class="ip_tags">
           <el-tag
             v-for="ip in displayedIPs"
@@ -75,7 +74,7 @@
             class="view_all_btn"
             @click="showAllIPsDialog = true"
           >
-            查看所有({{ totalIPCount }})
+            {{ t('settings.plus.viewAll', { count: totalIPCount }) }}
           </el-button>
           <el-button
             type="success"
@@ -84,7 +83,7 @@
             :loading="whitelistLoading"
             @click="handleSetToWhitelist"
           >
-            [追加所有IP到登录白名单]
+            {{ t('settings.plus.appendAllToWhitelist') }}
           </el-button>
         </div>
       </div>
@@ -94,13 +93,13 @@
 
   <el-dialog
     v-model="showAllIPsDialog"
-    title="所有已授权IP"
+    :title="t('settings.plus.allAuthorizedIps')"
     width="600px"
     :before-close="() => showAllIPsDialog = false"
   >
     <div class="all_ips_container">
       <div class="ip_count_info">
-        共 {{ totalIPCount }} 个已授权IP
+        {{ t('settings.plus.totalAuthorizedIps', { count: totalIPCount }) }}
       </div>
       <div class="all_ip_tags">
         <el-tag
@@ -114,13 +113,14 @@
       </div>
     </div>
     <template #footer>
-      <el-button @click="showAllIPsDialog = false">关闭</el-button>
+      <el-button @click="showAllIPsDialog = false">{{ t('common.close') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus'
 import { TopRight } from '@element-plus/icons-vue'
 import { handlePlusSupport } from '@/utils'
@@ -129,6 +129,7 @@ import { useRouter } from 'vue-router'
 
 const { proxy: { $api, $message, $store } } = getCurrentInstance()
 const router = useRouter()
+const { t } = useI18n()
 
 const errCount = ref(Number(localStorage.getItem('plusErrCount') || 0))
 const loading = ref(false)
@@ -139,7 +140,7 @@ const formData = reactive({
   key: ''
 })
 const rules = reactive({
-  key: { required: true, message: '输入Plus Key', trigger: 'change' }
+  key: { required: true, message: t('settings.plus.validation.enterPlusKey'), trigger: 'change' }
 })
 const discount = ref(false)
 const discountContent = ref('')
@@ -168,21 +169,21 @@ const handleUpdate = () => {
         loading.value = true
         let { key } = formData
         if (key.length < 15) {
-          $message({ type: 'warning', center: true, message: '请输入正确的Plus Key' })
+          $message({ type: 'warning', center: true, message: t('settings.plus.invalidPlusKey') })
           return
         }
         await $api.updatePlusKey({ key })
-        $message({ type: 'success', center: true, message: '激活成功，感谢支持' })
+        $message({ type: 'success', center: true, message: t('settings.plus.activateSuccess') })
         localStorage.setItem('plusErrCount', 0)
       } catch (error) {
         localStorage.setItem('plusErrCount', ++errCount.value)
         if (errCount.value > 3) {
           ElMessageBox.confirm(
-            '激活失败，请确认key正确，有疑问请tg联系作者@chaoszhu',
+            t('settings.plus.activateFailedHelp'),
             'Warning',
             {
               showCancelButton : false,
-              confirmButtonText: '确认',
+              confirmButtonText: t('common.confirm'),
               type: 'warning'
             }
           )
@@ -219,11 +220,11 @@ const handleSetToWhitelist = async () => {
   try {
     const allAuthorizedIPs = plusInfo.value?.usedIPs || []
     await ElMessageBox.confirm(
-      `确定要将 ${ allAuthorizedIPs.length } 个PLUS授权IP追加到登录白名单吗？<br/><span style="color: #ff4806;">注意！</span>设置后非白名单IP将无法访问面板`,
-      '确认操作',
+      t('settings.plus.appendWhitelistConfirm', { count: allAuthorizedIPs.length }),
+      t('settings.plus.confirmAction'),
       {
-        confirmButtonText: '确认追加',
-        cancelButtonText: '取消',
+        confirmButtonText: t('settings.plus.confirmAppend'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning',
         dangerouslyUseHTMLString: true
       }
@@ -237,7 +238,7 @@ const handleSetToWhitelist = async () => {
     $message({
       type: 'success',
       center: true,
-      message: `成功将 ${ allAuthorizedIPs.length } 个IP添加到登录白名单`
+      message: t('settings.plus.appendWhitelistSuccess', { count: allAuthorizedIPs.length })
     })
 
     setTimeout(() => {
@@ -255,7 +256,7 @@ const handleSetToWhitelist = async () => {
     $message({
       type: 'error',
       center: true,
-      message: error.message || '设置白名单失败'
+      message: error.message || t('settings.plus.appendWhitelistFailed')
     })
   } finally {
     whitelistLoading.value = false
@@ -378,4 +379,5 @@ onMounted(() => {
   }
 }
 </style>
+
 

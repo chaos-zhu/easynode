@@ -4,17 +4,17 @@
     width="600px"
     :top="isMobile() ? '45px' : '15vh'"
     :append-to-body="false"
-    title="实例分组管理"
+    :title="t('server.group.title')"
     :close-on-click-modal="false"
   >
     <div class="group_container">
       <div class="header">
-        <el-button type="primary" @click="addGroup">添加分组</el-button>
+        <el-button type="primary" @click="addGroup">{{ t('server.group.addGroup') }}</el-button>
       </div>
       <el-table v-loading="loading" :data="list">
-        <el-table-column prop="index" label="序号" />
-        <el-table-column prop="name" label="分组名称" />
-        <el-table-column label="关联实例数量" min-width="115px">
+        <el-table-column prop="index" :label="t('server.index')" />
+        <el-table-column prop="name" :label="t('server.group.groupName')" />
+        <el-table-column :label="t('server.group.relatedInstanceCount')" min-width="115px">
           <template #default="{ row }">
             <el-popover
               v-if="row.hosts.list.length !== 0"
@@ -36,10 +36,10 @@
             <u v-else class="host_count">0</u>
           </template>
         </el-table-column>
-        <el-table-column label="操作" fixed="right" width="160px">
+        <el-table-column :label="t('server.group.actions')" fixed="right" width="160px">
           <template #default="{ row }">
-            <el-button type="primary" @click="handleChange(row)">修改</el-button>
-            <el-button v-show="row.id !== 'default'" type="danger" @click="deleteGroup(row)">删除</el-button>
+            <el-button type="primary" @click="handleChange(row)">{{ t('server.group.edit') }}</el-button>
+            <el-button v-show="row.id !== 'default'" type="danger" @click="deleteGroup(row)">{{ t('server.group.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -47,7 +47,7 @@
         v-model="groupFormVisible"
         width="600px"
         top="150px"
-        :title="isModify ? '修改分组' : '添加分组'"
+        :title="isModify ? t('server.group.editTitle') : t('server.group.addTitle')"
         :close-on-click-modal="false"
         @close="clearFormInfo"
       >
@@ -60,7 +60,7 @@
           label-width="100px"
           :show-message="false"
         >
-          <el-form-item label="分组名称" prop="name">
+          <el-form-item :label="t('server.group.groupName')" prop="name">
             <el-input
               v-model="groupForm.name"
               clearable
@@ -69,19 +69,19 @@
               autocomplete="off"
             />
           </el-form-item>
-          <el-form-item label="分组序号" prop="index">
+          <el-form-item :label="t('server.group.groupOrder')" prop="index">
             <el-input
               v-model.number="groupForm.index"
               clearable
-              placeholder="用于分组排序"
+              :placeholder="t('server.group.orderPlaceholder')"
               autocomplete="off"
             />
           </el-form-item>
         </el-form>
         <template #footer>
           <span>
-            <el-button @click="groupFormVisible = false">关闭</el-button>
-            <el-button type="primary" @click="updateForm">{{ isModify ? '修改' : '添加' }}</el-button>
+            <el-button @click="groupFormVisible = false">{{ t('server.group.close') }}</el-button>
+            <el-button type="primary" @click="updateForm">{{ isModify ? t('server.group.edit') : t('server.group.add') }}</el-button>
           </span>
         </template>
       </el-dialog>
@@ -92,8 +92,10 @@
 <script setup>
 import { isMobile } from '@/utils'
 import { ref, reactive, computed, nextTick, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   show: {
@@ -120,8 +122,8 @@ const groupForm = reactive({
 
 const rules = computed(() => {
   return {
-    name: { required: true, message: '需输入分组名称', trigger: 'change' },
-    index: { required: true, type: 'number', message: '需输入数字', trigger: 'change' }
+    name: { required: true, message: t('server.group.nameRequired'), trigger: 'change' },
+    index: { required: true, type: 'number', message: t('server.group.numberRequired'), trigger: 'change' }
   }
 })
 
@@ -177,9 +179,9 @@ const clearFormInfo = () => {
 }
 
 const deleteGroup = ({ id, name }) => {
-  $messageBox.confirm(`确认删除分组：${ name } (分组下实例将移动至默认分组)`, 'Warning', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('server.group.deleteConfirm', { name }), 'Warning', {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   })
     .then(async () => {

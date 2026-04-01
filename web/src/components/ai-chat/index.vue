@@ -34,7 +34,7 @@
         <div class="right_wrap">
           <el-icon
             class="right_wrap_icon"
-            title="新建对话"
+            :title="t('aiChat.newChat')"
             @click="handleNewChat"
           >
             <Plus />
@@ -46,7 +46,7 @@
           >
             <el-icon
               class="right_wrap_icon"
-              title="历史记录"
+              :title="t('aiChat.history')"
             >
               <ChatDotRound />
             </el-icon>
@@ -74,7 +74,7 @@
           <el-icon
             :size="18"
             class="right_wrap_icon"
-            title="设置"
+            :title="t('aiChat.settings')"
             @click="handleSetting"
           >
             <Setting />
@@ -111,8 +111,8 @@
                     <template #title>
                       <div class="reasoning_title">
                         <span class="reasoning_text">
-                          {{ (isReasoning && item.isStreaming) ? '思考中' : '已深度思考' }}
-                          {{ item.reasoningTime ? `(用时:${(item.reasoningTime / 1000).toFixed(1)}s)` : '' }}
+                          {{ (isReasoning && item.isStreaming) ? t('aiChat.thinking') : t('aiChat.thoughtDeeply') }}
+                          {{ item.reasoningTime ? t('aiChat.reasoningTime', { seconds: (item.reasoningTime / 1000).toFixed(1) }) : '' }}
                         </span>
                         <el-icon class="reasoning_icon">
                           <CircleCheck v-if="!item.isStreaming" />
@@ -141,7 +141,7 @@
                       v-model="item.editingContent"
                       type="textarea"
                       :autosize="{ minRows: 3, maxRows: 10 }"
-                      placeholder="编辑消息内容"
+                      :placeholder="t('aiChat.editMessagePlaceholder')"
                       class="edit_textarea"
                     />
                     <div class="edit_actions">
@@ -151,13 +151,13 @@
                         :loading="loading"
                         @click="handleConfirmEdit(item.id, item.editingContent)"
                       >
-                        确认
+                        {{ t('aiChat.confirmEdit') }}
                       </el-button>
                       <el-button
                         size="small"
                         @click="handleCancelEdit(item.id)"
                       >
-                        取消
+                        {{ t('aiChat.cancelEdit') }}
                       </el-button>
                     </div>
                   </div>
@@ -190,21 +190,21 @@
                   size="small"
                   :icon="Refresh"
                   circle
-                  title="重新生成"
+                  :title="t('aiChat.regenerate')"
                   @click="regenerateMessage(item.id, activeModel)"
                 />
                 <el-button
                   size="small"
                   :icon="CopyDocument"
                   circle
-                  title="复制"
+                  :title="t('aiChat.copy')"
                   @click="copyContent(item.content)"
                 />
                 <el-button
                   size="small"
                   :icon="Delete"
                   circle
-                  title="删除"
+                  :title="t('aiChat.delete')"
                   @click="deleteMessage(item.id)"
                 />
                 <el-button
@@ -212,7 +212,7 @@
                   size="small"
                   :icon="EditPen"
                   circle
-                  title="编辑"
+                  :title="t('aiChat.edit')"
                   @click="handleStartEdit(item.id)"
                 />
               </div>
@@ -221,9 +221,9 @@
         </div>
         <el-divider v-show="chatList.length > 1" content-position="center" class="clear_history_divider">
           <svg-icon name="icon-saoba" style="width: 16px; height: 16px;" />
-          <el-popconfirm title="确定清空？" @confirm="clearChat">
+          <el-popconfirm :title="t('aiChat.clearConfirm')" @confirm="clearChat">
             <template #reference>
-              <span class="clear_history">清空历史记录</span>
+              <span class="clear_history">{{ t('aiChat.clearHistory') }}</span>
             </template>
           </el-popconfirm>
         </el-divider>
@@ -233,7 +233,7 @@
         <el-icon
           class="scroll_btn"
           :class="{ 'is_disabled': isAtTop }"
-          title="滚动到顶部"
+          :title="t('aiChat.scrollToTop')"
           @click="scrollToTop"
         >
           <Top />
@@ -241,7 +241,7 @@
         <el-icon
           class="scroll_btn"
           :class="{ 'is_disabled': isAtBottom }"
-          title="滚动到底部"
+          :title="t('aiChat.scrollToBottom')"
           @click="scrollToBottomManual"
         >
           <Bottom />
@@ -262,6 +262,7 @@
 
 <script setup>
 import { ref, computed, nextTick, watch, getCurrentInstance, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import MarkdownRender, { setCustomComponents } from 'markstream-vue'
 import 'markstream-vue/index.css'
 import 'highlight.js/styles/github-dark.css'
@@ -274,6 +275,7 @@ import CustomCodeBlock from './custom-code-block.vue'
 import clipboard from '@/utils/clipboard'
 
 const { proxy: { $message, $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   visible: {
@@ -414,7 +416,7 @@ const scrollToBottomManual = () => {
 
 const handleStartEdit = (messageId) => {
   if (loading.value) {
-    $message.warning('请等待当前对话响应完成')
+    $message.warning(t('aiChat.waitForResponse'))
     return
   }
   startEditMessage(messageId)
@@ -426,7 +428,7 @@ const handleCancelEdit = (messageId) => {
 
 const handleConfirmEdit = async (messageId, newContent) => {
   if (!newContent || !newContent.trim()) {
-    $message.warning('内容不能为空')
+    $message.warning(t('aiChat.emptyContent'))
     return
   }
   await confirmEditMessage(messageId, newContent.trim(), activeModel.value)
@@ -451,7 +453,7 @@ const copyContent = (content) => {
 
 const handleSetting = () => {
   if (!isPlusActive.value) {
-    $message.warning('请先激活Plus')
+    $message.warning(t('aiChat.activatePlusFirst'))
     return
   }
   aiApiConfigVisible.value = true
@@ -459,7 +461,7 @@ const handleSetting = () => {
 
 const isLoadingTips = () => {
   if (loading.value) {
-    $message.warning('请等待当前对话响应完成')
+    $message.warning(t('aiChat.waitForResponse'))
     return true
   }
   return false

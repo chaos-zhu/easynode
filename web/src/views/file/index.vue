@@ -5,9 +5,9 @@
       <div class="toolbar-left">
         <div class="transfer-method-info">
           <el-tag type="success" size="large">
-            在传输前需在服务器上安装好
+            {{ t('fileTransfer.installHint') }}
             <el-tooltip
-              content="问AI?"
+              :content="t('fileTransfer.askAi')"
               raw-content
             >
               <span class="link" @click="handleAskAI">sshpass、rsync</span>
@@ -28,7 +28,7 @@
           :icon="List"
           @click="showTaskManager"
         >
-          任务管理
+          {{ t('fileTransfer.taskManager') }}
           <el-badge
             v-if="activeTaskCount > 0"
             :value="activeTaskCount"
@@ -37,7 +37,7 @@
         </el-button>
         <el-button @click="showTransferOptions = !showTransferOptions">
           <el-icon><Setting /></el-icon>
-          传输选项
+          {{ t('fileTransfer.transferOptions') }}
         </el-button>
       </div>
     </div>
@@ -46,16 +46,16 @@
     <el-collapse-transition>
       <div v-if="showTransferOptions" class="transfer-options">
         <div class="options-content">
-          <h4>传输选项</h4>
+          <h4>{{ t('fileTransfer.transferOptionsTitle') }}</h4>
           <div class="options-grid">
             <el-checkbox v-model="transferOptions.delete">
-              删除目标多余文件 (--delete)
+              {{ t('fileTransfer.deleteExtraFiles') }}
             </el-checkbox>
             <el-checkbox v-model="transferOptions.partial">
-              支持断点续传 (--partial)
+              {{ t('fileTransfer.resumeTransfer') }}
             </el-checkbox>
             <el-checkbox v-model="transferOptions.compress">
-              启用压缩传输 (-z)
+              {{ t('fileTransfer.enableCompression') }}
             </el-checkbox>
           </div>
         </div>
@@ -84,7 +84,7 @@
             :loading="isTransferring"
             @click="transferToRight"
           >
-            传输
+            {{ t('fileTransfer.transfer') }}
             <el-icon><ArrowRight /></el-icon>
           </el-button>
 
@@ -97,7 +97,7 @@
             @click="transferToLeft"
           >
             <el-icon><ArrowLeft /></el-icon>
-            传输
+            {{ t('fileTransfer.transfer') }}
           </el-button>
         </div>
       </div>
@@ -116,7 +116,7 @@
     <!-- 任务管理器对话框 -->
     <el-dialog
       v-model="showTaskDialog"
-      title="传输任务管理"
+      :title="t('fileTransfer.taskDialogTitle')"
       width="80%"
       :close-on-click-modal="false"
     >
@@ -129,8 +129,8 @@
       />
 
       <template #footer>
-        <el-button @click="showTaskDialog = false">关闭</el-button>
-        <el-button type="danger" @click="clearCompletedTasks">清空任务列表</el-button>
+        <el-button @click="showTaskDialog = false">{{ t('common.close') }}</el-button>
+        <el-button type="danger" @click="clearCompletedTasks">{{ t('fileTransfer.clearTaskList') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -138,6 +138,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { List, Setting, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
 import SftpPanel from '@/components/file-transfer/sftp-panel.vue'
 import TransferTaskManager from '@/components/file-transfer/transfer-task-manager.vue'
@@ -146,6 +147,7 @@ import { EventBus, generateSocketInstance } from '@/utils'
 defineEmits(['exec-script',])
 
 const { proxy: { $message, $router } } = getCurrentInstance()
+const { t } = useI18n()
 
 // 传输配置（仅支持Rsync）
 const transferOptions = ref({
@@ -208,7 +210,7 @@ const initializeSocket = () => {
   socket.value = generateSocketInstance('/file-transfer')
 
   socket.value.on('connect', () => {
-    console.log('文件传输WebSocket已连接')
+    console.log(t('fileTransfer.websocketConnected'))
     refreshTasks()
   })
 
@@ -281,7 +283,7 @@ const performTransfer = (fromSide, toSide) => {
 
   const selectedFiles = fromPanel.getSelectedFiles()
   if (!selectedFiles || selectedFiles.length === 0) {
-    $message.warning('请先选择要传输的文件或文件夹')
+    $message.warning(t('fileTransfer.selectFilesFirst'))
     return
   }
 
@@ -387,7 +389,7 @@ const refreshRightPanel = () => {
 }
 
 const handleAskAI = () => {
-  EventBus.$emit('sendToAIInput', '如何在不同的Linux发行版中安装sshpass与rsync?')
+  EventBus.$emit('sendToAIInput', t('fileTransfer.askAiPrompt'))
 }
 </script>
 

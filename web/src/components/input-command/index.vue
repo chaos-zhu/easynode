@@ -11,20 +11,20 @@
   >
     <template #header>
       <div class="title">
-        输入多行命令发送到终端执行
+        {{ t('terminal.multilineCommandTitle') }}
       </div>
     </template>
     <el-input
       v-model="command"
       :autosize="{ minRows: 10, maxRows: 20 }"
       type="textarea"
-      placeholder="Please input command"
+      :placeholder="t('terminal.multilineCommandPlaceholder')"
     />
     <template #footer>
       <footer>
         <div class="btns">
-          <el-button type="primary" @click="handleSave">发送到终端</el-button>
-          <el-button type="info" @click="visible = false">关闭</el-button>
+          <el-button type="primary" @click="handleSave">{{ t('terminal.sendToTerminal') }}</el-button>
+          <el-button type="info" @click="visible = false">{{ t('common.close') }}</el-button>
         </div>
       </footer>
     </template>
@@ -32,6 +32,7 @@
 </template>
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   show: {
@@ -43,6 +44,7 @@ const props = defineProps({
 const emit = defineEmits(['update:show', 'closed', 'input-command',])
 
 const command = ref('')
+const { t } = useI18n()
 
 const visible = computed({
   get() {

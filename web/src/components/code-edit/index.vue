@@ -19,7 +19,7 @@
     <codemirror
       ref="cmRef"
       v-model="code"
-      placeholder="Code goes here..."
+      :placeholder="t('componentCodeEdit.placeholder')"
       :style="{ height: '80vh', minHeight: '500px' }"
       :disabled="disabled"
       :autofocus="true"
@@ -28,13 +28,13 @@
       :extensions="extensions"
       @ready="handleReady"
       @change="handleChange"
-      @focus="status = '编辑中'"
-      @blur="status = '未聚焦'"
+      @focus="status = t('componentCodeEdit.statusEditing')"
+      @blur="status = t('componentCodeEdit.statusBlurred')"
     />
     <template #footer>
       <footer>
         <div v-if="!disabled" class="select_wrap">
-          <el-select v-model="curLang" placeholder="Select language">
+          <el-select v-model="curLang" :placeholder="t('componentCodeEdit.selectLanguage')">
             <el-option
               v-for="item in languageKey"
               :key="item"
@@ -50,9 +50,9 @@
             :loading="loading"
             @click="handleSave"
           >
-            保存
+            {{ t('common.save') }}
           </el-button>
-          <el-button type="info" @click="handleClose">关闭</el-button>
+          <el-button type="info" @click="handleClose">{{ t('common.close') }}</el-button>
         </div>
       </footer>
     </template>
@@ -62,6 +62,7 @@
 <script>
 import { Codemirror } from 'vue-codemirror'
 import { oneDark } from '@codemirror/theme-one-dark'
+import i18n from '@/i18n'
 import languages from './languages'
 import { sortString, getSuffix } from '@/utils'
 
@@ -95,19 +96,22 @@ export default {
       default: false
     }
   },
-  emits: ['update:show', 'save', 'closed',],
+  emits: ['update:show', 'save', 'closed'],
   data() {
     return {
       languageKey,
       curLang: null,
-      status: '准备中',
+      status: this.t('componentCodeEdit.statusPreparing'),
       loading: false,
       isTips: false,
-      code: 'loading...',
+      code: this.t('common.loading'),
       editorView: null
     }
   },
   computed: {
+    t() {
+      return i18n.global.t
+    },
     extensions() {
       let res = []
       if (this.curLang) res.push(languages[this.curLang]())
@@ -178,7 +182,7 @@ export default {
   },
   methods: {
     handleReady(payload) {
-      this.status = '准备中'
+      this.status = this.t('componentCodeEdit.statusPreparing')
       // 保存 view 实例以便后续使用
       if (payload && payload.view) {
         this.editorView = payload.view
@@ -225,14 +229,14 @@ export default {
           })
         }
       } catch (error) {
-        console.warn('滚动到底部失败:', error)
+        console.warn('Failed to scroll to bottom:', error)
       }
     },
     handleSave() {
       if (this.isTips) {
-        this.$messageBox.confirm('文件已变更, 确认保存?', 'Warning', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
+        this.$messageBox.confirm(this.t('componentCodeEdit.confirmSaveChanged'), this.t('componentCodeEdit.warningTitle'), {
+          confirmButtonText: this.t('common.confirm'),
+          cancelButtonText: this.t('common.cancel'),
           type: 'warning'
         })
           .then(async () => {
@@ -249,9 +253,9 @@ export default {
     },
     handleClose() {
       if (this.isTips && !this.disabled) {
-        this.$messageBox.confirm('文件已变更, 确认丢弃?', 'Warning', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
+        this.$messageBox.confirm(this.t('componentCodeEdit.confirmDiscardChanged'), this.t('componentCodeEdit.warningTitle'), {
+          confirmButtonText: this.t('common.confirm'),
+          cancelButtonText: this.t('common.cancel'),
           type: 'warning'
         })
           .then(async () => {

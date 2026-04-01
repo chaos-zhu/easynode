@@ -1,7 +1,7 @@
 <template>
   <el-drawer
     v-model="visible"
-    title="其他设置"
+    :title="t('terminal.otherSettings')"
     :direction="isMobileScreen ? 'ttb' : 'ltr'"
     :close-on-click-modal="true"
     :close-on-press-escape="true"
@@ -15,22 +15,22 @@
       label-width="100px"
       :show-message="false"
     >
-      <el-form-item label="自动重连" prop="autoReconnect">
+      <el-form-item :label="t('terminal.autoReconnect')" prop="autoReconnect">
         <span>
           <el-switch
             v-model="autoReconnect"
             class="switch"
             inline-prompt
             style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-            active-text="开启"
-            inactive-text="关闭"
+            :active-text="t('terminal.enabled')"
+            :inactive-text="t('terminal.disabled')"
           />
         </span>
       </el-form-item>
-      <el-form-item label="脚本执行" prop="autoExecuteScript">
+      <el-form-item :label="t('terminal.scriptExecution')" prop="autoExecuteScript">
         <el-tooltip
           effect="dark"
-          content="启用后从脚本库选中脚本后自动执行(回车操作)"
+          :content="t('terminal.scriptExecutionTip')"
           placement="right"
         >
           <el-switch
@@ -38,15 +38,15 @@
             class="switch"
             inline-prompt
             style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-            active-text="自动"
-            inactive-text="手动"
+            :active-text="t('terminal.auto')"
+            :inactive-text="t('terminal.manual')"
           />
         </el-tooltip>
       </el-form-item>
-      <el-form-item label="右键菜单" prop="autoShowContextMenu">
+      <el-form-item :label="t('terminal.contextMenu')" prop="autoShowContextMenu">
         <el-tooltip
           effect="dark"
-          content="启用后选中文本时自动弹出右键菜单"
+          :content="t('terminal.contextMenuTip')"
           placement="right"
         >
           <el-switch
@@ -54,15 +54,15 @@
             class="switch"
             inline-prompt
             style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-            active-text="自动"
-            inactive-text="手动"
+            :active-text="t('terminal.auto')"
+            :inactive-text="t('terminal.manual')"
           />
         </el-tooltip>
       </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog_footer">
-        <el-button @click="visible = false">关闭</el-button>
+        <el-button @click="visible = false">{{ t('common.close') }}</el-button>
       </span>
     </template>
   </el-drawer>
@@ -70,10 +70,12 @@
 
 <script setup>
 import { computed, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import useMobileWidth from '@/composables/useMobileWidth'
 
 const { proxy: { $store } } = getCurrentInstance()
 const { isMobileScreen } = useMobileWidth()
+const { t } = useI18n()
 
 const props = defineProps({
   show: {

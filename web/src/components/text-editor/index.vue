@@ -26,16 +26,16 @@
       <!-- 工具栏 -->
       <div class="editor-toolbar">
         <div class="toolbar-item">
-          <label>主题</label>
+          <label>{{ t('componentTextEditor.theme') }}</label>
           <el-select v-model="selectedTheme" size="small" @change="changeTheme">
-            <el-option label="High Contrast Dark" value="hc-black" />
-            <el-option label="Dark" value="vs-dark" />
-            <el-option label="Light" value="vs" />
+            <el-option :label="t('componentTextEditor.themeOptions.highContrastDark')" value="hc-black" />
+            <el-option :label="t('componentTextEditor.themeOptions.dark')" value="vs-dark" />
+            <el-option :label="t('componentTextEditor.themeOptions.light')" value="vs" />
           </el-select>
         </div>
 
         <div class="toolbar-item">
-          <label>类型</label>
+          <label>{{ t('componentTextEditor.type') }}</label>
           <el-select v-model="selectedLanguage" size="small" @change="changeLanguage">
             <el-option label="plaintext" value="plaintext" />
             <el-option label="json" value="json" />
@@ -61,18 +61,18 @@
         </div>
 
         <div class="toolbar-item">
-          <label>行尾符</label>
+          <label>{{ t('componentTextEditor.eol') }}</label>
           <el-select v-model="selectedEOL" size="small" @change="changeEOL">
-            <el-option label="LF (Linux)" value="LF" />
-            <el-option label="CRLF (Windows)" value="CRLF" />
-            <el-option label="CR (Mac)" value="CR" />
+            <el-option :label="t('componentTextEditor.eolOptions.lf')" value="LF" />
+            <el-option :label="t('componentTextEditor.eolOptions.crlf')" value="CRLF" />
+            <el-option :label="t('componentTextEditor.eolOptions.cr')" value="CR" />
           </el-select>
         </div>
 
         <div class="toolbar-item">
-          <label>编码</label>
+          <label>{{ t('componentTextEditor.encoding') }}</label>
           <el-select v-model="selectedEncoding" size="small" @change="changeEncoding">
-            <el-option label="自动检测" value="auto" />
+            <el-option :label="t('componentTextEditor.encodingOptions.auto')" value="auto" />
             <el-option label="UTF-8" value="utf8" />
             <el-option label="GB18030" value="gb18030" />
             <!-- <el-option label="GBK" value="gbk" />
@@ -81,31 +81,31 @@
         </div>
 
         <div class="toolbar-item">
-          <label>自动换行</label>
+          <label>{{ t('componentTextEditor.wordWrap') }}</label>
           <el-switch v-model="wordWrapEnabled" size="small" @change="toggleWordWrap" />
         </div>
 
         <div class="toolbar-item">
-          <label>缩略图</label>
+          <label>{{ t('componentTextEditor.minimap') }}</label>
           <el-switch v-model="minimapEnabled" size="small" @change="toggleMinimap" />
         </div>
 
         <div v-if="minimapEnabled" class="toolbar-item">
-          <label>缩略图大小</label>
+          <label>{{ t('componentTextEditor.minimapSize') }}</label>
           <el-select
             v-model="minimapSize"
             size="small"
             class="size-select"
             @change="changeMinimapSize"
           >
-            <el-option label="小" value="small" />
-            <el-option label="中" value="medium" />
-            <el-option label="大" value="large" />
+            <el-option :label="t('componentTextEditor.sizeOptions.small')" value="small" />
+            <el-option :label="t('componentTextEditor.sizeOptions.medium')" value="medium" />
+            <el-option :label="t('componentTextEditor.sizeOptions.large')" value="large" />
           </el-select>
         </div>
 
         <div class="toolbar-item">
-          <label>字号</label>
+          <label>{{ t('componentTextEditor.fontSize') }}</label>
           <el-select
             v-model="fontSize"
             size="small"
@@ -126,7 +126,7 @@
       <div
         v-loading="loading"
         class="editor-wrapper"
-        element-loading-text="加载中..."
+        :element-loading-text="t('common.loading')"
       >
         <div ref="editorContainer" class="monaco-editor" />
       </div>
@@ -134,10 +134,10 @@
       <!-- 底部按钮 -->
       <div class="editor-footer">
         <el-button size="small" @click="closeDialog">
-          关闭
+          {{ t('common.close') }}
         </el-button>
         <el-button size="small" @click="resetFile">
-          重置
+          {{ t('componentTextEditor.reset') }}
         </el-button>
         <el-button
           :disabled="!hasChanges"
@@ -145,7 +145,7 @@
           size="small"
           @click="saveFile"
         >
-          保存
+          {{ t('common.save') }}
         </el-button>
       </div>
     </div>
@@ -155,6 +155,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { Close } from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor'
 import useStore from '@/store'
@@ -184,6 +185,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'saved',])
 
+const { t } = useI18n()
 const store = useStore()
 
 const visible = ref(false)
@@ -226,7 +228,10 @@ let shouldCloseAfterSave = false
 let actualEncoding = 'utf8' // 实际使用的编码
 
 const title = computed(() => {
-  return `编辑文件 - ${ props.filePath } ${ hasChanges.value ? ' [已变更]' : '' }`
+  return t('componentTextEditor.title', {
+    filePath: props.filePath,
+    changed: hasChanges.value ? t('componentTextEditor.changed') : ''
+  }).trim()
 })
 
 // 缩略图配置映射
@@ -397,11 +402,11 @@ const saveFile = async () => {
 const handleClose = (done) => {
   if (hasChanges.value) {
     ElMessageBox.confirm(
-      '文件已修改，是否保存后关闭？',
-      '确认关闭',
+      t('componentTextEditor.saveBeforeClose'),
+      t('componentTextEditor.closeConfirmTitle'),
       {
-        confirmButtonText: '保存并关闭',
-        cancelButtonText: '不保存',
+        confirmButtonText: t('componentTextEditor.saveAndClose'),
+        cancelButtonText: t('componentTextEditor.doNotSave'),
         type: 'warning',
         showCancelButton: true,
         cancelButtonClass: 'el-button--info',
@@ -425,11 +430,11 @@ const handleClose = (done) => {
 const closeDialog = () => {
   if (hasChanges.value) {
     ElMessageBox.confirm(
-      '文件已修改，是否保存后关闭？',
-      '确认关闭',
+      t('componentTextEditor.saveBeforeClose'),
+      t('componentTextEditor.closeConfirmTitle'),
       {
-        confirmButtonText: '保存并关闭',
-        cancelButtonText: '不保存',
+        confirmButtonText: t('componentTextEditor.saveAndClose'),
+        cancelButtonText: t('componentTextEditor.doNotSave'),
         type: 'warning',
         showCancelButton: true,
         cancelButtonClass: 'el-button--info',
@@ -472,11 +477,11 @@ const changeEncoding = (newEncoding) => {
   // 如果有未保存的更改或编辑器已加载内容，提示用户
   if (hasChanges.value || (editor && editor.getValue())) {
     ElMessageBox.confirm(
-      '切换编码将重新加载文件，未保存的修改将丢失。是否继续？',
-      '切换编码',
+      t('componentTextEditor.switchEncodingWarning'),
+      t('componentTextEditor.switchEncodingTitle'),
       {
-        confirmButtonText: '继续',
-        cancelButtonText: '取消',
+        confirmButtonText: t('componentTextEditor.continueAction'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning'
       }
     ).then(() => {
@@ -559,17 +564,17 @@ const changeFontSize = (size) => {
 const resetFile = () => {
   if (editor && originalContent.value !== undefined) {
     ElMessageBox.confirm(
-      '确认重置文件内容到初始状态？',
-      '重置确认',
+      t('componentTextEditor.resetConfirmMessage'),
+      t('componentTextEditor.resetConfirmTitle'),
       {
-        confirmButtonText: '确认重置',
-        cancelButtonText: '取消',
+        confirmButtonText: t('componentTextEditor.confirmReset'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning'
       }
     ).then(() => {
       editor.setValue(originalContent.value)
       hasChanges.value = false
-      ElMessage.success('文件内容已重置')
+      ElMessage.success(t('componentTextEditor.resetSuccess'))
     }).catch(() => {
       // 取消重置
     })
@@ -619,7 +624,7 @@ const setupSocketListeners = () => {
       originalContent.value = editor.getValue()
       hasChanges.value = false
       loading.value = false
-      ElMessage.success('文件保存成功')
+      ElMessage.success(t('componentTextEditor.saveSuccess'))
       emit('saved', { filePath })
 
       // 控制台打印编码信息
@@ -637,14 +642,14 @@ const setupSocketListeners = () => {
   props.socket.on('file_read_error', ({ error, filePath }) => {
     if (filePath === props.filePath) {
       loading.value = false
-      ElMessage.error(`读取文件失败: ${ error }`)
+      ElMessage.error(t('componentTextEditor.readFailed', { error }))
     }
   })
 
   props.socket.on('file_save_error', ({ error, filePath }) => {
     if (filePath === props.filePath) {
       loading.value = false
-      ElMessage.error(`保存文件失败: ${ error }`)
+      ElMessage.error(t('componentTextEditor.saveFailed', { error }))
     }
   })
 }

@@ -3,7 +3,7 @@
     <PlusSupportTip>
       <div class="ai_button" @click="handleClick">
         <img src="@/assets/image/coding32.png" alt="AIHelper">
-        AI Chat
+        {{ t('plusTable.plusFeatures.aiChat') }}
       </div>
     </PlusSupportTip>
     <AiChat v-model:visible="visible" />
@@ -12,13 +12,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AiChat from '@/components/ai-chat/index.vue'
 import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 
 const visible = ref(false)
-// const emit = defineEmits(['click']);
+const { t } = useI18n()
 const handleClick = () => {
-  // emit('click');
   visible.value = true
 }
 </script>

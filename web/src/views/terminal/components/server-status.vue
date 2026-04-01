@@ -1,6 +1,5 @@
 <template>
   <div class="info_container" :style="{ width: visible ? `250px` : 0 }">
-    <!-- <el-divider class="first-divider" content-position="center">地理位置</el-divider> -->
     <el-descriptions
       class="margin-top"
       :column="1"
@@ -10,22 +9,22 @@
       <el-descriptions-item>
         <template #label>
           <div class="item_title">
-            主机
+            {{ t('terminal.host') }}
           </div>
         </template>
         <span class="host-info-ip" :title="host">{{ host }}</span>
         <template v-if="pingMs">
-          <el-tooltip effect="dark" content="该值为EasyNode服务端主机到目标主机的ping值" placement="bottom">
+          <el-tooltip effect="dark" :content="t('terminal.pingDescription')" placement="bottom">
             <span class="host-ping" :style="{backgroundColor: handlePingColor(pingMs)}">{{ pingMs }}ms</span>
           </el-tooltip>
         </template>
-        <el-tag size="small" style="cursor: pointer;margin-left: 10px;" @click="handleCopy">复制</el-tag>
+        <el-tag size="small" style="cursor: pointer;margin-left: 10px;" @click="handleCopy">{{ t('common.copy') }}</el-tag>
       </el-descriptions-item>
 
       <el-descriptions-item>
         <template #label>
           <div class="item_title">
-            在线
+            {{ t('terminal.uptime') }}
           </div>
         </template>
         <div size="small">
@@ -34,7 +33,6 @@
       </el-descriptions-item>
     </el-descriptions>
 
-    <!-- <el-divider content-position="center">实时监控</el-divider> -->
     <br>
 
     <el-descriptions
@@ -46,7 +44,7 @@
       <el-descriptions-item>
         <template #label>
           <div class="item_title">
-            CPU
+            {{ t('common.cpu') }}
           </div>
         </template>
         <el-progress
@@ -59,10 +57,10 @@
       <el-descriptions-item>
         <template #label>
           <div class="item_title">
-            负载
+            {{ t('terminal.load') }}
           </div>
         </template>
-        <el-tooltip effect="dark" content="过去1分钟、5分钟、15分钟CPU负载" placement="bottom">
+        <el-tooltip effect="dark" :content="t('terminal.loadDescription')" placement="bottom">
           <div class="load-avg-display">
             <span
               v-for="(load, index) in loadAvgFormatted"
@@ -77,7 +75,7 @@
       <el-descriptions-item>
         <template #label>
           <div class="item_title">
-            内存
+            {{ t('common.memory') }}
           </div>
         </template>
         <el-progress
@@ -93,7 +91,7 @@
       <el-descriptions-item>
         <template #label>
           <div class="item_title">
-            交换
+            {{ t('terminal.swap') }}
           </div>
         </template>
         <el-progress
@@ -109,13 +107,13 @@
       <el-descriptions-item v-for="(d,idx) in drivesInfo" :key="d.filesystem + idx">
         <template #label>
           <div class="item_title">
-            {{ drivesInfo.length > 1 ? `硬盘(${idx+1})` : '硬盘' }}
+            {{ drivesInfo.length > 1 ? t('terminal.diskWithIndex', { index: idx + 1 }) : t('terminal.disk') }}
           </div>
         </template>
         <el-tooltip
           effect="dark"
           placement="top"
-          :content="`文件系统：${d.filesystem} 挂载点：${d.mountedOn}`"
+          :content="t('terminal.filesystemMountPoint', { filesystem: d.filesystem, mountedOn: d.mountedOn })"
         >
           <el-progress
             :text-inside="true"
@@ -139,7 +137,7 @@
       <el-descriptions-item key="netstat_item">
         <template #label>
           <div class="item_title">
-            网络
+            {{ t('common.network') }}
           </div>
         </template>
         <div class="netstat_info">
@@ -160,7 +158,6 @@
       </el-descriptions-item>
     </el-descriptions>
 
-    <!-- <el-divider content-position="center">系统信息</el-divider> -->
     <br>
 
     <el-descriptions
@@ -172,7 +169,7 @@
       <el-descriptions-item>
         <template #label>
           <div class="item_title">
-            名称
+            {{ t('common.name') }}
           </div>
         </template>
         <div size="small">
@@ -182,7 +179,7 @@
       <el-descriptions-item>
         <template #label>
           <div class="item_title">
-            核心
+            {{ t('terminal.cores') }}
           </div>
         </template>
         <div size="small">
@@ -202,7 +199,7 @@
       <el-descriptions-item>
         <template #label>
           <div class="item_title">
-            类型
+            {{ t('common.type') }}
           </div>
         </template>
         <div size="small">
@@ -215,14 +212,15 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance, watch, onBeforeUnmount, nextTick, onMounted, toRaw, shallowRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Chart, registerables } from 'chart.js'
 import { generateSocketInstance } from '@/utils'
 import clipboard from '@/utils/clipboard'
 
-// 注册Chart.js所有组件
 Chart.register(...registerables)
 
 const { proxy: { $message, $tools, $store } } = getCurrentInstance()
+const { t, locale } = useI18n()
 
 const props = defineProps({
   hostId: {
@@ -633,7 +631,7 @@ const initNetworkChart = () => {
       labels: [], // 时间标签
       datasets: [
         {
-          label: '上传',
+          label: locale.value === 'en' ? 'Upload' : '上传',
           data: [],
           borderColor: '#CF8A20',
           backgroundColor: 'rgba(207, 138, 32, 0.1)',
@@ -644,7 +642,7 @@ const initNetworkChart = () => {
           pointHoverRadius: 3
         },
         {
-          label: '下载',
+          label: locale.value === 'en' ? 'Download' : '下载',
           data: [],
           borderColor: '#67c23a',
           backgroundColor: 'rgba(103, 194, 58, 0.1)',
@@ -721,7 +719,7 @@ const initNetworkChart = () => {
 // 更新网速历史数据
 const updateNetworkHistory = (uploadMb, downloadMb) => {
   const now = new Date()
-  const timeLabel = now.toLocaleTimeString('zh-CN', {
+  const timeLabel = now.toLocaleTimeString(locale.value === 'en' ? 'en-US' : 'zh-CN', {
     hour12: false,
     minute: '2-digit',
     second: '2-digit'

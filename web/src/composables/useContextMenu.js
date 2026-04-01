@@ -90,7 +90,7 @@ export function useContextMenu() {
               container.parentNode.removeChild(container)
             }
           } catch (error) {
-            console.warn('清理菜单时出错:', error)
+            console.warn('Error while cleaning up menu:', error)
           }
           contextMenuInstance = null
           contextMenuApp = null
@@ -120,7 +120,7 @@ export function useContextMenu() {
           container.parentNode.removeChild(container)
         }
       } catch (error) {
-        console.warn('同步清理菜单时出错:', error)
+        console.warn('Error while synchronously cleaning up menu:', error)
       }
 
       contextMenuInstance = null

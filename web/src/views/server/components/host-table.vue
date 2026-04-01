@@ -12,13 +12,13 @@
       <el-table-column
         v-if="props.columnSettings.index"
         property="index"
-        label="序号"
+        :label="t('server.index')"
         sortable
         width="100px"
       />
       <el-table-column
         v-if="props.columnSettings.name"
-        label="名称"
+        :label="t('common.name')"
         property="name"
         sortable
         :sort-method="(a, b) => a.name - b.name"
@@ -34,30 +34,30 @@
           </span>
         </template>
       </el-table-column>
-      <el-table-column v-if="props.columnSettings.username" property="username" label="用户名" />
-      <el-table-column v-if="props.columnSettings.host" property="host" label="IP">
+      <el-table-column v-if="props.columnSettings.username" property="username" :label="t('server.username')" />
+      <el-table-column v-if="props.columnSettings.host" property="host" :label="t('server.ip')">
         <template #default="scope">
           <span @click="handleCopy(scope.row.host)">{{ scope.row.host }}</span>
         </template>
       </el-table-column>
-      <el-table-column v-if="props.columnSettings.port" property="port" label="端口" />
-      <el-table-column v-if="props.columnSettings.authType" property="port" label="认证类型">
-        <template #default="scope">{{ scope.row.authType === 'password' ? '密码' : '密钥' }}</template>
+      <el-table-column v-if="props.columnSettings.port" property="port" :label="t('server.port')" />
+      <el-table-column v-if="props.columnSettings.authType" property="port" :label="t('server.authType')">
+        <template #default="scope">{{ scope.row.authType === 'password' ? t('server.password') : t('server.privateKey') }}</template>
       </el-table-column>
       <el-table-column
         v-if="props.columnSettings.proxyType"
         property="port"
         show-overflow-tooltip
-        label="代理类型"
+        :label="t('server.proxyType')"
       >
         <template #default="scope">{{ formatProxyType(scope.row) }}</template>
       </el-table-column>
-      <el-table-column v-if="props.columnSettings.expired" property="expired" label="到期时间" sortable />
+      <el-table-column v-if="props.columnSettings.expired" property="expired" :label="t('server.expiredAt')" sortable />
       <el-table-column
         v-if="props.columnSettings.consoleUrl"
         property="consoleUrl"
         show-overflow-tooltip
-        label="控制台URL"
+        :label="t('server.consoleUrl')"
       >
         <template #default="scope">
           <span v-if="scope.row.consoleUrl" class="link" @click="handleToConsole(scope.row)">{{ scope.row.consoleUrl }}</span>
@@ -68,7 +68,7 @@
         v-if="props.columnSettings.tag"
         show-overflow-tooltip
         property="tag"
-        label="标签"
+        :label="t('server.tag')"
       >
         <template #default="scope">
           <span v-if="scope.row.tag?.length">
@@ -85,11 +85,11 @@
           <span v-else>--</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" fixed="right" :width="isMobileScreen ? 'auto' : '260px'">
+      <el-table-column :label="t('server.group.actions')" fixed="right" :width="isMobileScreen ? 'auto' : '260px'">
         <template #default="{ row }">
           <el-dropdown v-if="isMobileScreen" trigger="click">
             <span class="link">
-              操作
+              {{ t('server.group.actions') }}
               <el-icon class="el-icon--right">
                 <arrow-down />
               </el-icon>
@@ -100,17 +100,17 @@
                   <el-tooltip
                     :disabled="row.isConfig"
                     effect="dark"
-                    content="请先配置ssh连接信息"
+                    :content="t('server.configSshFirst')"
                     placement="left"
                   >
-                    <el-button type="success" :disabled="!row.isConfig" @click="handleSSH(row)">连接</el-button>
+                    <el-button type="success" :disabled="!row.isConfig" @click="handleSSH(row)">{{ t('server.connect') }}</el-button>
                   </el-tooltip>
                 </el-dropdown-item>
                 <el-dropdown-item>
-                  <el-button type="primary" @click="handleUpdate(row)">配置</el-button>
+                  <el-button type="primary" @click="handleUpdate(row)">{{ t('server.config') }}</el-button>
                 </el-dropdown-item>
                 <el-dropdown-item>
-                  <el-button type="danger" @click="handleRemoveHost(row)">删除</el-button>
+                  <el-button type="danger" @click="handleRemoveHost(row)">{{ t('server.delete') }}</el-button>
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -119,13 +119,13 @@
             <el-tooltip
               :disabled="row.isConfig"
               effect="dark"
-              content="请先配置ssh连接信息"
+              :content="t('server.configSshFirst')"
               placement="left"
             >
-              <el-button type="success" :disabled="!row.isConfig" @click="handleSSH(row)">连接</el-button>
+              <el-button type="success" :disabled="!row.isConfig" @click="handleSSH(row)">{{ t('server.connect') }}</el-button>
             </el-tooltip>
-            <el-button type="primary" @click="handleUpdate(row)">配置</el-button>
-            <el-button type="danger" @click="handleRemoveHost(row)">删除</el-button>
+            <el-button type="primary" @click="handleUpdate(row)">{{ t('server.config') }}</el-button>
+            <el-button type="danger" @click="handleRemoveHost(row)">{{ t('server.delete') }}</el-button>
           </template>
         </template>
       </el-table-column>
@@ -135,11 +135,13 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowDown } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import clipboard from '@/utils/clipboard'
 
 const { proxy: { $message, $messageBox, $api, $router, $store } } = getCurrentInstance()
+const { t } = useI18n()
 
 const props = defineProps({
   hosts: {
@@ -178,7 +180,7 @@ const handleUpdate = (hostInfo) => {
 }
 
 const handleToConsole = ({ consoleUrl }) => {
-  if (!consoleUrl) return $message({ message: '未配置服务商控制台地址', type: 'warning', center: true })
+  if (!consoleUrl) return $message({ message: t('server.noConsoleUrl'), type: 'warning', center: true })
   window.open(consoleUrl)
 }
 
@@ -231,9 +233,9 @@ defineExpose({
 })
 
 const handleRemoveHost = async ({ id }) => {
-  $messageBox.confirm('确认删除实例', 'Warning', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  $messageBox.confirm(t('server.deleteInstanceConfirm'), 'Warning', {
+    confirmButtonText: t('common.confirm'),
+    cancelButtonText: t('common.cancel'),
     type: 'warning'
   }).then(async () => {
     let { data } = await $api.removeHost({ ids: [id,] })
@@ -252,19 +254,19 @@ const handleCopy = (host) => {
 }
 
 const formatProxyType = ({ proxyType, jumpHosts, proxyServer }) => {
-  if (!proxyType) return '--'
+  if (!proxyType) return t('scripts.noAction')
   if (proxyType === 'jumpHosts' && jumpHosts?.length > 0) {
     const jumpHostsName = jumpHosts.map(item => {
       const hostInfo = hostList.value.find(host => host.id === item)
       return hostInfo?.name || 'Error'
     }).join('>>>')
-    return `[跳板机]${ jumpHostsName }`
+    return `[${ t('server.jumpHost') }]${ jumpHostsName }`
   }
   if (proxyType === 'proxyServer' && proxyList.value.some(item => item.id === proxyServer)) {
     const proxyServerInfo = proxyList.value.find(item => item.id === proxyServer)
     return `[${ proxyServerInfo.type }]${ proxyServerInfo.name }`
   }
-  return '--'
+  return t('scripts.noAction')
 }
 </script>
 

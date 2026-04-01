@@ -1,7 +1,7 @@
 <template>
   <el-drawer
     v-model="dialogVisible"
-    title="高亮设置"
+    :title="t('terminal.highlightSettings')"
     :direction="isMobileScreen ? 'ttb' : 'ltr'"
     :close-on-click-modal="true"
     :close-on-press-escape="true"
@@ -15,49 +15,47 @@
       label-width="130px"
       :show-message="false"
     >
-      <el-form-item label="关键词高亮">
+      <el-form-item :label="t('terminal.keywordHighlight')">
         <el-switch
           v-model="highlightConfig.enabled"
           class="switch"
           inline-prompt
           style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-          active-text="开启"
-          inactive-text="关闭"
+          :active-text="t('terminal.enabled')"
+          :inactive-text="t('terminal.disabled')"
           @change="handleConfigChange"
         />
       </el-form-item>
 
-      <el-form-item v-if="highlightConfig.enabled" label="调试模式">
+      <el-form-item v-if="highlightConfig.enabled" :label="t('terminal.debugMode')">
         <el-switch
           v-model="highlightConfig.debugMode"
           class="switch"
           inline-prompt
           style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-          active-text="开启"
-          inactive-text="关闭"
+          :active-text="t('terminal.enabled')"
+          :inactive-text="t('terminal.disabled')"
           @change="handleConfigChange"
         />
         <el-text class="debug-tip" size="small" type="info">
-          开启后会在控制台显示详细的高亮处理信息
+          {{ t('terminal.debugModeTip') }}
         </el-text>
       </el-form-item>
 
-      <!-- 规则管理按钮 -->
-      <el-form-item v-if="highlightConfig.enabled" label="规则管理">
+      <el-form-item v-if="highlightConfig.enabled" :label="t('terminal.ruleManagement')">
         <div class="rule-actions">
           <el-button type="warning" size="small" @click="handleRestoreDefaults">
-            恢复默认
+            {{ t('common.restoreDefault') }}
           </el-button>
           <el-button type="primary" size="small" @click="handleExportRules">
-            导出规则
+            {{ t('terminal.exportRules') }}
           </el-button>
           <el-button type="success" size="small" @click="handleImportRules">
-            导入规则
+            {{ t('terminal.importRules') }}
           </el-button>
         </div>
       </el-form-item>
 
-      <!-- 高亮规则列表 -->
       <div v-if="highlightConfig.enabled" class="rules-section">
         <div
           v-for="(rule, ruleName) in highlightRules"
@@ -67,41 +65,37 @@
           <el-form-item :label="getRuleTitle(ruleName)">
             <div class="rule-content">
               <div class="rule-header">
-                <!-- 启用切换开关 -->
                 <div class="rule-enable">
                   <el-switch
                     v-model="rule.enabled"
                     size="small"
                     inline-prompt
                     style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                    active-text="启用"
-                    inactive-text="禁用"
+                    :active-text="t('terminal.enableRule')"
+                    :inactive-text="t('terminal.disableRule')"
                     @change="handleRuleEnabledChange(ruleName, rule.enabled)"
                   />
                 </div>
 
                 <div class="color-info">
-                  <!-- 文本颜色预览 -->
                   <div class="color-display">
-                    <span class="color-label">文本</span>
+                    <span class="color-label">{{ t('terminal.textColor') }}</span>
                     <span
                       class="color-preview"
                       :style="{ backgroundColor: getColorDisplay(rule) }"
-                      :title="`文本颜色: ${getColorDisplay(rule)}`"
+                      :title="t('terminal.textColorTitle', { color: getColorDisplay(rule) })"
                     />
                   </div>
 
-                  <!-- 背景色预览 -->
                   <div v-if="rule.backgroundColor" class="color-display">
-                    <span class="color-label">背景</span>
+                    <span class="color-label">{{ t('terminal.backgroundColor') }}</span>
                     <span
                       class="background-preview"
                       :style="{ backgroundColor: rule.backgroundColor }"
-                      :title="`背景色: ${rule.backgroundColor}`"
+                      :title="t('terminal.backgroundColorTitle', { color: rule.backgroundColor })"
                     />
                   </div>
 
-                  <!-- 样式标签 -->
                   <div class="style-tags">
                     <el-tag
                       v-if="rule.bold"
@@ -109,7 +103,7 @@
                       type="danger"
                       effect="dark"
                     >
-                      粗体
+                      {{ t('terminal.bold') }}
                     </el-tag>
                     <el-tag
                       v-if="rule.italic"
@@ -117,7 +111,7 @@
                       type="warning"
                       effect="dark"
                     >
-                      斜体
+                      {{ t('terminal.italic') }}
                     </el-tag>
                     <el-tag
                       v-if="rule.underline"
@@ -125,7 +119,7 @@
                       type="info"
                       effect="dark"
                     >
-                      下划线
+                      {{ t('terminal.underline') }}
                     </el-tag>
                   </div>
                 </div>
@@ -138,7 +132,7 @@
                     :disabled="!rule.enabled"
                     @click="editRule(ruleName)"
                   >
-                    编辑
+                    {{ t('terminal.editRule') }}
                   </el-button>
                 </div>
               </div>
@@ -147,20 +141,18 @@
         </div>
       </div>
 
-      <!-- 预览效果 -->
-      <el-form-item v-if="highlightConfig.enabled" label="预览效果">
+      <el-form-item v-if="highlightConfig.enabled" :label="t('terminal.preview')">
         <div class="test-panel">
           <el-input
             v-model="testText"
             type="textarea"
             :rows="2"
-            placeholder="输入测试文本，查看高亮效果"
+            :placeholder="t('terminal.previewPlaceholder')"
             class="test-input"
           />
         </div>
       </el-form-item>
 
-      <!-- 预览输出 -->
       <div
         v-if="highlightConfig.enabled"
         class="test-output"
@@ -171,11 +163,10 @@
 
     <template #footer>
       <span class="dialog_footer">
-        <el-button @click="handleCancel">关闭</el-button>
+        <el-button @click="handleCancel">{{ t('common.close') }}</el-button>
       </span>
     </template>
 
-    <!-- 规则编辑对话框 -->
     <RuleEditDialog
       v-model:show="showRuleEdit"
       :rule-name="editingRuleName"
@@ -184,21 +175,20 @@
       @save="handleRuleSave"
     />
 
-    <!-- 导入对话框 -->
     <el-dialog
       v-model="showImportDialog"
-      title="导入高亮规则"
+      :title="t('terminal.importHighlightRules')"
       width="600px"
     >
       <el-input
         v-model="importRulesText"
         type="textarea"
         :rows="10"
-        placeholder="请粘贴规则JSON内容"
+        :placeholder="t('terminal.importRulesPlaceholder')"
       />
       <template #footer>
-        <el-button @click="showImportDialog = false">取消</el-button>
-        <el-button type="primary" @click="confirmImportRules">确认导入</el-button>
+        <el-button @click="showImportDialog = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="confirmImportRules">{{ t('terminal.confirmImportRules') }}</el-button>
       </template>
     </el-dialog>
   </el-drawer>
@@ -206,6 +196,7 @@
 
 <script setup>
 import { ref, computed, watch, getCurrentInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { HIGHLIGHT_RULES } from '@/utils/highlighter'
 import useMobileWidth from '@/composables/useMobileWidth'
 import RuleEditDialog from './rule-edit-dialog.vue'
@@ -213,6 +204,7 @@ import themeList from 'xterm-theme'
 
 const { proxy: { $store, $message, $messageBox } } = getCurrentInstance()
 const { isMobileScreen } = useMobileWidth()
+const { t } = useI18n()
 
 const props = defineProps({
   show: {
@@ -427,7 +419,7 @@ const highlightedTestText = computed(() => {
 
     return finalOutput
   } catch (error) {
-    console.error('预览错误:', error)
+    console.error('Preview error:', error)
     return testText.value.replace(/\n/g, '<br>')
   }
 })
@@ -449,7 +441,7 @@ const loadConfig = () => {
     for (const [key, rule,] of Object.entries(terminalConfig.customHighlightRules)) {
       // 跳过无效的规则
       if (!rule.pattern || (typeof rule.pattern === 'object' && !rule.pattern.source)) {
-        console.warn(`跳过无效的自定义规则 ${ key }:`, rule.pattern)
+        console.warn(`Skipping invalid custom rule ${ key }:`, rule.pattern)
         continue
       }
 
@@ -459,7 +451,7 @@ const loadConfig = () => {
       } else if (rule.pattern.source) {
         validPattern = new RegExp(rule.pattern.source, rule.flags || 'gi')
       } else {
-        console.warn(`跳过无法解析的规则 ${ key }:`, rule.pattern)
+        console.warn(`Skipping unparsable rule ${ key }:`, rule.pattern)
         continue
       }
 
@@ -505,9 +497,12 @@ const handleRuleEnabledChange = async (ruleName, enabled) => {
     }
 
     await $store.setTerminalSetting(config)
-    $message.success(`${ getRuleTitle(ruleName) }${ enabled ? '已启用' : '已禁用' }`)
+    $message.success(t('terminal.ruleEnabledStatus', {
+      name: getRuleTitle(ruleName),
+      status: enabled ? t('terminal.enabledSuffix') : t('terminal.disabledSuffix')
+    }))
   } catch (error) {
-    $message.error('保存设置失败')
+    $message.error(t('terminal.saveSettingsFailed'))
     // 回滚状态
     highlightRules.value[ruleName].enabled = !enabled
   }
@@ -525,16 +520,16 @@ const handleRuleSave = async (ruleName, ruleData) => {
     }
 
     await $store.setTerminalSetting(config)
-    $message.success('规则保存成功')
+    $message.success(t('terminal.ruleSaved'))
   } catch (error) {
-    $message.error('保存规则失败')
+    $message.error(t('terminal.saveRuleFailed'))
   }
 }
 
 // 恢复默认规则
 const handleRestoreDefaults = async () => {
   try {
-    await $messageBox.confirm('确认恢复为默认高亮规则？此操作将覆盖所有自定义规则和颜色。', '确认', {
+    await $messageBox.confirm(t('terminal.restoreDefaultHighlightRulesConfirm'), t('common.confirm'), {
       type: 'warning'
     })
 
@@ -547,10 +542,10 @@ const handleRestoreDefaults = async () => {
     }
 
     await $store.setTerminalSetting(config)
-    $message.success('已恢复默认规则和颜色')
+    $message.success(t('terminal.restoredDefaultRules'))
   } catch (error) {
     if (error !== 'cancel') {
-      $message.error('恢复默认规则失败')
+      $message.error(t('terminal.restoreDefaultRulesFailed'))
     }
   }
 }
@@ -571,7 +566,7 @@ const handleExportRules = () => {
   a.click()
   URL.revokeObjectURL(url)
 
-  $message.success('规则导出成功')
+  $message.success(t('terminal.ruleExportSuccess'))
 }
 
 // 导入规则
@@ -612,9 +607,9 @@ const confirmImportRules = async () => {
 
     await $store.setTerminalSetting(config)
     showImportDialog.value = false
-    $message.success('规则导入并保存成功')
+    $message.success(t('terminal.ruleImportSuccess'))
   } catch (error) {
-    $message.error('导入失败，请检查JSON格式')
+    $message.error(t('terminal.importRulesFailed'))
   }
 }
 
@@ -633,7 +628,7 @@ const handleConfigChange = async () => {
 
     await $store.setTerminalSetting(config)
   } catch (error) {
-    $message.error('保存配置失败')
+    $message.error(t('terminal.saveSettingsFailed'))
   }
 }
 
