@@ -5,6 +5,8 @@
 * 数据导出(2fa强制)
 * 探针接入
 * 支持csv模板特定格式导入
+* TG 控制
+* i18n
 
 ## [3.6.1](https://github.com/chaos-zhu/easynode/releases) (2026-03-15)
 * 新增终端内右键挂起&单窗口模式头部右键菜单
