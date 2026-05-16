@@ -64,6 +64,11 @@ class SshTerminalController {
     terminal.onResize = (cols, rows, pixelWidth, pixelHeight) {
       session.resizeTerminal(cols, rows);
     };
+    // TerminalView may have already laid out and resized `terminal` before
+    // shell() returned, in which case our onResize was null at the time and
+    // the PTY is stuck at its default 80x24. Sync once now so vim/htop/less
+    // pick up the real viewport instead of rendering into a half-screen.
+    session.resizeTerminal(terminal.viewWidth, terminal.viewHeight);
   }
 
   void resize(int columns, int rows) {
