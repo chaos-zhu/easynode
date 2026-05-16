@@ -189,6 +189,7 @@ class _TerminalShellPageState extends State<TerminalShellPage> {
                   ),
                 ),
                 TerminalToolbar(
+                  controller: active?.controller,
                   onInput: (value) => widget.manager.activeSession?.controller
                       .writeInput(value),
                 ),

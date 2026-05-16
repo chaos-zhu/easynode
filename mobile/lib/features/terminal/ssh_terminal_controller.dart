@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart';
+import 'package:flutter/foundation.dart';
 import 'package:xterm/xterm.dart';
 
 import 'ssh_connection_config.dart';
@@ -23,6 +23,11 @@ class SshTerminalController {
 
   final SshConnectionConfig config;
   final Terminal terminal;
+
+  /// Whether the next single-letter input should be translated into Ctrl+letter.
+  /// Lives on the controller (not the toolbar) so soft-keyboard input — which
+  /// flows through `terminal.onOutput` directly — also consumes the modifier.
+  final ValueNotifier<bool> ctrlPending = ValueNotifier<bool>(false);
 
   SSHClient? _client;
   SSHSession? _session;
@@ -53,7 +58,8 @@ class SshTerminalController {
       terminal.write(utf8.decode(data, allowMalformed: true));
     });
     terminal.onOutput = (data) {
-      session.write(Uint8List.fromList(utf8.encode(data)));
+      final transformed = _applyCtrlIfPending(data);
+      session.write(Uint8List.fromList(utf8.encode(transformed)));
     };
     terminal.onResize = (cols, rows, pixelWidth, pixelHeight) {
       session.resizeTerminal(cols, rows);
@@ -65,9 +71,25 @@ class SshTerminalController {
   }
 
   /// Send a raw escape sequence to the remote shell. Used by the toolbar
-  /// buttons (Esc, Tab, Enter, etc.).
+  /// buttons (Esc, Tab, arrows, etc.).
   void writeInput(String data) {
-    _session?.write(Uint8List.fromList(utf8.encode(data)));
+    final transformed = _applyCtrlIfPending(data);
+    _session?.write(Uint8List.fromList(utf8.encode(transformed)));
+  }
+
+  void toggleCtrl() {
+    ctrlPending.value = !ctrlPending.value;
+  }
+
+  String _applyCtrlIfPending(String data) {
+    if (!ctrlPending.value || data.isEmpty) return data;
+    ctrlPending.value = false;
+    if (data.length != 1) return data;
+    final code = data.toUpperCase().codeUnitAt(0);
+    if (code >= 64 && code <= 95) {
+      return String.fromCharCode(code - 64);
+    }
+    return data;
   }
 
   Future<void> disconnect() async {
@@ -80,5 +102,6 @@ class SshTerminalController {
     _client?.close();
     _session = null;
     _client = null;
+    ctrlPending.value = false;
   }
 }

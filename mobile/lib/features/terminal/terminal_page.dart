@@ -59,7 +59,10 @@ class _TerminalPageState extends State<TerminalPage> {
         child: Column(
           children: [
             Expanded(child: _buildBody()),
-            TerminalToolbar(onInput: _controller.writeInput),
+            TerminalToolbar(
+              controller: _controller,
+              onInput: _controller.writeInput,
+            ),
           ],
         ),
       ),
