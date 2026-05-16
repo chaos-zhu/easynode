@@ -15,8 +15,8 @@ Included:
 - Login to an existing EasyNode server.
 - Persist server address and username by default.
 - Save password only when the user explicitly enables it.
-- Store password, token, session cookie, and a mobile-generated device identifier in platform secure storage.
-- Generate a per-install `deviceId` (UUID v4) the first time the app launches; persist it in secure storage and send it with every login.
+- Store password, token, session cookie, and the server-returned login `deviceId` in platform secure storage.
+- The server-issued `deviceId` (returned by `/api/v1/login`) is preserved so the app can revoke its own session via the existing `DELETE /api/v1/revoke-login/:deviceId` endpoint later.
 - Fetch server data from the existing `/api/v1/host-list` API.
 - Show a mobile server list with a connect action.
 - Request SSH connection parameters through one new mobile-only server API.
@@ -70,7 +70,7 @@ Password is saved only when the user enables save-password. Saved passwords must
 - Android: Keystore-backed encrypted storage through `flutter_secure_storage`
 - iOS: Keychain through `flutter_secure_storage`
 
-Token, session cookie, and the mobile `deviceId` also use secure storage.
+Token, session cookie, and the server-returned login `deviceId` also use secure storage.
 
 The first release does not implement public-key fingerprint binding or change-detection. The RSA public key returned from `/api/v1/get-pub-pem` is still required, because the login password and the per-request temporary AES key are both encrypted with it.
 
@@ -78,12 +78,11 @@ On login:
 
 1. Validate and normalize the server address.
 2. If the address uses HTTP, show a strong warning before any login request.
-3. Ensure a `deviceId` (UUID v4) exists in secure storage; generate and persist one if missing.
-4. Fetch the server public key from `/api/v1/get-pub-pem`.
-5. Encrypt the password with the server public key.
-6. Call `/api/v1/login` with the existing Web-compatible payload, including the persisted `deviceId`.
-7. Store returned token and received `session` cookie in secure storage.
-8. Load the server list with `/api/v1/host-list`.
+3. Fetch the server public key from `/api/v1/get-pub-pem`.
+4. Encrypt the password with the server public key.
+5. Call `/api/v1/login` with the existing Web-compatible payload (`loginName`, `ciphertext`, `jwtExpires`, `jwtExpireAt`, optional `mfa2Token`).
+6. Store returned `token` and the response `deviceId`; the `session` cookie is written automatically by the server's `Set-Cookie` header.
+7. Load the server list with `/api/v1/host-list`.
 
 The HTTP warning should be explicit: HTTP can expose the login token and session cookie, allowing an attacker to take over the app session. The encrypted SSH-parameter response does not replace HTTPS. The warning is shown only when the configured server address uses HTTP; it is not used for any other purpose.
 

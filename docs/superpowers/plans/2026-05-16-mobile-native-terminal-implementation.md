@@ -1703,10 +1703,10 @@ Modify `LoginController.login` to:
 
 1. normalize server address
 2. enforce HTTP confirmation
-3. load or create the persisted `deviceId` (UUID v4, secure storage)
-4. fetch `/get-pub-pem`
-5. RSA-encrypt password
-6. post `/login` with the `deviceId` field included
+3. fetch `/get-pub-pem`
+4. RSA-encrypt password
+5. post `/login` (request body: `loginName`, `ciphertext`, `jwtExpires`, `jwtExpireAt`, optional `mfa2Token` — matches the existing Web payload; the server returns its own `deviceId` in the response)
+6. persist the response `deviceId` plus a per-install secure-storage `deviceId` (UUID v4) for future use
 7. store token, session cookie, address, username, and optional password
 
 - [ ] **Step 3: Wire server list refresh**
