@@ -12,3 +12,7 @@ class ApiFailure implements Exception {
   @override
   String toString() => message;
 }
+
+class UnauthorizedFailure extends ApiFailure {
+  UnauthorizedFailure(super.message, {super.statusCode});
+}

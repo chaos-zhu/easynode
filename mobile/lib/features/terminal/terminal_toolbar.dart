@@ -1,17 +1,33 @@
 import 'package:flutter/material.dart';
 
-/// Mobile-only key bar that sits below the xterm view. Provides escape, tab,
-/// arrow keys and a disconnect action; all key events are forwarded to the
-/// SSH session via [onInput] (not the local xterm buffer).
-class TerminalToolbar extends StatelessWidget {
-  const TerminalToolbar({
-    super.key,
-    required this.onInput,
-    required this.onDisconnect,
-  });
+class TerminalToolbar extends StatefulWidget {
+  const TerminalToolbar({super.key, required this.onInput});
 
   final ValueChanged<String> onInput;
-  final VoidCallback onDisconnect;
+
+  @override
+  State<TerminalToolbar> createState() => _TerminalToolbarState();
+}
+
+class _TerminalToolbarState extends State<TerminalToolbar> {
+  bool _ctrlPending = false;
+
+  void _send(String value) {
+    if (_ctrlPending && value.length == 1) {
+      final code = value.toUpperCase().codeUnitAt(0);
+      if (code >= 64 && code <= 95) {
+        widget.onInput(String.fromCharCode(code - 64));
+        setState(() => _ctrlPending = false);
+        return;
+      }
+    }
+    widget.onInput(value);
+    if (_ctrlPending) setState(() => _ctrlPending = false);
+  }
+
+  void _toggleCtrl() {
+    setState(() => _ctrlPending = !_ctrlPending);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,20 +45,28 @@ class TerminalToolbar extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 4),
           children: [
-            _ToolbarButton(label: 'Esc', onTap: () => onInput('\x1b')),
-            _ToolbarButton(label: 'Tab', onTap: () => onInput('\t')),
-            _ToolbarButton(label: '↑', onTap: () => onInput('\x1b[A')),
-            _ToolbarButton(label: '↓', onTap: () => onInput('\x1b[B')),
-            _ToolbarButton(label: '←', onTap: () => onInput('\x1b[D')),
-            _ToolbarButton(label: '→', onTap: () => onInput('\x1b[C')),
-            _ToolbarButton(label: 'Ctrl-C', onTap: () => onInput('\x03')),
-            _ToolbarButton(label: 'Ctrl-D', onTap: () => onInput('\x04')),
-            _ToolbarButton(label: 'Enter', onTap: () => onInput('\r')),
+            _ToolbarButton(label: 'Esc', onTap: () => _send('\x1b')),
+            _ToolbarButton(label: 'Tab', onTap: () => _send('\t')),
             _ToolbarButton(
-              label: '断开',
-              onTap: onDisconnect,
-              destructive: true,
+              label: 'Ctrl',
+              selected: _ctrlPending,
+              onTap: _toggleCtrl,
             ),
+            _ToolbarButton(label: 'C', onTap: () => _send('C')),
+            _ToolbarButton(label: 'D', onTap: () => _send('D')),
+            _ToolbarButton(label: 'Z', onTap: () => _send('Z')),
+            _ToolbarButton(label: 'Up', onTap: () => _send('\x1b[A')),
+            _ToolbarButton(label: 'Down', onTap: () => _send('\x1b[B')),
+            _ToolbarButton(label: 'Left', onTap: () => _send('\x1b[D')),
+            _ToolbarButton(label: 'Right', onTap: () => _send('\x1b[C')),
+            _ToolbarButton(label: '~', onTap: () => _send('~')),
+            _ToolbarButton(label: '/', onTap: () => _send('/')),
+            _ToolbarButton(label: '-', onTap: () => _send('-')),
+            _ToolbarButton(label: 'L', onTap: () => _send('L')),
+            _ToolbarButton(label: 'A', onTap: () => _send('A')),
+            _ToolbarButton(label: 'E', onTap: () => _send('E')),
+            _ToolbarButton(label: 'PgUp', onTap: () => _send('\x1b[5~')),
+            _ToolbarButton(label: 'PgDn', onTap: () => _send('\x1b[6~')),
           ],
         ),
       ),
@@ -54,23 +78,23 @@ class _ToolbarButton extends StatelessWidget {
   const _ToolbarButton({
     required this.label,
     required this.onTap,
-    this.destructive = false,
+    this.selected = false,
   });
 
   final String label;
   final VoidCallback onTap;
-  final bool destructive;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
-    final color = destructive ? Theme.of(context).colorScheme.error : null;
+    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
       child: TextButton(
         key: Key('toolbar-$label'),
         style: TextButton.styleFrom(
           minimumSize: const Size(48, 36),
-          foregroundColor: color,
+          backgroundColor: selected ? colors.primaryContainer : null,
         ),
         onPressed: onTap,
         child: Text(label),
