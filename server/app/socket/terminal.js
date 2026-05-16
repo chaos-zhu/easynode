@@ -28,6 +28,7 @@ async function getConnectionOptions(hostId) {
         authInfo.passphrase = sshRecord.openSSHKeyPassword
       }
     } else {
+      authInfo.authType = authType
       authInfo[authType] = await AESDecryptAsync(hostInfo[authType])
     }
     return { authInfo, name }
