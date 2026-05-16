@@ -61,9 +61,8 @@ class ServerModel {
   }
 
   /// Whether the connect button should be enabled. The server marks hosts
-  /// without auth fields as `isConfig: false`; expired hosts are also not
-  /// connectable in the first release.
-  bool get canConnect => isConfig && !expired;
+  /// without auth fields as `isConfig: false`.
+  bool get canConnect => isConfig;
 
   String get displayName => name.isEmpty ? host : name;
   String get connectionLabel => '$username@$host:$port';

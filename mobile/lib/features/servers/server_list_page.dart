@@ -341,10 +341,7 @@ class _ServerListPageState extends State<ServerListPage> {
 
   String _actionText(ServerModel server) {
     if (!server.isConfig) return 'Not configured';
-    if (server.expired) return 'Expired';
-    return widget.terminalSessionManager.firstForHost(server.id) == null
-        ? 'Connect'
-        : 'Enter';
+    return 'Connect';
   }
 }
 
@@ -430,8 +427,6 @@ class _ServerCard extends StatelessWidget {
                   label: server.authType.isEmpty ? 'auth' : server.authType,
                 ),
                 if (server.group.isNotEmpty) _InfoChip(label: server.group),
-                if (server.expired)
-                  const _InfoChip(label: 'expired', destructive: true),
               ],
             ),
           ],
@@ -454,10 +449,9 @@ class _ServerCard extends StatelessWidget {
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.label, this.destructive = false});
+  const _InfoChip({required this.label});
 
   final String label;
-  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
@@ -465,15 +459,13 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: destructive ? colors.errorContainer : colors.secondaryContainer,
+        color: colors.secondaryContainer,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: destructive
-              ? colors.onErrorContainer
-              : colors.onSecondaryContainer,
+          color: colors.onSecondaryContainer,
         ),
       ),
     );
