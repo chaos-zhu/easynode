@@ -1,59 +1,55 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xterm/ui.dart';
 
 import '../../core/api/api_result.dart';
+import '../../state/api_providers.dart';
+import '../../state/auth_notifier.dart';
+import '../../state/host_list_notifier.dart';
+import '../../state/terminal_providers.dart';
 import '../servers/server_model.dart';
-import '../servers/server_repository.dart';
 import 'terminal_session.dart';
 import 'terminal_session_manager.dart';
 import 'terminal_toolbar.dart';
 
-class TerminalShellPage extends StatefulWidget {
-  const TerminalShellPage({
-    super.key,
-    required this.manager,
-    required this.repository,
-    this.initialServers = const [],
-    required this.onSessionExpired,
-  });
-
-  final TerminalSessionManager manager;
-  final ServerRepository repository;
-  final List<ServerModel> initialServers;
-  final VoidCallback onSessionExpired;
+class TerminalShellPage extends ConsumerStatefulWidget {
+  const TerminalShellPage({super.key});
 
   @override
-  State<TerminalShellPage> createState() => _TerminalShellPageState();
+  ConsumerState<TerminalShellPage> createState() => _TerminalShellPageState();
 }
 
-class _TerminalShellPageState extends State<TerminalShellPage> {
+class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
   bool _openingServer = false;
-  late List<ServerModel> _cachedServers;
+  List<ServerModel>? _cachedServers;
 
-  @override
-  void initState() {
-    super.initState();
-    _cachedServers = widget.initialServers;
-  }
+  TerminalSessionManager get _manager =>
+      ref.read(terminalSessionManagerProvider);
 
   Future<void> _openServerMenu(BuildContext anchorContext) async {
     if (_openingServer) return;
-    if (_cachedServers.isNotEmpty) {
-      await _showServerMenu(anchorContext, _cachedServers);
+    final cached = _cachedServers ??
+        ref.read(hostListProvider).maybeWhen(
+              data: (data) => data,
+              orElse: () => null,
+            );
+    if (cached != null && cached.isNotEmpty) {
+      _cachedServers = cached;
+      await _showServerMenu(anchorContext, cached);
       return;
     }
 
     setState(() => _openingServer = true);
     final List<ServerModel> servers;
     try {
-      servers = await widget.repository.fetchHosts();
+      servers = await ref.read(serverRepositoryProvider).fetchHosts();
     } catch (error) {
       if (!mounted) return;
       if (error is UnauthorizedFailure) {
         setState(() => _openingServer = false);
-        widget.onSessionExpired();
+        await ref.read(authProvider.notifier).signOut();
         return;
       }
       ScaffoldMessenger.of(
@@ -108,12 +104,13 @@ class _TerminalShellPageState extends State<TerminalShellPage> {
     );
     if (selected == null || !mounted) return;
     try {
-      final config = await widget.repository.fetchSshConfig(selected.id);
-      await widget.manager.openSession(config);
+      final config =
+          await ref.read(serverRepositoryProvider).fetchSshConfig(selected.id);
+      await _manager.openSession(config);
     } catch (error) {
       if (!mounted) return;
       if (error is UnauthorizedFailure) {
-        widget.onSessionExpired();
+        await ref.read(authProvider.notifier).signOut();
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,24 +120,26 @@ class _TerminalShellPageState extends State<TerminalShellPage> {
   }
 
   Future<void> _closeActive() async {
-    final active = widget.manager.activeSession;
+    final manager = _manager;
+    final active = manager.activeSession;
     if (active == null) {
       Navigator.of(context).maybePop();
       return;
     }
-    await widget.manager.closeSession(active.id);
-    if (mounted && widget.manager.sessions.isEmpty) {
+    await manager.closeSession(active.id);
+    if (mounted && manager.sessions.isEmpty) {
       Navigator.of(context).maybePop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final manager = ref.watch(terminalSessionManagerProvider);
     return AnimatedBuilder(
-      animation: widget.manager,
+      animation: manager,
       builder: (context, _) {
-        final sessions = widget.manager.sessions.toList(growable: false);
-        final active = widget.manager.activeSession;
+        final sessions = manager.sessions.toList(growable: false);
+        final active = manager.activeSession;
         final activeIndex = active == null
             ? 0
             : math.max(
@@ -156,12 +155,12 @@ class _TerminalShellPageState extends State<TerminalShellPage> {
                   sessions: sessions,
                   active: active,
                   openingServer: _openingServer,
-                  onSelect: widget.manager.setActive,
+                  onSelect: manager.setActive,
                   onNew: _openServerMenu,
                   onClose: _closeActive,
                   onReconnect: active == null
                       ? null
-                      : () => widget.manager.reconnect(active.id),
+                      : () => manager.reconnect(active.id),
                 ),
                 Expanded(
                   child: ColoredBox(
@@ -190,8 +189,8 @@ class _TerminalShellPageState extends State<TerminalShellPage> {
                 ),
                 TerminalToolbar(
                   controller: active?.controller,
-                  onInput: (value) => widget.manager.activeSession?.controller
-                      .writeInput(value),
+                  onInput: (value) =>
+                      manager.activeSession?.controller.writeInput(value),
                 ),
               ],
             ),

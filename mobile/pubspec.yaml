@@ -19,6 +19,7 @@ dependencies:
   dartssh2: ^2.12.0
   xterm: ^4.0.0
   uuid: ^4.5.1
+  flutter_riverpod: ^2.5.1
 
 dev_dependencies:
   flutter_test:

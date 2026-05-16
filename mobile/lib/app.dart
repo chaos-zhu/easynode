@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,44 +10,44 @@ import 'core/storage/secure_storage.dart';
 import 'features/auth/auth_session.dart';
 import 'features/auth/login_controller.dart';
 import 'features/auth/login_page.dart';
-import 'features/servers/server_list_page.dart';
-import 'features/servers/server_repository.dart';
-import 'features/terminal/terminal_session_manager.dart';
+import 'features/shell/main_shell_page.dart';
+import 'state/auth_notifier.dart';
+import 'state/auth_state.dart';
+import 'state/storage_providers.dart';
 
-/// Top-level container that swaps between login and server-list screens
-/// without a full router. Keeping it small avoids the overhead of go_router
-/// or auto_route in the first release.
-class EasyNodeApp extends StatefulWidget {
-  const EasyNodeApp({
-    super.key,
+/// Bootstrap result. Wraps the values [EasyNodeApp] needs to install on the
+/// root [ProviderScope]. Building these synchronously up front keeps the
+/// providers free of async initialization and lets storage be read in
+/// `build` without futures.
+class _Bootstrap {
+  _Bootstrap({
     required this.appStorage,
     required this.secureStorage,
     required this.cookieStore,
     required this.flutterSecureStorage,
-    required this.terminalSessionManager,
-    this.initialPassword = '',
-    this.initialSession,
-    this.initialApiClient,
-    this.initialPublicKeyPem,
+    required this.initialPassword,
+    required this.initialAuthState,
   });
 
   final AppStorage appStorage;
   final SecureAppStorage secureStorage;
   final SessionCookieStore cookieStore;
   final FlutterSecureStorage flutterSecureStorage;
-  final TerminalSessionManager terminalSessionManager;
   final String initialPassword;
-  final AuthSession? initialSession;
-  final ApiClient? initialApiClient;
-  final String? initialPublicKeyPem;
+  final AuthState initialAuthState;
+}
 
-  static Future<EasyNodeApp> bootstrap() async {
+class EasyNodeApp extends StatelessWidget {
+  const EasyNodeApp._({required _Bootstrap bootstrap}) : _b = bootstrap;
+
+  final _Bootstrap _b;
+
+  static Future<Widget> bootstrap() async {
     final prefs = await SharedPreferences.getInstance();
     final secure = const FlutterSecureStorage();
     final secureWrapper = SecureAppStorage(secure);
     final appStorage = AppStorage(prefs);
     final cookieStore = SessionCookieStore(secureWrapper);
-    final terminalSessionManager = TerminalSessionManager();
 
     var initialPassword = '';
     if (appStorage.savePassword) {
@@ -58,9 +59,7 @@ class EasyNodeApp extends StatefulWidget {
           '';
     }
 
-    AuthSession? initialSession;
-    ApiClient? initialApiClient;
-    String? initialPublicKeyPem;
+    AuthState initialAuthState = AuthState.empty;
     final token = await secureWrapper.readToken();
     final cookie = await secureWrapper.readSessionCookie();
     final deviceId = await secureWrapper.readDeviceId();
@@ -81,13 +80,16 @@ class EasyNodeApp extends StatefulWidget {
         token: token,
       );
       try {
-        initialPublicKeyPem = await api.getPublicKey();
-        initialApiClient = api;
-        initialSession = AuthSession(
-          serverAddress: appStorage.serverAddress,
-          username: appStorage.username,
-          token: token,
-          deviceId: deviceId,
+        final pubKey = await api.getPublicKey();
+        initialAuthState = AuthState(
+          session: AuthSession(
+            serverAddress: appStorage.serverAddress,
+            username: appStorage.username,
+            token: token,
+            deviceId: deviceId,
+          ),
+          apiClient: api,
+          publicKeyPem: pubKey,
         );
       } catch (_) {
         await secureWrapper.deleteToken();
@@ -96,35 +98,49 @@ class EasyNodeApp extends StatefulWidget {
       }
     }
 
-    return EasyNodeApp(
-      appStorage: appStorage,
-      secureStorage: secureWrapper,
-      cookieStore: cookieStore,
-      flutterSecureStorage: secure,
-      terminalSessionManager: terminalSessionManager,
-      initialPassword: initialPassword,
-      initialSession: initialSession,
-      initialApiClient: initialApiClient,
-      initialPublicKeyPem: initialPublicKeyPem,
+    return EasyNodeApp._(
+      bootstrap: _Bootstrap(
+        appStorage: appStorage,
+        secureStorage: secureWrapper,
+        cookieStore: cookieStore,
+        flutterSecureStorage: secure,
+        initialPassword: initialPassword,
+        initialAuthState: initialAuthState,
+      ),
     );
   }
 
   @override
-  State<EasyNodeApp> createState() => _EasyNodeAppState();
+  Widget build(BuildContext context) {
+    return ProviderScope(
+      overrides: [
+        appStorageProvider.overrideWithValue(_b.appStorage),
+        secureStorageProvider.overrideWithValue(_b.secureStorage),
+        cookieStoreProvider.overrideWithValue(_b.cookieStore),
+        authProvider.overrideWith(
+          (ref) => AuthNotifier(ref, _b.initialAuthState),
+        ),
+      ],
+      child: _AppRoot(initialPassword: _b.initialPassword),
+    );
+  }
 }
 
-class _EasyNodeAppState extends State<EasyNodeApp> {
-  AuthSession? _session;
-  String? _publicKeyPem;
-  ApiClient? _apiClient;
+class _AppRoot extends ConsumerStatefulWidget {
+  const _AppRoot({required this.initialPassword});
+
+  final String initialPassword;
+
+  @override
+  ConsumerState<_AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends ConsumerState<_AppRoot> {
   late final LoginController _loginController;
 
   @override
   void initState() {
     super.initState();
-    _session = widget.initialSession;
-    _apiClient = widget.initialApiClient;
-    _publicKeyPem = widget.initialPublicKeyPem;
     _loginController = LoginController(apiClientFactory: _buildApiClient)
       ..onLoginSuccess(_onLoginSuccess);
   }
@@ -132,7 +148,7 @@ class _EasyNodeAppState extends State<EasyNodeApp> {
   ApiClient _buildApiClient(String serverAddress, {String? token}) {
     return ApiClient(
       serverAddress: serverAddress,
-      cookieStore: widget.cookieStore,
+      cookieStore: ref.read(cookieStoreProvider),
       token: token,
     );
   }
@@ -141,76 +157,34 @@ class _EasyNodeAppState extends State<EasyNodeApp> {
     AuthSession session,
     String? passwordToSave,
   ) async {
-    await widget.appStorage.setServerAddress(session.serverAddress);
-    await widget.appStorage.setUsername(session.username);
-    if (passwordToSave != null) {
-      await widget.appStorage.setSavePassword(true);
-      await widget.secureStorage.writePassword(
-        session.serverAddress,
-        session.username,
-        passwordToSave,
-      );
-    } else {
-      await widget.appStorage.setSavePassword(false);
-      await widget.secureStorage.deletePassword(
-        session.serverAddress,
-        session.username,
-      );
-    }
-    await widget.secureStorage.writeToken(session.token);
-    await widget.secureStorage.writeDeviceId(session.deviceId);
-
     final api = _buildApiClient(session.serverAddress, token: session.token);
     final pubKey = await api.getPublicKey();
-
-    if (!mounted) return;
-    setState(() {
-      _session = session;
-      _apiClient = api;
-      _publicKeyPem = pubKey;
-    });
-  }
-
-  Future<void> _logout() async {
-    await widget.terminalSessionManager.closeAll();
-    await widget.secureStorage.deleteToken();
-    await widget.secureStorage.deleteDeviceId();
-    await widget.cookieStore.clear();
-    if (!mounted) return;
-    setState(() {
-      _session = null;
-      _apiClient = null;
-      _publicKeyPem = null;
-    });
+    await ref
+        .read(authProvider.notifier)
+        .signIn(
+          session: session,
+          apiClient: api,
+          publicKeyPem: pubKey,
+          passwordToSave: passwordToSave,
+        );
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget home;
-    if (_session != null && _apiClient != null && _publicKeyPem != null) {
-      home = ServerListPage(
-        repository: ApiServerRepository(
-          apiClient: _apiClient!,
-          publicKeyPem: _publicKeyPem!,
-        ),
-        session: _session!,
-        terminalSessionManager: widget.terminalSessionManager,
-        onLogout: _logout,
-      );
+    final auth = ref.watch(authProvider);
+    final appStorage = ref.watch(appStorageProvider);
+
+    final Widget home;
+    if (auth.signedIn) {
+      home = const MainShellPage();
     } else {
       home = LoginPage(
         controller: _loginController,
-        initialServerAddress: widget.appStorage.serverAddress,
-        initialUsername: widget.appStorage.username,
-        initialSavePassword: widget.appStorage.savePassword,
+        initialServerAddress: appStorage.serverAddress,
+        initialUsername: appStorage.username,
+        initialSavePassword: appStorage.savePassword,
         initialPassword: widget.initialPassword,
-        onLoginSuccess: (session) {
-          // Login result already triggered _onLoginSuccess via the callback
-          // bound on the controller; nothing else to do here.
-          if (_session == null) {
-            setState(() => _session = session);
-          }
-        },
+        onLoginSuccess: (_) {},
       );
     }
 
