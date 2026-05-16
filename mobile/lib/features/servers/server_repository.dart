@@ -9,9 +9,17 @@ import '../../core/crypto/rsa_crypto.dart';
 import '../terminal/ssh_connection_config.dart';
 import 'server_model.dart';
 
-/// Backs the server list page and the connect action.
-class ServerRepository {
-  ServerRepository({
+/// Backs the server list page and the connect action. The interface lets
+/// widget tests inject a fake without touching real HTTP / RSA code.
+abstract class ServerRepository {
+  Future<List<ServerModel>> fetchHosts();
+  Future<SshConnectionConfig> fetchSshConfig(String hostId);
+}
+
+/// Default [ServerRepository] backed by [ApiClient] and the RSA public key
+/// fetched at login time.
+class ApiServerRepository implements ServerRepository {
+  ApiServerRepository({
     required ApiClient apiClient,
     required String publicKeyPem,
     RsaCrypto? rsa,
@@ -27,6 +35,7 @@ class ServerRepository {
   final Random _random;
 
   /// Fetch the host list. Server returns `{ data: [host...] }`.
+  @override
   Future<List<ServerModel>> fetchHosts() async {
     final response = await _api.getJson('/host-list');
     final raw = response['data'];
@@ -46,6 +55,7 @@ class ServerRepository {
   /// 5. Return a strongly typed [SshConnectionConfig].
   ///
   /// The temporary key and decrypted payload live only inside this method.
+  @override
   Future<SshConnectionConfig> fetchSshConfig(String hostId) async {
     final keyBytes = _randomBytes(32);
     final encryptedKey = _rsa.encryptTemporaryKey(_publicKeyPem, keyBytes);
@@ -90,7 +100,7 @@ class ServerRepository {
     return bytes;
   }
 
-  /// Expose so [ServerRepository] can be JSON-serialized in widget tests.
+  /// Expose so [ApiServerRepository] can be JSON-serialized in widget tests.
   // ignore: unused_element
   String _debugBase64Bytes(Uint8List bytes) => base64Encode(bytes);
 }

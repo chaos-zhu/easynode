@@ -124,7 +124,7 @@ class _EasyNodeAppState extends State<EasyNodeApp> {
     Widget home;
     if (_session != null && _apiClient != null && _publicKeyPem != null) {
       home = ServerListPage(
-        repository: ServerRepository(
+        repository: ApiServerRepository(
           apiClient: _apiClient!,
           publicKeyPem: _publicKeyPem!,
         ),
