@@ -18,3 +18,7 @@ local-script
 .vscode
 plan
 .claude
+CLAUDE.md
+.agents
+skills-lock*
+.codex
