@@ -27,7 +27,7 @@ Flutter core files:
 - Create `mobile/lib/app.dart`: Material app, routes, and top-level controllers.
 - Create `mobile/lib/core/utils/validators.dart`: server URL normalization and HTTP risk detection.
 - Create `mobile/lib/core/utils/jwt_expiry.dart`: Web-compatible login-expiry conversion.
-- Create `mobile/lib/core/crypto/fingerprint.dart`: SHA-256 public-key fingerprint.
+- Create `mobile/lib/core/storage/device_id.dart`: generate and persist a per-install UUID v4 device id.
 - Create `mobile/lib/core/crypto/aes_gcm_crypto.dart`: AES-GCM decrypt helper for mobile credential responses.
 - Create `mobile/lib/core/crypto/rsa_crypto.dart`: RSA public-key encryption compatible with EasyNode login.
 - Create `mobile/lib/core/storage/app_storage.dart`: ordinary preference storage.
@@ -53,7 +53,7 @@ Flutter test files:
 
 - Create `mobile/test/core/utils/validators_test.dart`.
 - Create `mobile/test/core/utils/jwt_expiry_test.dart`.
-- Create `mobile/test/core/crypto/fingerprint_test.dart`.
+- Create `mobile/test/core/storage/device_id_test.dart`.
 - Create `mobile/test/core/crypto/aes_gcm_crypto_test.dart`.
 - Create `mobile/test/features/auth/login_controller_test.dart`.
 - Create `mobile/test/features/servers/server_model_test.dart`.
@@ -275,11 +275,12 @@ function toMobileSshPayload(hostId, name, authInfo) {
     throw new Error(`unsupported mobile ssh auth type: ${ authType || 'empty' }`)
   }
 
+  const numericPort = Number(port)
   return {
     hostId,
     name,
     host,
-    port: Number(port || 22),
+    port: Number.isFinite(numericPort) && numericPort > 0 ? numericPort : 22,
     username,
     authType,
     password: authType === 'password' ? authInfo.password || '' : '',
@@ -292,7 +293,7 @@ async function getMobileSshConnection({ request, res }) {
   try {
     const { hostId, encryptedKey } = request.body || {}
     if (!hostId || !encryptedKey) {
-      return res.fail({ msg: 'missing params: hostId or encryptedKey' })
+      return res.fail({ msg: 'missing params' })
     }
 
     const tempKeyText = await RSADecryptAsync(encryptedKey)
@@ -303,8 +304,9 @@ async function getMobileSshConnection({ request, res }) {
 
     return res.success({ data, msg: 'success' })
   } catch (error) {
+    // Detail goes to the server log; the wire response is intentionally generic.
     logger.error('getMobileSshConnection error:', error.message)
-    return res.fail({ msg: error.message || 'mobile ssh connection failed' })
+    return res.fail({ msg: 'mobile ssh connection failed' })
   }
 }
 
@@ -313,6 +315,8 @@ module.exports = {
   toMobileSshPayload
 }
 ```
+
+> **Logger note:** the EasyNode runtime exposes `global.logger`, so this controller calls `logger.*` directly without an explicit `require`.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -471,10 +475,12 @@ git commit -m "chore: add mobile app network dependencies"
 **Files:**
 - Create: `mobile/lib/core/utils/validators.dart`
 - Create: `mobile/lib/core/utils/jwt_expiry.dart`
-- Create: `mobile/lib/core/crypto/fingerprint.dart`
+- Create: `mobile/lib/core/storage/device_id.dart`
 - Create: `mobile/test/core/utils/validators_test.dart`
 - Create: `mobile/test/core/utils/jwt_expiry_test.dart`
-- Create: `mobile/test/core/crypto/fingerprint_test.dart`
+- Create: `mobile/test/core/storage/device_id_test.dart`
+
+> **Note on `jwtExpiresFor` values:** the strings returned by this helper are passed directly to the existing EasyNode `/api/v1/login` endpoint as the `jwtExpires` field. The server forwards `jwtExpires` to `jsonwebtoken`'s `sign({ expiresIn })`, which accepts the string formats produced here (`1h`, `<seconds>s`, `3d`, `7d`). Verify against `server/app/controller/user.js` (`beforeLoginHandler`, around line 97) before changing the values.
 
 - [ ] **Step 1: Write utility tests**
 
@@ -518,15 +524,31 @@ void main() {
 }
 ```
 
-Create `mobile/test/core/crypto/fingerprint_test.dart`:
+Create `mobile/test/core/storage/device_id_test.dart`:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/core/crypto/fingerprint.dart';
+import 'package:mobile/core/storage/device_id.dart';
+
+class _FakeStore implements DeviceIdStore {
+  String? _value;
+
+  @override
+  Future<String?> read() async => _value;
+
+  @override
+  Future<void> write(String value) async {
+    _value = value;
+  }
+}
 
 void main() {
-  test('returns stable sha256 fingerprint', () {
-    expect(publicKeyFingerprint('abc'), 'SHA256:ungWv48Bz+pBQUDeXa4iI7ADYaOWF3AI0T2KIeX3C4I=');
+  test('generates and persists a uuid v4 device id on first read', () async {
+    final store = _FakeStore();
+    final id = await loadOrCreateDeviceId(store);
+    expect(RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$').hasMatch(id), isTrue);
+    final again = await loadOrCreateDeviceId(store);
+    expect(again, id);
   });
 }
 ```
@@ -599,23 +621,43 @@ int jwtExpireAtFor(LoginExpiry expiry, {DateTime? now}) {
 }
 ```
 
-Create `mobile/lib/core/crypto/fingerprint.dart`:
+Create `mobile/lib/core/storage/device_id.dart`:
 
 ```dart
-import 'dart:convert';
-import 'package:crypto/crypto.dart' as crypto;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uuid/uuid.dart';
 
-String publicKeyFingerprint(String publicKey) {
-  final digest = crypto.sha256.convert(utf8.encode(publicKey));
-  return 'SHA256:${base64Encode(digest.bytes)}';
+abstract class DeviceIdStore {
+  Future<String?> read();
+  Future<void> write(String value);
+}
+
+class SecureDeviceIdStore implements DeviceIdStore {
+  SecureDeviceIdStore(this._storage);
+  final FlutterSecureStorage _storage;
+  static const _key = 'mobileDeviceId';
+
+  @override
+  Future<String?> read() => _storage.read(key: _key);
+
+  @override
+  Future<void> write(String value) => _storage.write(key: _key, value: value);
+}
+
+Future<String> loadOrCreateDeviceId(DeviceIdStore store) async {
+  final existing = await store.read();
+  if (existing != null && existing.isNotEmpty) return existing;
+  final id = const Uuid().v4();
+  await store.write(id);
+  return id;
 }
 ```
 
-- [ ] **Step 4: Add missing `crypto` dependency if needed**
+- [ ] **Step 4: Add missing `uuid` dependency**
 
-Run from `mobile`: `flutter pub add crypto`
+Run from `mobile`: `flutter pub add uuid`
 
-Expected: `crypto` is added because fingerprint uses `package:crypto`.
+Expected: `uuid` is added because `loadOrCreateDeviceId` uses it.
 
 - [ ] **Step 5: Run tests to verify they pass**
 
@@ -726,9 +768,14 @@ class RsaCrypto {
   }
 
   String encryptTemporaryKey(String publicKeyPem, Uint8List keyBytes) {
+    // Server side decrypts RSA to a utf8 string via `rsakey.decrypt(ct, 'utf8')`
+    // and then does `Buffer.from(text, 'base64')`. We therefore base64-encode the
+    // raw key bytes before RSA-encrypting, so the round trip restores the 32B key.
     final key = _parsePublicKey(publicKeyPem);
     final engine = PKCS1Encoding(RSAEngine())..init(true, PublicKeyParameter<RSAPublicKey>(key));
-    return base64Encode(engine.process(keyBytes));
+    final base64Text = base64Encode(keyBytes);
+    final encrypted = engine.process(Uint8List.fromList(utf8.encode(base64Text)));
+    return base64Encode(encrypted);
   }
 
   RSAPublicKey _parsePublicKey(String publicKeyPem) {
@@ -811,14 +858,6 @@ class SecureAppStorage {
   Future<String?> readSessionCookie() => _storage.read(key: 'sessionCookie');
   Future<void> writeSessionCookie(String value) => _storage.write(key: 'sessionCookie', value: value);
   Future<void> deleteSessionCookie() => _storage.delete(key: 'sessionCookie');
-
-  Future<String?> readPublicKeyFingerprint(String serverAddress) {
-    return _storage.read(key: 'publicKeyFingerprint:$serverAddress');
-  }
-
-  Future<void> writePublicKeyFingerprint(String serverAddress, String fingerprint) {
-    return _storage.write(key: 'publicKeyFingerprint:$serverAddress', value: fingerprint);
-  }
 }
 ```
 
@@ -1500,8 +1539,10 @@ class SshTerminalController {
 
   Future<void> connect() async {
     final socket = await SSHSocket.connect(config.host, config.port);
+    // dartssh2 `SSHKeyPair.fromPem` returns `List<SSHKeyPair>` already, so we
+    // assign the call result directly without wrapping it in another list.
     final identities = config.authType == 'privateKey'
-        ? [SSHKeyPair.fromPem(config.privateKey, config.passphrase)]
+        ? SSHKeyPair.fromPem(config.privateKey, config.passphrase)
         : null;
     _client = SSHClient(
       socket,
@@ -1520,6 +1561,12 @@ class SshTerminalController {
 
   void resize(int columns, int rows) {
     _session?.resizeTerminal(columns, rows);
+  }
+
+  void writeInput(String data) {
+    // Toolbar shortcuts must reach the SSH session, not the local xterm buffer,
+    // so they are written through the session here.
+    _session?.write(utf8.encode(data));
   }
 
   Future<void> disconnect() async {
@@ -1612,7 +1659,7 @@ class _TerminalPageState extends State<TerminalPage> {
         children: [
           Expanded(child: TerminalView(controller.terminal)),
           TerminalToolbar(
-            onInput: controller.terminal.write,
+            onInput: controller.writeInput,
             onDisconnect: () => Navigator.of(context).pop(),
           ),
         ],
@@ -1656,10 +1703,10 @@ Modify `LoginController.login` to:
 
 1. normalize server address
 2. enforce HTTP confirmation
-3. fetch `/get-pub-pem`
-4. calculate and compare public-key fingerprint
+3. load or create the persisted `deviceId` (UUID v4, secure storage)
+4. fetch `/get-pub-pem`
 5. RSA-encrypt password
-6. post `/login`
+6. post `/login` with the `deviceId` field included
 7. store token, session cookie, address, username, and optional password
 
 - [ ] **Step 3: Wire server list refresh**

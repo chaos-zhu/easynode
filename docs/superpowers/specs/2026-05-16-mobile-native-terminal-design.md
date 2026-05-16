@@ -15,7 +15,8 @@ Included:
 - Login to an existing EasyNode server.
 - Persist server address and username by default.
 - Save password only when the user explicitly enables it.
-- Store password, token, session cookie, and public-key fingerprint in platform secure storage.
+- Store password, token, session cookie, and a mobile-generated device identifier in platform secure storage.
+- Generate a per-install `deviceId` (UUID v4) the first time the app launches; persist it in secure storage and send it with every login.
 - Fetch server data from the existing `/api/v1/host-list` API.
 - Show a mobile server list with a connect action.
 - Request SSH connection parameters through one new mobile-only server API.
@@ -69,22 +70,22 @@ Password is saved only when the user enables save-password. Saved passwords must
 - Android: Keystore-backed encrypted storage through `flutter_secure_storage`
 - iOS: Keychain through `flutter_secure_storage`
 
-Token, session cookie, and public-key fingerprint also use secure storage.
+Token, session cookie, and the mobile `deviceId` also use secure storage.
+
+The first release does not implement public-key fingerprint binding or change-detection. The RSA public key returned from `/api/v1/get-pub-pem` is still required, because the login password and the per-request temporary AES key are both encrypted with it.
 
 On login:
 
 1. Validate and normalize the server address.
 2. If the address uses HTTP, show a strong warning before any login request.
-3. Fetch the server public key from `/api/v1/get-pub-pem`.
-4. Compute `SHA-256(publicKey)` locally.
-5. If this is the first public key for the saved address, store the fingerprint.
-6. If the fingerprint changed, block login and show a warning that the server key changed.
-7. Encrypt the password with the server public key.
-8. Call `/api/v1/login` with the existing Web-compatible payload.
-9. Store returned token and received `session` cookie in secure storage.
-10. Load the server list with `/api/v1/host-list`.
+3. Ensure a `deviceId` (UUID v4) exists in secure storage; generate and persist one if missing.
+4. Fetch the server public key from `/api/v1/get-pub-pem`.
+5. Encrypt the password with the server public key.
+6. Call `/api/v1/login` with the existing Web-compatible payload, including the persisted `deviceId`.
+7. Store returned token and received `session` cookie in secure storage.
+8. Load the server list with `/api/v1/host-list`.
 
-The HTTP warning should be explicit: HTTP can expose the login token and session cookie, allowing an attacker to take over the app session. The encrypted SSH-parameter response does not replace HTTPS.
+The HTTP warning should be explicit: HTTP can expose the login token and session cookie, allowing an attacker to take over the app session. The encrypted SSH-parameter response does not replace HTTPS. The warning is shown only when the configured server address uses HTTP; it is not used for any other purpose.
 
 ## Server List
 
@@ -134,9 +135,10 @@ Rules:
 - The endpoint uses the existing Koa auth middleware.
 - It requires the existing `token` header and `session` cookie.
 - `hostId` must exist.
-- `encryptedKey` is decrypted with the server private key.
+- The client generates a fresh 32-byte random key, base64-encodes it, then RSA-encrypts the base64 string with the server public key. The server RSA-decrypts to a utf8 string and base64-decodes that string back into the 32-byte key. This round-trip preserves binary key bytes through the existing RSA helper.
 - The decrypted temporary key must be 32 bytes after decoding.
 - The temporary key is used only for this response.
+- On any failure, the response message must be a generic string; details only go to the server log.
 
 Server behavior:
 
@@ -234,10 +236,10 @@ mobile/lib/
     crypto/
       rsa_crypto.dart
       aes_gcm_crypto.dart
-      fingerprint.dart
     storage/
       app_storage.dart
       secure_storage.dart
+      device_id.dart
     ssh/
       ssh_connection_config.dart
       ssh_terminal_controller.dart
@@ -297,7 +299,6 @@ Login:
 - Invalid address: block locally.
 - HTTP address: show strong warning before login.
 - Public key fetch failure: show server/network error.
-- Public key fingerprint change: block and require explicit local reset.
 - Login failure: show the server message and keep address and username.
 - 401/403: clear token/session and return to login.
 
@@ -323,7 +324,7 @@ Dart unit tests:
 - login-expiry conversion
 - server address normalization
 - HTTP risk detection
-- public-key fingerprint calculation and change detection
+- deviceId generation and persistence
 - AES-GCM decrypt/encrypt helpers
 - host-list JSON model mapping
 - SSH credential encrypted response decoding
