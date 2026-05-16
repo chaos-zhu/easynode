@@ -30,4 +30,11 @@ class SecureAppStorage {
   Future<void> writeSessionCookie(String value) =>
       _storage.write(key: 'sessionCookie', value: value);
   Future<void> deleteSessionCookie() => _storage.delete(key: 'sessionCookie');
+
+  /// Server-issued login deviceId for the active session. Kept around for the
+  /// future `DELETE /api/v1/revoke-login/:deviceId` flow.
+  Future<String?> readDeviceId() => _storage.read(key: 'loginDeviceId');
+  Future<void> writeDeviceId(String value) =>
+      _storage.write(key: 'loginDeviceId', value: value);
+  Future<void> deleteDeviceId() => _storage.delete(key: 'loginDeviceId');
 }

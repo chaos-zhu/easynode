@@ -1,6 +1,10 @@
 const { RSADecryptAsync } = require('../utils/encrypt')
 const { encryptJsonForMobile } = require('../utils/mobile-crypto')
-const { getConnectionOptions } = require('../socket/terminal')
+// `getConnectionOptions` is lazily required inside the handler. Loading
+// `../socket/terminal` at module scope pulls in `terminal-session` which
+// touches `global.logger`, and that global is only populated once the server
+// has booted via `app/main.js`. Pure unit tests for `toMobileSshPayload`
+// would otherwise crash with `ReferenceError: logger is not defined`.
 
 function toMobileSshPayload(hostId, name, authInfo) {
   const { host, port, username, authType } = authInfo
@@ -31,6 +35,8 @@ async function getMobileSshConnection({ request, res }) {
 
     const tempKeyText = await RSADecryptAsync(encryptedKey)
     const tempKey = Buffer.from(tempKeyText, 'base64')
+    // Lazy require — see top-of-file comment.
+    const { getConnectionOptions } = require('../socket/terminal')
     const { authInfo, name } = await getConnectionOptions(hostId)
     const payload = toMobileSshPayload(hostId, name, authInfo)
     const data = encryptJsonForMobile(payload, tempKey)

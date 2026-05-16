@@ -50,10 +50,13 @@ class _EasyNodeAppState extends State<EasyNodeApp> {
   String? _publicKeyPem;
   ApiClient? _apiClient;
   String? _initialPassword;
+  late final LoginController _loginController;
 
   @override
   void initState() {
     super.initState();
+    _loginController = LoginController(apiClientFactory: _buildApiClient)
+      ..onLoginSuccess(_onLoginSuccess);
     _hydrateInitialPassword();
   }
 
@@ -93,6 +96,7 @@ class _EasyNodeAppState extends State<EasyNodeApp> {
       );
     }
     await widget.secureStorage.writeToken(session.token);
+    await widget.secureStorage.writeDeviceId(session.deviceId);
 
     final api = _buildApiClient(session.serverAddress, token: session.token);
     final pubKey = await api.getPublicKey();
@@ -107,6 +111,7 @@ class _EasyNodeAppState extends State<EasyNodeApp> {
 
   Future<void> _logout() async {
     await widget.secureStorage.deleteToken();
+    await widget.secureStorage.deleteDeviceId();
     await widget.cookieStore.clear();
     if (!mounted) return;
     setState(() {
@@ -118,9 +123,6 @@ class _EasyNodeAppState extends State<EasyNodeApp> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = LoginController(apiClientFactory: _buildApiClient)
-      ..onLoginSuccess(_onLoginSuccess);
-
     Widget home;
     if (_session != null && _apiClient != null && _publicKeyPem != null) {
       home = ServerListPage(
@@ -133,7 +135,7 @@ class _EasyNodeAppState extends State<EasyNodeApp> {
       );
     } else {
       home = LoginPage(
-        controller: controller,
+        controller: _loginController,
         initialServerAddress: widget.appStorage.serverAddress,
         initialUsername: widget.appStorage.username,
         initialSavePassword: widget.appStorage.savePassword,
