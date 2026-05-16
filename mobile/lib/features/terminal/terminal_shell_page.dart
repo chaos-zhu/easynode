@@ -177,7 +177,13 @@ class _TerminalShellPageState extends State<TerminalShellPage> {
                             index: activeIndex,
                             children: [
                               for (final session in sessions)
-                                TerminalView(session.controller.terminal),
+                                TerminalView(
+                                  session.controller.terminal,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 6,
+                                  ),
+                                ),
                             ],
                           ),
                   ),
