@@ -151,6 +151,32 @@ class _ServerListPageState extends State<ServerListPage> {
     });
   }
 
+  Future<void> _confirmCloseAllTerminals() async {
+    final count = widget.terminalSessionManager.sessions.length;
+    if (count == 0) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Close all terminals?'),
+        content: Text(
+          'This will disconnect $count active terminal${count == 1 ? '' : 's'}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Close all'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await widget.terminalSessionManager.closeAll();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -246,6 +272,7 @@ class _ServerListPageState extends State<ServerListPage> {
         _ActiveTerminalBanner(
           count: widget.terminalSessionManager.sessions.length,
           onTap: _openShell,
+          onCloseAll: _confirmCloseAllTerminals,
         ),
         AnimatedSize(
           duration: const Duration(milliseconds: 220),
@@ -322,18 +349,24 @@ class _ServerListPageState extends State<ServerListPage> {
 }
 
 class _ActiveTerminalBanner extends StatelessWidget {
-  const _ActiveTerminalBanner({required this.count, required this.onTap});
+  const _ActiveTerminalBanner({
+    required this.count,
+    required this.onTap,
+    required this.onCloseAll,
+  });
 
   final int count;
   final VoidCallback onTap;
+  final VoidCallback onCloseAll;
 
   @override
   Widget build(BuildContext context) {
     if (count == 0) return const SizedBox.shrink();
+    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: Theme.of(context).colorScheme.primaryContainer,
+        color: colors.primaryContainer,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
@@ -348,6 +381,19 @@ class _ActiveTerminalBanner extends StatelessWidget {
                   child: Text('$count active terminal${count == 1 ? '' : 's'}'),
                 ),
                 const Icon(Icons.chevron_right),
+                const SizedBox(width: 4),
+                InkResponse(
+                  onTap: onCloseAll,
+                  radius: 16,
+                  child: Tooltip(
+                    message: 'Close all terminals',
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: colors.onPrimaryContainer,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
