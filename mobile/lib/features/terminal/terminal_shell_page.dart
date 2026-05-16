@@ -68,22 +68,22 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
     BuildContext anchorContext,
     List<ServerModel> servers,
   ) async {
-    if (!mounted) return;
-    final menuWidth = _menuWidthFor(context);
-    final anchorBox = anchorContext.findRenderObject() as RenderBox?;
-    final overlayBox =
-        Navigator.of(context).overlay?.context.findRenderObject() as RenderBox?;
-    if (anchorBox == null || overlayBox == null) return;
-
-    final anchorTopLeft = anchorBox.localToGlobal(
-      Offset.zero,
-      ancestor: overlayBox,
-    );
-    final anchorRect = anchorTopLeft & anchorBox.size;
-    final overlayRect = Offset.zero & overlayBox.size;
+    if (!anchorContext.mounted) return;
+    final overlayState = Navigator.of(anchorContext).overlay;
+    final overlayBox = overlayState?.context.findRenderObject() as RenderBox?;
+    if (overlayState == null || overlayBox == null) return;
+    final overlaySize = overlayBox.size;
+    final menuWidth = overlaySize.width / 2;
+    // showMenu 的 position 相对于 Navigator overlay（覆盖整个屏幕），
+    // 所以需要加上 overlay context 的顶部 padding（状态栏高度）再加 topbar 高度。
+    final topPadding = MediaQuery.paddingOf(overlayState.context).top;
+    final menuTop = topPadding + _kTopBarHeight;
+    // 右侧菜单：right=0
+    final menuRect = Rect.fromLTWH(overlaySize.width, menuTop, 0, 0);
+    final overlayRect = Offset.zero & overlaySize;
     final selected = await showMenu<ServerModel>(
-      context: context,
-      position: RelativeRect.fromRect(anchorRect, overlayRect),
+      context: anchorContext,
+      position: RelativeRect.fromRect(menuRect, overlayRect),
       constraints: BoxConstraints.tightFor(width: menuWidth),
       items: servers.isEmpty
           ? const [
@@ -220,12 +220,55 @@ class _TerminalTopBar extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback? onReconnect;
 
+  Future<void> _openSessionsMenu(BuildContext context) async {
+    final overlayState = Navigator.of(context).overlay;
+    final overlayBox = overlayState?.context.findRenderObject() as RenderBox?;
+    if (overlayState == null || overlayBox == null) return;
+    final overlaySize = overlayBox.size;
+    final menuWidth = overlaySize.width / 2;
+    // 同 _showServerMenu：基于 overlay context 的 padding，加上 topbar 高度。
+    final topPadding = MediaQuery.paddingOf(overlayState.context).top;
+    final menuTop = topPadding + _kTopBarHeight;
+    // 左侧菜单：left=0
+    final menuRect = Rect.fromLTWH(0, menuTop, 0, 0);
+    final overlayRect = Offset.zero & overlaySize;
+    final activeSession = active;
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(menuRect, overlayRect),
+      constraints: BoxConstraints.tightFor(width: menuWidth),
+      items: [
+        for (final session in sessions)
+          PopupMenuItem<String>(
+            value: session.id,
+            child: Row(
+              children: [
+                _StatusDot(status: session.status),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    session.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (session.id == activeSession?.id)
+                  const Icon(Icons.check, size: 18),
+              ],
+            ),
+          ),
+      ],
+    );
+    if (selected != null) {
+      onSelect(selected);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeSession = active;
-    final menuWidth = _menuWidthFor(context);
     return Container(
-      height: 52,
+      height: _kTopBarHeight,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -235,31 +278,9 @@ class _TerminalTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          PopupMenuButton<String>(
-            tooltip: 'Sessions',
-            constraints: BoxConstraints.tightFor(width: menuWidth),
-            onSelected: onSelect,
-            itemBuilder: (context) => [
-              for (final session in sessions)
-                PopupMenuItem(
-                  value: session.id,
-                  child: Row(
-                    children: [
-                      _StatusDot(status: session.status),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          session.displayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (session.id == activeSession?.id)
-                        const Icon(Icons.check, size: 18),
-                    ],
-                  ),
-                ),
-            ],
+          InkWell(
+            onTap: sessions.isEmpty ? null : () => _openSessionsMenu(context),
+            borderRadius: BorderRadius.circular(8),
             child: SizedBox(
               width: 42,
               height: 42,
@@ -515,6 +536,4 @@ String _statusText(TerminalSessionStatus status) {
   };
 }
 
-double _menuWidthFor(BuildContext context) {
-  return MediaQuery.sizeOf(context).width / 2;
-}
+const double _kTopBarHeight = 52;
