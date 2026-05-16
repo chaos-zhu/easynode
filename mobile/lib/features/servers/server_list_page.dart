@@ -284,18 +284,11 @@ class _ServerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final manager = state.widget.terminalSessionManager;
-    final active = manager.firstForHost(server.id) != null;
     final connecting = state._connectingIds.contains(server.id);
     return Card(
       key: Key('server-${server.id}'),
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: ListTile(
-        leading: Icon(
-          Icons.circle,
-          size: 10,
-          color: active ? Colors.green : Theme.of(context).colorScheme.outline,
-        ),
         title: Text(server.displayName, overflow: TextOverflow.ellipsis),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
