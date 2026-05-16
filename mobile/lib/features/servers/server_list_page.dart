@@ -32,6 +32,7 @@ class _ServerListPageState extends State<ServerListPage> {
   List<ServerModel> _servers = const [];
   bool _loading = true;
   String _query = '';
+  bool _searchVisible = false;
   String? _error;
 
   @override
@@ -119,6 +120,7 @@ class _ServerListPageState extends State<ServerListPage> {
   }
 
   Future<void> _confirmLogout() async {
+    Navigator.of(context).pop();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -139,18 +141,73 @@ class _ServerListPageState extends State<ServerListPage> {
     if (confirmed == true) widget.onLogout();
   }
 
+  void _toggleSearch() {
+    setState(() {
+      _searchVisible = !_searchVisible;
+      if (!_searchVisible) {
+        _searchCtrl.clear();
+        _query = '';
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
+        leading: Builder(
+          builder: (context) => IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: const Text('Servers'),
         actions: [
           IconButton(
-            tooltip: 'Log out',
-            icon: const Icon(Icons.logout),
-            onPressed: _confirmLogout,
+            tooltip: _searchVisible ? 'Close search' : 'Search',
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) => RotationTransition(
+                turns: Tween<double>(begin: 0.75, end: 1).animate(animation),
+                child: FadeTransition(opacity: animation, child: child),
+              ),
+              child: Icon(
+                _searchVisible ? Icons.close : Icons.search,
+                key: ValueKey<bool>(_searchVisible),
+              ),
+            ),
+            onPressed: _toggleSearch,
+          ),
+          IconButton(
+            tooltip: 'Add server',
+            icon: const Icon(Icons.add),
+            onPressed: null,
           ),
         ],
+      ),
+      drawer: Drawer(
+        child: SafeArea(
+          child: Column(
+            children: [
+              const DrawerHeader(
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Text(
+                    'Settings',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text('Log out'),
+                onTap: _confirmLogout,
+              ),
+            ],
+          ),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
@@ -190,17 +247,41 @@ class _ServerListPageState extends State<ServerListPage> {
           count: widget.terminalSessionManager.sessions.length,
           onTap: _openShell,
         ),
-        TextField(
-          controller: _searchCtrl,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search),
-            hintText: 'Search by name, host, user, tag, or group',
-            border: OutlineInputBorder(),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: child,
+            ),
+            child: _searchVisible
+                ? Padding(
+                    key: const ValueKey('search-field'),
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: TextField(
+                      controller: _searchCtrl,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search),
+                        hintText: 'Search by name, host, user, tag, or group',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) => setState(
+                        () => _query = value.trim().toLowerCase(),
+                      ),
+                    ),
+                  )
+                : const SizedBox(
+                    key: ValueKey('search-empty'),
+                    width: double.infinity,
+                  ),
           ),
-          onChanged: (value) =>
-              setState(() => _query = value.trim().toLowerCase()),
         ),
-        const SizedBox(height: 8),
         if (_servers.isEmpty)
           const _MessageState(
             message:
