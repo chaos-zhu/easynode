@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/servers/server_model.dart';
 import 'package:mobile/features/servers/server_repository.dart';
 import 'package:mobile/features/servers/servers_tab.dart';
 import 'package:mobile/features/terminal/ssh_connection_config.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/state/api_providers.dart';
 import 'package:mobile/state/host_list_notifier.dart';
 
@@ -66,7 +68,18 @@ ServerModel _server({String id = 'h1', bool canConnect = true}) {
 Widget _wrap({required ServerRepository repo}) {
   return ProviderScope(
     overrides: [serverRepositoryProvider.overrideWithValue(repo)],
-    child: const MaterialApp(home: ServersTab()),
+    child: MaterialApp(
+      // Force English so test assertions stay stable regardless of host locale.
+      locale: const Locale('en'),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const ServersTab(),
+    ),
   );
 }
 

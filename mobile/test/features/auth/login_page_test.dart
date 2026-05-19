@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/auth/auth_session.dart';
 import 'package:mobile/features/auth/login_controller.dart';
 import 'package:mobile/features/auth/login_page.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 
 void main() {
-  Widget wrap(Widget child) => MaterialApp(home: child);
+  Widget wrap(Widget child) => MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: child,
+      );
 
   testWidgets('renders all required fields with prefilled values', (tester) async {
     final controller = LoginController.fake();

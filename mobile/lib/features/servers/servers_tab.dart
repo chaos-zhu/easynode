@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
+import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/host_list_notifier.dart';
@@ -56,7 +57,12 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to get SSH config: $error')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)
+                .trf('servers.fetchSshFailed', [error.toString()]),
+          ),
+        ),
       );
       return;
     } finally {
@@ -89,21 +95,24 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     final manager = ref.read(terminalSessionManagerProvider);
     final count = manager.sessions.length;
     if (count == 0) return;
+    final l = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Close all terminals?'),
+        title: Text(l.tr('servers.closeAllTitle')),
         content: Text(
-          'This will disconnect $count active terminal${count == 1 ? '' : 's'}.',
+          count == 1
+              ? l.tr('servers.closeAllBodyOne')
+              : l.trf('servers.closeAllBodyMany', [count]),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l.tr('common.cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Close all'),
+            child: Text(l.tr('common.closeAll')),
           ),
         ],
       ),
@@ -118,15 +127,17 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     // notifier; we just need to redraw on host-list state changes.
     final hostsAsync = ref.watch(hostListProvider);
     final manager = ref.watch(terminalSessionManagerProvider);
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
         automaticallyImplyLeading: false,
-        title: const Text('Servers'),
+        title: Text(l.tr('servers.title')),
         actions: [
           IconButton(
-            tooltip: _searchVisible ? 'Close search' : 'Search',
+            tooltip:
+                _searchVisible ? l.tr('common.closeSearch') : l.tr('common.search'),
             icon: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               transitionBuilder: (child, animation) => RotationTransition(
@@ -140,9 +151,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
             ),
             onPressed: _toggleSearch,
           ),
-          const IconButton(
-            tooltip: 'Add server',
-            icon: Icon(Icons.add),
+          IconButton(
+            tooltip: l.tr('servers.addServer'),
+            icon: const Icon(Icons.add),
             onPressed: null,
           ),
         ],
@@ -161,6 +172,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     AsyncValue<List<ServerModel>> hostsAsync,
     Object manager,
   ) {
+    final l = AppLocalizations.of(context);
     return hostsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) {
@@ -177,7 +189,10 @@ class _ServersTabState extends ConsumerState<ServersTab> {
             Center(child: Text(error.toString(), textAlign: TextAlign.center)),
             const SizedBox(height: 8),
             Center(
-              child: TextButton(onPressed: _refresh, child: const Text('Retry')),
+              child: TextButton(
+                onPressed: _refresh,
+                child: Text(l.tr('common.retry')),
+              ),
             ),
           ],
         );
@@ -213,10 +228,10 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                         child: TextField(
                           controller: _searchCtrl,
                           autofocus: true,
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.search),
-                            hintText: 'Search by name, host, user, tag, or group',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.search),
+                            hintText: l.tr('servers.searchHint'),
+                            border: const OutlineInputBorder(),
                           ),
                           onChanged: (value) => setState(
                             () => _query = value.trim().toLowerCase(),
@@ -230,12 +245,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
               ),
             ),
             if (servers.isEmpty)
-              const _MessageState(
-                message:
-                    'No servers yet. Pull to refresh after adding hosts on web.',
-              )
+              _MessageState(message: l.tr('servers.emptyHint'))
             else if (filtered.isEmpty)
-              const _MessageState(message: 'No matching servers.')
+              _MessageState(message: l.tr('servers.emptyFiltered'))
             else
               for (final server in filtered)
                 _ServerCard(server: server, state: this),
@@ -262,8 +274,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
   }
 
   String _actionText(ServerModel server) {
-    if (!server.isConfig) return 'Not configured';
-    return 'Connect';
+    final l = AppLocalizations.of(context);
+    if (!server.isConfig) return l.tr('servers.notConfigured');
+    return l.tr('common.connect');
   }
 }
 
@@ -282,6 +295,7 @@ class _ActiveTerminalBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     if (count == 0) return const SizedBox.shrink();
     final colors = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -297,7 +311,11 @@ class _ActiveTerminalBanner extends StatelessWidget {
                 const Icon(Icons.layers),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text('$count active terminal${count == 1 ? '' : 's'}'),
+                  child: Text(
+                    count == 1
+                        ? l.tr('servers.activeTerminalsOne')
+                        : l.trf('servers.activeTerminalsMany', [count]),
+                  ),
                 ),
                 const Icon(Icons.chevron_right),
                 const SizedBox(width: 4),
@@ -305,7 +323,7 @@ class _ActiveTerminalBanner extends StatelessWidget {
                   onTap: onCloseAll,
                   radius: 16,
                   child: Tooltip(
-                    message: 'Close all terminals',
+                    message: l.tr('servers.closeAllTooltip'),
                     child: Icon(
                       Icons.close,
                       size: 18,
@@ -331,6 +349,7 @@ class _ServerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final connecting = state._connectingIds.contains(server.id);
+    final l = AppLocalizations.of(context);
     return Card(
       key: Key('server-${server.id}'),
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -346,7 +365,9 @@ class _ServerCard extends StatelessWidget {
               runSpacing: 4,
               children: [
                 _InfoChip(
-                  label: server.authType.isEmpty ? 'auth' : server.authType,
+                  label: server.authType.isEmpty
+                      ? l.tr('servers.authFallback')
+                      : server.authType,
                 ),
                 if (server.group.isNotEmpty) _InfoChip(label: server.group),
               ],

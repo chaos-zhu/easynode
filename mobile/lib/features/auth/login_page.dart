@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/utils/jwt_expiry.dart';
 import '../../core/utils/validators.dart';
+import '../../l10n/app_localizations.dart';
 import 'auth_session.dart';
 import 'login_controller.dart';
 
@@ -74,6 +75,16 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  /// Resolve a [LoginResult] into the user-facing error string. Prefers the
+  /// localized message keyed by [LoginResult.messageKey]; otherwise falls back
+  /// to whatever the controller / backend handed us.
+  String _resolveErrorMessage(LoginResult result, AppLocalizations l) {
+    final key = result.messageKey;
+    if (key != null && key.isNotEmpty) return l.tr(key);
+    if (result.message.isNotEmpty) return result.message;
+    return l.tr('login.errLoginGeneric');
+  }
+
   Future<void> _submit() async {
     if (_submitting) return;
     setState(() {
@@ -81,6 +92,7 @@ class _LoginPageState extends State<LoginPage> {
       _errorMessage = null;
     });
 
+    final l = AppLocalizations.of(context);
     try {
       final result = await widget.controller.login(
         serverAddress: _serverCtrl.text,
@@ -98,11 +110,7 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
       if (!result.success || result.session == null) {
-        setState(
-          () => _errorMessage = result.message.isEmpty
-              ? 'Login failed'
-              : result.message,
-        );
+        setState(() => _errorMessage = _resolveErrorMessage(result, l));
         return;
       }
       widget.onLoginSuccess(result.session!);
@@ -121,16 +129,18 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final spacing = const SizedBox(height: 12);
     return Scaffold(
-      appBar: AppBar(title: const Text('EasyNode')),
+      appBar: AppBar(title: Text(l.tr('app.title'))),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text('EasyNode', style: Theme.of(context).textTheme.headlineMedium),
+            Text(l.tr('app.title'),
+                style: Theme.of(context).textTheme.headlineMedium),
             Text(
-              'Mobile terminal access',
+              l.tr('app.subtitle'),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 24),
@@ -141,10 +151,10 @@ class _LoginPageState extends State<LoginPage> {
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.next,
               onSubmitted: (_) => _userFocus.requestFocus(),
-              decoration: const InputDecoration(
-                labelText: 'Server address',
-                hintText: 'https://example.com',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l.tr('login.serverAddress'),
+                hintText: l.tr('login.serverAddressHint'),
+                border: const OutlineInputBorder(),
               ),
             ),
             spacing,
@@ -154,9 +164,9 @@ class _LoginPageState extends State<LoginPage> {
               focusNode: _userFocus,
               textInputAction: TextInputAction.next,
               onSubmitted: (_) => _passwordFocus.requestFocus(),
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l.tr('login.username'),
+                border: const OutlineInputBorder(),
               ),
             ),
             spacing,
@@ -168,10 +178,12 @@ class _LoginPageState extends State<LoginPage> {
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),
               decoration: InputDecoration(
-                labelText: 'Password',
+                labelText: l.tr('login.password'),
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
-                  tooltip: _passwordVisible ? 'Hide password' : 'Show password',
+                  tooltip: _passwordVisible
+                      ? l.tr('login.hidePassword')
+                      : l.tr('login.showPassword'),
                   icon: Icon(
                     _passwordVisible ? Icons.visibility_off : Icons.visibility,
                   ),
@@ -185,9 +197,9 @@ class _LoginPageState extends State<LoginPage> {
               key: const Key('field-mfa'),
               controller: _mfaCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'MFA code (optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l.tr('login.mfa'),
+                border: const OutlineInputBorder(),
               ),
             ),
             spacing,
@@ -198,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
             SwitchListTile(
               key: const Key('switch-save-password'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('Save password securely'),
+              title: Text(l.tr('login.savePassword')),
               value: _savePassword,
               onChanged: (value) => setState(() => _savePassword = value),
             ),
@@ -220,7 +232,7 @@ class _LoginPageState extends State<LoginPage> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Log in'),
+                  : Text(l.tr('login.submit')),
             ),
           ],
         ),
@@ -236,6 +248,7 @@ class _HttpRiskBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
@@ -253,7 +266,7 @@ class _HttpRiskBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'HTTP is not encrypted',
+                  l.tr('login.httpRiskTitle'),
                   style: TextStyle(
                     color: colors.onErrorContainer,
                     fontWeight: FontWeight.w700,
@@ -261,14 +274,14 @@ class _HttpRiskBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Your token and session cookie can be intercepted. Use HTTPS when possible.',
+                  l.tr('login.httpRiskBody'),
                   style: TextStyle(color: colors.onErrorContainer),
                 ),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: onConfirm,
-                    child: const Text('Continue'),
+                    child: Text(l.tr('common.continue')),
                   ),
                 ),
               ],
@@ -317,27 +330,28 @@ class _ExpiryPicker extends StatelessWidget {
   final LoginExpiry value;
   final ValueChanged<LoginExpiry> onChanged;
 
-  static const _options = <LoginExpiry, String>{
-    LoginExpiry.temporary: 'Temporary, 1 hour',
-    LoginExpiry.currentDay: 'Today',
-    LoginExpiry.threeDays: '3 days',
-    LoginExpiry.sevenDays: '7 days',
+  static const _optionKeys = <LoginExpiry, String>{
+    LoginExpiry.temporary: 'login.expiry.temporary',
+    LoginExpiry.currentDay: 'login.expiry.currentDay',
+    LoginExpiry.threeDays: 'login.expiry.threeDays',
+    LoginExpiry.sevenDays: 'login.expiry.sevenDays',
   };
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return InputDecorator(
-      decoration: const InputDecoration(
-        labelText: 'Session duration',
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: l.tr('login.sessionDuration'),
+        border: const OutlineInputBorder(),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<LoginExpiry>(
           isExpanded: true,
           value: value,
           items: [
-            for (final entry in _options.entries)
-              DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+            for (final entry in _optionKeys.entries)
+              DropdownMenuItem(value: entry.key, child: Text(l.tr(entry.value))),
           ],
           onChanged: (v) {
             if (v != null) onChanged(v);

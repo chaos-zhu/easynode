@@ -29,7 +29,7 @@ void main() {
     );
 
     expect(result.success, isFalse);
-    expect(result.message, '请输入用户名');
+    expect(result.messageKey, 'login.errEmptyUsername');
   });
 
   test('rejects empty password locally without hitting the api', () async {
@@ -44,7 +44,7 @@ void main() {
     );
 
     expect(result.success, isFalse);
-    expect(result.message, '请输入密码');
+    expect(result.messageKey, 'login.errEmptyPassword');
   });
 
   test('returns invalid server address message when normalize throws', () async {
@@ -59,6 +59,6 @@ void main() {
     );
 
     expect(result.success, isFalse);
-    expect(result.message, contains('http'));
+    expect(result.messageKey, 'login.errSchemeUnsupported');
   });
 }

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class SftpTab extends StatelessWidget {
   const SftpTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return _PlaceholderTab(
-      title: 'SFTP',
+      title: l.tr('tabs.sftp'),
       icon: Icons.folder_outlined,
-      message: '即将上线：浏览和管理远程文件',
+      message: l.tr('sftp.placeholder'),
     );
   }
 }

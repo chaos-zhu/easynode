@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,8 +12,10 @@ import 'features/auth/auth_session.dart';
 import 'features/auth/login_controller.dart';
 import 'features/auth/login_page.dart';
 import 'features/shell/main_shell_page.dart';
+import 'l10n/app_localizations.dart';
 import 'state/auth_notifier.dart';
 import 'state/auth_state.dart';
+import 'state/locale_notifier.dart';
 import 'state/storage_providers.dart';
 
 /// Bootstrap result. Wraps the values [EasyNodeApp] needs to install on the
@@ -197,6 +200,17 @@ class _AppRootState extends ConsumerState<_AppRoot> {
         brightness: Brightness.dark,
         colorSchemeSeed: Colors.indigo,
       ),
+      locale: ref.watch(localeProvider),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: (deviceLocale, supported) {
+        return AppLocalizations.resolve(deviceLocale, supported);
+      },
       home: home,
     );
   }

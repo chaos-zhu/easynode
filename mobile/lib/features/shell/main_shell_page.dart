@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../state/auth_notifier.dart';
 import '../servers/servers_tab.dart';
 import 'scripts_tab.dart';
@@ -34,6 +35,7 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
     // We don't need to handle that here.
     ref.listen(authProvider, (_, _) {});
 
+    final l = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(child: IndexedStack(index: _index, children: _tabs)),
       bottomNavigationBar: NavigationBar(
@@ -41,30 +43,30 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
         onDestinationSelected: (i) => setState(() => _index = i),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         height: 56,
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.dns_outlined),
-            selectedIcon: Icon(Icons.dns),
-            label: 'Servers',
-            tooltip: 'Servers',
+            icon: const Icon(Icons.dns_outlined),
+            selectedIcon: const Icon(Icons.dns),
+            label: l.tr('tabs.servers'),
+            tooltip: l.tr('tabs.servers'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: 'SFTP',
-            tooltip: 'SFTP',
+            icon: const Icon(Icons.folder_outlined),
+            selectedIcon: const Icon(Icons.folder),
+            label: l.tr('tabs.sftp'),
+            tooltip: l.tr('tabs.sftp'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.library_books_outlined),
-            selectedIcon: Icon(Icons.library_books),
-            label: 'Scripts',
-            tooltip: 'Scripts',
+            icon: const Icon(Icons.library_books_outlined),
+            selectedIcon: const Icon(Icons.library_books),
+            label: l.tr('tabs.scripts'),
+            tooltip: l.tr('tabs.scripts'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: l.tr('tabs.settings'),
+            tooltip: l.tr('tabs.settings'),
           ),
         ],
       ),

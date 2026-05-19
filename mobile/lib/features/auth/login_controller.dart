@@ -11,6 +11,7 @@ class LoginResult {
     this.success = false,
     this.requiresHttpRiskConfirmation = false,
     this.message = '',
+    this.messageKey,
     this.session,
   });
 
@@ -22,8 +23,13 @@ class LoginResult {
   /// `httpRiskAccepted: true` once the user confirms.
   final bool requiresHttpRiskConfirmation;
 
-  /// User-presentable error message when [success] is false.
+  /// Fallback / backend-provided message. UI should prefer localizing
+  /// [messageKey] when it is set; otherwise display this verbatim.
   final String message;
+
+  /// i18n key for static, controller-side errors (empty fields, invalid
+  /// server address, etc.). `null` for backend-returned strings.
+  final String? messageKey;
 
   final AuthSession? session;
 }
@@ -63,6 +69,8 @@ class LoginController {
     final String normalized;
     try {
       normalized = normalizeServerAddress(serverAddress);
+    } on ServerAddressException catch (error) {
+      return LoginResult(message: error.message, messageKey: error.code);
     } on FormatException catch (error) {
       return LoginResult(message: error.message);
     }
@@ -72,10 +80,16 @@ class LoginController {
     }
 
     if (username.trim().isEmpty) {
-      return const LoginResult(message: '请输入用户名');
+      return const LoginResult(
+        message: '请输入用户名',
+        messageKey: 'login.errEmptyUsername',
+      );
     }
     if (password.isEmpty) {
-      return const LoginResult(message: '请输入密码');
+      return const LoginResult(
+        message: '请输入密码',
+        messageKey: 'login.errEmptyPassword',
+      );
     }
 
     final api = _apiClientFactory(normalized);
@@ -91,11 +105,17 @@ class LoginController {
       });
 
       if (response['status'] != 200) {
-        return LoginResult(message: response['msg']?.toString() ?? '登录失败');
+        return LoginResult(
+          message: response['msg']?.toString() ?? '登录失败',
+          messageKey: response['msg'] == null ? 'login.errLoginGeneric' : null,
+        );
       }
       final data = response['data'];
       if (data is! Map || data['token'] is! String || data['deviceId'] is! String) {
-        return const LoginResult(message: '服务端登录响应缺少必要字段');
+        return const LoginResult(
+          message: '服务端登录响应缺少必要字段',
+          messageKey: 'login.errMissingFields',
+        );
       }
       final session = AuthSession(
         serverAddress: normalized,

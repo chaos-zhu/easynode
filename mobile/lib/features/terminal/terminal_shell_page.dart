@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xterm/ui.dart';
 
 import '../../core/api/api_result.dart';
+import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/host_list_notifier.dart';
@@ -54,7 +55,14 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load servers: $error')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)
+                .trf('terminal.loadServersFailed', [error.toString()]),
+          ),
+        ),
+      );
       setState(() => _openingServer = false);
       return;
     }
@@ -86,10 +94,12 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
       position: RelativeRect.fromRect(menuRect, overlayRect),
       constraints: BoxConstraints.tightFor(width: menuWidth),
       items: servers.isEmpty
-          ? const [
+          ? [
               PopupMenuItem<ServerModel>(
                 enabled: false,
-                child: Text('No servers available'),
+                child: Text(
+                  AppLocalizations.of(anchorContext).tr('terminal.noServers'),
+                ),
               ),
             ]
           : [
@@ -114,7 +124,12 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to open terminal: $error')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)
+                .trf('terminal.openFailed', [error.toString()]),
+          ),
+        ),
       );
     }
   }
@@ -166,10 +181,11 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                   child: ColoredBox(
                     color: Colors.black,
                     child: sessions.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
-                              'No active terminal',
-                              style: TextStyle(color: Colors.white70),
+                              AppLocalizations.of(context)
+                                  .tr('terminal.noActive'),
+                              style: const TextStyle(color: Colors.white70),
                             ),
                           )
                         : IndexedStack(
@@ -267,6 +283,7 @@ class _TerminalTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeSession = active;
+    final l = AppLocalizations.of(context);
     return Container(
       height: _kTopBarHeight,
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -292,7 +309,7 @@ class _TerminalTopBar extends StatelessWidget {
           const SizedBox(width: 6),
           Expanded(
             child: activeSession == null
-                ? const Text('Terminal', overflow: TextOverflow.ellipsis)
+                ? Text(l.tr('terminal.title'), overflow: TextOverflow.ellipsis)
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,7 +325,7 @@ class _TerminalTopBar extends StatelessWidget {
                           _StatusDot(status: activeSession.status),
                           const SizedBox(width: 6),
                           Text(
-                            _statusText(activeSession.status),
+                            _statusText(l, activeSession.status),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -317,18 +334,18 @@ class _TerminalTopBar extends StatelessWidget {
                   ),
           ),
           IconButton(
-            tooltip: 'Reconnect',
+            tooltip: l.tr('terminal.reconnect'),
             onPressed: onReconnect,
             icon: const Icon(Icons.refresh),
           ),
           IconButton(
-            tooltip: 'Close terminal',
+            tooltip: l.tr('terminal.closeTerminal'),
             onPressed: activeSession == null ? null : onClose,
             icon: const Icon(Icons.close),
           ),
           Builder(
             builder: (buttonContext) => IconButton(
-              tooltip: 'New terminal',
+              tooltip: l.tr('terminal.newTerminal'),
               onPressed: openingServer ? null : () => onNew(buttonContext),
               icon: openingServer
                   ? const SizedBox(
@@ -527,12 +544,12 @@ class _StackedSessionsPainter extends CustomPainter {
   }
 }
 
-String _statusText(TerminalSessionStatus status) {
+String _statusText(AppLocalizations l, TerminalSessionStatus status) {
   return switch (status) {
-    TerminalSessionStatus.connecting => 'Connecting',
-    TerminalSessionStatus.connected => 'Connected',
-    TerminalSessionStatus.disconnected => 'Disconnected',
-    TerminalSessionStatus.error => 'Error',
+    TerminalSessionStatus.connecting => l.tr('terminal.status.connecting'),
+    TerminalSessionStatus.connected => l.tr('terminal.status.connected'),
+    TerminalSessionStatus.disconnected => l.tr('terminal.status.disconnected'),
+    TerminalSessionStatus.error => l.tr('terminal.status.error'),
   };
 }
 
