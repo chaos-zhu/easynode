@@ -182,6 +182,11 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         ],
       ),
       body: RefreshIndicator(
+        color: Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        displacement: 30,
+        edgeOffset: 6,
+        strokeWidth: 2,
         onRefresh: _refresh,
         child: AnimatedBuilder(
           animation: manager,

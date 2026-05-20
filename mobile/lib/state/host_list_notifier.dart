@@ -21,7 +21,10 @@ class HostListNotifier extends AsyncNotifier<List<ServerModel>> {
   }
 
   Future<void> refresh() async {
-    state = const AsyncLoading();
+    final previous = state.valueOrNull;
+    if (previous == null) {
+      state = const AsyncLoading();
+    }
     state = await AsyncValue.guard(() async {
       try {
         return await ref.read(serverRepositoryProvider).fetchHosts();
@@ -30,6 +33,9 @@ class HostListNotifier extends AsyncNotifier<List<ServerModel>> {
         rethrow;
       }
     });
+    if (state.hasError && previous != null) {
+      state = AsyncData(previous);
+    }
   }
 }
 
