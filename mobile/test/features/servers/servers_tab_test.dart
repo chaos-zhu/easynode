@@ -7,6 +7,8 @@ import 'package:mobile/features/servers/server_repository.dart';
 import 'package:mobile/features/servers/servers_tab.dart';
 import 'package:mobile/features/terminal/ssh_connection_config.dart';
 import 'package:mobile/l10n/app_localizations.dart';
+import 'package:mobile/state/auth_notifier.dart';
+import 'package:mobile/state/auth_state.dart';
 import 'package:mobile/state/api_providers.dart';
 import 'package:mobile/state/host_list_notifier.dart';
 
@@ -47,6 +49,17 @@ class _FakeRepository implements ServerRepository {
     connectCalls++;
     if (sshError != null) throw sshError!;
     return config;
+  }
+}
+
+class _RecordingAuthNotifier extends AuthNotifier {
+  _RecordingAuthNotifier(super.ref) : super(AuthState.empty);
+
+  int signOutCalls = 0;
+
+  @override
+  Future<void> signOut() async {
+    signOutCalls++;
   }
 }
 
@@ -146,5 +159,29 @@ void main() {
     await container.read(hostListProvider.notifier).refresh();
     final refreshed = await container.read(hostListProvider.future);
     expect(refreshed, hasLength(2));
+  });
+
+  testWidgets('signs out when initial host fetch is unauthorized',
+      (tester) async {
+    final repo = _FakeRepository(
+      fetchError: UnauthorizedFailure('expired', statusCode: 401),
+    );
+    late _RecordingAuthNotifier auth;
+    final container = ProviderContainer(
+      overrides: [
+        serverRepositoryProvider.overrideWithValue(repo),
+        authProvider.overrideWith((ref) {
+          auth = _RecordingAuthNotifier(ref);
+          return auth;
+        }),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await expectLater(
+      container.read(hostListProvider.future),
+      throwsA(isA<UnauthorizedFailure>()),
+    );
+    expect(auth.signOutCalls, 1);
   });
 }

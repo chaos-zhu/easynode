@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'api_result.dart';
 import 'cookie_store.dart';
@@ -20,6 +21,18 @@ class ApiClient {
                receiveTimeout: const Duration(seconds: 30),
              ),
            ) {
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestHeader: true,
+          requestBody: true,
+          responseHeader: false,
+          responseBody: true,
+          error: true,
+          logPrint: (object) => debugPrint(object.toString(), wrapWidth: 1024),
+        ),
+      );
+    }
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {

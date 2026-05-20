@@ -10,9 +10,14 @@ import 'auth_notifier.dart';
 /// loading / error / data without manual `_loading` flags.
 class HostListNotifier extends AsyncNotifier<List<ServerModel>> {
   @override
-  Future<List<ServerModel>> build() {
+  Future<List<ServerModel>> build() async {
     final repo = ref.watch(serverRepositoryProvider);
-    return repo.fetchHosts();
+    try {
+      return await repo.fetchHosts();
+    } on UnauthorizedFailure {
+      await ref.read(authProvider.notifier).signOut();
+      rethrow;
+    }
   }
 
   Future<void> refresh() async {
