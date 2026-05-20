@@ -37,12 +37,11 @@ class _LoginPageState extends State<LoginPage> {
   final FocusNode _userFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
 
-  LoginExpiry _expiry = LoginExpiry.temporary;
+  LoginExpiry _expiry = LoginExpiry.currentDay;
   bool _savePassword = false;
   bool _httpRiskAccepted = false;
   bool _showHttpRiskBanner = false;
   bool _submitting = false;
-  bool _passwordVisible = false;
   String? _errorMessage;
 
   @override
@@ -130,113 +129,188 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final spacing = const SizedBox(height: 12);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final spacing = const SizedBox(height: 14);
     return Scaffold(
-      appBar: AppBar(title: Text(l.tr('app.title'))),
+      backgroundColor: colors.surfaceContainerLowest,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(l.tr('app.title'),
-                style: Theme.of(context).textTheme.headlineMedium),
-            Text(
-              l.tr('app.subtitle'),
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              key: const Key('field-server'),
-              controller: _serverCtrl,
-              focusNode: _serverFocus,
-              keyboardType: TextInputType.url,
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) => _userFocus.requestFocus(),
-              decoration: InputDecoration(
-                labelText: l.tr('login.serverAddress'),
-                hintText: l.tr('login.serverAddressHint'),
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            spacing,
-            TextField(
-              key: const Key('field-username'),
-              controller: _userCtrl,
-              focusNode: _userFocus,
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) => _passwordFocus.requestFocus(),
-              decoration: InputDecoration(
-                labelText: l.tr('login.username'),
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            spacing,
-            TextField(
-              key: const Key('field-password'),
-              controller: _pwdCtrl,
-              focusNode: _passwordFocus,
-              obscureText: !_passwordVisible,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                labelText: l.tr('login.password'),
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  tooltip: _passwordVisible
-                      ? l.tr('login.hidePassword')
-                      : l.tr('login.showPassword'),
-                  icon: Icon(
-                    _passwordVisible ? Icons.visibility_off : Icons.visibility,
-                  ),
-                  onPressed: () =>
-                      setState(() => _passwordVisible = !_passwordVisible),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              children: [
+                _LoginHero(
+                  title: l.tr('app.title'),
+                  subtitle: l.tr('app.subtitle'),
                 ),
-              ),
+                const SizedBox(height: 24),
+                Card(
+                  elevation: 0,
+                  color: colors.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    side: BorderSide(color: colors.outlineVariant),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextField(
+                          key: const Key('field-server'),
+                          controller: _serverCtrl,
+                          focusNode: _serverFocus,
+                          keyboardType: TextInputType.url,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => _userFocus.requestFocus(),
+                          decoration: InputDecoration(
+                            labelText: l.tr('login.serverAddress'),
+                            hintText: l.tr('login.serverAddressHint'),
+                            prefixIcon: const Icon(Icons.dns_outlined),
+                            border: const OutlineInputBorder(),
+                          ),
+                        ),
+                        spacing,
+                        TextField(
+                          key: const Key('field-username'),
+                          controller: _userCtrl,
+                          focusNode: _userFocus,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => _passwordFocus.requestFocus(),
+                          decoration: InputDecoration(
+                            labelText: l.tr('login.username'),
+                            prefixIcon: const Icon(Icons.person_outline),
+                            border: const OutlineInputBorder(),
+                          ),
+                        ),
+                        spacing,
+                        TextField(
+                          key: const Key('field-password'),
+                          controller: _pwdCtrl,
+                          focusNode: _passwordFocus,
+                          obscureText: true,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _submit(),
+                          decoration: InputDecoration(
+                            labelText: l.tr('login.password'),
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            border: const OutlineInputBorder(),
+                          ),
+                        ),
+                        spacing,
+                        TextField(
+                          key: const Key('field-mfa'),
+                          controller: _mfaCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: l.tr('login.mfa'),
+                            prefixIcon: const Icon(Icons.pin_outlined),
+                            border: const OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        _ExpiryPicker(
+                          value: _expiry,
+                          onChanged: (value) => setState(() => _expiry = value),
+                        ),
+                        const SizedBox(height: 8),
+                        SwitchListTile(
+                          key: const Key('switch-save-password'),
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(l.tr('login.savePassword')),
+                          secondary: const Icon(Icons.enhanced_encryption),
+                          value: _savePassword,
+                          onChanged: (value) =>
+                              setState(() => _savePassword = value),
+                        ),
+                        if (_showHttpRiskBanner) ...[
+                          spacing,
+                          _HttpRiskBanner(onConfirm: _acceptHttpRiskAndSubmit),
+                        ],
+                        if (_errorMessage != null) ...[
+                          spacing,
+                          _ErrorBox(message: _errorMessage!),
+                        ],
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          height: 48,
+                          child: FilledButton.icon(
+                            key: const Key('btn-login'),
+                            onPressed: _submitting ? null : _submit,
+                            icon: _submitting
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.login),
+                            label: Text(l.tr('login.submit')),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            spacing,
-            TextField(
-              key: const Key('field-mfa'),
-              controller: _mfaCtrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: l.tr('login.mfa'),
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            spacing,
-            _ExpiryPicker(
-              value: _expiry,
-              onChanged: (value) => setState(() => _expiry = value),
-            ),
-            SwitchListTile(
-              key: const Key('switch-save-password'),
-              contentPadding: EdgeInsets.zero,
-              title: Text(l.tr('login.savePassword')),
-              value: _savePassword,
-              onChanged: (value) => setState(() => _savePassword = value),
-            ),
-            if (_showHttpRiskBanner) ...[
-              spacing,
-              _HttpRiskBanner(onConfirm: _acceptHttpRiskAndSubmit),
-            ],
-            if (_errorMessage != null) ...[
-              spacing,
-              _ErrorBox(message: _errorMessage!),
-            ],
-            const SizedBox(height: 16),
-            FilledButton(
-              key: const Key('btn-login'),
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l.tr('login.submit')),
-            ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _LoginHero extends StatelessWidget {
+  const _LoginHero({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Row(
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Image.asset(
+            'assets/logo_v2_01.png',
+            fit: BoxFit.cover,
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -331,7 +405,6 @@ class _ExpiryPicker extends StatelessWidget {
   final ValueChanged<LoginExpiry> onChanged;
 
   static const _optionKeys = <LoginExpiry, String>{
-    LoginExpiry.temporary: 'login.expiry.temporary',
     LoginExpiry.currentDay: 'login.expiry.currentDay',
     LoginExpiry.threeDays: 'login.expiry.threeDays',
     LoginExpiry.sevenDays: 'login.expiry.sevenDays',
@@ -340,24 +413,29 @@ class _ExpiryPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return InputDecorator(
-      decoration: InputDecoration(
-        labelText: l.tr('login.sessionDuration'),
-        border: const OutlineInputBorder(),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<LoginExpiry>(
-          isExpanded: true,
-          value: value,
-          items: [
-            for (final entry in _optionKeys.entries)
-              DropdownMenuItem(value: entry.key, child: Text(l.tr(entry.value))),
-          ],
-          onChanged: (v) {
-            if (v != null) onChanged(v);
-          },
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l.tr('login.sessionDuration'),
+          style: theme.textTheme.labelLarge,
         ),
-      ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final entry in _optionKeys.entries)
+              ChoiceChip(
+                label: Text(l.tr(entry.value)),
+                selected: entry.key == value,
+                showCheckmark: false,
+                onSelected: (_) => onChanged(entry.key),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -11,6 +11,7 @@ class ServerModel {
     required this.port,
     required this.username,
     required this.authType,
+    required this.connectType,
     required this.group,
     required this.tag,
     required this.expired,
@@ -23,6 +24,7 @@ class ServerModel {
   final int port;
   final String username;
   final String authType;
+  final String connectType;
   final String group;
   final List<String> tag;
   final bool expired;
@@ -53,6 +55,7 @@ class ServerModel {
       port: port,
       username: (json['username'] ?? '').toString(),
       authType: (json['authType'] ?? '').toString(),
+      connectType: (json['connectType'] ?? '').toString(),
       group: (json['group'] ?? '').toString(),
       tag: tag,
       expired: json['expired'] == true,
@@ -63,6 +66,7 @@ class ServerModel {
   /// Whether the connect button should be enabled. The server marks hosts
   /// without auth fields as `isConfig: false`.
   bool get canConnect => isConfig;
+  bool get isWindows => connectType == 'rdp';
 
   String get displayName => name.isEmpty ? host : name;
   String get connectionLabel => '$username@$host:$port';

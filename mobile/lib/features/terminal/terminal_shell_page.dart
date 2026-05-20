@@ -147,6 +147,13 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
     }
   }
 
+  Future<void> _closeAllAndLeave(TerminalSessionManager manager) async {
+    await manager.closeAll();
+    if (mounted) {
+      Navigator.of(context).maybePop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final manager = ref.watch(terminalSessionManagerProvider);
@@ -173,6 +180,7 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                   onSelect: manager.setActive,
                   onNew: _openServerMenu,
                   onClose: _closeActive,
+                  onCloseAll: () => _closeAllAndLeave(manager),
                   onReconnect: active == null
                       ? null
                       : () => manager.reconnect(active.id),
@@ -225,6 +233,7 @@ class _TerminalTopBar extends StatelessWidget {
     required this.onSelect,
     required this.onNew,
     required this.onClose,
+    required this.onCloseAll,
     required this.onReconnect,
   });
 
@@ -234,6 +243,7 @@ class _TerminalTopBar extends StatelessWidget {
   final ValueChanged<String> onSelect;
   final ValueChanged<BuildContext> onNew;
   final VoidCallback onClose;
+  final Future<void> Function() onCloseAll;
   final VoidCallback? onReconnect;
 
   Future<void> _openSessionsMenu(BuildContext context) async {
@@ -249,11 +259,27 @@ class _TerminalTopBar extends StatelessWidget {
     final menuRect = Rect.fromLTWH(0, menuTop, 0, 0);
     final overlayRect = Offset.zero & overlaySize;
     final activeSession = active;
+    final l = AppLocalizations.of(context);
     final selected = await showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(menuRect, overlayRect),
       constraints: BoxConstraints.tightFor(width: menuWidth),
       items: [
+        if (sessions.length >= 2) ...[
+          PopupMenuItem<String>(
+            value: _kCloseAllTerminalsAction,
+            child: Row(
+              children: [
+                const Icon(Icons.layers_clear, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(l.tr('terminal.closeAllTerminals')),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(),
+        ],
         for (final session in sessions)
           PopupMenuItem<String>(
             value: session.id,
@@ -275,9 +301,31 @@ class _TerminalTopBar extends StatelessWidget {
           ),
       ],
     );
-    if (selected != null) {
-      onSelect(selected);
+    if (selected == null) return;
+    if (selected == _kCloseAllTerminalsAction) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l.tr('terminal.closeAllTitle')),
+          content: Text(l.trf('terminal.closeAllBodyMany', [sessions.length])),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l.tr('common.cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l.tr('common.closeAll')),
+            ),
+          ],
+        ),
+      );
+      if (confirmed == true) {
+        await onCloseAll();
+      }
+      return;
     }
+    onSelect(selected);
   }
 
   @override
@@ -554,3 +602,4 @@ String _statusText(AppLocalizations l, TerminalSessionStatus status) {
 }
 
 const double _kTopBarHeight = 52;
+const String _kCloseAllTerminalsAction = '__close_all_terminals__';

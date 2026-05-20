@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -194,11 +196,11 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     return MaterialApp(
       title: 'EasyNode',
       themeMode: ThemeMode.system,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
+      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.amber),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorSchemeSeed: Colors.indigo,
+        colorSchemeSeed: Colors.amber,
       ),
       locale: ref.watch(localeProvider),
       localizationsDelegates: const [
@@ -211,7 +213,166 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       localeResolutionCallback: (deviceLocale, supported) {
         return AppLocalizations.resolve(deviceLocale, supported);
       },
-      home: home,
+      home: _BrandedSplashGate(child: home),
+    );
+  }
+}
+
+class _BrandedSplashGate extends StatefulWidget {
+  const _BrandedSplashGate({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_BrandedSplashGate> createState() => _BrandedSplashGateState();
+}
+
+class _BrandedSplashGateState extends State<_BrandedSplashGate>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _logoFade;
+  late final Animation<Offset> _textOffset;
+  bool _showSplash = true;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 850),
+    );
+    _logoScale = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    );
+    _logoFade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0, 0.45, curve: Curves.easeOut),
+    );
+    _textOffset = Tween<Offset>(
+      begin: const Offset(0, 0.35),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.18, 0.7, curve: Curves.easeOutBack),
+      ),
+    );
+    unawaited(_controller.forward());
+    _timer = Timer(const Duration(milliseconds: 1250), () {
+      if (mounted) setState(() => _showSplash = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 420),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: (child, animation) {
+        final offset = Tween<Offset>(
+          begin: const Offset(0, 0.02),
+          end: Offset.zero,
+        ).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(position: offset, child: child),
+        );
+      },
+      child: _showSplash
+          ? _BrandedSplash(
+              key: const ValueKey('splash'),
+              controller: _controller,
+              logoScale: _logoScale,
+              logoFade: _logoFade,
+              textOffset: _textOffset,
+            )
+          : KeyedSubtree(key: const ValueKey('home'), child: widget.child),
+    );
+  }
+}
+
+class _BrandedSplash extends StatelessWidget {
+  const _BrandedSplash({
+    super.key,
+    required this.controller,
+    required this.logoScale,
+    required this.logoFade,
+    required this.textOffset,
+  });
+
+  final AnimationController controller;
+  final Animation<double> logoScale;
+  final Animation<double> logoFade;
+  final Animation<Offset> textOffset;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: colors.surfaceContainerLowest,
+      body: Center(
+        child: AnimatedBuilder(
+          animation: controller,
+          builder: (context, _) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FadeTransition(
+                  opacity: logoFade,
+                  child: ScaleTransition(
+                    scale: logoScale,
+                    child: Container(
+                      width: 104,
+                      height: 104,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colors.primary.withValues(alpha: 0.18),
+                            blurRadius: 28,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: Image.asset(
+                        'assets/logo_v2_01.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SlideTransition(
+                  position: textOffset,
+                  child: FadeTransition(
+                    opacity: logoFade,
+                    child: Text(
+                      'EasyNode',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: colors.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
