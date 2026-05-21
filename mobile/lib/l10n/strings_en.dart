@@ -13,6 +13,7 @@ const Map<String, String> stringsEn = {
   'common.connect': 'Connect',
   'common.close': 'Close',
   'common.closeAll': 'Close all',
+  'common.all': 'All',
   'common.search': 'Search',
   'common.closeSearch': 'Close search',
   'common.system': 'System default',

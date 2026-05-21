@@ -6,8 +6,10 @@ import '../../core/api/api_result.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
+import '../../state/group_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/terminal_providers.dart';
+import 'server_group_model.dart';
 import '../terminal/ssh_connection_config.dart';
 import '../terminal/terminal_shell_page.dart';
 import '../terminal/terminal_session_manager.dart';
@@ -26,6 +28,7 @@ class ServersTab extends ConsumerStatefulWidget {
 class _ServersTabState extends ConsumerState<ServersTab> {
   final TextEditingController _searchCtrl = TextEditingController();
   final Set<String> _connectingIds = {};
+  String? _selectedGroupId;
   String _query = '';
   bool _searchVisible = false;
 
@@ -35,7 +38,12 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     super.dispose();
   }
 
-  Future<void> _refresh() => ref.read(hostListProvider.notifier).refresh();
+  Future<void> _refresh() async {
+    await Future.wait([
+      ref.read(groupListProvider.notifier).refresh(),
+      ref.read(hostListProvider.notifier).refresh(),
+    ]);
+  }
 
   Future<void> _connect(ServerModel server) async {
     if (server.isWindows) {
@@ -131,6 +139,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     // Logout from UnauthorizedFailure inside refresh is handled by the
     // notifier; we just need to redraw on host-list state changes.
     final hostsAsync = ref.watch(hostListProvider);
+    final groupsAsync = ref.watch(groupListProvider);
     final manager = ref.watch(terminalSessionManagerProvider);
     final l = AppLocalizations.of(context);
 
@@ -190,7 +199,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         onRefresh: _refresh,
         child: AnimatedBuilder(
           animation: manager,
-          builder: (context, _) => _buildBody(hostsAsync, manager),
+          builder: (context, _) => _buildBody(hostsAsync, groupsAsync, manager),
         ),
       ),
     );
@@ -198,6 +207,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
 
   Widget _buildBody(
     AsyncValue<List<ServerModel>> hostsAsync,
+    AsyncValue<List<ServerGroupModel>> groupsAsync,
     TerminalSessionManager manager,
   ) {
     final l = AppLocalizations.of(context);
@@ -226,7 +236,10 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         );
       },
       data: (servers) {
-        final filtered = _filteredServers(servers);
+        final groups = groupsAsync.valueOrNull ?? const <ServerGroupModel>[];
+        final searched = _searchedServers(servers);
+        final effectiveGroupId = _effectiveSelectedGroupId(groups);
+        final filtered = _filterByGroup(searched, effectiveGroupId);
         final sessions = manager.sessions.length;
         return ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -275,6 +288,14 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                       ),
               ),
             ),
+            _ServerGroupFilter(
+              groups: groups,
+              servers: searched,
+              selectedGroupId: effectiveGroupId,
+              onSelected: (groupId) => setState(() {
+                _selectedGroupId = groupId;
+              }),
+            ),
             if (servers.isEmpty)
               _MessageState(message: l.tr('servers.emptyHint'))
             else if (filtered.isEmpty)
@@ -291,7 +312,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     );
   }
 
-  List<ServerModel> _filteredServers(List<ServerModel> servers) {
+  List<ServerModel> _searchedServers(List<ServerModel> servers) {
     if (_query.isEmpty) return servers;
     return servers
         .where((server) {
@@ -307,10 +328,143 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         .toList(growable: false);
   }
 
+  String? _effectiveSelectedGroupId(List<ServerGroupModel> groups) {
+    if (_selectedGroupId == null) return null;
+    if (groups.any((group) => group.id == _selectedGroupId)) {
+      return _selectedGroupId;
+    }
+    return null;
+  }
+
+  List<ServerModel> _filterByGroup(
+    List<ServerModel> servers,
+    String? groupId,
+  ) {
+    if (groupId == null) return servers;
+    return servers
+        .where((server) => _normalizedGroupId(server.group) == groupId)
+        .toList(growable: false);
+  }
+
+  static String _normalizedGroupId(String groupId) {
+    return groupId.isEmpty ? 'default' : groupId;
+  }
+
   String _actionText(ServerModel server) {
     final l = AppLocalizations.of(context);
     if (!server.isConfig) return l.tr('servers.notConfigured');
     return l.tr('common.connect');
+  }
+}
+
+class _ServerGroupFilter extends StatelessWidget {
+  const _ServerGroupFilter({
+    required this.groups,
+    required this.servers,
+    required this.selectedGroupId,
+    required this.onSelected,
+  });
+
+  final List<ServerGroupModel> groups;
+  final List<ServerModel> servers;
+  final String? selectedGroupId;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+
+    final counts = <String, int>{for (final group in groups) group.id: 0};
+    for (final server in servers) {
+      final groupId = _ServersTabState._normalizedGroupId(server.group);
+      if (counts.containsKey(groupId)) {
+        counts[groupId] = counts[groupId]! + 1;
+      } else if (counts.containsKey('default')) {
+        counts['default'] = counts['default']! + 1;
+      }
+    }
+    final visibleGroups = groups
+        .where((group) => (counts[group.id] ?? 0) > 0)
+        .toList(growable: false);
+    if (visibleGroups.length < 2) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 46,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 8),
+        itemCount: visibleGroups.length + 1,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return _GroupPill(
+              label: l.tr('common.all'),
+              count: servers.length,
+              selected: selectedGroupId == null,
+              onTap: () => onSelected(null),
+            );
+          }
+          final group = visibleGroups[index - 1];
+          return _GroupPill(
+            label: group.displayName,
+            count: counts[group.id] ?? 0,
+            selected: selectedGroupId == group.id,
+            onTap: () => onSelected(group.id),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _GroupPill extends StatelessWidget {
+  const _GroupPill({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final background = selected ? colors.primary : colors.surface;
+    final foreground = selected ? colors.onPrimary : colors.onSurfaceVariant;
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 168),
+          child: SizedBox(
+            height: 36,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  '$label $count',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

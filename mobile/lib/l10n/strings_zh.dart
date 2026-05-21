@@ -12,6 +12,7 @@ const Map<String, String> stringsZh = {
   'common.connect': '连接',
   'common.close': '关闭',
   'common.closeAll': '全部关闭',
+  'common.all': '全部',
   'common.search': '搜索',
   'common.closeSearch': '关闭搜索',
   'common.system': '跟随系统',

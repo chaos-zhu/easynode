@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/servers/server_model.dart';
+import 'package:mobile/features/servers/server_group_model.dart';
 import 'package:mobile/features/servers/server_repository.dart';
 import 'package:mobile/features/servers/servers_tab.dart';
 import 'package:mobile/features/terminal/ssh_connection_config.dart';
@@ -11,17 +12,22 @@ import 'package:mobile/state/auth_notifier.dart';
 import 'package:mobile/state/auth_state.dart';
 import 'package:mobile/state/api_providers.dart';
 import 'package:mobile/state/host_list_notifier.dart';
+import 'package:mobile/state/group_list_notifier.dart';
 
 class _FakeRepository implements ServerRepository {
   _FakeRepository({
     this.hosts = const [],
+    this.groups = const [],
     this.fetchError,
+    this.groupFetchError,
     SshConnectionConfig? config,
     this.sshError,
   }) : config = config ?? _defaultConfig;
 
   List<ServerModel> hosts;
+  List<ServerGroupModel> groups;
   Object? fetchError;
+  Object? groupFetchError;
   SshConnectionConfig config;
   Object? sshError;
   int connectCalls = 0;
@@ -45,6 +51,12 @@ class _FakeRepository implements ServerRepository {
   }
 
   @override
+  Future<List<ServerGroupModel>> fetchGroups() async {
+    if (groupFetchError != null) throw groupFetchError!;
+    return groups;
+  }
+
+  @override
   Future<SshConnectionConfig> fetchSshConfig(String hostId) async {
     connectCalls++;
     if (sshError != null) throw sshError!;
@@ -63,7 +75,11 @@ class _RecordingAuthNotifier extends AuthNotifier {
   }
 }
 
-ServerModel _server({String id = 'h1', bool canConnect = true}) {
+ServerModel _server({
+  String id = 'h1',
+  bool canConnect = true,
+  String group = '',
+}) {
   return ServerModel.fromJson({
     'id': id,
     'name': 'srv-$id',
@@ -71,10 +87,22 @@ ServerModel _server({String id = 'h1', bool canConnect = true}) {
     'port': 22,
     'username': 'root',
     'authType': 'password',
-    'group': '',
+    'group': group,
     'tag': const [],
     'expired': !canConnect,
     'isConfig': canConnect,
+  });
+}
+
+ServerGroupModel _group({
+  String id = 'default',
+  String name = 'Default group',
+  int index = 1,
+}) {
+  return ServerGroupModel.fromJson({
+    'id': id,
+    'name': name,
+    'index': index,
   });
 }
 
@@ -120,6 +148,46 @@ void main() {
     expect(find.text('Not configured'), findsOneWidget);
   });
 
+  testWidgets('hides group filter when only the default group exists',
+      (tester) async {
+    final repo = _FakeRepository(
+      hosts: [_server(id: 'h1', group: 'default')],
+      groups: [_group()],
+    );
+    await tester.pumpWidget(_wrap(repo: repo));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('All'), findsNothing);
+    expect(find.textContaining('Default group'), findsNothing);
+    expect(find.byKey(const Key('server-h1')), findsOneWidget);
+  });
+
+  testWidgets('shows group filters and filters cards by selected group',
+      (tester) async {
+    final repo = _FakeRepository(
+      hosts: [
+        _server(id: 'h1', group: 'default'),
+        _server(id: 'h2', group: 'overseas'),
+      ],
+      groups: [
+        _group(),
+        _group(id: 'overseas', name: 'Overseas', index: 2),
+      ],
+    );
+    await tester.pumpWidget(_wrap(repo: repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text('All 2'), findsOneWidget);
+    expect(find.text('Default group 1'), findsOneWidget);
+    expect(find.text('Overseas 1'), findsOneWidget);
+
+    await tester.tap(find.text('Overseas 1'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('server-h1')), findsNothing);
+    expect(find.byKey(const Key('server-h2')), findsOneWidget);
+  });
+
   testWidgets('shows error and Retry when fetch fails', (tester) async {
     final repo = _FakeRepository(fetchError: Exception('boom'));
     await tester.pumpWidget(_wrap(repo: repo));
@@ -158,6 +226,22 @@ void main() {
     repo.hosts = [_server(id: 'h1'), _server(id: 'h2')];
     await container.read(hostListProvider.notifier).refresh();
     final refreshed = await container.read(hostListProvider.future);
+    expect(refreshed, hasLength(2));
+  });
+
+  testWidgets('group list provider can refresh on demand', (tester) async {
+    final repo = _FakeRepository(groups: [_group()]);
+    final container = ProviderContainer(
+      overrides: [serverRepositoryProvider.overrideWithValue(repo)],
+    );
+    addTearDown(container.dispose);
+
+    final initial = await container.read(groupListProvider.future);
+    expect(initial, hasLength(1));
+
+    repo.groups = [_group(), _group(id: 'g2', name: 'Overseas', index: 2)];
+    await container.read(groupListProvider.notifier).refresh();
+    final refreshed = await container.read(groupListProvider.future);
     expect(refreshed, hasLength(2));
   });
 

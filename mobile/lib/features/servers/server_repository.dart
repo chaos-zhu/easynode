@@ -7,12 +7,14 @@ import '../../core/api/api_result.dart';
 import '../../core/crypto/aes_gcm_crypto.dart';
 import '../../core/crypto/rsa_crypto.dart';
 import '../terminal/ssh_connection_config.dart';
+import 'server_group_model.dart';
 import 'server_model.dart';
 
 /// Backs the server list page and the connect action. The interface lets
 /// widget tests inject a fake without touching real HTTP / RSA code.
 abstract class ServerRepository {
   Future<List<ServerModel>> fetchHosts();
+  Future<List<ServerGroupModel>> fetchGroups();
   Future<SshConnectionConfig> fetchSshConfig(String hostId);
 }
 
@@ -44,6 +46,20 @@ class ApiServerRepository implements ServerRepository {
         .whereType<Map<String, dynamic>>()
         .map(ServerModel.fromJson)
         .toList(growable: false);
+  }
+
+  /// Fetch the server group list. Server returns `{ data: [group...] }`.
+  @override
+  Future<List<ServerGroupModel>> fetchGroups() async {
+    final response = await _api.getJson('/group');
+    final raw = response['data'];
+    if (raw is! List) return const [];
+    final groups = raw
+        .whereType<Map<String, dynamic>>()
+        .map(ServerGroupModel.fromJson)
+        .toList(growable: false);
+    groups.sort((a, b) => b.index.compareTo(a.index));
+    return groups;
   }
 
   /// Request decrypted SSH connection parameters for [hostId].
