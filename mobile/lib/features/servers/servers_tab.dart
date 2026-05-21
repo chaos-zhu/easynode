@@ -241,71 +241,82 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         final effectiveGroupId = _effectiveSelectedGroupId(groups);
         final filtered = _filterByGroup(searched, effectiveGroupId);
         final sessions = manager.sessions.length;
-        return ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+        return Column(
           children: [
-            _ServersSummary(
-              total: servers.length,
-              visible: filtered.length,
-              activeTerminals: sessions,
-              onOpenTerminals: sessions > 0 ? _openShell : null,
-              onCloseAllTerminals:
-                  sessions > 0 ? _confirmCloseAllTerminals : null,
-            ),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeInOut,
-              alignment: Alignment.topCenter,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-                child: _searchVisible
-                    ? Padding(
-                        key: const ValueKey('search-field'),
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: TextField(
-                          controller: _searchCtrl,
-                          autofocus: true,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.search),
-                            hintText: l.tr('servers.searchHint'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          onChanged: (value) => setState(
-                            () => _query = value.trim().toLowerCase(),
-                          ),
-                        ),
-                      )
-                    : const SizedBox(
-                        key: ValueKey('search-empty'),
-                        width: double.infinity,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ActiveTerminalBanner(
+                    count: sessions,
+                    onTap: _openShell,
+                    onCloseAll: _confirmCloseAllTerminals,
+                  ),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeInOut,
+                    alignment: Alignment.topCenter,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: child,
                       ),
+                      child: _searchVisible
+                          ? Padding(
+                              key: const ValueKey('search-field'),
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: TextField(
+                                controller: _searchCtrl,
+                                autofocus: true,
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(Icons.search),
+                                  hintText: l.tr('servers.searchHint'),
+                                  border: const OutlineInputBorder(),
+                                ),
+                                onChanged: (value) => setState(
+                                  () => _query = value.trim().toLowerCase(),
+                                ),
+                              ),
+                            )
+                          : const SizedBox(
+                              key: ValueKey('search-empty'),
+                              width: double.infinity,
+                            ),
+                    ),
+                  ),
+                  _ServerGroupFilter(
+                    groups: groups,
+                    servers: searched,
+                    selectedGroupId: effectiveGroupId,
+                    onSelected: (groupId) => setState(() {
+                      _selectedGroupId = groupId;
+                    }),
+                  ),
+                ],
               ),
             ),
-            _ServerGroupFilter(
-              groups: groups,
-              servers: searched,
-              selectedGroupId: effectiveGroupId,
-              onSelected: (groupId) => setState(() {
-                _selectedGroupId = groupId;
-              }),
+            Expanded(
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+                children: [
+                  if (servers.isEmpty)
+                    _MessageState(message: l.tr('servers.emptyHint'))
+                  else if (filtered.isEmpty)
+                    _MessageState(message: l.tr('servers.emptyFiltered'))
+                  else
+                    for (final server in filtered)
+                      _ServerCard(
+                        server: server,
+                        state: this,
+                      ),
+                ],
+              ),
             ),
-            if (servers.isEmpty)
-              _MessageState(message: l.tr('servers.emptyHint'))
-            else if (filtered.isEmpty)
-              _MessageState(message: l.tr('servers.emptyFiltered'))
-            else
-              for (final server in filtered)
-                _ServerCard(
-                  server: server,
-                  state: this,
-                ),
           ],
         );
       },
@@ -468,146 +479,66 @@ class _GroupPill extends StatelessWidget {
   }
 }
 
-class _ServersSummary extends StatelessWidget {
-  const _ServersSummary({
-    required this.total,
-    required this.visible,
-    required this.activeTerminals,
-    required this.onOpenTerminals,
-    required this.onCloseAllTerminals,
+class _ActiveTerminalBanner extends StatelessWidget {
+  const _ActiveTerminalBanner({
+    required this.count,
+    required this.onTap,
+    required this.onCloseAll,
   });
 
-  final int total;
-  final int visible;
-  final int activeTerminals;
-  final VoidCallback? onOpenTerminals;
-  final VoidCallback? onCloseAllTerminals;
+  final int count;
+  final VoidCallback onTap;
+  final VoidCallback onCloseAll;
 
   @override
   Widget build(BuildContext context) {
+    if (count == 0) return const SizedBox.shrink();
     final colors = Theme.of(context).colorScheme;
     final l = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: _MetricPill(
-              icon: Icons.dns_outlined,
-              value: visible == total ? '$total' : '$visible/$total',
-              color: colors.primaryContainer,
-              foreground: colors.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _MetricPill(
-              icon: Icons.terminal,
-              value: '$activeTerminals',
-              color: colors.tertiaryContainer,
-              foreground: colors.onTertiaryContainer,
-              onTap: onOpenTerminals,
-              trailing: activeTerminals > 0
-                  ? _CloseTerminalsButton(
-                      tooltip: l.tr('servers.closeAllTooltip'),
-                      foreground: colors.onTertiaryContainer,
-                      onPressed: onCloseAllTerminals,
-                    )
-                  : null,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricPill extends StatelessWidget {
-  const _MetricPill({
-    required this.icon,
-    required this.value,
-    required this.color,
-    required this.foreground,
-    this.onTap,
-    this.trailing,
-  });
-
-  final IconData icon;
-  final String value;
-  final Color color;
-  final Color foreground;
-  final VoidCallback? onTap;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          height: 42,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: 18, color: foreground),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      value,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: foreground,
-                        fontWeight: FontWeight.w700,
-                      ),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: colors.primaryContainer,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Icon(Icons.layers, color: colors.onPrimaryContainer),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    count == 1
+                        ? l.tr('servers.activeTerminalsOne')
+                        : l.trf('servers.activeTerminalsMany', [count]),
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colors.onPrimaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: colors.onPrimaryContainer),
+                const SizedBox(width: 4),
+                InkResponse(
+                  onTap: onCloseAll,
+                  radius: 16,
+                  child: Tooltip(
+                    message: l.tr('servers.closeAllTooltip'),
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: colors.onPrimaryContainer,
                     ),
                   ),
-                ],
-              ),
-              if (trailing != null)
-                Positioned(
-                  right: -6,
-                  child: trailing!,
                 ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _CloseTerminalsButton extends StatelessWidget {
-  const _CloseTerminalsButton({
-    required this.tooltip,
-    required this.foreground,
-    required this.onPressed,
-  });
-
-  final String tooltip;
-  final Color foreground;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: IconButton(
-        visualDensity: VisualDensity.compact,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-        style: IconButton.styleFrom(
-          backgroundColor: foreground.withValues(alpha: 0.10),
-          foregroundColor: foreground,
-        ),
-        icon: const Icon(Icons.layers_clear, size: 16),
-        onPressed: onPressed,
       ),
     );
   }
