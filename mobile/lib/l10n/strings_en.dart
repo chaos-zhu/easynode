@@ -212,6 +212,8 @@ const Map<String, String> stringsEn = {
   'editor.unsaved': 'Unsaved',
   'editor.format': 'Format',
   'editor.save': 'Save',
+  'editor.undo': 'Undo',
+  'editor.redo': 'Redo',
   'editor.discardTitle': 'Discard changes?',
   'editor.discardBody': 'Unsaved edits will be lost. Leave?',
   'editor.discardKeepEditing': 'Keep editing',

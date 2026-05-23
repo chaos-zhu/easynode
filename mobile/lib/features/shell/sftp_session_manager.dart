@@ -862,13 +862,3 @@ class SftpBinaryFileException implements Exception {
   @override
   String toString() => 'SftpBinaryFileException($path)';
 }
-
-class SftpTextFileData {
-  const SftpTextFileData({
-    required this.bytes,
-    required this.malformedUtf8,
-  });
-
-  final Uint8List bytes;
-  final bool malformedUtf8;
-}

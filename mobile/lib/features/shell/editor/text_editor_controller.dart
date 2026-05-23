@@ -29,12 +29,10 @@ class TextEditorController extends ChangeNotifier {
 
   String _originalText;
   bool _saving = false;
-  String? _lastError;
 
   bool get isDirty => code.text != _originalText;
   bool get saving => _saving;
   bool get canFormat => language.formatSupported;
-  String? get lastError => _lastError;
 
   void _onCodeChanged() {
     notifyListeners();
@@ -43,14 +41,12 @@ class TextEditorController extends ChangeNotifier {
   Future<void> save() async {
     if (_saving) return;
     _saving = true;
-    _lastError = null;
     notifyListeners();
     try {
       final content = code.text;
       await _writer.writeTextFile(remotePath, content);
       _originalText = content;
-    } catch (error) {
-      _lastError = error.toString();
+    } catch (_) {
       rethrow;
     } finally {
       _saving = false;

@@ -124,6 +124,7 @@ class _TextEditorPageState extends State<TextEditorPage> {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return AppBar(
       backgroundColor: _EditorPalette.appBarBg,
       foregroundColor: Colors.white,
@@ -147,12 +148,12 @@ class _TextEditorPageState extends State<TextEditorPage> {
       ),
       actions: [
         IconButton(
-          tooltip: 'Undo',
+          tooltip: l.tr('editor.undo'),
           icon: const Icon(Icons.undo),
           onPressed: _controller.code.canUndo ? _controller.code.undo : null,
         ),
         IconButton(
-          tooltip: 'Redo',
+          tooltip: l.tr('editor.redo'),
           icon: const Icon(Icons.redo),
           onPressed: _controller.code.canRedo ? _controller.code.redo : null,
         ),

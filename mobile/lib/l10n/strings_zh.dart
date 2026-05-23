@@ -201,6 +201,8 @@ const Map<String, String> stringsZh = {
   'editor.unsaved': '未保存',
   'editor.format': '格式化',
   'editor.save': '保存',
+  'editor.undo': '撤销',
+  'editor.redo': '重做',
   'editor.discardTitle': '放弃修改？',
   'editor.discardBody': '当前修改未保存，确定离开？',
   'editor.discardKeepEditing': '继续编辑',
