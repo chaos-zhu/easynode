@@ -6,6 +6,15 @@ import '../../l10n/app_localizations.dart';
 import 'auth_session.dart';
 import 'login_controller.dart';
 
+const _loginCanvas = Color(0xFFF7EFE0);
+const _loginSurface = Color(0xFFFBF5E6);
+const _loginField = Color(0xFFF4ECD7);
+const _loginBorder = Color(0xFFE2D5B3);
+const _loginAccent = Color(0xFFE5B33A);
+const _loginInk = Color(0xFF2A2418);
+const _loginMuted = Color(0xFF9A8B68);
+const _loginStrongMuted = Color(0xFF6B5E3F);
+
 class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
@@ -129,134 +138,310 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final spacing = const SizedBox(height: 14);
     return Scaffold(
-      backgroundColor: colors.surfaceContainerLowest,
+      backgroundColor: _loginCanvas,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-              children: [
-                _LoginHero(
-                  title: l.tr('app.title'),
-                  subtitle: l.tr('app.subtitle'),
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  elevation: 0,
-                  color: colors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    side: BorderSide(color: colors.outlineVariant),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextField(
-                          key: const Key('field-server'),
-                          controller: _serverCtrl,
-                          focusNode: _serverFocus,
-                          keyboardType: TextInputType.url,
-                          textInputAction: TextInputAction.next,
-                          onSubmitted: (_) => _userFocus.requestFocus(),
-                          decoration: InputDecoration(
-                            labelText: l.tr('login.serverAddress'),
-                            hintText: l.tr('login.serverAddressHint'),
-                            prefixIcon: const Icon(Icons.dns_outlined),
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                        spacing,
-                        TextField(
-                          key: const Key('field-username'),
-                          controller: _userCtrl,
-                          focusNode: _userFocus,
-                          textInputAction: TextInputAction.next,
-                          onSubmitted: (_) => _passwordFocus.requestFocus(),
-                          decoration: InputDecoration(
-                            labelText: l.tr('login.username'),
-                            prefixIcon: const Icon(Icons.person_outline),
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                        spacing,
-                        TextField(
-                          key: const Key('field-password'),
-                          controller: _pwdCtrl,
-                          focusNode: _passwordFocus,
-                          obscureText: true,
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) => _submit(),
-                          decoration: InputDecoration(
-                            labelText: l.tr('login.password'),
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                        spacing,
-                        TextField(
-                          key: const Key('field-mfa'),
-                          controller: _mfaCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: l.tr('login.mfa'),
-                            prefixIcon: const Icon(Icons.pin_outlined),
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        _ExpiryPicker(
-                          value: _expiry,
-                          onChanged: (value) => setState(() => _expiry = value),
-                        ),
-                        const SizedBox(height: 8),
-                        SwitchListTile(
-                          key: const Key('switch-save-password'),
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(l.tr('login.savePassword')),
-                          secondary: const Icon(Icons.enhanced_encryption),
-                          value: _savePassword,
-                          onChanged: (value) =>
-                              setState(() => _savePassword = value),
-                        ),
-                        if (_showHttpRiskBanner) ...[
-                          spacing,
-                          _HttpRiskBanner(onConfirm: _acceptHttpRiskAndSubmit),
-                        ],
-                        if (_errorMessage != null) ...[
-                          spacing,
-                          _ErrorBox(message: _errorMessage!),
-                        ],
-                        const SizedBox(height: 18),
-                        SizedBox(
-                          height: 48,
-                          child: FilledButton.icon(
-                            key: const Key('btn-login'),
-                            onPressed: _submitting ? null : _submit,
-                            icon: _submitting
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.login),
-                            label: Text(l.tr('login.submit')),
-                          ),
-                        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                    children: [
+                      _LoginHero(
+                        title: l.tr('app.title'),
+                        subtitle: l.tr('app.subtitle'),
+                      ),
+                      const SizedBox(height: 22),
+                      _LoginFormCard(
+                        serverCtrl: _serverCtrl,
+                        userCtrl: _userCtrl,
+                        passwordCtrl: _pwdCtrl,
+                        mfaCtrl: _mfaCtrl,
+                        serverFocus: _serverFocus,
+                        userFocus: _userFocus,
+                        passwordFocus: _passwordFocus,
+                        onSubmit: _submit,
+                      ),
+                      const SizedBox(height: 24),
+                      _ExpiryPicker(
+                        value: _expiry,
+                        onChanged: (value) => setState(() => _expiry = value),
+                      ),
+                      const SizedBox(height: 8),
+                      _SavePasswordRow(
+                        value: _savePassword,
+                        onChanged: (value) =>
+                            setState(() => _savePassword = value),
+                      ),
+                      if (_showHttpRiskBanner) ...[
+                        const SizedBox(height: 14),
+                        _HttpRiskBanner(onConfirm: _acceptHttpRiskAndSubmit),
                       ],
-                    ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 14),
+                        _ErrorBox(message: _errorMessage!),
+                      ],
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
+            _LoginBottomBar(
+              submitting: _submitting,
+              onSubmit: _submit,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LoginFormCard extends StatelessWidget {
+  const _LoginFormCard({
+    required this.serverCtrl,
+    required this.userCtrl,
+    required this.passwordCtrl,
+    required this.mfaCtrl,
+    required this.serverFocus,
+    required this.userFocus,
+    required this.passwordFocus,
+    required this.onSubmit,
+  });
+
+  final TextEditingController serverCtrl;
+  final TextEditingController userCtrl;
+  final TextEditingController passwordCtrl;
+  final TextEditingController mfaCtrl;
+  final FocusNode serverFocus;
+  final FocusNode userFocus;
+  final FocusNode passwordFocus;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+      decoration: BoxDecoration(
+        color: _loginSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _loginBorder),
+      ),
+      child: Column(
+        children: [
+          _LoginTextField(
+            fieldKey: const Key('field-server'),
+            controller: serverCtrl,
+            focusNode: serverFocus,
+            label: l.tr('login.serverAddress'),
+            hint: l.tr('login.serverAddressHint'),
+            icon: Icons.dns_outlined,
+            keyboardType: TextInputType.url,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => userFocus.requestFocus(),
+          ),
+          const SizedBox(height: 14),
+          _LoginTextField(
+            fieldKey: const Key('field-username'),
+            controller: userCtrl,
+            focusNode: userFocus,
+            label: l.tr('login.username'),
+            icon: Icons.person_outline,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => passwordFocus.requestFocus(),
+          ),
+          const SizedBox(height: 14),
+          _LoginTextField(
+            fieldKey: const Key('field-password'),
+            controller: passwordCtrl,
+            focusNode: passwordFocus,
+            label: l.tr('login.password'),
+            icon: Icons.lock_outline,
+            obscureText: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => onSubmit(),
+          ),
+          const SizedBox(height: 14),
+          _LoginTextField(
+            fieldKey: const Key('field-mfa'),
+            controller: mfaCtrl,
+            label: l.tr('login.mfa'),
+            icon: Icons.pin_outlined,
+            keyboardType: TextInputType.number,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoginTextField extends StatelessWidget {
+  const _LoginTextField({
+    required this.fieldKey,
+    required this.controller,
+    required this.label,
+    required this.icon,
+    this.focusNode,
+    this.hint,
+    this.keyboardType,
+    this.textInputAction,
+    this.onSubmitted,
+    this.obscureText = false,
+  });
+
+  final Key fieldKey;
+  final TextEditingController controller;
+  final FocusNode? focusNode;
+  final String label;
+  final String? hint;
+  final IconData icon;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final bool obscureText;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      key: fieldKey,
+      controller: controller,
+      focusNode: focusNode,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted,
+      obscureText: obscureText,
+      style: const TextStyle(
+        color: _loginInk,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, size: 18, color: _loginStrongMuted),
+        filled: true,
+        fillColor: _loginField,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
+        labelStyle: const TextStyle(
+          color: _loginMuted,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+        floatingLabelStyle: const TextStyle(
+          color: _loginStrongMuted,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        hintStyle: const TextStyle(color: _loginStrongMuted, fontSize: 13),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _loginBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _loginAccent, width: 1.2),
+        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+}
+
+class _SavePasswordRow extends StatelessWidget {
+  const _SavePasswordRow({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          const Icon(
+            Icons.shield_outlined,
+            color: _loginStrongMuted,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l.tr('login.savePassword'),
+              style: const TextStyle(
+                color: _loginStrongMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Switch(
+            key: const Key('switch-save-password'),
+            value: value,
+            activeThumbColor: _loginSurface,
+            activeTrackColor: _loginAccent,
+            inactiveThumbColor: _loginSurface,
+            inactiveTrackColor: _loginBorder,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoginBottomBar extends StatelessWidget {
+  const _LoginBottomBar({required this.submitting, required this.onSubmit});
+
+  final bool submitting;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      decoration: const BoxDecoration(
+        color: _loginSurface,
+        border: Border(top: BorderSide(color: _loginBorder)),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: FilledButton.icon(
+          key: const Key('btn-login'),
+          onPressed: submitting ? null : onSubmit,
+          style: FilledButton.styleFrom(
+            backgroundColor: _loginAccent,
+            foregroundColor: const Color(0xFF5C4520),
+            disabledBackgroundColor: _loginBorder,
+            disabledForegroundColor: _loginMuted,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          icon: submitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF5C4520),
+                  ),
+                )
+              : const Icon(Icons.arrow_forward, size: 18),
+          label: Text(
+            l.tr('login.submit'),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
       ),
@@ -273,41 +458,37 @@ class _LoginHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
           width: 56,
           height: 56,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Image.asset(
             'assets/logo_v2_01.png',
             fit: BoxFit.cover,
           ),
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-            ],
+        const SizedBox(height: 12),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: _loginInk,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: _loginMuted,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -323,17 +504,17 @@ class _HttpRiskBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: colors.errorContainer,
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFFFE8BF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE6A23C)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber, color: colors.onErrorContainer),
+          const Icon(Icons.warning_amber, color: Color(0xFF7A4A00), size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -341,20 +522,27 @@ class _HttpRiskBanner extends StatelessWidget {
               children: [
                 Text(
                   l.tr('login.httpRiskTitle'),
-                  style: TextStyle(
-                    color: colors.onErrorContainer,
+                  style: const TextStyle(
+                    color: Color(0xFF7A4A00),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   l.tr('login.httpRiskBody'),
-                  style: TextStyle(color: colors.onErrorContainer),
+                  style: const TextStyle(
+                    color: Color(0xFF7A4A00),
+                    fontSize: 13,
+                    height: 1.35,
+                  ),
                 ),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: onConfirm,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF7A4A00),
+                    ),
                     child: Text(l.tr('common.continue')),
                   ),
                 ),
@@ -374,22 +562,27 @@ class _ErrorBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Container(
       key: const Key('login-error'),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: colors.errorContainer,
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFFFE7DE),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE28B75)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.error_outline, color: colors.onErrorContainer),
+          const Icon(Icons.error_outline, color: Color(0xFF8B2B1C), size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: TextStyle(color: colors.onErrorContainer),
+              style: const TextStyle(
+                color: Color(0xFF8B2B1C),
+                fontSize: 13,
+                height: 1.35,
+              ),
             ),
           ),
         ],
@@ -419,18 +612,37 @@ class _ExpiryPicker extends StatelessWidget {
       children: [
         Text(
           l.tr('login.sessionDuration'),
-          style: theme.textTheme.labelLarge,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: _loginStrongMuted,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 8),
         Wrap(
-          spacing: 8,
+          spacing: 10,
           runSpacing: 8,
           children: [
             for (final entry in _optionKeys.entries)
               ChoiceChip(
-                label: Text(l.tr(entry.value)),
                 selected: entry.key == value,
                 showCheckmark: false,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+                backgroundColor: _loginSurface,
+                selectedColor: const Color(0xFFF7E4B0),
+                side: BorderSide(
+                  color: entry.key == value ? _loginAccent : _loginBorder,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                labelStyle: TextStyle(
+                  color: entry.key == value ? _loginInk : _loginStrongMuted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+                label: Text(l.tr(entry.value)),
                 onSelected: (_) => onChanged(entry.key),
               ),
           ],

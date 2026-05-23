@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/features/servers/server_form_data.dart';
 import 'package:mobile/features/servers/server_model.dart';
 import 'package:mobile/features/servers/server_group_model.dart';
 import 'package:mobile/features/servers/server_repository.dart';
@@ -54,6 +55,23 @@ class _FakeRepository implements ServerRepository {
   Future<List<ServerGroupModel>> fetchGroups() async {
     if (groupFetchError != null) throw groupFetchError!;
     return groups;
+  }
+
+  @override
+  Future<String> createHost(ServerFormData form) async {
+    hosts = [...hosts, _server(id: 'created', group: form.group)];
+    return 'success';
+  }
+
+  @override
+  Future<String> updateHost(ServerFormData form) async {
+    return 'success';
+  }
+
+  @override
+  Future<String> deleteHost(String hostId) async {
+    hosts = hosts.where((host) => host.id != hostId).toList(growable: false);
+    return 'success';
   }
 
   @override

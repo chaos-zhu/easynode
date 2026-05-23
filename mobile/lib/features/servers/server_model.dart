@@ -13,6 +13,10 @@ class ServerModel {
     required this.authType,
     required this.connectType,
     required this.group,
+    required this.index,
+    required this.proxyType,
+    required this.jumpHosts,
+    required this.proxyServer,
     required this.tag,
     required this.expired,
     required this.isConfig,
@@ -26,6 +30,10 @@ class ServerModel {
   final String authType;
   final String connectType;
   final String group;
+  final int index;
+  final String proxyType;
+  final List<String> jumpHosts;
+  final String proxyServer;
   final List<String> tag;
   final bool expired;
   final bool isConfig;
@@ -33,11 +41,18 @@ class ServerModel {
   factory ServerModel.fromJson(Map<String, dynamic> json) {
     final id = (json['id'] ?? json['_id'] ?? '').toString();
     final tagRaw = json['tag'];
+    final jumpHostsRaw = json['jumpHosts'];
     final List<String> tag;
     if (tagRaw is List) {
       tag = tagRaw.map((e) => e.toString()).toList(growable: false);
     } else {
       tag = const [];
+    }
+    final List<String> jumpHosts;
+    if (jumpHostsRaw is List) {
+      jumpHosts = jumpHostsRaw.map((e) => e.toString()).toList(growable: false);
+    } else {
+      jumpHosts = const [];
     }
     final portRaw = json['port'];
     final int port;
@@ -57,10 +72,20 @@ class ServerModel {
       authType: (json['authType'] ?? '').toString(),
       connectType: (json['connectType'] ?? '').toString(),
       group: (json['group'] ?? '').toString(),
+      index: _parseInt(json['index'], fallback: 0),
+      proxyType: (json['proxyType'] ?? '').toString(),
+      jumpHosts: jumpHosts,
+      proxyServer: (json['proxyServer'] ?? '').toString(),
       tag: tag,
       expired: json['expired'] == true,
       isConfig: json['isConfig'] == true,
     );
+  }
+
+  static int _parseInt(Object? value, {required int fallback}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
   }
 
   /// Whether the connect button should be enabled. The server marks hosts

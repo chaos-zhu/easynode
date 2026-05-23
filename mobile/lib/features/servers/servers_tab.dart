@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/api/api_result.dart';
 import '../../l10n/app_localizations.dart';
@@ -9,6 +8,7 @@ import '../../state/auth_notifier.dart';
 import '../../state/group_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/terminal_providers.dart';
+import 'server_form_page.dart';
 import 'server_group_model.dart';
 import '../terminal/ssh_connection_config.dart';
 import '../terminal/terminal_shell_page.dart';
@@ -28,6 +28,7 @@ class ServersTab extends ConsumerStatefulWidget {
 class _ServersTabState extends ConsumerState<ServersTab> {
   final TextEditingController _searchCtrl = TextEditingController();
   final Set<String> _connectingIds = {};
+  final Set<String> _expandedServerIds = {};
   String? _selectedGroupId;
   String _query = '';
   bool _searchVisible = false;
@@ -94,6 +95,118 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     );
   }
 
+  Future<void> _openForm({ServerModel? server}) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => ServerFormPage(server: server)),
+    );
+    if (changed == true) {
+      await _refresh();
+    }
+  }
+
+  Future<void> _confirmDelete(ServerModel server) async {
+    final l = AppLocalizations.of(context);
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        var deleting = false;
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Future<void> delete() async {
+              setDialogState(() => deleting = true);
+              try {
+                final message =
+                    await ref.read(serverRepositoryProvider).deleteHost(server.id);
+                if (!mounted) return;
+                setState(() => _expandedServerIds.remove(server.id));
+                await _refresh();
+                if (!mounted) return;
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(message)),
+                );
+              } catch (error) {
+                if (!mounted) return;
+                if (error is UnauthorizedFailure) {
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                  await ref.read(authProvider.notifier).signOut();
+                  return;
+                }
+                if (dialogContext.mounted) {
+                  setDialogState(() => deleting = false);
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      l.trf('servers.deleteFailed', [error.toString()]),
+                    ),
+                  ),
+                );
+              }
+            }
+
+            return PopScope(
+              canPop: !deleting,
+              child: AlertDialog(
+                title: Text(l.tr('servers.deleteConfirmTitle')),
+                content: Text(
+                  l.trf('servers.deleteConfirmBody', [server.displayName]),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: deleting
+                        ? null
+                        : () => Navigator.of(dialogContext).pop(),
+                    child: Text(l.tr('common.cancel')),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _ServerPalette.danger,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                          _ServerPalette.danger.withValues(alpha: 0.62),
+                      disabledForegroundColor: Colors.white,
+                    ),
+                    onPressed: deleting ? null : delete,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 160),
+                      child: deleting
+                          ? Row(
+                              key: const ValueKey('deleting'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(l.tr('common.delete')),
+                              ],
+                            )
+                          : Text(
+                              l.tr('common.delete'),
+                              key: const ValueKey('delete-label'),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _toggleSearch() {
     setState(() {
       _searchVisible = !_searchVisible;
@@ -144,55 +257,10 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     final l = AppLocalizations.of(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Image.asset(
-                'assets/logo_v2_01.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(l.tr('servers.title')),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip:
-                _searchVisible ? l.tr('common.closeSearch') : l.tr('common.search'),
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              transitionBuilder: (child, animation) => RotationTransition(
-                turns: Tween<double>(begin: 0.75, end: 1).animate(animation),
-                child: FadeTransition(opacity: animation, child: child),
-              ),
-              child: Icon(
-                _searchVisible ? Icons.close : Icons.search,
-                key: ValueKey<bool>(_searchVisible),
-              ),
-            ),
-            onPressed: _toggleSearch,
-          ),
-          IconButton(
-            tooltip: l.tr('servers.addServer'),
-            icon: const Icon(Icons.add),
-            onPressed: null,
-          ),
-        ],
-      ),
+      backgroundColor: _ServerPalette.canvas,
       body: RefreshIndicator(
-        color: Theme.of(context).colorScheme.primary,
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        color: _ServerPalette.primary,
+        backgroundColor: _ServerPalette.card,
         displacement: 30,
         edgeOffset: 6,
         strokeWidth: 2,
@@ -200,6 +268,59 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         child: AnimatedBuilder(
           animation: manager,
           builder: (context, _) => _buildBody(hostsAsync, groupsAsync, manager),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(AppLocalizations l) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: SizedBox(
+        height: 56,
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _ServerPalette.accent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '>_',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              l.tr('servers.title'),
+              style: const TextStyle(
+                color: _ServerPalette.text,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const Spacer(),
+            _HeaderIconButton(
+              tooltip:
+                  _searchVisible ? l.tr('common.closeSearch') : l.tr('common.search'),
+              icon: _searchVisible ? Icons.close : Icons.search,
+              onPressed: _toggleSearch,
+            ),
+            const SizedBox(width: 4),
+            _HeaderIconButton(
+              tooltip: l.tr('servers.addServer'),
+              icon: Icons.add,
+              onPressed: () => _openForm(),
+            ),
+          ],
         ),
       ),
     );
@@ -237,14 +358,15 @@ class _ServersTabState extends ConsumerState<ServersTab> {
       },
       data: (servers) {
         final groups = groupsAsync.valueOrNull ?? const <ServerGroupModel>[];
-        final searched = _searchedServers(servers);
+        final searched = _searchedServers(servers, groups);
         final effectiveGroupId = _effectiveSelectedGroupId(groups);
         final filtered = _filterByGroup(searched, effectiveGroupId);
         final sessions = manager.sessions.length;
         return Column(
           children: [
+            _buildHeader(l),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -272,10 +394,30 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                               child: TextField(
                                 controller: _searchCtrl,
                                 autofocus: true,
+                                cursorColor: _ServerPalette.primary,
                                 decoration: InputDecoration(
                                   prefixIcon: const Icon(Icons.search),
                                   hintText: l.tr('servers.searchHint'),
-                                  border: const OutlineInputBorder(),
+                                  filled: true,
+                                  fillColor: _ServerPalette.card,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: _ServerPalette.border,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: _ServerPalette.border,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: _ServerPalette.primary,
+                                    ),
+                                  ),
                                 ),
                                 onChanged: (value) => setState(
                                   () => _query = value.trim().toLowerCase(),
@@ -313,6 +455,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                       _ServerCard(
                         server: server,
                         state: this,
+                        groupName: _groupDisplayName(server, groups),
                       ),
                 ],
               ),
@@ -323,15 +466,20 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     );
   }
 
-  List<ServerModel> _searchedServers(List<ServerModel> servers) {
+  List<ServerModel> _searchedServers(
+    List<ServerModel> servers,
+    List<ServerGroupModel> groups,
+  ) {
     if (_query.isEmpty) return servers;
     return servers
         .where((server) {
+          final groupName = _groupDisplayName(server, groups);
           final haystack = [
             server.name,
             server.host,
             server.username,
             server.group,
+            groupName,
             ...server.tag,
           ].join(' ').toLowerCase();
           return haystack.contains(_query);
@@ -361,10 +509,28 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     return groupId.isEmpty ? 'default' : groupId;
   }
 
+  String _groupDisplayName(
+    ServerModel server,
+    List<ServerGroupModel> groups,
+  ) {
+    final groupId = _normalizedGroupId(server.group);
+    for (final group in groups) {
+      if (group.id == groupId) return group.displayName;
+    }
+    return server.group;
+  }
+
   String _actionText(ServerModel server) {
     final l = AppLocalizations.of(context);
     if (!server.isConfig) return l.tr('servers.notConfigured');
     return l.tr('common.connect');
+  }
+
+  String _authTypeLabel(ServerModel server) {
+    final l = AppLocalizations.of(context);
+    if (server.authType.isEmpty) return l.tr('servers.authFallback');
+    if (server.authType == 'password') return l.tr('servers.auth.password');
+    return l.tr('servers.auth.privateKey');
   }
 }
 
@@ -444,12 +610,16 @@ class _GroupPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final background = selected ? colors.primary : colors.surface;
-    final foreground = selected ? colors.onPrimary : colors.onSurfaceVariant;
+    final background = selected ? _ServerPalette.primary : Colors.transparent;
+    final foreground = selected ? _ServerPalette.card : _ServerPalette.muted;
     return Material(
       color: background,
-      borderRadius: BorderRadius.circular(18),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: selected
+            ? BorderSide.none
+            : const BorderSide(color: _ServerPalette.border),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
@@ -467,7 +637,7 @@ class _GroupPill extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: foreground,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   ),
                 ),
               ),
@@ -493,21 +663,24 @@ class _ActiveTerminalBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (count == 0) return const SizedBox.shrink();
-    final colors = Theme.of(context).colorScheme;
     final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: colors.primaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        color: _ServerPalette.banner,
+        borderRadius: BorderRadius.circular(10),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
-                Icon(Icons.layers, color: colors.onPrimaryContainer),
+                const Icon(
+                  Icons.layers_outlined,
+                  size: 18,
+                  color: _ServerPalette.primary,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -516,12 +689,16 @@ class _ActiveTerminalBanner extends StatelessWidget {
                         : l.trf('servers.activeTerminalsMany', [count]),
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colors.onPrimaryContainer,
-                          fontWeight: FontWeight.w600,
+                          color: _ServerPalette.primary,
+                          fontWeight: FontWeight.w700,
                         ),
                   ),
                 ),
-                Icon(Icons.chevron_right, color: colors.onPrimaryContainer),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: _ServerPalette.primary,
+                ),
                 const SizedBox(width: 4),
                 InkResponse(
                   onTap: onCloseAll,
@@ -531,7 +708,7 @@ class _ActiveTerminalBanner extends StatelessWidget {
                     child: Icon(
                       Icons.close,
                       size: 18,
-                      color: colors.onPrimaryContainer,
+                      color: _ServerPalette.softMuted,
                     ),
                   ),
                 ),
@@ -548,73 +725,105 @@ class _ServerCard extends StatelessWidget {
   const _ServerCard({
     required this.server,
     required this.state,
+    required this.groupName,
   });
 
   final ServerModel server;
   final _ServersTabState state;
+  final String groupName;
 
   @override
   Widget build(BuildContext context) {
     final connecting = state._connectingIds.contains(server.id);
+    final expanded = state._expandedServerIds.contains(server.id);
     final l = AppLocalizations.of(context);
-    final colors = Theme.of(context).colorScheme;
-    final statusColor = server.canConnect
-        ? colors.primary
-        : colors.onSurfaceVariant;
-    final iconAsset = server.isWindows
-        ? 'assets/windows.svg'
-        : 'assets/linux.svg';
-    return Card(
+    final proxyLabel = switch (server.proxyType) {
+      'proxyServer' => l.tr('servers.proxy.proxyServerShort'),
+      'jumpHosts' => l.tr('servers.proxy.jumpHostsShort'),
+      _ => '-',
+    };
+    return Container(
       key: Key('server-${server.id}'),
-      elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 6),
-      color: colors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: colors.outlineVariant),
+      decoration: BoxDecoration(
+        color: _ServerPalette.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: expanded ? _ServerPalette.strongBorder : _ServerPalette.border,
+        ),
+        boxShadow: expanded
+            ? [
+                BoxShadow(
+                  color: _ServerPalette.primary.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+        padding: EdgeInsets.fromLTRB(14, 14, 14, expanded ? 16 : 14),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: SvgPicture.asset(
-                    iconAsset,
-                    fit: BoxFit.contain,
-                  ),
-                ),
+                _ServerOsIcon(enabled: server.canConnect),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        server.displayName,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => state._openForm(server: server),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            server.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ServerPalette.text,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            server.connectionLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ServerPalette.softMuted,
+                              fontSize: 12,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        server.connectionLabel,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                _IconPillButton(
+                  tooltip: expanded ? 'Collapse' : 'Expand',
+                  icon: expanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  highlighted: expanded,
+                  onTap: () {
+                    state.setState(() {
+                      if (expanded) {
+                        state._expandedServerIds.remove(server.id);
+                      } else {
+                        state._expandedServerIds.add(server.id);
+                      }
+                    });
+                  },
                 ),
               ],
             ),
@@ -626,54 +835,251 @@ class _ServerCard extends StatelessWidget {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      _InfoChip(
-                        label: server.authType.isEmpty
-                            ? l.tr('servers.authFallback')
-                            : server.authType,
-                      ),
-                      if (server.group.isNotEmpty)
-                        _InfoChip(label: server.group),
+                      if (groupName.isNotEmpty)
+                        _InfoChip(label: groupName),
                     ],
                   ),
                 ),
                 const SizedBox(width: 10),
-                SizedBox(
-                  height: 40,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 160),
-                    child: connecting
-                        ? const SizedBox(
-                            key: ValueKey('connecting'),
-                            width: 96,
-                            child: Center(
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            ),
-                          )
-                        : FilledButton.icon(
-                            key: const ValueKey('connect-button'),
-                            onPressed: server.canConnect || server.isWindows
-                                ? () => state._connect(server)
-                                : null,
-                            icon: Icon(
-                              server.canConnect
-                                  ? Icons.play_arrow
-                                  : Icons.lock_outline,
-                              size: 18,
-                            ),
-                            label: Text(state._actionText(server)),
-                          ),
-                  ),
+                _ConnectButton(
+                  connecting: connecting,
+                  label: state._actionText(server),
+                  enabled: server.canConnect || server.isWindows,
+                  onPressed: () => state._connect(server),
                 ),
               ],
             ),
+            AnimatedCrossFade(
+              firstChild: const SizedBox(width: double.infinity),
+              secondChild: Column(
+                children: [
+                  const SizedBox(height: 14),
+                  const Divider(height: 1, color: _ServerPalette.border),
+                  const SizedBox(height: 12),
+                  _ServerDetailRow(
+                    icon: Icons.tag_outlined,
+                    label: l.tr('servers.field.index'),
+                    value: '#${server.index}',
+                  ),
+                  _ServerDetailRow(
+                    icon: Icons.folder_outlined,
+                    label: l.tr('servers.field.group'),
+                    value: groupName.isEmpty ? '-' : groupName,
+                  ),
+                  _ServerDetailRow(
+                    icon: Icons.sell_outlined,
+                    label: l.tr('servers.field.tags'),
+                    value: server.tag.isEmpty ? '-' : server.tag.join(', '),
+                  ),
+                  _ServerDetailRow(
+                    icon: Icons.key_outlined,
+                    label: l.tr('servers.field.authType'),
+                    value: state._authTypeLabel(server),
+                  ),
+                  _ServerDetailRow(
+                    icon: Icons.hub_outlined,
+                    label: l.tr('servers.field.proxyType'),
+                    value: proxyLabel,
+                    emphasized:
+                        server.proxyType != 'none' && server.proxyType.isNotEmpty,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _SecondaryActionButton(
+                          icon: Icons.delete_outline,
+                          label: l.tr('common.delete'),
+                          destructive: true,
+                          onTap: () => state._confirmDelete(server),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _SecondaryActionButton(
+                          icon: Icons.edit_outlined,
+                          label: l.tr('servers.editServer'),
+                          onTap: () => state._openForm(server: server),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              crossFadeState:
+                  expanded
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 180),
+              sizeCurve: Curves.easeOut,
+            ),
           ],
         ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        radius: 22,
+        onTap: onPressed,
+        child: SizedBox(
+          width: 36,
+          height: 36,
+          child: Icon(icon, color: _ServerPalette.muted, size: 22),
+        ),
+      ),
+    );
+  }
+}
+
+class _IconPillButton extends StatelessWidget {
+  const _IconPillButton({
+    required this.tooltip,
+    required this.icon,
+    required this.highlighted,
+    required this.onTap,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final bool highlighted;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: highlighted ? _ServerPalette.banner : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: Icon(
+              icon,
+              size: 20,
+              color: highlighted ? _ServerPalette.primary : _ServerPalette.softMuted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ServerOsIcon extends StatelessWidget {
+  const _ServerOsIcon({required this.enabled});
+
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: enabled ? _ServerPalette.banner : _ServerPalette.chip,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(
+        Icons.monitor_outlined,
+        size: 22,
+        color: enabled ? _ServerPalette.primary : _ServerPalette.muted,
+      ),
+    );
+  }
+}
+
+class _ConnectButton extends StatelessWidget {
+  const _ConnectButton({
+    required this.connecting,
+    required this.label,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final bool connecting;
+  final String label;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 34,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 160),
+        child: connecting
+            ? const SizedBox(
+                key: ValueKey('connecting'),
+                width: 82,
+                child: Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: _ServerPalette.primary,
+                    ),
+                  ),
+                ),
+              )
+            : Material(
+                key: const ValueKey('connect-button'),
+                color: enabled ? _ServerPalette.primary : _ServerPalette.border,
+                borderRadius: BorderRadius.circular(999),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: enabled ? onPressed : null,
+                  child: SizedBox(
+                    height: 34,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          enabled ? Icons.play_arrow_rounded : Icons.lock_outline,
+                          size: 17,
+                          color: enabled ? _ServerPalette.card : _ServerPalette.muted,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: enabled ? _ServerPalette.card : _ServerPalette.muted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ),
+                ),
+              ),
       ),
     );
   }
@@ -686,17 +1092,131 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: colors.secondaryContainer,
+        color: _ServerPalette.banner,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: colors.onSecondaryContainer,
+          color: _ServerPalette.primary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _ServerDetailRow extends StatelessWidget {
+  const _ServerDetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.emphasized = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18,
+            child: Icon(icon, size: 15, color: _ServerPalette.softMuted),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 72,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _ServerPalette.softMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color:
+                    emphasized ? _ServerPalette.primary : _ServerPalette.text,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SecondaryActionButton extends StatelessWidget {
+  const _SecondaryActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.destructive = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground =
+        destructive ? _ServerPalette.danger : _ServerPalette.muted;
+    final background =
+        destructive ? _ServerPalette.dangerSoft : _ServerPalette.chip;
+    final border = destructive ? _ServerPalette.dangerBorder : _ServerPalette.border;
+    return Material(
+      color: background,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: border),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: SizedBox(
+          height: 36,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: foreground),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -712,7 +1232,31 @@ class _MessageState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 56),
-      child: Center(child: Text(message, textAlign: TextAlign.center)),
+      child: Center(
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: _ServerPalette.muted),
+        ),
+      ),
     );
   }
+}
+
+abstract final class _ServerPalette {
+  static const canvas = Color(0xFFF7EFE0);
+  static const card = Color(0xFFFBF5E6);
+  static const chip = Color(0xFFF4ECD7);
+  static const banner = Color(0xFFF7E4B0);
+  static const accent = Color(0xFFE5B33A);
+  static const primary = Color(0xFF5C4520);
+  static const text = Color(0xFF2A2418);
+  static const muted = Color(0xFF6B5E3F);
+  static const softMuted = Color(0xFF9A8B68);
+  static const border = Color(0xFFE2D5B3);
+  static const strongBorder = Color(0xFFC9B98D);
+  static const success = Color(0xFF5A8E3A);
+  static const danger = Color(0xFFB9473D);
+  static const dangerSoft = Color(0xFFFFECE8);
+  static const dangerBorder = Color(0xFFF2C4BC);
 }

@@ -5,8 +5,10 @@ import 'dart:typed_data';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_result.dart';
 import '../../core/crypto/aes_gcm_crypto.dart';
+import '../../core/crypto/crypto_js_aes.dart';
 import '../../core/crypto/rsa_crypto.dart';
 import '../terminal/ssh_connection_config.dart';
+import 'server_form_data.dart';
 import 'server_group_model.dart';
 import 'server_model.dart';
 
@@ -15,6 +17,9 @@ import 'server_model.dart';
 abstract class ServerRepository {
   Future<List<ServerModel>> fetchHosts();
   Future<List<ServerGroupModel>> fetchGroups();
+  Future<String> createHost(ServerFormData form);
+  Future<String> updateHost(ServerFormData form);
+  Future<String> deleteHost(String hostId);
   Future<SshConnectionConfig> fetchSshConfig(String hostId);
 }
 
@@ -60,6 +65,40 @@ class ApiServerRepository implements ServerRepository {
         .toList(growable: false);
     groups.sort((a, b) => b.index.compareTo(a.index));
     return groups;
+  }
+
+  @override
+  Future<String> createHost(ServerFormData form) async {
+    final response = await _api.postJson('/host-save', _prepareHostPayload(form));
+    return response['msg']?.toString() ?? 'success';
+  }
+
+  @override
+  Future<String> updateHost(ServerFormData form) async {
+    final response = await _api.putJson('/host-save', _prepareHostPayload(form));
+    return response['msg']?.toString() ?? 'success';
+  }
+
+  @override
+  Future<String> deleteHost(String hostId) async {
+    final response = await _api.postJson('/host-remove', {
+      'ids': [hostId],
+    });
+    return response['data']?.toString() ??
+        response['msg']?.toString() ??
+        'success';
+  }
+
+  Map<String, dynamic> _prepareHostPayload(ServerFormData form) {
+    final payload = form.toJson();
+    final authType = payload['authType']?.toString() ?? '';
+    final secret = payload[authType]?.toString() ?? '';
+    if (authType.isNotEmpty && secret.isNotEmpty) {
+      final tempKey = _randomText(16);
+      payload[authType] = encryptCryptoJsAes(secret, tempKey, random: _random);
+      payload['tempKey'] = _rsa.encryptPassword(_publicKeyPem, tempKey);
+    }
+    return payload;
   }
 
   /// Request decrypted SSH connection parameters for [hostId].
@@ -114,6 +153,16 @@ class ApiServerRepository implements ServerRepository {
       bytes[i] = _random.nextInt(256);
     }
     return bytes;
+  }
+
+  String _randomText(int length) {
+    const chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678';
+    return String.fromCharCodes(
+      List<int>.generate(
+        length,
+        (_) => chars.codeUnitAt(_random.nextInt(chars.length)),
+      ),
+    );
   }
 
   /// Expose so [ApiServerRepository] can be JSON-serialized in widget tests.
