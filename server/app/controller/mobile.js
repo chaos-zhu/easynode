@@ -1,29 +1,131 @@
 const { RSADecryptAsync } = require('../utils/encrypt')
 const { encryptJsonForMobile } = require('../utils/mobile-crypto')
-// `getConnectionOptions` is lazily required inside the handler. Loading
-// `../socket/terminal` at module scope pulls in `terminal-session` which
-// touches `global.logger`, and that global is only populated once the server
-// has booted via `app/main.js`. Pure unit tests for `toMobileSshPayload`
-// would otherwise crash with `ReferenceError: logger is not defined`.
+const { HostListDB } = require('../utils/db-class')
 
-function toMobileSshPayload(hostId, name, authInfo) {
+// `getConnectionOptions` and `getProxyConfig` are lazily required inside
+// functions. Loading `../socket/terminal` at module scope pulls in
+// `terminal-session`, which expects `global.logger` to exist after app boot.
+const hostListDB = new HostListDB().getInstance()
+
+function normalizePort(port) {
+  const numericPort = Number(port)
+  return Number.isFinite(numericPort) && numericPort > 0 ? numericPort : 22
+}
+
+function normalizeMobileAuthPayload(hostId, name, authInfo = {}) {
   const { host, port, username, authType } = authInfo
   if (!['password', 'privateKey'].includes(authType)) {
     throw new Error(`unsupported mobile ssh auth type: ${ authType || 'empty' }`)
   }
 
-  const numericPort = Number(port)
   return {
     hostId,
     name,
-    host,
-    port: Number.isFinite(numericPort) && numericPort > 0 ? numericPort : 22,
-    username,
+    host: host || '',
+    port: normalizePort(port),
+    username: username || '',
     authType,
     password: authType === 'password' ? authInfo.password || '' : '',
     privateKey: authType === 'privateKey' ? authInfo.privateKey || '' : '',
     passphrase: authType === 'privateKey' ? authInfo.passphrase || '' : ''
   }
+}
+
+function normalizeMobileProxy(proxy = {}) {
+  if (proxy.type !== 'socks5') {
+    throw new Error(`unsupported mobile proxy type: ${ proxy.type || 'empty' }`)
+  }
+
+  return {
+    id: proxy.id || proxy._id || '',
+    name: proxy.name || '',
+    type: proxy.type,
+    host: proxy.host || '',
+    port: normalizePort(proxy.port),
+    username: proxy.username || '',
+    password: proxy.password || ''
+  }
+}
+
+function normalizeMobileJumpHost(jumpHost) {
+  const authInfo = jumpHost.authInfo || jumpHost
+  return normalizeMobileAuthPayload(
+    jumpHost.hostId || jumpHost._id || authInfo.hostId || authInfo._id,
+    jumpHost.name || authInfo.name,
+    authInfo
+  )
+}
+
+function toMobileSshPayload(hostId, name, authInfo, topology = {}) {
+  const payload = normalizeMobileAuthPayload(hostId, name, authInfo)
+  const proxyType = topology.proxyType || ''
+
+  if (proxyType === 'proxyServer') {
+    if (!topology.proxy) {
+      throw new Error('mobile proxy is required')
+    }
+
+    return {
+      ...payload,
+      proxyType,
+      proxy: normalizeMobileProxy(topology.proxy),
+      jumpHosts: []
+    }
+  }
+
+  if (proxyType === 'jumpHosts') {
+    if (!Array.isArray(topology.jumpHosts) || topology.jumpHosts.length === 0) {
+      throw new Error('mobile jump host chain is empty')
+    }
+
+    return {
+      ...payload,
+      proxyType,
+      proxy: null,
+      jumpHosts: topology.jumpHosts.map(normalizeMobileJumpHost)
+    }
+  }
+
+  if (proxyType) {
+    throw new Error(`unsupported mobile proxy type: ${ proxyType }`)
+  }
+
+  return {
+    ...payload,
+    proxyType: '',
+    proxy: null,
+    jumpHosts: []
+  }
+}
+
+async function getMobileConnectionTopology(hostInfo = {}) {
+  const { proxyType } = hostInfo
+
+  if (proxyType === 'proxyServer') {
+    const { getProxyConfig } = require('../socket/terminal')
+    return {
+      proxyType,
+      proxy: await getProxyConfig(hostInfo.proxyServer)
+    }
+  }
+
+  if (proxyType === 'jumpHosts') {
+    const jumpHosts = Array.isArray(hostInfo.jumpHosts) ? hostInfo.jumpHosts : []
+    const { getConnectionOptions } = require('../socket/terminal')
+    return {
+      proxyType,
+      jumpHosts: await Promise.all(jumpHosts.map(async (jumpHostId) => {
+        const { authInfo, name } = await getConnectionOptions(jumpHostId)
+        return {
+          hostId: jumpHostId,
+          name,
+          ...authInfo
+        }
+      }))
+    }
+  }
+
+  return {}
 }
 
 async function getMobileSshConnection({ request, res }) {
@@ -35,10 +137,14 @@ async function getMobileSshConnection({ request, res }) {
 
     const tempKeyText = await RSADecryptAsync(encryptedKey)
     const tempKey = Buffer.from(tempKeyText, 'base64')
-    // Lazy require — see top-of-file comment.
     const { getConnectionOptions } = require('../socket/terminal')
     const { authInfo, name } = await getConnectionOptions(hostId)
-    const payload = toMobileSshPayload(hostId, name, authInfo)
+    const hostInfo = await hostListDB.findOneAsync({ _id: hostId })
+    if (!hostInfo) {
+      throw new Error(`Host with ID ${ hostId } not found`)
+    }
+    const topology = await getMobileConnectionTopology(hostInfo)
+    const payload = toMobileSshPayload(hostId, name, authInfo, topology)
     const data = encryptJsonForMobile(payload, tempKey)
 
     return res.success({ data, msg: 'success' })
@@ -51,5 +157,9 @@ async function getMobileSshConnection({ request, res }) {
 
 module.exports = {
   getMobileSshConnection,
+  getMobileConnectionTopology,
+  normalizePort,
+  normalizeMobileAuthPayload,
+  normalizeMobileProxy,
   toMobileSshPayload
 }
