@@ -14,6 +14,8 @@ import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/terminal_providers.dart';
+import 'editor/editor_text_sniffer.dart';
+import 'editor/text_editor_page.dart';
 import 'sftp_session_manager.dart';
 
 class SftpTab extends ConsumerStatefulWidget {
@@ -213,6 +215,8 @@ class _SftpConnectedView extends StatelessWidget {
                               manager.openPath(
                                 manager.entryPath(session, entry),
                               );
+                            } else {
+                              _openInEditor(context, manager, session, entry);
                             }
                           },
                           onLongPress: () {
@@ -242,6 +246,48 @@ class _SftpConnectedView extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _openInEditor(
+    BuildContext context,
+    SftpSessionManager manager,
+    SftpSessionState session,
+    SftpFileEntry entry,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final remotePath = manager.entryPath(session, entry);
+    try {
+      final bytes = await manager.readTextFile(remotePath);
+      if (!context.mounted) return;
+      final sniff = sniffAndDecode(bytes);
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => TextEditorPage(
+            manager: manager,
+            remotePath: remotePath,
+            fileName: entry.name,
+            initialText: sniff.text,
+            malformedUtf8: sniff.malformedUtf8,
+            totalBytes: bytes.length,
+          ),
+        ),
+      );
+      if (!context.mounted) return;
+      await manager.refreshActive();
+    } on SftpFileTooLargeException {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.tr('editor.tooLarge'))));
+    } on SftpBinaryFileException {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.tr('editor.binary'))));
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.trf('editor.readFailed', [error.toString()]))),
+      );
+    }
   }
 
   void _showFileActionSheet(
