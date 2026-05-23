@@ -54,6 +54,13 @@ String? _fileExtension(String name) {
   return name.substring(dot + 1).toLowerCase();
 }
 
+String _basenameLower(String name) {
+  final normalized = name.replaceAll('\\', '/');
+  final slash = normalized.lastIndexOf('/');
+  final base = slash < 0 ? normalized : normalized.substring(slash + 1);
+  return base.toLowerCase();
+}
+
 bool isKnownBinaryExtension(String name) {
   final ext = _fileExtension(name);
   if (ext == null) return false;
@@ -63,6 +70,27 @@ bool isKnownBinaryExtension(String name) {
 bool hasFileExtension(String name) => _fileExtension(name) != null;
 
 EditorLanguage detectFromFileName(String name) {
+  final base = _basenameLower(name);
+  switch (base) {
+    case 'nginx.conf':
+      return EditorLanguage(
+        id: 'Nginx',
+        highlightMode: langNginx,
+        defaultIndent: 2,
+      );
+    case 'caddyfile':
+      return EditorLanguage(
+        id: 'Caddyfile',
+        highlightMode: langNginx,
+        defaultIndent: 2,
+      );
+    case 'dockerfile':
+      return EditorLanguage(
+        id: 'Dockerfile',
+        highlightMode: langDockerfile,
+        defaultIndent: 2,
+      );
+  }
   final ext = _fileExtension(name);
   if (ext == null) {
     return _plainText;

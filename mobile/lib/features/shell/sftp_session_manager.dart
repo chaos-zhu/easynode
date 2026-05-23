@@ -71,6 +71,7 @@ class SftpSessionState extends ChangeNotifier {
   bool loadingDirectory = false;
   bool showHidden = false;
   String? lastError;
+  String? connectPhase;
 
   bool get isConnected => status == SftpConnectionStatus.connected;
   bool get hasSelection => selectedNames.isNotEmpty;
@@ -176,6 +177,7 @@ class SftpSessionManager extends ChangeNotifier {
       lastError: null,
       selectedNames: <String>{},
     );
+    state.connectPhase = 'transport';
     notifyListeners();
 
     try {
@@ -192,6 +194,8 @@ class SftpSessionManager extends ChangeNotifier {
             : null,
         identities: identities,
       );
+      state.connectPhase = 'channel';
+      notifyListeners();
       final sftp = await client.sftp();
       _connections[server.id] = _SftpConnection(
         client: client,
@@ -199,13 +203,19 @@ class SftpSessionManager extends ChangeNotifier {
         transport: transport,
       );
 
-      final initial = await _resolveInitialPath(sftp, config.username);
-      final entries = await _listDirectory(sftp, initial, state.showHidden);
-      final favorites = await loadFavorites?.call(server.id) ?? const [];
+      state.connectPhase = 'listing';
+      notifyListeners();
+      final results = await Future.wait<Object?>([
+        _resolveInitialPathAndList(sftp, config.username, state.showHidden),
+        _safeLoadFavorites(loadFavorites, server.id),
+      ]);
+      final listing = results[0] as _InitialListing;
+      final favorites = results[1] as List<SftpFavorite>;
+      state.connectPhase = null;
       state.update(
         status: SftpConnectionStatus.connected,
-        currentPath: initial,
-        entries: entries,
+        currentPath: listing.path,
+        entries: listing.entries,
         favorites: favorites,
         loadingDirectory: false,
         lastError: null,
@@ -215,6 +225,7 @@ class SftpSessionManager extends ChangeNotifier {
       return state;
     } catch (error) {
       await _connections.remove(server.id)?.close();
+      state.connectPhase = null;
       state.update(
         status: SftpConnectionStatus.error,
         loadingDirectory: false,
@@ -608,24 +619,55 @@ class SftpSessionManager extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<String> _resolveInitialPath(SftpClient sftp, String username) async {
+  Future<_InitialListing> _resolveInitialPathAndList(
+    SftpClient sftp,
+    String username,
+    bool showHidden,
+  ) async {
     if (username == 'root') {
       try {
-        await sftp.listdir('/root');
-        return '/root';
+        final names = await sftp.listdir('/root');
+        return _InitialListing(
+          path: '/root',
+          entries: _filterAndSort(names, showHidden),
+        );
       } catch (_) {
-        return '/';
+        // fall through to '/'
       }
     }
     try {
-      await sftp.listdir('/');
-      return '/';
+      final names = await sftp.listdir('/');
+      return _InitialListing(
+        path: '/',
+        entries: _filterAndSort(names, showHidden),
+      );
     } catch (_) {
       try {
-        return await sftp.absolute('.');
+        final absolute = await sftp.absolute('.');
+        final names = await sftp.listdir(absolute);
+        return _InitialListing(
+          path: absolute,
+          entries: _filterAndSort(names, showHidden),
+        );
       } catch (_) {
-        return '~';
+        final names = await sftp.listdir('.');
+        return _InitialListing(
+          path: '~',
+          entries: _filterAndSort(names, showHidden),
+        );
       }
+    }
+  }
+
+  Future<List<SftpFavorite>> _safeLoadFavorites(
+    Future<List<SftpFavorite>> Function(String hostId)? loader,
+    String hostId,
+  ) async {
+    if (loader == null) return const [];
+    try {
+      return await loader(hostId);
+    } catch (_) {
+      return const [];
     }
   }
 
@@ -635,6 +677,10 @@ class SftpSessionManager extends ChangeNotifier {
     bool showHidden,
   ) async {
     final names = await sftp.listdir(path == '~' ? '.' : path);
+    return _filterAndSort(names, showHidden);
+  }
+
+  List<SftpFileEntry> _filterAndSort(List<SftpName> names, bool showHidden) {
     final entries = names
         .where((item) => item.filename != '.' && item.filename != '..')
         .where((item) => showHidden || !item.filename.startsWith('.'))
@@ -832,6 +878,13 @@ class _SftpConnection {
     client.close();
     await transport.close();
   }
+}
+
+class _InitialListing {
+  const _InitialListing({required this.path, required this.entries});
+
+  final String path;
+  final List<SftpFileEntry> entries;
 }
 
 extension on String {

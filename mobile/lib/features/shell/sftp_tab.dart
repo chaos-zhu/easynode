@@ -128,7 +128,10 @@ class _SftpTabState extends ConsumerState<SftpTab> {
               final session = manager.activeSession;
               if (_connecting ||
                   session?.status == SftpConnectionStatus.connecting) {
-                return _SftpConnectingView(server: session?.server);
+                return _SftpConnectingView(
+                  server: session?.server,
+                  phase: session?.connectPhase,
+                );
               }
               if (session == null) {
                 return ListView(
@@ -758,14 +761,43 @@ class _SftpToolbar extends StatelessWidget {
               ? Icons.folder_outlined
               : Icons.insert_drive_file_outlined,
           favorite.path,
-          () {
-            final target = favorite.type == 'folder'
-                ? favorite.path
-                : SftpSessionManager.parentPath(favorite.path);
-            manager.openPath(target);
-          },
+          () => _openFavorite(context, favorite),
         ),
     ]);
+  }
+
+  Future<void> _openFavorite(
+    BuildContext context,
+    SftpFavorite favorite,
+  ) async {
+    if (favorite.type == 'folder') {
+      await manager.openPath(favorite.path);
+      return;
+    }
+    final parent = SftpSessionManager.parentPath(favorite.path);
+    final fileName = _favoriteBasename(favorite.path);
+    await manager.openPath(parent);
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TextEditorPage(
+          manager: manager,
+          remotePath: favorite.path,
+          fileName: fileName,
+        ),
+      ),
+    );
+    if (!context.mounted) return;
+    await manager.refreshActive();
+  }
+
+  String _favoriteBasename(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final trimmed = normalized.endsWith('/') && normalized.length > 1
+        ? normalized.substring(0, normalized.length - 1)
+        : normalized;
+    final index = trimmed.lastIndexOf('/');
+    return index < 0 ? trimmed : trimmed.substring(index + 1);
   }
 
   Future<void> _showNameDialog(
@@ -1469,13 +1501,20 @@ class _SftpFileRow extends StatelessWidget {
 }
 
 class _SftpConnectingView extends StatelessWidget {
-  const _SftpConnectingView({required this.server});
+  const _SftpConnectingView({required this.server, this.phase});
 
   final ServerModel? server;
+  final String? phase;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final phaseLabel = switch (phase) {
+      'transport' => l.tr('sftp.phase.transport'),
+      'channel' => l.tr('sftp.phase.channel'),
+      'listing' => l.tr('sftp.phase.listing'),
+      _ => l.tr('sftp.connecting'),
+    };
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 120, 16, 24),
@@ -1494,7 +1533,7 @@ class _SftpConnectingView extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               Text(
-                l.tr('sftp.connecting'),
+                phaseLabel,
                 style: const TextStyle(
                   color: _SftpPalette.text,
                   fontSize: 18,
