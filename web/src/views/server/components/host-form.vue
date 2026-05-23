@@ -439,7 +439,22 @@ const rules = computed(() => {
     name: { required: !isBatchModify.value, message: '输入实例别名', trigger: 'change' },
     host: { required: !isBatchModify.value, message: '输入IP/域名', trigger: 'change' },
     port: { required: !isBatchModify.value, type: 'number', message: '输入ssh端口', trigger: 'change' },
-    jumpHosts: { required: false, type: 'array' },
+    credential: {
+      required: isSSH.value && hostForm.value.authType === 'credential',
+      message: '选择一个凭据',
+      trigger: 'change'
+    },
+    jumpHosts: {
+      required: isSSH.value && hostForm.value.proxyType === 'jumpHosts',
+      type: 'array',
+      message: '选择至少一个跳板机',
+      trigger: 'change'
+    },
+    proxyServer: {
+      required: isSSH.value && hostForm.value.proxyType === 'proxyServer',
+      message: '选择一个代理服务',
+      trigger: 'change'
+    },
     index: { required: !isBatchModify.value, type: 'number', message: '输入数字', trigger: 'change' },
     // password: [{ required: hostForm.authType === 'password', trigger: 'change' },],
     // privateKey: [{ required: hostForm.authType === 'privateKey', trigger: 'change' },],
