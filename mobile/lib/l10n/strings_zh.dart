@@ -215,4 +215,11 @@ const Map<String, String> stringsZh = {
   'editor.statusPosition': 'Ln {0}, Col {1}',
   'editor.statusLineCount': '{0} / {1}',
   'editor.statusSpaces': 'Spaces: {0}',
+  'editor.settings': '编辑器设置',
+  'editor.fontSize': '字体大小',
+  'editor.wordWrap': '自动换行',
+  'editor.theme': '主题',
+  'editor.themeDark': '深色',
+  'editor.themeLight': '浅色',
+  'editor.settingsDone': '完成',
 };

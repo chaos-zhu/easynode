@@ -13,6 +13,9 @@ class AppStorage {
   static const _keyUsername = 'username';
   static const _keySavePassword = 'savePassword';
   static const _keyLocale = 'locale';
+  static const _keyEditorFontSize = 'editor.fontSize';
+  static const _keyEditorWordWrap = 'editor.wordWrap';
+  static const _keyEditorTheme = 'editor.theme';
 
   String get serverAddress => _prefs.getString(_keyServerAddress) ?? '';
   Future<void> setServerAddress(String value) => _prefs.setString(_keyServerAddress, value);
@@ -38,4 +41,27 @@ class AppStorage {
       await _prefs.setString(_keyLocale, value);
     }
   }
+
+  static const editorFontSizeMin = 10;
+  static const editorFontSizeMax = 24;
+  static const editorFontSizeDefault = 13;
+
+  int get editorFontSize {
+    final value = _prefs.getInt(_keyEditorFontSize) ?? editorFontSizeDefault;
+    if (value < editorFontSizeMin) return editorFontSizeMin;
+    if (value > editorFontSizeMax) return editorFontSizeMax;
+    return value;
+  }
+
+  Future<void> setEditorFontSize(int value) =>
+      _prefs.setInt(_keyEditorFontSize, value);
+
+  bool get editorWordWrap => _prefs.getBool(_keyEditorWordWrap) ?? false;
+  Future<void> setEditorWordWrap(bool value) =>
+      _prefs.setBool(_keyEditorWordWrap, value);
+
+  /// `'dark'` (default) or `'light'`.
+  String get editorTheme => _prefs.getString(_keyEditorTheme) ?? 'dark';
+  Future<void> setEditorTheme(String value) =>
+      _prefs.setString(_keyEditorTheme, value);
 }

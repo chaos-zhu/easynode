@@ -226,4 +226,11 @@ const Map<String, String> stringsEn = {
   'editor.statusPosition': 'Ln {0}, Col {1}',
   'editor.statusLineCount': '{0} / {1}',
   'editor.statusSpaces': 'Spaces: {0}',
+  'editor.settings': 'Editor settings',
+  'editor.fontSize': 'Font size',
+  'editor.wordWrap': 'Word wrap',
+  'editor.theme': 'Theme',
+  'editor.themeDark': 'Dark',
+  'editor.themeLight': 'Light',
+  'editor.settingsDone': 'Done',
 };
