@@ -5,8 +5,9 @@ import '../../core/api/api_result.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
-import '../../state/group_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
+import '../../state/group_list_notifier.dart';
+import '../../state/server_data_refresh.dart';
 import '../../state/terminal_providers.dart';
 import 'server_form_page.dart';
 import 'server_group_model.dart';
@@ -40,10 +41,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
   }
 
   Future<void> _refresh() async {
-    await Future.wait([
-      ref.read(groupListProvider.notifier).refresh(),
-      ref.read(hostListProvider.notifier).refresh(),
-    ]);
+    await refreshServerSharedData(ref);
   }
 
   Future<void> _connect(ServerModel server) async {

@@ -63,11 +63,16 @@ class ServerFormData {
       port: server.port,
       username: server.username,
       authType: server.authType.isEmpty ? 'privateKey' : server.authType,
+      credential: server.credential ?? '',
       index: server.index,
       proxyType: server.proxyType,
       jumpHosts: server.jumpHosts,
       proxyServer: server.proxyServer,
+      expired: server.expiredAt,
+      expiredNotify: server.expiredNotify,
+      consoleUrl: server.consoleUrl,
       tag: server.tag,
+      command: server.command,
     );
   }
 

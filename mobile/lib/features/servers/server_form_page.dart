@@ -3,11 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
+import '../../state/credential_list_notifier.dart';
 import '../../state/group_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
+import '../../state/proxy_list_notifier.dart';
+import '../../state/server_data_refresh.dart';
+import 'server_credential_model.dart';
 import 'server_form_data.dart';
 import 'server_group_model.dart';
 import 'server_model.dart';
+import 'server_proxy_model.dart';
 
 class ServerFormPage extends ConsumerStatefulWidget {
   const ServerFormPage({super.key, this.server});
@@ -33,6 +38,7 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
 
   late ServerFormData _form;
   bool _saving = false;
+  bool _advancedOpen = true;
 
   @override
   void initState() {
@@ -72,7 +78,7 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
     _passwordCtrl.text = _form.password;
     _privateKeyCtrl.text = _form.privateKey;
     _consoleUrlCtrl.text = _form.consoleUrl;
-    _tagsCtrl.text = _form.tag.join(', ');
+    _tagsCtrl.text = _form.tag.join(',');
     _commandCtrl.text = _form.command;
   }
 
@@ -81,89 +87,61 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
     final l = AppLocalizations.of(context);
     final groups = ref.watch(groupListProvider).valueOrNull ?? const <ServerGroupModel>[];
     final hosts = ref.watch(hostListProvider).valueOrNull ?? const <ServerModel>[];
+    final credentials = ref.watch(credentialListProvider).valueOrNull ??
+        const <ServerCredentialModel>[];
+    final proxies =
+        ref.watch(proxyListProvider).valueOrNull ?? const <ServerProxyModel>[];
     final jumpHostOptions = hosts
         .where((host) => host.isConfig && host.id != _form.id)
         .toList(growable: false);
+
     return Scaffold(
+      backgroundColor: _FormColors.surface,
       appBar: AppBar(
+        backgroundColor: _FormColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         title: Text(_form.isEdit ? l.tr('servers.editServer') : l.tr('servers.addServer')),
-        actions: [
-          TextButton(
-            onPressed: _saving ? null : _save,
-            child: Text(l.tr('common.save')),
-          ),
-        ],
+      ),
+      bottomNavigationBar: _BottomSaveBar(
+        saving: _saving,
+        label: _form.isEdit ? l.tr('common.save') : l.tr('servers.addServer'),
+        onPressed: _saving ? null : _save,
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            _Section(
+            _ConnectionTypeSegment(
+              value: _form.connectType,
+              onChanged: _changeConnectType,
+            ),
+            const SizedBox(height: 14),
+            _CardSection(
+              title: l.tr('servers.section.instance'),
               children: [
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: 'ssh',
-                      icon: Icon(Icons.terminal),
-                      label: Text('SSH'),
-                    ),
-                    ButtonSegment(
-                      value: 'rdp',
-                      icon: Icon(Icons.desktop_windows_outlined),
-                      label: Text('RDP'),
-                    ),
-                  ],
-                  selected: {_form.connectType},
-                  onSelectionChanged: (values) {
-                    final next = values.first;
-                    setState(() {
-                      _form.connectType = next;
-                      if (!_form.isEdit) {
-                        if (next == 'rdp') {
-                          _form.port = 3389;
-                          _form.username = 'Administrator';
-                          _form.authType = 'password';
-                        } else {
-                          _form.port = 22;
-                          _form.username = 'root';
-                          _form.authType = 'privateKey';
-                        }
-                        _portCtrl.text = _form.port.toString();
-                        _usernameCtrl.text = _form.username;
-                      }
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
+                _GroupSelector(
+                  label: l.tr('servers.field.group'),
                   value: _normalizeGroupValue(groups),
-                  decoration: InputDecoration(labelText: l.tr('servers.field.group')),
-                  items: groups
-                      .map(
-                        (group) => DropdownMenuItem(
-                          value: group.id,
-                          child: Text(group.displayName),
-                        ),
-                      )
-                      .toList(growable: false),
+                  groups: groups,
                   onChanged: (value) => _form.group = value ?? 'default',
                   validator: (value) =>
                       value == null || value.isEmpty ? l.tr('servers.validation.group') : null,
                 ),
-                const SizedBox(height: 12),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      flex: 3,
                       child: _TextField(
                         controller: _nameCtrl,
                         label: l.tr('servers.field.name'),
                         validator: (value) => _required(value, l.tr('servers.validation.name')),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 110,
                       child: _TextField(
                         controller: _indexCtrl,
                         label: l.tr('servers.field.index'),
@@ -176,23 +154,30 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _CardSection(
+              title: l.tr('servers.section.connection'),
+              children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      flex: 3,
                       child: _TextField(
                         controller: _hostCtrl,
                         label: l.tr('servers.field.host'),
+                        mono: true,
                         validator: (value) => _required(value, l.tr('servers.validation.host')),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 110,
                       child: _TextField(
                         controller: _portCtrl,
                         label: l.tr('servers.field.port'),
+                        mono: true,
                         keyboardType: TextInputType.number,
                         validator: (value) => _requiredInt(
                           value,
@@ -202,161 +187,147 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
                 _TextField(
                   controller: _usernameCtrl,
                   label: l.tr('servers.field.username'),
+                  mono: true,
                 ),
-                const SizedBox(height: 12),
                 if (_form.isSsh) ...[
-                  DropdownButtonFormField<String>(
+                  _AuthTypeSegment(
                     value: _form.authType,
-                    decoration: InputDecoration(labelText: l.tr('servers.field.authType')),
-                    items: [
-                      DropdownMenuItem(
-                        value: 'privateKey',
-                        child: Text(l.tr('servers.auth.privateKey')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'password',
-                        child: Text(l.tr('servers.auth.password')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'credential',
-                        child: Text(l.tr('servers.auth.credential')),
-                      ),
-                    ],
-                    onChanged: (value) => setState(() {
-                      _form.authType = value ?? 'privateKey';
-                    }),
+                    onChanged: (value) => setState(() => _form.authType = value),
                   ),
-                  const SizedBox(height: 12),
-                ],
-                if (_form.isRdp || _form.authType == 'password')
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topCenter,
+                    child: _AuthField(
+                      key: ValueKey(_form.authType),
+                      form: _form,
+                      passwordCtrl: _passwordCtrl,
+                      privateKeyCtrl: _privateKeyCtrl,
+                      credentials: credentials,
+                      onCredentialChanged: (value) => setState(() {
+                        _form.credential = value ?? '';
+                      }),
+                    ),
+                  ),
+                ] else
                   _TextField(
                     controller: _passwordCtrl,
                     label: l.tr('servers.field.password'),
                     obscureText: true,
                     helperText: _form.isEdit ? l.tr('servers.secretEditHint') : null,
-                  )
-                else if (_form.authType == 'privateKey')
-                  _TextField(
-                    controller: _privateKeyCtrl,
-                    label: l.tr('servers.field.privateKey'),
-                    minLines: 5,
-                    maxLines: 8,
-                    helperText: _form.isEdit ? l.tr('servers.secretEditHint') : null,
-                  )
-                else
-                  Text(l.tr('servers.credentialUnsupported')),
-                const SizedBox(height: 12),
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  childrenPadding: EdgeInsets.zero,
-                  title: Text(l.tr('servers.advanced')),
-                  children: [
-                    if (_form.isSsh) ...[
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          l.tr('servers.field.proxyType'),
-                          style: Theme.of(context).textTheme.labelLarge,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _CardSection(
+              title: l.tr('servers.advanced'),
+              trailing: IconButton(
+                visualDensity: VisualDensity.compact,
+                onPressed: () => setState(() => _advancedOpen = !_advancedOpen),
+                icon: Icon(
+                  _advancedOpen
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: _FormColors.textMuted,
+                ),
+              ),
+              children: _advancedOpen
+                  ? [
+                      if (_form.isSsh) ...[
+                        _ProxyTypeSegment(
+                          value: _form.proxyType,
+                          onChanged: _changeProxyType,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: [
-                            ChoiceChip(
-                              label: Text(l.tr('servers.proxy.none')),
-                              selected: _form.proxyType == '',
-                              onSelected: (_) => setState(() {
-                                _form.proxyType = '';
-                                _form.jumpHosts = const [];
-                              }),
-                            ),
-                            ChoiceChip(
-                              label: Text(l.tr('servers.proxy.proxyServer')),
-                              selected: _form.proxyType == 'proxyServer',
-                              onSelected: (_) => setState(() {
-                                _form.proxyType = 'proxyServer';
-                                _form.jumpHosts = const [];
-                              }),
-                            ),
-                            ChoiceChip(
-                              label: Text(l.tr('servers.proxy.jumpHosts')),
-                              selected: _form.proxyType == 'jumpHosts',
-                              onSelected: (_) => setState(() {
-                                _form.proxyType = 'jumpHosts';
-                              }),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (_form.proxyType == 'jumpHosts') ...[
-                        const SizedBox(height: 12),
-                        _JumpHostSelector(
-                          options: jumpHostOptions,
-                          selectedIds: _form.jumpHosts,
-                          onChanged: (ids) => setState(() {
-                            _form.jumpHosts = ids;
-                          }),
-                        ),
-                      ],
-                      if (_form.proxyType == 'proxyServer') ...[
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            l.tr('servers.proxyServerUnsupported'),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: _ProxyField(
+                            key: ValueKey(_form.proxyType),
+                            proxyType: _form.proxyType,
+                            proxies: proxies,
+                            proxyValue: _normalizeProxyValue(proxies),
+                            jumpHostOptions: jumpHostOptions,
+                            jumpHostIds: _form.jumpHosts,
+                            onProxyChanged: (value) => setState(() {
+                              _form.proxyServer = value ?? '';
+                            }),
+                            onJumpHostsChanged: (ids) => setState(() {
+                              _form.jumpHosts = ids;
+                            }),
                           ),
                         ),
                       ],
-                      const SizedBox(height: 12),
-                    ],
-                    _TextField(
-                      controller: _consoleUrlCtrl,
-                      label: l.tr('servers.field.consoleUrl'),
-                    ),
-                    const SizedBox(height: 12),
-                    _TextField(
-                      controller: _tagsCtrl,
-                      label: l.tr('servers.field.tags'),
-                      helperText: l.tr('servers.tagsHint'),
-                    ),
-                    const SizedBox(height: 12),
-                    _TextField(
-                      controller: _commandCtrl,
-                      label: l.tr('servers.field.command'),
-                      minLines: 3,
-                      maxLines: 5,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: _saving ? null : _save,
-              icon: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save_outlined),
-              label: Text(_form.isEdit ? l.tr('common.save') : l.tr('servers.addServer')),
+                      if (_form.isSsh)
+                        _TextField(
+                          controller: _commandCtrl,
+                          label: l.tr('servers.field.command'),
+                          minLines: 3,
+                          maxLines: 4,
+                        ),
+                      _DateField(
+                        label: l.tr('servers.field.expired'),
+                        value: _form.expired,
+                        onChanged: (value) => setState(() {
+                          _form.expired = value;
+                          if (value == null) _form.expiredNotify = false;
+                        }),
+                      ),
+                      _SwitchRow(
+                        label: l.tr('servers.field.expiredNotify'),
+                        value: _form.expiredNotify,
+                        enabled: _form.expired != null,
+                        onChanged: (value) => setState(() {
+                          _form.expiredNotify = value;
+                        }),
+                      ),
+                      _TextField(
+                        controller: _tagsCtrl,
+                        label: l.tr('servers.field.tags'),
+                        helperText: l.tr('servers.tagsHint'),
+                      ),
+                      _TextField(
+                        controller: _consoleUrlCtrl,
+                        label: l.tr('servers.field.consoleUrl'),
+                        mono: true,
+                      ),
+                    ]
+                  : const [],
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _changeConnectType(String next) {
+    setState(() {
+      _form.connectType = next;
+      if (!_form.isEdit) {
+        if (next == 'rdp') {
+          _form.port = 3389;
+          _form.username = 'Administrator';
+          _form.authType = 'password';
+        } else {
+          _form.port = 22;
+          _form.username = 'root';
+          _form.authType = 'privateKey';
+        }
+        _portCtrl.text = _form.port.toString();
+        _usernameCtrl.text = _form.username;
+      }
+    });
+  }
+
+  void _changeProxyType(String next) {
+    setState(() {
+      _form.proxyType = next;
+      if (next != 'jumpHosts') _form.jumpHosts = const [];
+      if (next != 'proxyServer') _form.proxyServer = '';
+    });
   }
 
   String? _normalizeGroupValue(List<ServerGroupModel> groups) {
@@ -365,6 +336,14 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
       _form.group = groups.first.id;
       return _form.group;
     }
+    return null;
+  }
+
+  String? _normalizeProxyValue(List<ServerProxyModel> proxies) {
+    if (proxies.any((proxy) => proxy.id == _form.proxyServer)) {
+      return _form.proxyServer;
+    }
+    if (_form.proxyServer.isNotEmpty) _form.proxyServer = '';
     return null;
   }
 
@@ -399,7 +378,7 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
     try {
       final repo = ref.read(serverRepositoryProvider);
       final message = _form.isEdit ? await repo.updateHost(_form) : await repo.createHost(_form);
-      await ref.read(hostListProvider.notifier).refresh();
+      await refreshServerSharedData(ref);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message == 'success' ? l.tr('common.saved') : message)),
@@ -416,44 +395,296 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
   }
 }
 
-class _Section extends StatelessWidget {
-  const _Section({
+class _FormColors {
+  static const surface = Color(0xFFF7EFE0);
+  static const card = Color(0xFFFBF5E6);
+  static const field = Color(0xFFF4ECD7);
+  static const primary = Color(0xFF5C4520);
+  static const border = Color(0xFFE2D5B3);
+  static const text = Color(0xFF2A2418);
+  static const textMuted = Color(0xFF6B5E3F);
+  static const label = Color(0xFF9A8B68);
+}
+
+class _CardSection extends StatelessWidget {
+  const _CardSection({
+    required this.title,
     required this.children,
-    this.title,
-    this.padding = const EdgeInsets.all(12),
+    this.trailing,
   });
 
+  final String title;
   final List<Widget> children;
-  final String? title;
-  final EdgeInsetsGeometry padding;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outlineVariant),
+        color: _FormColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _FormColors.border),
       ),
       child: Padding(
-        padding: padding,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (title != null) ...[
-              Text(
-                title!,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            Row(
+              children: [
+                Container(
+                  width: 3,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: _FormColors.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: _FormColors.textMuted,
+                      fontSize: 13,
                       fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
                     ),
-              ),
-              const SizedBox(height: 12),
+                  ),
+                ),
+                if (trailing != null) trailing!,
+              ],
+            ),
+            if (children.isNotEmpty) const SizedBox(height: 14),
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0) const SizedBox(height: 14),
+              children[i],
             ],
-            ...children,
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ConnectionTypeSegment extends StatelessWidget {
+  const _ConnectionTypeSegment({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SegmentShell(
+      children: [
+        _SegmentButton(
+          selected: value == 'ssh',
+          icon: Icons.terminal,
+          label: 'SSH',
+          onTap: () => onChanged('ssh'),
+        ),
+        _SegmentButton(
+          selected: value == 'rdp',
+          icon: Icons.monitor_outlined,
+          label: 'RDP',
+          onTap: () => onChanged('rdp'),
+        ),
+      ],
+    );
+  }
+}
+
+class _AuthTypeSegment extends StatelessWidget {
+  const _AuthTypeSegment({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return _LabeledBlock(
+      label: l.tr('servers.field.authType'),
+      child: _SegmentShell(
+        compact: true,
+        children: [
+          _SegmentButton(
+            selected: value == 'password',
+            icon: Icons.lock_outline,
+            label: l.tr('servers.auth.password'),
+            onTap: () => onChanged('password'),
+          ),
+          _SegmentButton(
+            selected: value == 'privateKey',
+            icon: Icons.key_outlined,
+            label: l.tr('servers.auth.privateKey'),
+            onTap: () => onChanged('privateKey'),
+          ),
+          _SegmentButton(
+            selected: value == 'credential',
+            icon: Icons.shield_outlined,
+            label: l.tr('servers.auth.credential'),
+            onTap: () => onChanged('credential'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProxyTypeSegment extends StatelessWidget {
+  const _ProxyTypeSegment({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return _LabeledBlock(
+      label: l.tr('servers.field.proxyType'),
+      child: _SegmentShell(
+        compact: true,
+        children: [
+          _SegmentButton(
+            selected: value.isEmpty,
+            icon: Icons.block,
+            label: l.tr('servers.proxy.noneShort'),
+            onTap: () => onChanged(''),
+          ),
+          _SegmentButton(
+            selected: value == 'proxyServer',
+            icon: Icons.public,
+            label: l.tr('servers.proxy.socksShort'),
+            onTap: () => onChanged('proxyServer'),
+          ),
+          _SegmentButton(
+            selected: value == 'jumpHosts',
+            icon: Icons.hub_outlined,
+            label: l.tr('servers.proxy.jumpHostsShort'),
+            onTap: () => onChanged('jumpHosts'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentShell extends StatelessWidget {
+  const _SegmentShell({
+    required this.children,
+    this.compact = false,
+  });
+
+  final List<Widget> children;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: compact ? 44 : 52,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: _FormColors.card,
+        borderRadius: BorderRadius.circular(compact ? 10 : 16),
+        border: Border.all(color: _FormColors.border),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            Expanded(child: children[i]),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentButton extends StatelessWidget {
+  const _SegmentButton({
+    required this.selected,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? _FormColors.primary : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  selected ? Icons.check : icon,
+                  size: 16,
+                  color: selected ? _FormColors.card : _FormColors.textMuted,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: selected ? _FormColors.card : _FormColors.textMuted,
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LabeledBlock extends StatelessWidget {
+  const _LabeledBlock({
+    required this.label,
+    required this.child,
+  });
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: _FormColors.label,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        child,
+      ],
     );
   }
 }
@@ -468,6 +699,7 @@ class _TextField extends StatelessWidget {
     this.minLines,
     this.maxLines = 1,
     this.helperText,
+    this.mono = false,
   });
 
   final TextEditingController controller;
@@ -478,21 +710,666 @@ class _TextField extends StatelessWidget {
   final int? minLines;
   final int? maxLines;
   final String? helperText;
+  final bool mono;
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      minLines: obscureText ? 1 : minLines,
-      maxLines: obscureText ? 1 : maxLines,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        helperText: helperText,
-        border: const OutlineInputBorder(),
+    return _LabeledBlock(
+      label: label,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        minLines: obscureText ? 1 : minLines,
+        maxLines: obscureText ? 1 : maxLines,
+        validator: validator,
+        style: TextStyle(
+          color: _FormColors.text,
+          fontSize: 15,
+          fontFamily: mono ? 'monospace' : null,
+        ),
+        decoration: _fieldDecoration(helperText: helperText),
       ),
+    );
+  }
+}
+
+InputDecoration _fieldDecoration({String? helperText}) {
+  return InputDecoration(
+    filled: true,
+    fillColor: _FormColors.field,
+    helperText: helperText,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _FormColors.border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _FormColors.primary, width: 1.6),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: Colors.redAccent),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: Colors.redAccent, width: 1.6),
+    ),
+  );
+}
+
+class _AuthField extends StatelessWidget {
+  const _AuthField({
+    super.key,
+    required this.form,
+    required this.passwordCtrl,
+    required this.privateKeyCtrl,
+    required this.credentials,
+    required this.onCredentialChanged,
+  });
+
+  final ServerFormData form;
+  final TextEditingController passwordCtrl;
+  final TextEditingController privateKeyCtrl;
+  final List<ServerCredentialModel> credentials;
+  final ValueChanged<String?> onCredentialChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    if (form.authType == 'password') {
+      return _TextField(
+        controller: passwordCtrl,
+        label: l.tr('servers.field.password'),
+        obscureText: true,
+        helperText: form.isEdit ? l.tr('servers.secretEditHint') : null,
+      );
+    }
+    if (form.authType == 'privateKey') {
+      return _TextField(
+        controller: privateKeyCtrl,
+        label: l.tr('servers.field.privateKey'),
+        minLines: 5,
+        maxLines: 8,
+        helperText: form.isEdit ? l.tr('servers.secretEditHint') : null,
+      );
+    }
+    final value = credentials.any((item) => item.id == form.credential)
+        ? form.credential
+        : null;
+    ServerCredentialModel? selected;
+    for (final item in credentials) {
+      if (item.id == value) {
+        selected = item;
+        break;
+      }
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _PickerField(
+          label: l.tr('servers.field.credential'),
+          value: selected?.displayName ?? '',
+          leadingIcon: Icons.shield_outlined,
+          meta: selected == null
+              ? null
+              : selected.authType == 'privateKey'
+                  ? l.tr('servers.auth.privateKey')
+                  : l.tr('servers.auth.password'),
+          placeholder: l.tr('servers.credentials.empty'),
+          enabled: credentials.isNotEmpty,
+          onTap: () async {
+            final result = await _showChoiceSheet<String>(
+              context: context,
+              title: l.tr('servers.field.credential'),
+              value: selected?.id,
+              options: [
+                for (final item in credentials)
+                  _ChoiceSheetOption(
+                    value: item.id,
+                    icon: Icons.shield_outlined,
+                    label: item.displayName,
+                    meta: item.authType == 'privateKey'
+                        ? l.tr('servers.auth.privateKey')
+                        : l.tr('servers.auth.password'),
+                  ),
+              ],
+            );
+            if (result != null) onCredentialChanged(result);
+          },
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            const Icon(Icons.info_outline, size: 13, color: _FormColors.label),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                credentials.isEmpty
+                    ? l.tr('servers.credentials.empty')
+                    : l.tr('servers.credentials.hint'),
+                style: const TextStyle(color: _FormColors.label, fontSize: 11),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+}
+
+class _ProxySelector extends StatelessWidget {
+  const _ProxySelector({
+    required this.proxies,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final List<ServerProxyModel> proxies;
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    ServerProxyModel? selected;
+    for (final item in proxies) {
+      if (item.id == value) {
+        selected = item;
+        break;
+      }
+    }
+    return _PickerField(
+      label: l.tr('servers.field.proxyServer'),
+      value: selected?.displayName ?? '',
+      leadingIcon: Icons.public,
+      meta: selected?.typeLabel,
+      placeholder: l.tr('servers.proxy.empty'),
+      enabled: proxies.isNotEmpty,
+      onTap: () async {
+        final result = await _showChoiceSheet<String>(
+          context: context,
+          title: l.tr('servers.field.proxyServer'),
+          value: selected?.id,
+          options: [
+            for (final item in proxies)
+              _ChoiceSheetOption(
+                value: item.id,
+                icon: Icons.public,
+                label: item.displayName,
+                meta: item.typeLabel,
+              ),
+          ],
+        );
+        if (result != null) onChanged(result);
+      },
+    );
+  }
+}
+
+class _GroupSelector extends StatelessWidget {
+  const _GroupSelector({
+    required this.label,
+    required this.value,
+    required this.groups,
+    required this.onChanged,
+    this.validator,
+  });
+
+  final String label;
+  final String? value;
+  final List<ServerGroupModel> groups;
+  final ValueChanged<String?> onChanged;
+  final String? Function(String?)? validator;
+
+  @override
+  Widget build(BuildContext context) {
+    return FormField<String>(
+      initialValue: value,
+      validator: validator,
+      builder: (field) {
+        ServerGroupModel? selected;
+        for (final group in groups) {
+          if (group.id == field.value) {
+            selected = group;
+            break;
+          }
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _PickerField(
+              label: label,
+              value: selected?.displayName ?? '',
+              leadingIcon: Icons.folder_outlined,
+              placeholder: label,
+              enabled: groups.isNotEmpty,
+              errorText: field.errorText,
+              onTap: () async {
+                final result = await _showChoiceSheet<String>(
+                  context: context,
+                  title: label,
+                  value: field.value,
+                  options: [
+                    for (final group in groups)
+                      _ChoiceSheetOption(
+                        value: group.id,
+                        icon: Icons.folder_outlined,
+                        label: group.displayName,
+                      ),
+                  ],
+                );
+                if (result != null) {
+                  field.didChange(result);
+                  onChanged(result);
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ProxyField extends StatelessWidget {
+  const _ProxyField({
+    super.key,
+    required this.proxyType,
+    required this.proxies,
+    required this.proxyValue,
+    required this.jumpHostOptions,
+    required this.jumpHostIds,
+    required this.onProxyChanged,
+    required this.onJumpHostsChanged,
+  });
+
+  final String proxyType;
+  final List<ServerProxyModel> proxies;
+  final String? proxyValue;
+  final List<ServerModel> jumpHostOptions;
+  final List<String> jumpHostIds;
+  final ValueChanged<String?> onProxyChanged;
+  final ValueChanged<List<String>> onJumpHostsChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    if (proxyType == 'proxyServer') {
+      return _ProxySelector(
+        proxies: proxies,
+        value: proxyValue,
+        onChanged: onProxyChanged,
+      );
+    }
+    if (proxyType == 'jumpHosts') {
+      return _JumpHostSelector(
+        options: jumpHostOptions,
+        selectedIds: jumpHostIds,
+        onChanged: onJumpHostsChanged,
+      );
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+class _DropdownField<T> extends StatelessWidget {
+  const _DropdownField({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    this.validator,
+    this.icon,
+    this.enabled = true,
+    this.emptyText,
+    this.selectedItemBuilder,
+  });
+
+  final String label;
+  final T? value;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+  final String? Function(T?)? validator;
+  final IconData? icon;
+  final bool enabled;
+  final String? emptyText;
+  final DropdownButtonBuilder? selectedItemBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LabeledBlock(
+      label: label,
+      child: DropdownButtonFormField<T>(
+        value: value,
+        isExpanded: true,
+        items: items,
+        onChanged: enabled ? onChanged : null,
+        validator: validator,
+        hint: emptyText == null
+            ? null
+            : Text(
+                emptyText!,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: _FormColors.label),
+              ),
+        selectedItemBuilder: selectedItemBuilder,
+        icon: Icon(icon ?? Icons.keyboard_arrow_down, color: _FormColors.label),
+        style: const TextStyle(color: _FormColors.text, fontSize: 15),
+        decoration: _fieldDecoration(),
+      ),
+    );
+  }
+}
+
+class _PickerField extends StatelessWidget {
+  const _PickerField({
+    required this.label,
+    required this.value,
+    required this.placeholder,
+    required this.onTap,
+    this.leadingIcon,
+    this.meta,
+    this.errorText,
+    this.enabled = true,
+  });
+
+  final String label;
+  final String value;
+  final String placeholder;
+  final VoidCallback onTap;
+  final IconData? leadingIcon;
+  final String? meta;
+  final String? errorText;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LabeledBlock(
+      label: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: enabled ? onTap : null,
+        child: InputDecorator(
+          decoration: _fieldDecoration().copyWith(errorText: errorText),
+          child: Row(
+            children: [
+              if (leadingIcon != null) ...[
+                Icon(
+                  leadingIcon,
+                  size: 18,
+                  color: enabled ? _FormColors.primary : _FormColors.label,
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Text(
+                  value.isEmpty ? placeholder : value,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: value.isEmpty ? _FormColors.label : _FormColors.text,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              if (meta != null && meta!.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                _MetaPill(label: meta!),
+              ],
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.keyboard_arrow_down,
+                color: _FormColors.label,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetaPill extends StatelessWidget {
+  const _MetaPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: _FormColors.card,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _FormColors.border),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: _FormColors.textMuted,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceSheetOption<T> {
+  const _ChoiceSheetOption({
+    required this.value,
+    required this.icon,
+    required this.label,
+    this.meta = '',
+  });
+
+  final T value;
+  final IconData icon;
+  final String label;
+  final String meta;
+}
+
+Future<T?> _showChoiceSheet<T>({
+  required BuildContext context,
+  required String title,
+  required T? value,
+  required List<_ChoiceSheetOption<T>> options,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    showDragHandle: true,
+    backgroundColor: _FormColors.card,
+    builder: (context) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: _FormColors.text,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final option = options[index];
+                    final selected = option.value == value;
+                    return Material(
+                      color: selected ? _FormColors.field : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () => Navigator.of(context).pop(option.value),
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 52),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: selected
+                                  ? _FormColors.primary
+                                  : _FormColors.border,
+                              width: selected ? 1.4 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                selected
+                                    ? Icons.check_circle
+                                    : option.icon,
+                                size: 20,
+                                color: _FormColors.primary,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  option.label,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: _FormColors.text,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              if (option.meta.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                _MetaPill(label: option.meta),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _DateField extends StatelessWidget {
+  const _DateField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final DateTime? value;
+  final ValueChanged<DateTime?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final display = value == null
+        ? ''
+        : '${value!.year.toString().padLeft(4, '0')}/'
+            '${value!.month.toString().padLeft(2, '0')}/'
+            '${value!.day.toString().padLeft(2, '0')}';
+    return _LabeledBlock(
+      label: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () async {
+          final now = DateTime.now();
+          final result = await showDatePicker(
+            context: context,
+            initialDate: value ?? now,
+            firstDate: DateTime(now.year - 5),
+            lastDate: DateTime(now.year + 20),
+          );
+          if (result != null) onChanged(result);
+        },
+        child: InputDecorator(
+          decoration: _fieldDecoration(),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  display,
+                  style: const TextStyle(
+                    color: _FormColors.text,
+                    fontSize: 15,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+              if (value != null)
+                InkWell(
+                  onTap: () => onChanged(null),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(Icons.close, size: 18, color: _FormColors.label),
+                  ),
+                ),
+              const Icon(Icons.calendar_today_outlined, size: 18, color: _FormColors.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SwitchRow extends StatelessWidget {
+  const _SwitchRow({
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: enabled ? _FormColors.textMuted : _FormColors.label,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Switch(
+          value: enabled && value,
+          activeColor: _FormColors.card,
+          activeTrackColor: _FormColors.primary,
+          onChanged: enabled ? onChanged : null,
+        ),
+      ],
     );
   }
 }
@@ -511,7 +1388,6 @@ class _JumpHostSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final colors = Theme.of(context).colorScheme;
     final selectedHosts = <ServerModel>[];
     for (final id in selectedIds) {
       for (final host in options) {
@@ -521,39 +1397,62 @@ class _JumpHostSelector extends StatelessWidget {
         }
       }
     }
-    return InkWell(
-      borderRadius: BorderRadius.circular(4),
-      onTap: options.isEmpty ? null : () => _showPicker(context),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: l.tr('servers.field.jumpHosts'),
-          border: const OutlineInputBorder(),
-          suffixIcon: const Icon(Icons.arrow_drop_down),
-          helperText: options.isEmpty
-              ? l.tr('servers.jumpHosts.empty')
-              : l.tr('servers.jumpHosts.orderHint'),
+    return _LabeledBlock(
+      label: '${l.tr('servers.field.jumpHosts')} (${selectedHosts.length}/${options.length})',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: options.isEmpty ? null : () => _showPicker(context),
+        child: InputDecorator(
+          decoration: _fieldDecoration(
+            helperText: options.isEmpty
+                ? l.tr('servers.jumpHosts.empty')
+                : l.tr('servers.jumpHosts.orderHint'),
+          ),
+          child: selectedHosts.isEmpty
+              ? Text(
+                  l.tr('servers.jumpHosts.placeholder'),
+                  style: const TextStyle(color: _FormColors.label, fontSize: 14),
+                )
+              : Column(
+                  children: [
+                    for (var i = 0; i < selectedHosts.length; i++)
+                      Padding(
+                        padding: EdgeInsets.only(top: i == 0 ? 0 : 8),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 12,
+                              backgroundColor: _FormColors.primary,
+                              child: Text(
+                                '${i + 1}',
+                                style: const TextStyle(
+                                  color: _FormColors.card,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                selectedHosts[i].displayName,
+                                style: const TextStyle(color: _FormColors.text),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () {
+                                final next = [...selectedIds]
+                                  ..remove(selectedHosts[i].id);
+                                onChanged(next);
+                              },
+                              child: const Icon(Icons.close, size: 18, color: _FormColors.label),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
         ),
-        child: selectedHosts.isEmpty
-            ? Text(
-                l.tr('servers.jumpHosts.placeholder'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-              )
-            : Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (var i = 0; i < selectedHosts.length; i++)
-                    InputChip(
-                      label: Text('${i + 1}. ${selectedHosts[i].displayName}'),
-                      onDeleted: () {
-                        final next = [...selectedIds]..remove(selectedHosts[i].id);
-                        onChanged(next);
-                      },
-                    ),
-                ],
-              ),
       ),
     );
   }
@@ -563,10 +1462,10 @@ class _JumpHostSelector extends StatelessWidget {
     final result = await showModalBottomSheet<List<String>>(
       context: context,
       showDragHandle: true,
+      backgroundColor: _FormColors.card,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) {
           final l = AppLocalizations.of(context);
-          final colors = Theme.of(context).colorScheme;
           return SafeArea(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -578,9 +1477,11 @@ class _JumpHostSelector extends StatelessWidget {
                       Expanded(
                         child: Text(
                           l.tr('servers.field.jumpHosts'),
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: const TextStyle(
+                            color: _FormColors.text,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       TextButton(
@@ -594,16 +1495,15 @@ class _JumpHostSelector extends StatelessWidget {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: options.length,
-                    separatorBuilder: (_, _) => Divider(
-                      height: 1,
-                      color: colors.outlineVariant,
-                    ),
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 1, color: _FormColors.border),
                     itemBuilder: (context, index) {
                       final host = options[index];
                       final selected = next.contains(host.id);
                       final order = next.indexOf(host.id) + 1;
                       return CheckboxListTile(
                         value: selected,
+                        activeColor: _FormColors.primary,
                         onChanged: (value) => setSheetState(() {
                           if (value == true) {
                             next.add(host.id);
@@ -616,7 +1516,11 @@ class _JumpHostSelector extends StatelessWidget {
                         secondary: selected
                             ? CircleAvatar(
                                 radius: 12,
-                                child: Text('$order'),
+                                backgroundColor: _FormColors.primary,
+                                child: Text(
+                                  '$order',
+                                  style: const TextStyle(color: _FormColors.card),
+                                ),
                               )
                             : null,
                       );
@@ -630,5 +1534,60 @@ class _JumpHostSelector extends StatelessWidget {
       ),
     );
     if (result != null) onChanged(result);
+  }
+}
+
+class _BottomSaveBar extends StatelessWidget {
+  const _BottomSaveBar({
+    required this.saving,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final bool saving;
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+        decoration: const BoxDecoration(
+          color: _FormColors.card,
+          border: Border(top: BorderSide(color: _FormColors.border)),
+        ),
+        child: SizedBox(
+          height: 52,
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: _FormColors.primary,
+              foregroundColor: _FormColors.card,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: onPressed,
+            child: saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: _FormColors.card,
+                    ),
+                  )
+                : Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
   }
 }
