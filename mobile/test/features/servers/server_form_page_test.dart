@@ -7,6 +7,7 @@ import 'package:mobile/features/servers/server_form_page.dart';
 import 'package:mobile/features/servers/server_group_model.dart';
 import 'package:mobile/features/servers/server_model.dart';
 import 'package:mobile/features/servers/server_repository.dart';
+import 'package:mobile/features/shell/sftp_session_manager.dart';
 import 'package:mobile/features/terminal/ssh_connection_config.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/state/api_providers.dart';
@@ -19,12 +20,12 @@ class _FakeRepository implements ServerRepository {
 
   @override
   Future<List<ServerGroupModel>> fetchGroups() async => [
-        ServerGroupModel.fromJson({
-          'id': 'default',
-          'name': 'Default group',
-          'index': 1,
-        }),
-      ];
+    ServerGroupModel.fromJson({
+      'id': 'default',
+      'name': 'Default group',
+      'index': 1,
+    }),
+  ];
 
   @override
   Future<String> createHost(ServerFormData form) async {
@@ -42,6 +43,10 @@ class _FakeRepository implements ServerRepository {
   Future<SshConnectionConfig> fetchSshConfig(String hostId) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<List<SftpFavorite>> fetchSftpFavorites(String hostId) async =>
+      const [];
 }
 
 Widget _wrap(ServerRepository repo) {
@@ -77,7 +82,9 @@ Future<void> _fillRequiredFields(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('requires credential when auth type is credential', (tester) async {
+  testWidgets('requires credential when auth type is credential', (
+    tester,
+  ) async {
     final repo = _FakeRepository();
     await _pumpForm(tester, repo);
     await _fillRequiredFields(tester);
@@ -91,7 +98,9 @@ void main() {
     expect(repo.createCalls, 0);
   });
 
-  testWidgets('requires proxy target when proxy type is not none', (tester) async {
+  testWidgets('requires proxy target when proxy type is not none', (
+    tester,
+  ) async {
     final repo = _FakeRepository();
     await _pumpForm(tester, repo);
     await _fillRequiredFields(tester);

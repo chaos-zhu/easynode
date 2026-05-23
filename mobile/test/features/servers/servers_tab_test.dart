@@ -7,6 +7,7 @@ import 'package:mobile/features/servers/server_form_data.dart';
 import 'package:mobile/features/servers/server_model.dart';
 import 'package:mobile/features/servers/server_group_model.dart';
 import 'package:mobile/features/servers/server_repository.dart';
+import 'package:mobile/features/shell/sftp_session_manager.dart';
 import 'package:mobile/features/servers/servers_tab.dart';
 import 'package:mobile/features/terminal/ssh_connection_config.dart';
 import 'package:mobile/l10n/app_localizations.dart';
@@ -84,6 +85,10 @@ class _FakeRepository implements ServerRepository {
     if (sshError != null) throw sshError!;
     return config;
   }
+
+  @override
+  Future<List<SftpFavorite>> fetchSftpFavorites(String hostId) async =>
+      const [];
 }
 
 class _RecordingAuthNotifier extends AuthNotifier {

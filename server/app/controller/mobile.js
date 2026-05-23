@@ -1,11 +1,12 @@
 const { RSADecryptAsync } = require('../utils/encrypt')
 const { encryptJsonForMobile } = require('../utils/mobile-crypto')
-const { HostListDB } = require('../utils/db-class')
+const { HostListDB, FavoriteSftpDB } = require('../utils/db-class')
 
 // `getConnectionOptions` and `getProxyConfig` are lazily required inside
 // functions. Loading `../socket/terminal` at module scope pulls in
 // `terminal-session`, which expects `global.logger` to exist after app boot.
 const hostListDB = new HostListDB().getInstance()
+const favoriteSftpDB = new FavoriteSftpDB().getInstance()
 
 function normalizePort(port) {
   const numericPort = Number(port)
@@ -154,8 +155,26 @@ async function getMobileSshConnection({ request, res }) {
   }
 }
 
+async function getMobileSftpFavorites({ params, request, res }) {
+  try {
+    const hostId = params?.hostId || request.query?.hostId
+    if (!hostId) {
+      return res.fail({ msg: 'missing hostId' })
+    }
+    const favorites = await favoriteSftpDB.findAsync(
+      { hostId },
+      { sort: { createTime: -1 } }
+    )
+    return res.success({ data: favorites, msg: 'success' })
+  } catch (error) {
+    logger.error('getMobileSftpFavorites error:', error.message)
+    return res.fail({ msg: error.message || 'mobile sftp favorites failed' })
+  }
+}
+
 module.exports = {
   getMobileSshConnection,
+  getMobileSftpFavorites,
   getMobileConnectionTopology,
   normalizePort,
   normalizeMobileAuthPayload,

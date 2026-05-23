@@ -12,7 +12,7 @@ const { getProxyList, addProxy, updateProxy, removeProxy } = require('../control
 const { getTerminalConfig, saveTerminalConfig } = require('../controller/terminal-config')
 const { getServerListConfig, saveServerListConfig } = require('../controller/server-list-config')
 const { getSuspendedSessions, getTerminalSessionConfig, updateTerminalSessionConfig } = require('../controller/terminal')
-const { getMobileSshConnection } = require('../controller/mobile')
+const { getMobileSshConnection, getMobileSftpFavorites } = require('../controller/mobile')
 
 const ssh = [
   {
@@ -398,6 +398,11 @@ const mobile = [
     method: 'post',
     path: '/mobile/ssh-connection',
     controller: getMobileSshConnection
+  },
+  {
+    method: 'get',
+    path: '/mobile/sftp-favorites/:hostId',
+    controller: getMobileSftpFavorites
   }
 ]
 

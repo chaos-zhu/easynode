@@ -126,6 +126,22 @@ const Map<String, String> stringsZh = {
 
   // Placeholders
   'sftp.placeholder': '即将上线：浏览和管理远程文件',
+  'sftp.emptyTitle': '还没有选择服务器',
+  'sftp.emptyBody': '请选择一台服务器，开始使用 SFTP 浏览远程文件。',
+  'sftp.chooseServer': '选择服务器',
+  'sftp.switchServer': '切换服务器',
+  'sftp.sheetTitle': '选择服务器',
+  'sftp.sheetSubtitle': '已连接的服务器会优先显示。',
+  'sftp.searchHint': '按名称 / 主机 / 用户名搜索',
+  'sftp.connectedSection': '已连接',
+  'sftp.disconnectedSection': '未连接',
+  'sftp.statusConnected': '已连接',
+  'sftp.statusDisconnected': '未连接',
+  'sftp.connecting': '正在连接 SFTP...',
+  'sftp.emptyDirectory': '当前目录为空',
+  'sftp.upload': '上传',
+  'sftp.newItem': '新建',
+  'sftp.favorites': '收藏',
   'scripts.placeholder': '即将上线：脚本库',
 
   // Settings

@@ -8,6 +8,7 @@ import '../../core/crypto/aes_gcm_crypto.dart';
 import '../../core/crypto/crypto_js_aes.dart';
 import '../../core/crypto/rsa_crypto.dart';
 import '../terminal/ssh_connection_config.dart';
+import '../shell/sftp_session_manager.dart';
 import 'server_form_data.dart';
 import 'server_group_model.dart';
 import 'server_model.dart';
@@ -21,6 +22,7 @@ abstract class ServerRepository {
   Future<String> updateHost(ServerFormData form);
   Future<String> deleteHost(String hostId);
   Future<SshConnectionConfig> fetchSshConfig(String hostId);
+  Future<List<SftpFavorite>> fetchSftpFavorites(String hostId);
 }
 
 /// Default [ServerRepository] backed by [ApiClient] and the RSA public key
@@ -31,10 +33,10 @@ class ApiServerRepository implements ServerRepository {
     required String publicKeyPem,
     RsaCrypto? rsa,
     Random? random,
-  })  : _api = apiClient,
-        _publicKeyPem = publicKeyPem,
-        _rsa = rsa ?? RsaCrypto(),
-        _random = random ?? Random.secure();
+  }) : _api = apiClient,
+       _publicKeyPem = publicKeyPem,
+       _rsa = rsa ?? RsaCrypto(),
+       _random = random ?? Random.secure();
 
   final ApiClient _api;
   final String _publicKeyPem;
@@ -69,13 +71,19 @@ class ApiServerRepository implements ServerRepository {
 
   @override
   Future<String> createHost(ServerFormData form) async {
-    final response = await _api.postJson('/host-save', _prepareHostPayload(form));
+    final response = await _api.postJson(
+      '/host-save',
+      _prepareHostPayload(form),
+    );
     return response['msg']?.toString() ?? 'success';
   }
 
   @override
   Future<String> updateHost(ServerFormData form) async {
-    final response = await _api.putJson('/host-save', _prepareHostPayload(form));
+    final response = await _api.putJson(
+      '/host-save',
+      _prepareHostPayload(form),
+    );
     return response['msg']?.toString() ?? 'success';
   }
 
@@ -145,6 +153,17 @@ class ApiServerRepository implements ServerRepository {
     }
 
     return SshConnectionConfig.fromJson(plaintext);
+  }
+
+  @override
+  Future<List<SftpFavorite>> fetchSftpFavorites(String hostId) async {
+    final response = await _api.getJson('/mobile/sftp-favorites/$hostId');
+    final raw = response['data'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map<String, dynamic>>()
+        .map(SftpFavorite.fromJson)
+        .toList(growable: false);
   }
 
   Uint8List _randomBytes(int length) {

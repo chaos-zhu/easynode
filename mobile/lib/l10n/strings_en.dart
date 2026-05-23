@@ -60,7 +60,8 @@ const Map<String, String> stringsEn = {
   'servers.addServer': 'Add server',
   'servers.editServer': 'Edit server',
   'servers.searchHint': 'Search by name, host, user, tag, or group',
-  'servers.emptyHint': 'No servers yet. Pull to refresh after adding hosts on web.',
+  'servers.emptyHint':
+      'No servers yet. Pull to refresh after adding hosts on web.',
   'servers.emptyFiltered': 'No matching servers.',
   'servers.notConfigured': 'Not configured',
   'servers.fetchSshFailed': 'Failed to get SSH config: {0}',
@@ -113,12 +114,17 @@ const Map<String, String> stringsEn = {
   'servers.proxy.proxyServerShort': 'Proxy',
   'servers.proxy.socksShort': 'Proxy',
   'servers.jumpHosts.empty': 'No configured servers can be used as jump hosts.',
-  'servers.jumpHosts.orderHint': 'Connection order follows the selection order.',
+  'servers.jumpHosts.orderHint':
+      'Connection order follows the selection order.',
   'servers.jumpHosts.placeholder': 'Select jump hosts',
-  'servers.proxyServerUnsupported': 'Proxy server selection is reserved for later.',
-  'servers.proxy.empty': 'No Socks service data. Manage proxy services on web first.',
-  'servers.credentials.empty': 'No credential data. Manage credentials on web first.',
-  'servers.credentials.hint': 'Credentials are maintained centrally in credential management.',
+  'servers.proxyServerUnsupported':
+      'Proxy server selection is reserved for later.',
+  'servers.proxy.empty':
+      'No Socks service data. Manage proxy services on web first.',
+  'servers.credentials.empty':
+      'No credential data. Manage credentials on web first.',
+  'servers.credentials.hint':
+      'Credentials are maintained centrally in credential management.',
   'servers.validation.group': 'Select a group',
   'servers.validation.name': 'Enter a server name',
   'servers.validation.host': 'Enter an IP address or domain',
@@ -130,6 +136,22 @@ const Map<String, String> stringsEn = {
 
   // SFTP / Scripts placeholders
   'sftp.placeholder': 'Coming soon: browse and manage remote files',
+  'sftp.emptyTitle': 'No server connected',
+  'sftp.emptyBody': 'Choose a server to start browsing remote files over SFTP.',
+  'sftp.chooseServer': 'Choose server',
+  'sftp.switchServer': 'Switch server',
+  'sftp.sheetTitle': 'Select server',
+  'sftp.sheetSubtitle': 'Connected servers are shown first.',
+  'sftp.searchHint': 'Search by name, host, or user',
+  'sftp.connectedSection': 'Connected',
+  'sftp.disconnectedSection': 'Not connected',
+  'sftp.statusConnected': 'Connected',
+  'sftp.statusDisconnected': 'Not connected',
+  'sftp.connecting': 'Connecting SFTP...',
+  'sftp.emptyDirectory': 'This directory is empty.',
+  'sftp.upload': 'Upload',
+  'sftp.newItem': 'New',
+  'sftp.favorites': 'Favorites',
   'scripts.placeholder': 'Coming soon: script library',
 
   // Settings
