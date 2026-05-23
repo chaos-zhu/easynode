@@ -5,6 +5,7 @@ import 'package:re_highlight/styles/atom-one-dark.dart';
 import '../../../l10n/app_localizations.dart';
 import '../sftp_session_manager.dart';
 import 'editor_language.dart';
+import 'editor_text_sniffer.dart';
 import 'text_editor_controller.dart';
 
 class _EditorPalette {
@@ -32,67 +33,101 @@ class TextEditorPage extends StatefulWidget {
     required this.manager,
     required this.remotePath,
     required this.fileName,
-    required this.initialText,
-    required this.malformedUtf8,
-    required this.totalBytes,
   });
 
   final SftpSessionManager manager;
   final String remotePath;
   final String fileName;
-  final String initialText;
-  final bool malformedUtf8;
-  final int totalBytes;
 
   @override
   State<TextEditorPage> createState() => _TextEditorPageState();
 }
 
 class _TextEditorPageState extends State<TextEditorPage> {
-  late final TextEditorController _controller;
   late final EditorLanguage _language;
+  TextEditorController? _controller;
+  bool _loading = true;
+  Object? _loadError;
+  int _totalBytes = 0;
 
   @override
   void initState() {
     super.initState();
     _language = detectFromFileName(widget.fileName);
-    _controller = TextEditorController(
-      writer: _SftpManagerWriter(widget.manager),
-      remotePath: widget.remotePath,
-      originalText: widget.initialText,
-      language: _language,
-      totalBytes: widget.totalBytes,
-    );
-    if (widget.malformedUtf8) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final l = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l.tr('editor.malformedUtf8'))));
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final bytes = await widget.manager.readTextFile(widget.remotePath);
+      if (!mounted) return;
+      final sniff = sniffAndDecode(bytes);
+      final controller = TextEditorController(
+        writer: _SftpManagerWriter(widget.manager),
+        remotePath: widget.remotePath,
+        originalText: sniff.text,
+        language: _language,
+        totalBytes: bytes.length,
+      );
+      setState(() {
+        _controller = controller;
+        _totalBytes = bytes.length;
+        _loading = false;
+      });
+      if (sniff.malformedUtf8) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final l = AppLocalizations.of(context);
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(l.tr('editor.malformedUtf8'))));
+        });
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = error;
+        _loading = false;
       });
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: _EditorPalette.background,
+        appBar: _buildSimpleAppBar(context),
+        body: const Center(
+          child: CircularProgressIndicator(color: Colors.white70),
+        ),
+      );
+    }
+    if (_loadError != null) {
+      return Scaffold(
+        backgroundColor: _EditorPalette.background,
+        appBar: _buildSimpleAppBar(context),
+        body: _buildErrorState(context, _loadError!),
+      );
+    }
+    final controller = _controller!;
     return PopScope(
-      canPop: !_controller.isDirty,
+      canPop: !controller.isDirty,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+        final l = AppLocalizations.of(context);
         final action = await _showDiscardDialog(context);
         if (!context.mounted) return;
         if (action == _DiscardAction.discard) {
           Navigator.of(context).pop();
         } else if (action == _DiscardAction.saveAndLeave) {
           try {
-            await _controller.save();
+            await controller.save();
             if (!context.mounted) return;
             ScaffoldMessenger.of(context)
                 .showSnackBar(SnackBar(content: Text(l.tr('editor.saved'))));
@@ -106,16 +141,16 @@ class _TextEditorPageState extends State<TextEditorPage> {
         }
       },
       child: AnimatedBuilder(
-        animation: _controller,
+        animation: controller,
         builder: (context, _) => Scaffold(
           backgroundColor: _EditorPalette.background,
-          appBar: _buildAppBar(context),
+          appBar: _buildAppBar(context, controller),
           body: Column(
             children: [
               _buildMetaBar(context),
-              Expanded(child: _buildEditor()),
-              _buildStatusBar(context),
-              SafeArea(top: false, child: _buildActionBar(context)),
+              Expanded(child: _buildEditor(controller)),
+              _buildStatusBar(context, controller),
+              SafeArea(top: false, child: _buildActionBar(context, controller)),
             ],
           ),
         ),
@@ -123,7 +158,69 @@ class _TextEditorPageState extends State<TextEditorPage> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
+  PreferredSizeWidget _buildSimpleAppBar(BuildContext context) {
+    return AppBar(
+      backgroundColor: _EditorPalette.appBarBg,
+      foregroundColor: Colors.white,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            widget.fileName,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(
+            widget.remotePath,
+            style: const TextStyle(fontSize: 11, color: _EditorPalette.statusText),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, Object error) {
+    final l = AppLocalizations.of(context);
+    String message;
+    if (error is SftpFileTooLargeException) {
+      message = l.tr('editor.tooLarge');
+    } else if (error is SftpBinaryFileException) {
+      message = l.tr('editor.binary');
+    } else {
+      message = l.trf('editor.readFailed', [error.toString()]);
+    }
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white70, size: 32),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l.tr('common.close')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    TextEditorController controller,
+  ) {
     final l = AppLocalizations.of(context);
     return AppBar(
       backgroundColor: _EditorPalette.appBarBg,
@@ -150,12 +247,12 @@ class _TextEditorPageState extends State<TextEditorPage> {
         IconButton(
           tooltip: l.tr('editor.undo'),
           icon: const Icon(Icons.undo),
-          onPressed: _controller.code.canUndo ? _controller.code.undo : null,
+          onPressed: controller.code.canUndo ? controller.code.undo : null,
         ),
         IconButton(
           tooltip: l.tr('editor.redo'),
           icon: const Icon(Icons.redo),
-          onPressed: _controller.code.canRedo ? _controller.code.redo : null,
+          onPressed: controller.code.canRedo ? controller.code.redo : null,
         ),
       ],
     );
@@ -182,7 +279,7 @@ class _TextEditorPageState extends State<TextEditorPage> {
           ),
           const SizedBox(width: 12),
           Text(
-            l.trf('editor.statusEncoding', [_formatBytes(widget.totalBytes)]),
+            l.trf('editor.statusEncoding', [_formatBytes(_totalBytes)]),
             style: const TextStyle(fontSize: 11, color: _EditorPalette.statusText),
           ),
         ],
@@ -190,9 +287,9 @@ class _TextEditorPageState extends State<TextEditorPage> {
     );
   }
 
-  Widget _buildEditor() {
+  Widget _buildEditor(TextEditorController controller) {
     return CodeEditor(
-      controller: _controller.code,
+      controller: controller.code,
       style: CodeEditorStyle(
         codeTheme: _language.highlightMode == null
             ? null
@@ -226,12 +323,12 @@ class _TextEditorPageState extends State<TextEditorPage> {
     );
   }
 
-  Widget _buildStatusBar(BuildContext context) {
+  Widget _buildStatusBar(BuildContext context, TextEditorController controller) {
     final l = AppLocalizations.of(context);
-    final sel = _controller.code.selection;
+    final sel = controller.code.selection;
     final lineIndex = sel.baseIndex;
     final colIndex = sel.baseOffset;
-    final total = _controller.code.codeLines.length;
+    final total = controller.code.codeLines.length;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: const BoxDecoration(
@@ -265,7 +362,7 @@ class _TextEditorPageState extends State<TextEditorPage> {
     return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
   }
 
-  Widget _buildActionBar(BuildContext context) {
+  Widget _buildActionBar(BuildContext context, TextEditorController controller) {
     final l = AppLocalizations.of(context);
     return Container(
       height: 52,
@@ -276,7 +373,7 @@ class _TextEditorPageState extends State<TextEditorPage> {
       ),
       child: Row(
         children: [
-          if (_controller.isDirty)
+          if (controller.isDirty)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
@@ -292,11 +389,11 @@ class _TextEditorPageState extends State<TextEditorPage> {
           TextButton.icon(
             icon: const Icon(Icons.auto_fix_high, size: 16),
             label: Text(l.tr('editor.format')),
-            onPressed: _controller.canFormat ? () => _onFormat(context) : null,
+            onPressed: controller.canFormat ? () => _onFormat(context, controller) : null,
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
-            icon: _controller.saving
+            icon: controller.saving
                 ? const SizedBox(
                     width: 14,
                     height: 14,
@@ -304,18 +401,19 @@ class _TextEditorPageState extends State<TextEditorPage> {
                   )
                 : const Icon(Icons.save, size: 16),
             label: Text(l.tr('editor.save')),
-            onPressed:
-                (_controller.isDirty && !_controller.saving) ? () => _onSave(context) : null,
+            onPressed: (controller.isDirty && !controller.saving)
+                ? () => _onSave(context, controller)
+                : null,
           ),
         ],
       ),
     );
   }
 
-  Future<void> _onSave(BuildContext context) async {
+  Future<void> _onSave(BuildContext context, TextEditorController controller) async {
     final l = AppLocalizations.of(context);
     try {
-      await _controller.save();
+      await controller.save();
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.tr('editor.saved'))));
@@ -327,15 +425,15 @@ class _TextEditorPageState extends State<TextEditorPage> {
     }
   }
 
-  void _onFormat(BuildContext context) {
+  void _onFormat(BuildContext context, TextEditorController controller) {
     final l = AppLocalizations.of(context);
-    if (!_controller.canFormat) {
+    if (!controller.canFormat) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.tr('editor.formatUnsupported'))));
       return;
     }
     try {
-      _controller.format();
+      controller.format();
     } on FormatException catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l.trf('editor.formatFailed', [error.message]))),

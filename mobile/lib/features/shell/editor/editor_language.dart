@@ -35,12 +35,41 @@ const _plainText = EditorLanguage(
   defaultIndent: 2,
 );
 
-EditorLanguage detectFromFileName(String name) {
+const Set<String> _binaryExtensions = {
+  'exe', 'dll', 'so', 'dylib', 'bin', 'elf', 'o', 'a', 'lib',
+  'wasm', 'class', 'pyc', 'pyo', 'jar', 'war', 'ear', 'apk', 'aab', 'ipa',
+  'png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico', 'webp', 'tiff', 'tif',
+  'psd', 'ai', 'sketch', 'fig', 'raw', 'heic', 'heif',
+  'zip', 'tar', 'gz', 'tgz', 'bz2', 'tbz2', 'xz', 'txz', '7z', 'rar',
+  'lz', 'lz4', 'zst', 'deb', 'rpm', 'pkg', 'msi', 'cab',
+  'mp3', 'mp4', 'm4a', 'm4v', 'wav', 'flac', 'ogg', 'opus', 'aac', 'wma',
+  'mkv', 'avi', 'mov', 'webm', 'mpg', 'mpeg', 'wmv', 'flv', '3gp',
+  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+  'odt', 'ods', 'odp',
+  'db', 'sqlite', 'sqlite3', 'mdb',
+  'iso', 'img', 'dmg', 'vmdk', 'qcow2', 'vhd', 'vhdx',
+  'ttf', 'otf', 'woff', 'woff2', 'eot',
+};
+
+String? _fileExtension(String name) {
   final dot = name.lastIndexOf('.');
-  if (dot < 0 || dot == name.length - 1) {
+  if (dot < 0 || dot == name.length - 1) return null;
+  return name.substring(dot + 1).toLowerCase();
+}
+
+bool isKnownBinaryExtension(String name) {
+  final ext = _fileExtension(name);
+  if (ext == null) return false;
+  return _binaryExtensions.contains(ext);
+}
+
+bool hasFileExtension(String name) => _fileExtension(name) != null;
+
+EditorLanguage detectFromFileName(String name) {
+  final ext = _fileExtension(name);
+  if (ext == null) {
     return _plainText;
   }
-  final ext = name.substring(dot + 1).toLowerCase();
   switch (ext) {
     case 'json':
       return EditorLanguage(

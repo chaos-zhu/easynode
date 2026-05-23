@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import '../servers/server_model.dart';
 import '../terminal/ssh_connection_config.dart';
 import '../terminal/ssh_transport.dart';
+import 'editor/editor_language.dart';
 
 enum SftpConnectionStatus { disconnected, connecting, connected, error }
 
@@ -348,6 +349,7 @@ class SftpSessionManager extends ChangeNotifier {
   }
 
   static const int defaultTextFileMaxBytes = 2 * 1024 * 1024;
+  static const int noExtensionSizeLimit = 10 * 1024;
 
   Future<Uint8List> readTextFile(
     String remotePath, {
@@ -362,8 +364,15 @@ class SftpSessionManager extends ChangeNotifier {
       throw StateError('No active SFTP connection');
     }
     final sftp = connection.sftp;
+    final fileName = _basename(remotePath);
+    if (isKnownBinaryExtension(fileName)) {
+      throw SftpBinaryFileException(path: remotePath);
+    }
     final stat = await sftp.stat(remotePath);
     final size = stat.size ?? 0;
+    if (!hasFileExtension(fileName) && size > noExtensionSizeLimit) {
+      throw SftpBinaryFileException(path: remotePath);
+    }
     if (size > maxBytes) {
       throw SftpFileTooLargeException(
         path: remotePath,
@@ -371,14 +380,7 @@ class SftpSessionManager extends ChangeNotifier {
         limit: maxBytes,
       );
     }
-    final bytes = await _readRemoteFile(sftp, remotePath);
-    final probeLen = bytes.length < 8192 ? bytes.length : 8192;
-    for (var i = 0; i < probeLen; i++) {
-      if (bytes[i] == 0) {
-        throw SftpBinaryFileException(path: remotePath);
-      }
-    }
-    return bytes;
+    return _readRemoteFile(sftp, remotePath);
   }
 
   Future<void> writeTextFile(String remotePath, String content) async {
