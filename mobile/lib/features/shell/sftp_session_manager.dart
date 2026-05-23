@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
@@ -344,6 +345,56 @@ class SftpSessionManager extends ChangeNotifier {
     final connection = _connections[state.server.id];
     if (connection == null) return Uint8List(0);
     return _readRemoteFile(connection.sftp, remotePath);
+  }
+
+  static const int defaultTextFileMaxBytes = 2 * 1024 * 1024;
+
+  Future<Uint8List> readTextFile(
+    String remotePath, {
+    int maxBytes = defaultTextFileMaxBytes,
+  }) async {
+    final state = activeSession;
+    if (state == null) {
+      throw StateError('No active SFTP session');
+    }
+    final connection = _connections[state.server.id];
+    if (connection == null) {
+      throw StateError('No active SFTP connection');
+    }
+    final sftp = connection.sftp;
+    final stat = await sftp.stat(remotePath);
+    final size = stat.size ?? 0;
+    if (size > maxBytes) {
+      throw SftpFileTooLargeException(
+        path: remotePath,
+        size: size,
+        limit: maxBytes,
+      );
+    }
+    final bytes = await _readRemoteFile(sftp, remotePath);
+    final probeLen = bytes.length < 8192 ? bytes.length : 8192;
+    for (var i = 0; i < probeLen; i++) {
+      if (bytes[i] == 0) {
+        throw SftpBinaryFileException(path: remotePath);
+      }
+    }
+    return bytes;
+  }
+
+  Future<void> writeTextFile(String remotePath, String content) async {
+    final state = activeSession;
+    if (state == null) {
+      throw StateError('No active SFTP session');
+    }
+    final connection = _connections[state.server.id];
+    if (connection == null) {
+      throw StateError('No active SFTP connection');
+    }
+    await _writeRemoteFile(
+      connection.sftp,
+      remotePath,
+      Uint8List.fromList(utf8.encode(content)),
+    );
   }
 
   Future<Uint8List> zipEntries(List<SftpFileEntry> entries) async {
@@ -786,4 +837,38 @@ extension on String {
     if (length <= count) return '';
     return substring(count);
   }
+}
+
+class SftpFileTooLargeException implements Exception {
+  SftpFileTooLargeException({
+    required this.path,
+    required this.size,
+    required this.limit,
+  });
+
+  final String path;
+  final int size;
+  final int limit;
+
+  @override
+  String toString() => 'SftpFileTooLargeException($path, size=$size, limit=$limit)';
+}
+
+class SftpBinaryFileException implements Exception {
+  SftpBinaryFileException({required this.path});
+
+  final String path;
+
+  @override
+  String toString() => 'SftpBinaryFileException($path)';
+}
+
+class SftpTextFileData {
+  const SftpTextFileData({
+    required this.bytes,
+    required this.malformedUtf8,
+  });
+
+  final Uint8List bytes;
+  final bool malformedUtf8;
 }
