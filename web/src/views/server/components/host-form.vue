@@ -130,8 +130,8 @@
         label="认证方式"
         prop="authType"
       >
-        <el-radio v-model="hostForm.authType" value="privateKey">密钥</el-radio>
         <el-radio v-model="hostForm.authType" value="password">密码</el-radio>
+        <el-radio v-model="hostForm.authType" value="privateKey">密钥</el-radio>
         <el-radio v-model="hostForm.authType" value="credential">凭据</el-radio>
       </el-form-item>
       <el-form-item
@@ -403,7 +403,7 @@ const formField = {
   host: '',
   port: 22,
   username: 'root',
-  authType: 'privateKey', // privateKey, password, credential
+  authType: 'password', // password, privateKey, credential
   password: '',
   privateKey: '',
   credential: '', // credentials -> _id
