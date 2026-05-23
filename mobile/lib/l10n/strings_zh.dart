@@ -120,6 +120,10 @@ const Map<String, String> stringsZh = {
   'servers.validation.port': '请输入数字端口',
   'servers.validation.index': '请输入数字序号',
 
+  'servers.validation.credential': '请选择凭据',
+  'servers.validation.proxyServer': '请选择代理服务',
+  'servers.validation.jumpHosts': '请至少选择一个跳板机',
+
   // Placeholders
   'sftp.placeholder': '即将上线：浏览和管理远程文件',
   'scripts.placeholder': '即将上线：脚本库',

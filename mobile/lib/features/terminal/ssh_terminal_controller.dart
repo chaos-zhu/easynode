@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:xterm/xterm.dart';
 
 import 'ssh_connection_config.dart';
+import 'ssh_transport.dart';
 
 /// Owns the dartssh2 client and bridges its stdio with an [xterm] [Terminal].
 ///
@@ -16,11 +17,16 @@ import 'ssh_connection_config.dart';
 /// - Toolbar shortcuts feed [writeInput] which writes directly to the SSH
 ///   session (not the local terminal buffer) so the remote sees the keys.
 class SshTerminalController {
-  SshTerminalController({required this.config, Terminal? terminal})
-    : terminal = terminal ?? Terminal();
+  SshTerminalController({
+    required this.config,
+    Terminal? terminal,
+    SshTransportFactory? transportFactory,
+  }) : terminal = terminal ?? Terminal(),
+       _transportFactory = transportFactory ?? SshTransportFactory();
 
   final SshConnectionConfig config;
   final Terminal terminal;
+  final SshTransportFactory _transportFactory;
 
   /// Whether the next single-letter input should be translated into Ctrl+letter.
   /// Lives on the controller (not the toolbar) so soft-keyboard input — which
@@ -28,6 +34,7 @@ class SshTerminalController {
   final ValueNotifier<bool> ctrlPending = ValueNotifier<bool>(false);
 
   SSHClient? _client;
+  SshTransportHandle? _transport;
   SSHSession? _session;
   StreamSubscription<Uint8List>? _stdoutSub;
   StreamSubscription<Uint8List>? _stderrSub;
@@ -35,20 +42,33 @@ class SshTerminalController {
 
   Future<void> connect() async {
     if (_disposed) return;
-    final socket = await SSHSocket.connect(config.host, config.port);
-    // dartssh2 `SSHKeyPair.fromPem` already returns `List<SSHKeyPair>`, no extra
-    // wrapping list needed.
-    final identities = config.authType == 'privateKey'
-        ? SSHKeyPair.fromPem(config.privateKey, config.privateKeyPassphrase)
-        : null;
-    _client = SSHClient(
-      socket,
-      username: config.username,
-      onPasswordRequest: config.authType == 'password'
-          ? () => config.password
-          : null,
-      identities: identities,
-    );
+    try {
+      final transport = await _transportFactory.open(
+        config,
+        logger: (message) => terminal.write('[Info] $message\r\n'),
+      );
+      _transport = transport;
+      terminal.write('[Info] 准备连接目标终端: ${config.name} - ${config.host}\r\n');
+      // dartssh2 `SSHKeyPair.fromPem` already returns `List<SSHKeyPair>`, no
+      // extra wrapping list needed.
+      final identities = config.authType == 'privateKey'
+          ? SSHKeyPair.fromPem(config.privateKey, config.privateKeyPassphrase)
+          : null;
+      _client = SSHClient(
+        transport.socket,
+        username: config.username,
+        onPasswordRequest: config.authType == 'password'
+            ? () => config.password
+            : null,
+        identities: identities,
+      );
+    } on SshTransportException catch (error) {
+      terminal.write('[Error] ${error.message}\r\n');
+      rethrow;
+    } catch (error) {
+      terminal.write('[Error] $error\r\n');
+      rethrow;
+    }
     final session = await _client!.shell();
     _session = session;
     _stdoutSub = session.stdout.listen((data) {
@@ -105,8 +125,10 @@ class SshTerminalController {
     _stderrSub = null;
     _session?.close();
     _client?.close();
+    await _transport?.close();
     _session = null;
     _client = null;
+    _transport = null;
     ctrlPending.value = false;
   }
 }

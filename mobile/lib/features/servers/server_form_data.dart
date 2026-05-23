@@ -9,7 +9,7 @@ class ServerFormData {
     this.host = '',
     this.port = 22,
     this.username = 'root',
-    this.authType = 'privateKey',
+    this.authType = 'password',
     this.password = '',
     this.privateKey = '',
     this.credential = '',

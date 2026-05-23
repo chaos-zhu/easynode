@@ -124,6 +124,9 @@ const Map<String, String> stringsEn = {
   'servers.validation.host': 'Enter an IP address or domain',
   'servers.validation.port': 'Enter a numeric port',
   'servers.validation.index': 'Enter a numeric index',
+  'servers.validation.credential': 'Select a credential',
+  'servers.validation.proxyServer': 'Select a proxy service',
+  'servers.validation.jumpHosts': 'Select at least one jump host',
 
   // SFTP / Scripts placeholders
   'sftp.placeholder': 'Coming soon: browse and manage remote files',

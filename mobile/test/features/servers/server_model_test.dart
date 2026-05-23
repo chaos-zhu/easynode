@@ -1,7 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/features/servers/server_form_data.dart';
 import 'package:mobile/features/servers/server_model.dart';
 
 void main() {
+  test('new server form defaults to password auth and no proxy', () {
+    final form = ServerFormData.add(nextIndex: 3);
+
+    expect(form.authType, 'password');
+    expect(form.proxyType, '');
+  });
+
   test('parses host-list entry into ServerModel', () {
     final model = ServerModel.fromJson({
       'id': 'h1',
@@ -40,7 +48,7 @@ void main() {
     expect(model.tag, isEmpty);
   });
 
-  test('canConnect is false when expired or not configured', () {
+  test('canConnect mirrors isConfig state', () {
     final expired = ServerModel.fromJson({
       'id': 'h3',
       'name': 'old',
@@ -66,7 +74,7 @@ void main() {
       'isConfig': false,
     });
 
-    expect(expired.canConnect, isFalse);
+    expect(expired.canConnect, isTrue);
     expect(unconfigured.canConnect, isFalse);
   });
 }

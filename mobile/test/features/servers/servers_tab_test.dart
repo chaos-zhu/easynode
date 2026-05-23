@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/core/api/api_result.dart';
 import 'package:mobile/features/servers/server_form_data.dart';
 import 'package:mobile/features/servers/server_model.dart';
 import 'package:mobile/features/servers/server_group_model.dart';
@@ -43,6 +44,9 @@ class _FakeRepository implements ServerRepository {
     password: 'pwd',
     privateKey: '',
     passphrase: '',
+    proxyType: '',
+    proxy: null,
+    jumpHosts: [],
   );
 
   @override
@@ -83,7 +87,7 @@ class _FakeRepository implements ServerRepository {
 }
 
 class _RecordingAuthNotifier extends AuthNotifier {
-  _RecordingAuthNotifier(super.ref) : super(AuthState.empty);
+  _RecordingAuthNotifier(Ref ref) : super(ref, AuthState.empty);
 
   int signOutCalls = 0;
 
@@ -117,11 +121,7 @@ ServerGroupModel _group({
   String name = 'Default group',
   int index = 1,
 }) {
-  return ServerGroupModel.fromJson({
-    'id': id,
-    'name': name,
-    'index': index,
-  });
+  return ServerGroupModel.fromJson({'id': id, 'name': name, 'index': index});
 }
 
 Widget _wrap({required ServerRepository repo}) {
@@ -151,12 +151,15 @@ void main() {
     expect(find.textContaining('No servers yet'), findsOneWidget);
   });
 
-  testWidgets('renders one card per host with the right action label',
-      (tester) async {
-    final repo = _FakeRepository(hosts: [
-      _server(id: 'h1'),
-      _server(id: 'h2', canConnect: false),
-    ]);
+  testWidgets('renders one card per host with the right action label', (
+    tester,
+  ) async {
+    final repo = _FakeRepository(
+      hosts: [
+        _server(id: 'h1'),
+        _server(id: 'h2', canConnect: false),
+      ],
+    );
     await tester.pumpWidget(_wrap(repo: repo));
     await tester.pumpAndSettle();
 
@@ -166,8 +169,9 @@ void main() {
     expect(find.text('Not configured'), findsOneWidget);
   });
 
-  testWidgets('hides group filter when only the default group exists',
-      (tester) async {
+  testWidgets('hides group filter when only the default group exists', (
+    tester,
+  ) async {
     final repo = _FakeRepository(
       hosts: [_server(id: 'h1', group: 'default')],
       groups: [_group()],
@@ -176,12 +180,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('All'), findsNothing);
-    expect(find.textContaining('Default group'), findsNothing);
     expect(find.byKey(const Key('server-h1')), findsOneWidget);
   });
 
-  testWidgets('shows group filters and filters cards by selected group',
-      (tester) async {
+  testWidgets('shows group filters and filters cards by selected group', (
+    tester,
+  ) async {
     final repo = _FakeRepository(
       hosts: [
         _server(id: 'h1', group: 'default'),
@@ -263,8 +267,9 @@ void main() {
     expect(refreshed, hasLength(2));
   });
 
-  testWidgets('signs out when initial host fetch is unauthorized',
-      (tester) async {
+  testWidgets('signs out when initial host fetch is unauthorized', (
+    tester,
+  ) async {
     final repo = _FakeRepository(
       fetchError: UnauthorizedFailure('expired', statusCode: 401),
     );

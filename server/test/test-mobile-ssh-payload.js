@@ -87,6 +87,39 @@ function testSocks5ProxyPayload() {
   assert.deepStrictEqual(payload.jumpHosts, [])
 }
 
+function testHttpProxyPayload() {
+  const payload = toMobileSshPayload('h4-http', 'http-proxied', {
+    host: '10.0.0.50',
+    port: 22,
+    username: 'deploy',
+    authType: 'password',
+    password: 'secret'
+  }, {
+    proxyType: 'proxyServer',
+    proxy: {
+      id: 'p-http',
+      name: 'http-proxy',
+      type: 'http',
+      host: '127.0.0.1',
+      port: '8080',
+      username: 'proxy-user',
+      password: 'proxy-pass'
+    }
+  })
+
+  assert.deepStrictEqual(payload.proxy, {
+    id: 'p-http',
+    name: 'http-proxy',
+    type: 'http',
+    host: '127.0.0.1',
+    port: 8080,
+    username: 'proxy-user',
+    password: 'proxy-pass'
+  })
+  assert.strictEqual(payload.proxyType, 'proxyServer')
+  assert.deepStrictEqual(payload.jumpHosts, [])
+}
+
 function testJumpHostsPayload() {
   const payload = toMobileSshPayload('h5', 'target', {
     host: '10.0.0.6',
@@ -140,12 +173,12 @@ function testRejectsUnsupportedProxyType() {
     proxyType: 'proxyServer',
     proxy: {
       id: 'p2',
-      name: 'http-proxy',
-      type: 'http',
+      name: 'https-proxy',
+      type: 'https',
       host: '127.0.0.1',
       port: 8080
     }
-  }), /unsupported mobile proxy type: http/)
+  }), /unsupported mobile proxy type: https/)
 }
 
 function testRejectsEmptyJumpHostChain() {
@@ -165,6 +198,7 @@ testPasswordPayload()
 testPrivateKeyPayload()
 testRejectsUnsupportedAuth()
 testSocks5ProxyPayload()
+testHttpProxyPayload()
 testJumpHostsPayload()
 testRejectsUnsupportedProxyType()
 testRejectsEmptyJumpHostChain()

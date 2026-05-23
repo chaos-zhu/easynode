@@ -32,7 +32,7 @@ function normalizeMobileAuthPayload(hostId, name, authInfo = {}) {
 }
 
 function normalizeMobileProxy(proxy = {}) {
-  if (proxy.type !== 'socks5') {
+  if (!['socks5', 'http'].includes(proxy.type)) {
     throw new Error(`unsupported mobile proxy type: ${ proxy.type || 'empty' }`)
   }
 

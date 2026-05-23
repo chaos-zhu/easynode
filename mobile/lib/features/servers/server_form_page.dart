@@ -197,19 +197,30 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
                     value: _form.authType,
                     onChanged: (value) => setState(() => _form.authType = value),
                   ),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutCubic,
-                    alignment: Alignment.topCenter,
-                    child: _AuthField(
-                      key: ValueKey(_form.authType),
-                      form: _form,
-                      passwordCtrl: _passwordCtrl,
-                      privateKeyCtrl: _privateKeyCtrl,
-                      credentials: credentials,
-                      onCredentialChanged: (value) => setState(() {
-                        _form.credential = value ?? '';
-                      }),
+                  FormField<String>(
+                    key: ValueKey('auth-${_form.authType}'),
+                    initialValue: _form.credential,
+                    validator: _form.authType == 'credential'
+                        ? (value) => value == null || value.isEmpty
+                            ? l.tr('servers.validation.credential')
+                            : null
+                        : null,
+                    builder: (field) => AnimatedSize(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutCubic,
+                      alignment: Alignment.topCenter,
+                      child: _AuthField(
+                        key: ValueKey(_form.authType),
+                        form: _form,
+                        passwordCtrl: _passwordCtrl,
+                        privateKeyCtrl: _privateKeyCtrl,
+                        credentials: credentials,
+                        errorText: field.errorText,
+                        onCredentialChanged: (value) => setState(() {
+                          _form.credential = value ?? '';
+                          field.didChange(_form.credential);
+                        }),
+                      ),
                     ),
                   ),
                 ] else
@@ -237,27 +248,48 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
               children: _advancedOpen
                   ? [
                       if (_form.isSsh) ...[
-                        _ProxyTypeSegment(
-                          value: _form.proxyType,
-                          onChanged: _changeProxyType,
-                        ),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOutCubic,
-                          alignment: Alignment.topCenter,
-                          child: _ProxyField(
-                            key: ValueKey(_form.proxyType),
-                            proxyType: _form.proxyType,
-                            proxies: proxies,
-                            proxyValue: _normalizeProxyValue(proxies),
-                            jumpHostOptions: jumpHostOptions,
-                            jumpHostIds: _form.jumpHosts,
-                            onProxyChanged: (value) => setState(() {
-                              _form.proxyServer = value ?? '';
-                            }),
-                            onJumpHostsChanged: (ids) => setState(() {
-                              _form.jumpHosts = ids;
-                            }),
+                        FormField<String>(
+                          key: ValueKey('proxy-${_form.proxyType}'),
+                          initialValue: _form.proxyType == 'jumpHosts'
+                              ? _form.jumpHosts.join(',')
+                              : _form.proxyServer,
+                          validator: _form.proxyType.isEmpty
+                              ? null
+                              : (value) => value == null || value.isEmpty
+                                  ? l.tr(_form.proxyType == 'jumpHosts'
+                                      ? 'servers.validation.jumpHosts'
+                                      : 'servers.validation.proxyServer')
+                                  : null,
+                          builder: (field) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _ProxyTypeSegment(
+                                value: _form.proxyType,
+                                onChanged: _changeProxyType,
+                              ),
+                              AnimatedSize(
+                                duration: const Duration(milliseconds: 180),
+                                curve: Curves.easeOutCubic,
+                                alignment: Alignment.topCenter,
+                                child: _ProxyField(
+                                  key: ValueKey(_form.proxyType),
+                                  proxyType: _form.proxyType,
+                                  proxies: proxies,
+                                  proxyValue: _normalizeProxyValue(proxies),
+                                  jumpHostOptions: jumpHostOptions,
+                                  jumpHostIds: _form.jumpHosts,
+                                  errorText: field.errorText,
+                                  onProxyChanged: (value) => setState(() {
+                                    _form.proxyServer = value ?? '';
+                                    field.didChange(_form.proxyServer);
+                                  }),
+                                  onJumpHostsChanged: (ids) => setState(() {
+                                    _form.jumpHosts = ids;
+                                    field.didChange(_form.jumpHosts.join(','));
+                                  }),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -314,7 +346,7 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
         } else {
           _form.port = 22;
           _form.username = 'root';
-          _form.authType = 'privateKey';
+          _form.authType = 'password';
         }
         _portCtrl.text = _form.port.toString();
         _usernameCtrl.text = _form.username;
@@ -766,6 +798,7 @@ class _AuthField extends StatelessWidget {
     required this.passwordCtrl,
     required this.privateKeyCtrl,
     required this.credentials,
+    required this.errorText,
     required this.onCredentialChanged,
   });
 
@@ -773,6 +806,7 @@ class _AuthField extends StatelessWidget {
   final TextEditingController passwordCtrl;
   final TextEditingController privateKeyCtrl;
   final List<ServerCredentialModel> credentials;
+  final String? errorText;
   final ValueChanged<String?> onCredentialChanged;
 
   @override
@@ -819,6 +853,7 @@ class _AuthField extends StatelessWidget {
                   : l.tr('servers.auth.password'),
           placeholder: l.tr('servers.credentials.empty'),
           enabled: credentials.isNotEmpty,
+          errorText: errorText,
           onTap: () async {
             final result = await _showChoiceSheet<String>(
               context: context,
@@ -864,11 +899,13 @@ class _ProxySelector extends StatelessWidget {
   const _ProxySelector({
     required this.proxies,
     required this.value,
+    required this.errorText,
     required this.onChanged,
   });
 
   final List<ServerProxyModel> proxies;
   final String? value;
+  final String? errorText;
   final ValueChanged<String?> onChanged;
 
   @override
@@ -888,6 +925,7 @@ class _ProxySelector extends StatelessWidget {
       meta: selected?.typeLabel,
       placeholder: l.tr('servers.proxy.empty'),
       enabled: proxies.isNotEmpty,
+      errorText: errorText,
       onTap: () async {
         final result = await _showChoiceSheet<String>(
           context: context,
@@ -982,6 +1020,7 @@ class _ProxyField extends StatelessWidget {
     required this.proxyValue,
     required this.jumpHostOptions,
     required this.jumpHostIds,
+    required this.errorText,
     required this.onProxyChanged,
     required this.onJumpHostsChanged,
   });
@@ -991,6 +1030,7 @@ class _ProxyField extends StatelessWidget {
   final String? proxyValue;
   final List<ServerModel> jumpHostOptions;
   final List<String> jumpHostIds;
+  final String? errorText;
   final ValueChanged<String?> onProxyChanged;
   final ValueChanged<List<String>> onJumpHostsChanged;
 
@@ -1000,6 +1040,7 @@ class _ProxyField extends StatelessWidget {
       return _ProxySelector(
         proxies: proxies,
         value: proxyValue,
+        errorText: errorText,
         onChanged: onProxyChanged,
       );
     }
@@ -1007,6 +1048,7 @@ class _ProxyField extends StatelessWidget {
       return _JumpHostSelector(
         options: jumpHostOptions,
         selectedIds: jumpHostIds,
+        errorText: errorText,
         onChanged: onJumpHostsChanged,
       );
     }
@@ -1378,11 +1420,13 @@ class _JumpHostSelector extends StatelessWidget {
   const _JumpHostSelector({
     required this.options,
     required this.selectedIds,
+    required this.errorText,
     required this.onChanged,
   });
 
   final List<ServerModel> options;
   final List<String> selectedIds;
+  final String? errorText;
   final ValueChanged<List<String>> onChanged;
 
   @override
@@ -1407,7 +1451,7 @@ class _JumpHostSelector extends StatelessWidget {
             helperText: options.isEmpty
                 ? l.tr('servers.jumpHosts.empty')
                 : l.tr('servers.jumpHosts.orderHint'),
-          ),
+          ).copyWith(errorText: errorText),
           child: selectedHosts.isEmpty
               ? Text(
                   l.tr('servers.jumpHosts.placeholder'),
