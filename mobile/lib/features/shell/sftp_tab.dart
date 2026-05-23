@@ -1,6 +1,11 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/api/api_result.dart';
 import '../../features/servers/server_model.dart';
@@ -244,18 +249,50 @@ class _SftpConnectedView extends StatelessWidget {
     SftpSessionState session,
     SftpFileEntry anchor,
   ) {
+    final l = AppLocalizations.of(context);
     final selectedEntries = session.entries
         .where((entry) => session.selectedNames.contains(entry.name))
         .toList(growable: false);
     final multi = selectedEntries.length > 1;
     final actions = <_SftpMenuAction>[
-      const _SftpMenuAction(Icons.download_outlined, '下载'),
-      const _SftpMenuAction(Icons.copy_outlined, '复制到...'),
-      const _SftpMenuAction(Icons.drive_file_move_outline, '移动到...'),
-      const _SftpMenuAction(Icons.archive_outlined, '压缩'),
-      const _SftpMenuAction(Icons.delete_outline, '删除', destructive: true),
-      if (!multi) const _SftpMenuAction(Icons.edit_outlined, '重命名'),
-      if (!multi) const _SftpMenuAction(Icons.link_outlined, '复制文件路径'),
+      _SftpMenuAction(
+        Icons.download_outlined,
+        l.tr('sftp.action.download'),
+        _SftpMenuActionType.download,
+      ),
+      _SftpMenuAction(
+        Icons.copy_outlined,
+        l.tr('sftp.action.copyTo'),
+        _SftpMenuActionType.copyTo,
+      ),
+      _SftpMenuAction(
+        Icons.drive_file_move_outline,
+        l.tr('sftp.action.moveTo'),
+        _SftpMenuActionType.moveTo,
+      ),
+      _SftpMenuAction(
+        Icons.archive_outlined,
+        l.tr('sftp.action.compress'),
+        _SftpMenuActionType.compress,
+      ),
+      _SftpMenuAction(
+        Icons.delete_outline,
+        l.tr('sftp.action.delete'),
+        _SftpMenuActionType.delete,
+        destructive: true,
+      ),
+      if (!multi)
+        _SftpMenuAction(
+          Icons.edit_outlined,
+          l.tr('sftp.action.rename'),
+          _SftpMenuActionType.rename,
+        ),
+      if (!multi)
+        _SftpMenuAction(
+          Icons.link_outlined,
+          l.tr('sftp.action.copyPath'),
+          _SftpMenuActionType.copyPath,
+        ),
     ];
     showModalBottomSheet<void>(
       context: context,
@@ -291,18 +328,15 @@ class _SftpConnectedView extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  onTap: () {
-                    if (action.label == '复制文件路径') {
-                      Clipboard.setData(
-                        ClipboardData(
-                          text: SftpSessionManager.joinPath(
-                            session.currentPath,
-                            anchor.name,
-                          ),
-                        ),
-                      );
-                    }
+                  onTap: () async {
                     Navigator.of(sheetContext).pop();
+                    await _handleAction(
+                      context,
+                      action.type,
+                      session,
+                      selectedEntries,
+                      anchor,
+                    );
                   },
                 ),
             ],
@@ -311,14 +345,194 @@ class _SftpConnectedView extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _handleAction(
+    BuildContext context,
+    _SftpMenuActionType type,
+    SftpSessionState session,
+    List<SftpFileEntry> entries,
+    SftpFileEntry anchor,
+  ) async {
+    final l = AppLocalizations.of(context);
+    try {
+      switch (type) {
+        case _SftpMenuActionType.download:
+          await _downloadEntries(context, session, entries);
+        case _SftpMenuActionType.copyTo:
+          final target = await _chooseRemoteDirectory(
+            context,
+            session.currentPath,
+          );
+          if (target == null) return;
+          await manager.copyEntries(entries, target);
+        case _SftpMenuActionType.moveTo:
+          final target = await _chooseRemoteDirectory(
+            context,
+            session.currentPath,
+          );
+          if (target == null) return;
+          await manager.moveEntries(entries, target);
+        case _SftpMenuActionType.compress:
+          final defaultName = entries.length == 1
+              ? '${entries.first.name}.zip'
+              : 'archive.zip';
+          final name = await _showTextInputDialog(
+            context,
+            title: l.tr('sftp.compressTitle'),
+            hint: l.tr('sftp.nameHint'),
+            initialValue: defaultName,
+          );
+          if (name == null || name.trim().isEmpty) return;
+          await manager.compressEntriesToCurrentDirectory(
+            entries,
+            zipName: name.trim(),
+          );
+        case _SftpMenuActionType.delete:
+          final confirmed = await _showDeleteConfirm(context, entries.length);
+          if (!confirmed) return;
+          await manager.deleteEntries(entries);
+        case _SftpMenuActionType.rename:
+          final name = await _showTextInputDialog(
+            context,
+            title: l.tr('sftp.renameTitle'),
+            hint: l.tr('sftp.nameHint'),
+            initialValue: anchor.name,
+          );
+          if (name == null || name.trim().isEmpty) return;
+          await manager.renameEntry(anchor, name.trim());
+        case _SftpMenuActionType.copyPath:
+          await Clipboard.setData(
+            ClipboardData(
+              text: SftpSessionManager.joinPath(
+                session.currentPath,
+                anchor.name,
+              ),
+            ),
+          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l.tr('sftp.pathCopied'))));
+          }
+      }
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  Future<void> _downloadEntries(
+    BuildContext context,
+    SftpSessionState session,
+    List<SftpFileEntry> entries,
+  ) async {
+    if (entries.isEmpty) return;
+    final l = AppLocalizations.of(context);
+    final downloadDir = Directory(
+      '${(await getApplicationDocumentsDirectory()).path}${Platform.pathSeparator}sftp-downloads',
+    );
+    await downloadDir.create(recursive: true);
+    late final File output;
+    if (entries.length == 1 && !entries.first.isDirectory) {
+      final entry = entries.first;
+      output = File(
+        '${downloadDir.path}${Platform.pathSeparator}${_safeFileName(entry.name)}',
+      );
+      final bytes = await manager.downloadFileBytes(
+        SftpSessionManager.joinPath(session.currentPath, entry.name),
+      );
+      await output.writeAsBytes(bytes, flush: true);
+    } else {
+      final name = entries.length == 1
+          ? '${entries.first.name}.zip'
+          : 'sftp-${DateTime.now().millisecondsSinceEpoch}.zip';
+      output = File(
+        '${downloadDir.path}${Platform.pathSeparator}${_safeFileName(name)}',
+      );
+      final bytes = await manager.zipEntries(entries);
+      await output.writeAsBytes(bytes, flush: true);
+    }
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(output.path)],
+        text: l.tr('sftp.downloadReady'),
+      ),
+    );
+  }
+
+  Future<String?> _chooseRemoteDirectory(
+    BuildContext context,
+    String initialPath,
+  ) {
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) =>
+          _SftpDirectoryPickerSheet(manager: manager, initialPath: initialPath),
+    );
+  }
+
+  Future<bool> _showDeleteConfirm(BuildContext context, int count) async {
+    final l = AppLocalizations.of(context);
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(l.tr('sftp.deleteTitle')),
+            content: Text(l.tr('sftp.deleteBody').replaceAll('{0}', '$count')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(l.tr('common.cancel')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(l.tr('common.delete')),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<String?> _showTextInputDialog(
+    BuildContext context, {
+    required String title,
+    required String hint,
+    String initialValue = '',
+  }) {
+    return showDialog<String>(
+      context: context,
+      builder: (_) =>
+          _SftpNameDialog(title: title, hint: hint, initialValue: initialValue),
+    );
+  }
 }
 
 class _SftpMenuAction {
-  const _SftpMenuAction(this.icon, this.label, {this.destructive = false});
+  const _SftpMenuAction(
+    this.icon,
+    this.label,
+    this.type, {
+    this.destructive = false,
+  });
 
   final IconData icon;
   final String label;
+  final _SftpMenuActionType type;
   final bool destructive;
+}
+
+enum _SftpMenuActionType {
+  download,
+  copyTo,
+  moveTo,
+  compress,
+  delete,
+  rename,
+  copyPath,
 }
 
 class _SftpTopSelector extends StatelessWidget {
@@ -437,24 +651,79 @@ class _SftpToolbar extends StatelessWidget {
   }
 
   void _showUploadMenu(BuildContext context) {
+    final l = AppLocalizations.of(context);
     _showOptionSheet(context, [
-      _SftpSheetAction(Icons.upload_file_outlined, '上传文件', () {
-        _showDeferredSnack(context);
+      _SftpSheetAction(Icons.upload_file_outlined, l.tr('sftp.uploadFile'), () {
+        _uploadFiles(context);
       }),
-      _SftpSheetAction(Icons.create_new_folder_outlined, '上传文件夹', () {
-        _showDeferredSnack(context);
-      }),
+      _SftpSheetAction(
+        Icons.create_new_folder_outlined,
+        l.tr('sftp.uploadFolder'),
+        () {
+          _uploadFolder(context);
+        },
+      ),
     ]);
   }
 
+  Future<void> _uploadFiles(BuildContext context) async {
+    try {
+      final result = await FilePicker.pickFiles(
+        allowMultiple: true,
+        withData: false,
+      );
+      final paths =
+          result?.paths.whereType<String>().toList(growable: false) ??
+          const <String>[];
+      if (paths.isEmpty) return;
+      await manager.uploadFiles(paths.map(File.new).toList(growable: false));
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  Future<void> _uploadFolder(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    try {
+      final path = await FilePicker.getDirectoryPath();
+      if (path == null) return;
+      final directory = Directory(path);
+      if (!await directory.exists()) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.tr('sftp.folderUploadUnsupported'))),
+        );
+        return;
+      }
+      await manager.uploadDirectory(directory);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
   void _showCreateMenu(BuildContext context) {
+    final l = AppLocalizations.of(context);
     _showOptionSheet(context, [
-      _SftpSheetAction(Icons.insert_drive_file_outlined, '新建文件', () {
-        _showNameDialog(context, type: 'file');
-      }),
-      _SftpSheetAction(Icons.create_new_folder_outlined, '新建文件夹', () {
-        _showNameDialog(context, type: 'folder');
-      }),
+      _SftpSheetAction(
+        Icons.insert_drive_file_outlined,
+        l.tr('sftp.newFile'),
+        () {
+          _showNameDialog(context, type: 'file');
+        },
+      ),
+      _SftpSheetAction(
+        Icons.create_new_folder_outlined,
+        l.tr('sftp.newFolder'),
+        () {
+          _showNameDialog(context, type: 'folder');
+        },
+      ),
     ]);
   }
 
@@ -480,27 +749,12 @@ class _SftpToolbar extends StatelessWidget {
     BuildContext context, {
     required String type,
   }) async {
-    final controller = TextEditingController();
+    final l = AppLocalizations.of(context);
     final name = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(type == 'folder' ? '新建文件夹' : '新建文件'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '请输入名称'),
-          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-            child: const Text('确认'),
-          ),
-        ],
+      builder: (_) => _SftpNameDialog(
+        title: type == 'folder' ? l.tr('sftp.newFolder') : l.tr('sftp.newFile'),
+        hint: l.tr('sftp.nameHint'),
       ),
     );
     final trimmed = name?.trim();
@@ -559,12 +813,6 @@ class _SftpToolbar extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void _showDeferredSnack(BuildContext context) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('上传文件/文件夹将在下一步接入系统选择器')));
   }
 }
 
@@ -625,6 +873,259 @@ class _SftpSheetAction {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+}
+
+class _SftpNameDialog extends StatefulWidget {
+  const _SftpNameDialog({
+    required this.title,
+    required this.hint,
+    this.initialValue = '',
+  });
+
+  final String title;
+  final String hint;
+  final String initialValue;
+
+  @override
+  State<_SftpNameDialog> createState() => _SftpNameDialogState();
+}
+
+class _SftpNameDialogState extends State<_SftpNameDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+    _controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: widget.initialValue.length,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(hintText: widget.hint),
+        onSubmitted: (value) => Navigator.of(context).pop(value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.tr('common.cancel')),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: Text(l.tr('common.save')),
+        ),
+      ],
+    );
+  }
+}
+
+class _SftpDirectoryPickerSheet extends StatefulWidget {
+  const _SftpDirectoryPickerSheet({
+    required this.manager,
+    required this.initialPath,
+  });
+
+  final SftpSessionManager manager;
+  final String initialPath;
+
+  @override
+  State<_SftpDirectoryPickerSheet> createState() =>
+      _SftpDirectoryPickerSheetState();
+}
+
+class _SftpDirectoryPickerSheetState extends State<_SftpDirectoryPickerSheet> {
+  late String _path;
+  var _directories = const <SftpFileEntry>[];
+  var _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _path = widget.initialPath;
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final directories = await widget.manager.listDirectories(_path);
+      if (!mounted) return;
+      setState(() {
+        _directories = directories;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _open(String path) async {
+    _path = path;
+    await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return SafeArea(
+      top: false,
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.42,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: _SftpPalette.canvas,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border(top: BorderSide(color: _SftpPalette.border)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _SftpPalette.strongBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l.tr('sftp.chooseTargetFolder'),
+                        style: const TextStyle(
+                          color: _SftpPalette.text,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    _SftpSheetIconButton(
+                      tooltip: l.tr('common.close'),
+                      icon: Icons.close_rounded,
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Row(
+                  children: [
+                    _SftpIconAction(
+                      icon: Icons.home_outlined,
+                      onTap: () => _open('/'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _path,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _SftpPalette.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    _SftpIconAction(
+                      icon: Icons.chevron_left_rounded,
+                      onTap: () => _open(SftpSessionManager.parentPath(_path)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _loading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: _SftpPalette.primary,
+                        ),
+                      )
+                    : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Text(
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: _SftpPalette.muted),
+                          ),
+                        ),
+                      )
+                    : ListView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        children: [
+                          for (final directory in _directories)
+                            ListTile(
+                              leading: const Icon(
+                                Icons.folder_rounded,
+                                color: _SftpPalette.gold,
+                              ),
+                              title: Text(
+                                directory.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _SftpPalette.text,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              onTap: () => _open(
+                                SftpSessionManager.joinPath(
+                                  _path,
+                                  directory.name,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(context).pop(_path),
+                    child: Text(l.tr('sftp.selectThisFolder')),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SftpPathBar extends StatelessWidget {
@@ -1620,6 +2121,10 @@ InputDecoration _sftpSearchDecoration({required String hintText}) {
       borderSide: const BorderSide(color: _SftpPalette.border),
     ),
   );
+}
+
+String _safeFileName(String name) {
+  return name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
 }
 
 abstract final class _SftpPalette {

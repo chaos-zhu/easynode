@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/foundation.dart';
 
@@ -298,6 +300,215 @@ class SftpSessionManager extends ChangeNotifier {
     await refreshActive();
   }
 
+  Future<void> uploadFiles(List<File> files) async {
+    final state = activeSession;
+    if (state == null || files.isEmpty) return;
+    final connection = _connections[state.server.id];
+    if (connection == null) return;
+    state.update(loadingDirectory: true, lastError: null);
+    try {
+      for (final file in files) {
+        final name = _basename(file.path);
+        await _uploadLocalFile(
+          connection.sftp,
+          file,
+          joinPath(state.currentPath, name),
+        );
+      }
+      await refreshActive();
+    } catch (error) {
+      state.update(loadingDirectory: false, lastError: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> uploadDirectory(Directory directory) async {
+    final state = activeSession;
+    if (state == null) return;
+    final connection = _connections[state.server.id];
+    if (connection == null) return;
+    state.update(loadingDirectory: true, lastError: null);
+    try {
+      final remoteRoot = joinPath(state.currentPath, _basename(directory.path));
+      await _uploadLocalDirectory(connection.sftp, directory, remoteRoot);
+      await refreshActive();
+    } catch (error) {
+      state.update(loadingDirectory: false, lastError: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<Uint8List> downloadFileBytes(String remotePath) async {
+    final state = activeSession;
+    if (state == null) return Uint8List(0);
+    final connection = _connections[state.server.id];
+    if (connection == null) return Uint8List(0);
+    return _readRemoteFile(connection.sftp, remotePath);
+  }
+
+  Future<Uint8List> zipEntries(List<SftpFileEntry> entries) async {
+    final state = activeSession;
+    if (state == null || entries.isEmpty) return Uint8List(0);
+    final connection = _connections[state.server.id];
+    if (connection == null) return Uint8List(0);
+    state.update(loadingDirectory: true, lastError: null);
+    try {
+      final archive = Archive();
+      for (final entry in entries) {
+        await _addRemoteEntryToArchive(
+          connection.sftp,
+          joinPath(state.currentPath, entry.name),
+          entry.name,
+          entry,
+          archive,
+        );
+      }
+      final encoded = ZipEncoder().encode(archive);
+      return Uint8List.fromList(encoded);
+    } catch (error) {
+      state.update(lastError: error.toString());
+      rethrow;
+    } finally {
+      state.update(loadingDirectory: false);
+    }
+  }
+
+  Future<String> compressEntriesToCurrentDirectory(
+    List<SftpFileEntry> entries, {
+    required String zipName,
+  }) async {
+    final state = activeSession;
+    if (state == null || entries.isEmpty) return '';
+    final connection = _connections[state.server.id];
+    if (connection == null) return '';
+    state.update(loadingDirectory: true, lastError: null);
+    try {
+      final archive = Archive();
+      for (final entry in entries) {
+        await _addRemoteEntryToArchive(
+          connection.sftp,
+          joinPath(state.currentPath, entry.name),
+          entry.name,
+          entry,
+          archive,
+        );
+      }
+      final encoded = Uint8List.fromList(ZipEncoder().encode(archive));
+      final normalizedName = zipName.toLowerCase().endsWith('.zip')
+          ? zipName
+          : '$zipName.zip';
+      final remotePath = joinPath(state.currentPath, normalizedName);
+      await _writeRemoteFile(connection.sftp, remotePath, encoded);
+      await refreshActive();
+      return remotePath;
+    } catch (error) {
+      state.update(loadingDirectory: false, lastError: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> deleteEntries(List<SftpFileEntry> entries) async {
+    final state = activeSession;
+    if (state == null || entries.isEmpty) return;
+    final connection = _connections[state.server.id];
+    if (connection == null) return;
+    state.update(loadingDirectory: true, lastError: null);
+    try {
+      for (final entry in entries) {
+        await _deleteRemoteEntry(
+          connection.sftp,
+          joinPath(state.currentPath, entry.name),
+          entry,
+        );
+      }
+      await refreshActive();
+    } catch (error) {
+      state.update(loadingDirectory: false, lastError: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> renameEntry(SftpFileEntry entry, String newName) async {
+    final state = activeSession;
+    if (state == null) return;
+    final connection = _connections[state.server.id];
+    if (connection == null) return;
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty || trimmed == entry.name) return;
+    state.update(loadingDirectory: true, lastError: null);
+    try {
+      await connection.sftp.rename(
+        joinPath(state.currentPath, entry.name),
+        joinPath(state.currentPath, trimmed),
+      );
+      await refreshActive();
+    } catch (error) {
+      state.update(loadingDirectory: false, lastError: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> copyEntries(
+    List<SftpFileEntry> entries,
+    String targetDir,
+  ) async {
+    final state = activeSession;
+    if (state == null || entries.isEmpty) return;
+    final connection = _connections[state.server.id];
+    if (connection == null) return;
+    state.update(loadingDirectory: true, lastError: null);
+    try {
+      for (final entry in entries) {
+        await _copyRemoteEntry(
+          connection.sftp,
+          joinPath(state.currentPath, entry.name),
+          joinPath(targetDir, entry.name),
+          entry,
+        );
+      }
+      await refreshActive();
+    } catch (error) {
+      state.update(loadingDirectory: false, lastError: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> moveEntries(
+    List<SftpFileEntry> entries,
+    String targetDir,
+  ) async {
+    final state = activeSession;
+    if (state == null || entries.isEmpty) return;
+    final connection = _connections[state.server.id];
+    if (connection == null) return;
+    state.update(loadingDirectory: true, lastError: null);
+    try {
+      for (final entry in entries) {
+        await connection.sftp.rename(
+          joinPath(state.currentPath, entry.name),
+          joinPath(targetDir, entry.name),
+        );
+      }
+      await refreshActive();
+    } catch (error) {
+      state.update(loadingDirectory: false, lastError: error.toString());
+      rethrow;
+    }
+  }
+
+  Future<List<SftpFileEntry>> listDirectories(String path) async {
+    final state = activeSession;
+    if (state == null) return const [];
+    final connection = _connections[state.server.id];
+    if (connection == null) return const [];
+    final entries = await _listDirectory(
+      connection.sftp,
+      path,
+      state.showHidden,
+    );
+    return entries.where((entry) => entry.isDirectory).toList(growable: false);
+  }
+
   Future<void> goParent() async {
     final state = activeSession;
     if (state == null) return;
@@ -383,6 +594,135 @@ class SftpSessionManager extends ChangeNotifier {
     return entries;
   }
 
+  Future<void> _uploadLocalFile(
+    SftpClient sftp,
+    File localFile,
+    String remotePath,
+  ) async {
+    final bytes = await localFile.readAsBytes();
+    await _writeRemoteFile(sftp, remotePath, bytes);
+  }
+
+  Future<void> _uploadLocalDirectory(
+    SftpClient sftp,
+    Directory directory,
+    String remotePath,
+  ) async {
+    await _ensureRemoteDirectory(sftp, remotePath);
+    final entities = directory.list(recursive: false, followLinks: false);
+    await for (final entity in entities) {
+      final target = joinPath(remotePath, _basename(entity.path));
+      if (entity is Directory) {
+        await _uploadLocalDirectory(sftp, entity, target);
+      } else if (entity is File) {
+        await _uploadLocalFile(sftp, entity, target);
+      }
+    }
+  }
+
+  Future<void> _writeRemoteFile(
+    SftpClient sftp,
+    String remotePath,
+    Uint8List bytes,
+  ) async {
+    final file = await sftp.open(
+      remotePath,
+      mode:
+          SftpFileOpenMode.write |
+          SftpFileOpenMode.create |
+          SftpFileOpenMode.truncate,
+    );
+    try {
+      await file.writeBytes(bytes);
+    } finally {
+      await file.close();
+    }
+  }
+
+  Future<Uint8List> _readRemoteFile(SftpClient sftp, String remotePath) async {
+    final file = await sftp.open(remotePath);
+    try {
+      return await file.readBytes();
+    } finally {
+      await file.close();
+    }
+  }
+
+  Future<void> _addRemoteEntryToArchive(
+    SftpClient sftp,
+    String remotePath,
+    String archivePath,
+    SftpFileEntry entry,
+    Archive archive,
+  ) async {
+    if (entry.isDirectory) {
+      archive.add(ArchiveFile.directory(_zipPath(archivePath)));
+      final children = await _listDirectory(sftp, remotePath, true);
+      for (final child in children) {
+        await _addRemoteEntryToArchive(
+          sftp,
+          joinPath(remotePath, child.name),
+          '${_zipPath(archivePath)}/${child.name}',
+          child,
+          archive,
+        );
+      }
+      return;
+    }
+    final bytes = await _readRemoteFile(sftp, remotePath);
+    archive.add(ArchiveFile.bytes(_zipPath(archivePath), bytes));
+  }
+
+  Future<void> _copyRemoteEntry(
+    SftpClient sftp,
+    String sourcePath,
+    String targetPath,
+    SftpFileEntry entry,
+  ) async {
+    if (entry.isDirectory) {
+      await _ensureRemoteDirectory(sftp, targetPath);
+      final children = await _listDirectory(sftp, sourcePath, true);
+      for (final child in children) {
+        await _copyRemoteEntry(
+          sftp,
+          joinPath(sourcePath, child.name),
+          joinPath(targetPath, child.name),
+          child,
+        );
+      }
+      return;
+    }
+    await _writeRemoteFile(
+      sftp,
+      targetPath,
+      await _readRemoteFile(sftp, sourcePath),
+    );
+  }
+
+  Future<void> _deleteRemoteEntry(
+    SftpClient sftp,
+    String remotePath,
+    SftpFileEntry entry,
+  ) async {
+    if (entry.isDirectory) {
+      final children = await _listDirectory(sftp, remotePath, true);
+      for (final child in children) {
+        await _deleteRemoteEntry(sftp, joinPath(remotePath, child.name), child);
+      }
+      await sftp.rmdir(remotePath);
+      return;
+    }
+    await sftp.remove(remotePath);
+  }
+
+  Future<void> _ensureRemoteDirectory(SftpClient sftp, String path) async {
+    try {
+      await sftp.mkdir(path);
+    } catch (_) {
+      await sftp.stat(path);
+    }
+  }
+
   SftpFileEntry _entryFromName(SftpName name) {
     final type = _typeFromLongName(name.longname);
     final parts = name.longname.trim().split(RegExp(r'\s+'));
@@ -410,6 +750,17 @@ class SftpSessionManager extends ChangeNotifier {
     if (seconds == null || seconds <= 0) return null;
     return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
   }
+
+  String _basename(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final trimmed = normalized.endsWith('/') && normalized.length > 1
+        ? normalized.substring(0, normalized.length - 1)
+        : normalized;
+    final index = trimmed.lastIndexOf('/');
+    return index < 0 ? trimmed : trimmed.substring(index + 1);
+  }
+
+  String _zipPath(String path) => path.replaceAll('\\', '/');
 }
 
 class _SftpConnection {
