@@ -149,9 +149,8 @@ async function getMobileSshConnection({ request, res }) {
 
     return res.success({ data, msg: 'success' })
   } catch (error) {
-    // Detail goes to the server log; the wire response stays generic.
     logger.error('getMobileSshConnection error:', error.message)
-    return res.fail({ msg: 'mobile ssh connection failed' })
+    return res.fail({ msg: error.message || 'mobile ssh connection failed' })
   }
 }
 
