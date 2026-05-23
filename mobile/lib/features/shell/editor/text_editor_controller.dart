@@ -16,8 +16,9 @@ class TextEditorController extends ChangeNotifier {
     required this.language,
     required this.totalBytes,
   })  : _writer = writer,
-        _originalText = originalText,
+        _originalText = '',
         code = CodeLineEditingController.fromText(originalText) {
+    _originalText = code.text;
     code.addListener(_onCodeChanged);
   }
 
