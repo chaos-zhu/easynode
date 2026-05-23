@@ -18,20 +18,17 @@ class EditorLanguage {
   const EditorLanguage({
     required this.id,
     required this.highlightMode,
-    required this.formatSupported,
     required this.defaultIndent,
   });
 
   final String id;
   final Mode? highlightMode;
-  final bool formatSupported;
   final int defaultIndent;
 }
 
 const _plainText = EditorLanguage(
   id: 'Plain Text',
   highlightMode: null,
-  formatSupported: false,
   defaultIndent: 2,
 );
 
@@ -75,7 +72,6 @@ EditorLanguage detectFromFileName(String name) {
       return EditorLanguage(
         id: 'JSON',
         highlightMode: langJson,
-        formatSupported: true,
         defaultIndent: 2,
       );
     case 'yaml':
@@ -83,7 +79,6 @@ EditorLanguage detectFromFileName(String name) {
       return EditorLanguage(
         id: 'YAML',
         highlightMode: langYaml,
-        formatSupported: true,
         defaultIndent: 2,
       );
     case 'xml':
@@ -93,7 +88,6 @@ EditorLanguage detectFromFileName(String name) {
       return EditorLanguage(
         id: 'XML',
         highlightMode: langXml,
-        formatSupported: ext == 'xml',
         defaultIndent: 2,
       );
     case 'ts':
@@ -101,7 +95,6 @@ EditorLanguage detectFromFileName(String name) {
       return EditorLanguage(
         id: 'TypeScript',
         highlightMode: langTypescript,
-        formatSupported: false,
         defaultIndent: 2,
       );
     case 'js':
@@ -111,7 +104,6 @@ EditorLanguage detectFromFileName(String name) {
       return EditorLanguage(
         id: 'JavaScript',
         highlightMode: langJavascript,
-        formatSupported: false,
         defaultIndent: 2,
       );
     case 'sh':
@@ -120,35 +112,30 @@ EditorLanguage detectFromFileName(String name) {
       return EditorLanguage(
         id: 'Bash',
         highlightMode: langBash,
-        formatSupported: false,
         defaultIndent: 2,
       );
     case 'py':
       return EditorLanguage(
         id: 'Python',
         highlightMode: langPython,
-        formatSupported: false,
         defaultIndent: 4,
       );
     case 'go':
       return EditorLanguage(
         id: 'Go',
         highlightMode: langGo,
-        formatSupported: false,
         defaultIndent: 2,
       );
     case 'sql':
       return EditorLanguage(
         id: 'SQL',
         highlightMode: langSql,
-        formatSupported: false,
         defaultIndent: 2,
       );
     case 'dart':
       return EditorLanguage(
         id: 'Dart',
         highlightMode: langDart,
-        formatSupported: false,
         defaultIndent: 2,
       );
     case 'md':
@@ -156,7 +143,6 @@ EditorLanguage detectFromFileName(String name) {
       return EditorLanguage(
         id: 'Markdown',
         highlightMode: langMarkdown,
-        formatSupported: false,
         defaultIndent: 2,
       );
     case 'ini':
@@ -166,21 +152,18 @@ EditorLanguage detectFromFileName(String name) {
       return EditorLanguage(
         id: 'INI',
         highlightMode: langIni,
-        formatSupported: false,
         defaultIndent: 2,
       );
     case 'dockerfile':
       return EditorLanguage(
         id: 'Dockerfile',
         highlightMode: langDockerfile,
-        formatSupported: false,
         defaultIndent: 2,
       );
     case 'nginx':
       return EditorLanguage(
         id: 'Nginx',
         highlightMode: langNginx,
-        formatSupported: false,
         defaultIndent: 2,
       );
     default:

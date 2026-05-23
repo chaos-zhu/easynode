@@ -63,31 +63,5 @@ void main() {
       expect(controller.isDirty, isTrue);
       controller.dispose();
     });
-
-    test('format applies JSON formatter when supported', () {
-      final controller = TextEditorController(
-        writer: _FakeWriter(),
-        remotePath: '/etc/app.json',
-        originalText: '{"a":1,"b":2}',
-        language: detectFromFileName('app.json'),
-        totalBytes: 14,
-      );
-      controller.code.text = '{"a":1,"b":2}';
-      controller.format();
-      expect(controller.code.text, contains('\n  "a": 1'));
-      controller.dispose();
-    });
-
-    test('canFormat is false for plaintext', () {
-      final controller = TextEditorController(
-        writer: _FakeWriter(),
-        remotePath: '/etc/notes',
-        originalText: 'plain',
-        language: detectFromFileName('notes'),
-        totalBytes: 5,
-      );
-      expect(controller.canFormat, isFalse);
-      controller.dispose();
-    });
   });
 }

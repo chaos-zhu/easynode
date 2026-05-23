@@ -456,12 +456,6 @@ class _TextEditorPageState extends ConsumerState<TextEditorPage> {
               ),
             ),
           const Spacer(),
-          TextButton.icon(
-            icon: const Icon(Icons.auto_fix_high, size: 16),
-            label: Text(l.tr('editor.format')),
-            onPressed: controller.canFormat ? () => _onFormat(context, controller) : null,
-          ),
-          const SizedBox(width: 8),
           FilledButton.icon(
             icon: controller.saving
                 ? const SizedBox(
@@ -491,26 +485,6 @@ class _TextEditorPageState extends ConsumerState<TextEditorPage> {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l.trf('editor.saveFailed', [error.toString()]))),
-      );
-    }
-  }
-
-  void _onFormat(BuildContext context, TextEditorController controller) {
-    final l = AppLocalizations.of(context);
-    if (!controller.canFormat) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.tr('editor.formatUnsupported'))));
-      return;
-    }
-    try {
-      controller.format();
-    } on FormatException catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.trf('editor.formatFailed', [error.message]))),
-      );
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.trf('editor.formatFailed', [error.toString()]))),
       );
     }
   }

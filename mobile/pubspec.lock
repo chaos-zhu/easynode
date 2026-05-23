@@ -843,7 +843,7 @@ packages:
     source: hosted
     version: "1.1.0"
   xml:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: xml
       sha256: b015a8ad1c488f66851d762d3090a21c600e479dc75e68328c52774040cf9226
@@ -858,14 +858,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
-  yaml:
-    dependency: "direct main"
-    description:
-      name: yaml
-      sha256: "75769501ea3489fca56601ff33454fe45507ea3bfb014161abc3b43ae25989d5"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.1.2"
   zmodem:
     dependency: transitive
     description:

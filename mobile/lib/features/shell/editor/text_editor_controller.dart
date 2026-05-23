@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:re_editor/re_editor.dart';
 
-import 'editor_formatters.dart';
 import 'editor_language.dart';
 
 abstract class TextEditorWriter {
@@ -33,7 +32,6 @@ class TextEditorController extends ChangeNotifier {
 
   bool get isDirty => code.text != _originalText;
   bool get saving => _saving;
-  bool get canFormat => language.formatSupported;
 
   void _onCodeChanged() {
     notifyListeners();
@@ -52,28 +50,6 @@ class TextEditorController extends ChangeNotifier {
     } finally {
       _saving = false;
       notifyListeners();
-    }
-  }
-
-  void format() {
-    if (!language.formatSupported) return;
-    final src = code.text;
-    final String formatted;
-    switch (language.id) {
-      case 'JSON':
-        formatted = formatJson(src);
-        break;
-      case 'YAML':
-        formatted = formatYaml(src);
-        break;
-      case 'XML':
-        formatted = formatXml(src);
-        break;
-      default:
-        return;
-    }
-    if (formatted != src) {
-      code.text = formatted;
     }
   }
 
