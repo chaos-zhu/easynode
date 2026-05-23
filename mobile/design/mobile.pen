@@ -6476,7 +6476,7 @@
     {
       "type": "frame",
       "id": "MMCh0",
-      "x": 2911,
+      "x": 2837,
       "y": 964,
       "name": "服务器列表页",
       "clip": true,
@@ -9162,8 +9162,8 @@
     {
       "type": "frame",
       "id": "nw654",
-      "x": 4201,
-      "y": 964,
+      "x": 4716,
+      "y": 904,
       "name": "文件页(右键菜单)",
       "clip": true,
       "width": 390,
@@ -9317,38 +9317,6 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "frame",
-                          "id": "AYouP",
-                          "fill": "$accent-soft",
-                          "cornerRadius": "$radius-chip",
-                          "gap": 3,
-                          "padding": [
-                            2,
-                            7
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon_font",
-                              "id": "GXLC2",
-                              "width": 9,
-                              "height": 9,
-                              "iconFontName": "wifi",
-                              "iconFontFamily": "lucide",
-                              "fill": "$primary"
-                            },
-                            {
-                              "type": "text",
-                              "id": "A1OJB9",
-                              "fill": "$primary",
-                              "content": "切换",
-                              "fontFamily": "Inter",
-                              "fontSize": 10,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
                           "type": "icon_font",
                           "id": "D4Byt",
                           "width": 16,
@@ -9360,32 +9328,6 @@
                       ]
                     }
                   ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "GJXE4",
-              "gap": 12,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon_font",
-                  "id": "oQVWD",
-                  "width": 22,
-                  "height": 22,
-                  "iconFontName": "search",
-                  "iconFontFamily": "lucide",
-                  "fill": "$font-secondary"
-                },
-                {
-                  "type": "icon_font",
-                  "id": "F0OmPE",
-                  "width": 22,
-                  "height": 22,
-                  "iconFontName": "refresh-cw",
-                  "iconFontFamily": "lucide",
-                  "fill": "$font-secondary"
                 }
               ]
             }
@@ -10997,8 +10939,8 @@
     {
       "type": "frame",
       "id": "sYMaF",
-      "x": 4631,
-      "y": 964,
+      "x": 5146,
+      "y": 904,
       "name": "代码编辑页",
       "clip": true,
       "width": 390,
@@ -12264,8 +12206,8 @@
     {
       "type": "frame",
       "id": "izXm3",
-      "x": 5061,
-      "y": 964,
+      "x": 5576,
+      "y": 904,
       "name": "图片预览页",
       "clip": true,
       "width": 390,
@@ -12928,8 +12870,8 @@
     {
       "type": "frame",
       "id": "M93CZ",
-      "x": 5491,
-      "y": 964,
+      "x": 6006,
+      "y": 904,
       "name": "影片预览页",
       "clip": true,
       "width": 390,
@@ -14081,8 +14023,8 @@
     {
       "type": "frame",
       "id": "AGTU4",
-      "x": 5921,
-      "y": 964,
+      "x": 6436,
+      "y": 904,
       "name": "代码编辑页(AI 助手)",
       "clip": true,
       "width": 390,
@@ -15917,8 +15859,8 @@
     {
       "type": "frame",
       "id": "DdRKa",
-      "x": 6351,
-      "y": 964,
+      "x": 6866,
+      "y": 904,
       "name": "代码编辑页(差异视图)",
       "clip": true,
       "width": 390,
@@ -18458,8 +18400,8 @@
     {
       "type": "frame",
       "id": "zbuYi",
-      "x": 6781,
-      "y": 964,
+      "x": 7296,
+      "y": 904,
       "name": "文件页(网格视图)",
       "clip": true,
       "width": 390,
@@ -20492,8 +20434,8 @@
     {
       "type": "frame",
       "id": "TEpnn",
-      "x": 7258,
-      "y": 944,
+      "x": 3866,
+      "y": 884,
       "name": "文件页(未连接)",
       "clip": true,
       "width": 390,
@@ -20561,111 +20503,16 @@
         },
         {
           "type": "frame",
-          "id": "oNTgO",
-          "width": "fill_container",
-          "height": 56,
-          "gap": 10,
-          "padding": [
-            0,
-            16
-          ],
-          "justifyContent": "space_between",
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "frame",
-              "id": "CR68D",
-              "width": "fill_container",
-              "height": 44,
-              "fill": "$surface-card",
-              "cornerRadius": "$radius-control",
-              "stroke": {
-                "thickness": 1.5,
-                "fill": "$border-strong"
-              },
-              "padding": [
-                0,
-                14
-              ],
-              "justifyContent": "space_between",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "E1B8b",
-                  "gap": 10,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon_font",
-                      "id": "TkoMk",
-                      "width": 16,
-                      "height": 16,
-                      "iconFontName": "server",
-                      "iconFontFamily": "lucide",
-                      "fill": "$font-muted"
-                    },
-                    {
-                      "type": "text",
-                      "id": "KiMlC",
-                      "fill": "$font-muted",
-                      "content": "请选择服务器进行连接",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "500"
-                    }
-                  ]
-                },
-                {
-                  "type": "icon_font",
-                  "id": "K2OJS",
-                  "width": 18,
-                  "height": 18,
-                  "iconFontName": "chevron-down",
-                  "iconFontFamily": "lucide",
-                  "fill": "$font-secondary"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "N2Oxi",
-              "width": 36,
-              "height": 36,
-              "fill": "$surface-card",
-              "cornerRadius": 10,
-              "stroke": {
-                "thickness": 1,
-                "fill": "$border"
-              },
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon_font",
-                  "id": "JO3m0",
-                  "width": 20,
-                  "height": 20,
-                  "iconFontName": "ellipsis",
-                  "iconFontFamily": "lucide",
-                  "fill": "$font-secondary"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
           "id": "ONO4q",
           "width": "fill_container",
           "height": "fill_container",
           "layout": "vertical",
           "gap": 20,
           "padding": [
-            24,
+            160,
             16,
             12,
-            16
+            15
           ],
           "children": [
             {
@@ -20673,11 +20520,9 @@
               "id": "P4O3GA",
               "width": "fill_container",
               "height": 348,
-              "fill": "$surface-card",
               "cornerRadius": "$radius-card",
               "stroke": {
-                "thickness": 1,
-                "fill": "$border"
+                "thickness": 1
               },
               "layout": "vertical",
               "gap": 18,
@@ -20772,7 +20617,7 @@
                       "type": "text",
                       "id": "zW3XE",
                       "fill": "$font-primary",
-                      "content": "未连接服务器",
+                      "content": "SFTP文件管理",
                       "textAlign": "center",
                       "fontFamily": "Inter",
                       "fontSize": 20,
@@ -20833,41 +20678,6 @@
                       "iconFontName": "chevron-down",
                       "iconFontFamily": "lucide",
                       "fill": "$font-on-primary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "N3v9b",
-                  "gap": 6,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon_font",
-                      "id": "CYc4G",
-                      "width": 12,
-                      "height": 12,
-                      "iconFontName": "history",
-                      "iconFontFamily": "lucide",
-                      "fill": "$font-muted"
-                    },
-                    {
-                      "type": "text",
-                      "id": "TM5Sa",
-                      "fill": "$font-muted",
-                      "content": "最近连接: 腾讯云·香港-WebServer",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "500"
-                    },
-                    {
-                      "type": "text",
-                      "id": "iVo9o",
-                      "fill": "$primary",
-                      "content": "重新连接",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "700"
                     }
                   ]
                 }
@@ -21041,8 +20851,8 @@
     {
       "type": "frame",
       "id": "fbx8l",
-      "x": 7688,
-      "y": 944,
+      "x": 4296,
+      "y": 884,
       "name": "服务器下拉选择弹窗",
       "clip": true,
       "width": 390,
@@ -21308,115 +21118,6 @@
                           "fontSize": 10,
                           "fontWeight": "700",
                           "letterSpacing": 1
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "jBTgm",
-                      "width": "fill_container",
-                      "height": 64,
-                      "fill": "$primary-soft",
-                      "cornerRadius": "$radius-control",
-                      "stroke": {
-                        "thickness": 1.5,
-                        "fill": "$accent"
-                      },
-                      "gap": 12,
-                      "padding": [
-                        0,
-                        14
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "ellipse",
-                          "id": "uNabj",
-                          "fill": "$success",
-                          "width": 8,
-                          "height": 8
-                        },
-                        {
-                          "type": "icon_font",
-                          "id": "mBZtf",
-                          "width": 16,
-                          "height": 16,
-                          "iconFontName": "server",
-                          "iconFontFamily": "lucide",
-                          "fill": "$primary"
-                        },
-                        {
-                          "type": "frame",
-                          "id": "M1JR47",
-                          "width": "fill_container",
-                          "layout": "vertical",
-                          "gap": 4,
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "I6hxiX",
-                              "fill": "$font-primary",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "本地开发机",
-                              "fontFamily": "Inter",
-                              "fontSize": 14,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "q4uIt7",
-                              "width": "fill_container",
-                              "gap": 8,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "cEZY6",
-                                  "fill": "$font-muted",
-                                  "content": "192.168.1.42",
-                                  "fontFamily": "JetBrains Mono",
-                                  "fontSize": 11,
-                                  "fontWeight": "normal"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "DjBJO",
-                                  "fill": "$surface-card-strong",
-                                  "cornerRadius": 999,
-                                  "stroke": {
-                                    "thickness": 1,
-                                    "fill": "$border"
-                                  },
-                                  "padding": [
-                                    1,
-                                    6
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "eBTDi",
-                                      "fill": "$font-secondary",
-                                      "content": "开发",
-                                      "fontFamily": "JetBrains Mono",
-                                      "fontSize": 10,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "icon_font",
-                          "id": "A0ntpA",
-                          "width": 18,
-                          "height": 18,
-                          "iconFontName": "check",
-                          "iconFontFamily": "lucide",
-                          "fill": "$primary"
                         }
                       ]
                     },
@@ -21901,76 +21602,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$font-muted"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "jFloq",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "padding": [
-                    12,
-                    20,
-                    0,
-                    20
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "IMxuI",
-                      "width": "fill_container",
-                      "height": 48,
-                      "cornerRadius": "$radius-control",
-                      "stroke": {
-                        "thickness": 1,
-                        "fill": "$border-strong"
-                      },
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "DvZD9",
-                          "fill": "$font-secondary",
-                          "content": "取消",
-                          "fontFamily": "Inter",
-                          "fontSize": 14,
-                          "fontWeight": "600"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "Fi3GS",
-                      "width": "fill_container",
-                      "height": 48,
-                      "fill": "$primary",
-                      "cornerRadius": "$radius-control",
-                      "gap": 8,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon_font",
-                          "id": "mRYqe",
-                          "width": 16,
-                          "height": 16,
-                          "iconFontName": "plug-zap",
-                          "iconFontFamily": "lucide",
-                          "fill": "$font-on-primary"
-                        },
-                        {
-                          "type": "text",
-                          "id": "i0iKG",
-                          "fill": "$font-on-primary",
-                          "content": "连接选中",
-                          "fontFamily": "Inter",
-                          "fontSize": 14,
-                          "fontWeight": "600"
                         }
                       ]
                     }

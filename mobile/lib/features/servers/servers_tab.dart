@@ -61,7 +61,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     setState(() => _connectingIds.add(server.id));
     final SshConnectionConfig config;
     try {
-      config = await ref.read(serverRepositoryProvider).fetchSshConfig(server.id);
+      config = await ref
+          .read(serverRepositoryProvider)
+          .fetchSshConfig(server.id);
     } catch (error) {
       if (!mounted) return;
       if (error is UnauthorizedFailure) {
@@ -71,8 +73,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.of(context)
-                .trf('servers.fetchSshFailed', [error.toString()]),
+            AppLocalizations.of(
+              context,
+            ).trf('servers.fetchSshFailed', [error.toString()]),
           ),
         ),
       );
@@ -88,9 +91,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
   }
 
   void _openShell() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const TerminalShellPage()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const TerminalShellPage()));
   }
 
   Future<void> _openForm({ServerModel? server}) async {
@@ -114,8 +117,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
             Future<void> delete() async {
               setDialogState(() => deleting = true);
               try {
-                final message =
-                    await ref.read(serverRepositoryProvider).deleteHost(server.id);
+                final message = await ref
+                    .read(serverRepositoryProvider)
+                    .deleteHost(server.id);
                 if (!mounted) return;
                 setState(() => _expandedServerIds.remove(server.id));
                 await _refresh();
@@ -123,9 +127,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                 if (dialogContext.mounted) {
                   Navigator.of(dialogContext).pop();
                 }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(message)),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(message)));
               } catch (error) {
                 if (!mounted) return;
                 if (error is UnauthorizedFailure) {
@@ -166,8 +170,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                     style: FilledButton.styleFrom(
                       backgroundColor: _ServerPalette.danger,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                          _ServerPalette.danger.withValues(alpha: 0.62),
+                      disabledBackgroundColor: _ServerPalette.danger.withValues(
+                        alpha: 0.62,
+                      ),
                       disabledForegroundColor: Colors.white,
                     ),
                     onPressed: deleting ? null : delete,
@@ -252,7 +257,6 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     final hostsAsync = ref.watch(hostListProvider);
     final groupsAsync = ref.watch(groupListProvider);
     final manager = ref.watch(terminalSessionManagerProvider);
-    final l = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: _ServerPalette.canvas,
@@ -279,36 +283,17 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         child: Row(
           children: [
             Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: _ServerPalette.accent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                '>_',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              l.tr('servers.title'),
-              style: const TextStyle(
-                color: _ServerPalette.text,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-              ),
+              width: 36,
+              height: 36,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+              child: Image.asset('assets/logo_v2_01.png', fit: BoxFit.cover),
             ),
             const Spacer(),
             _HeaderIconButton(
-              tooltip:
-                  _searchVisible ? l.tr('common.closeSearch') : l.tr('common.search'),
+              tooltip: _searchVisible
+                  ? l.tr('common.closeSearch')
+                  : l.tr('common.search'),
               icon: _searchVisible ? Icons.close : Icons.search,
               onPressed: _toggleSearch,
             ),
@@ -381,44 +366,28 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                       duration: const Duration(milliseconds: 220),
                       switchInCurve: Curves.easeOut,
                       switchOutCurve: Curves.easeIn,
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: child,
-                      ),
+                      transitionBuilder: (child, animation) =>
+                          FadeTransition(opacity: animation, child: child),
                       child: _searchVisible
                           ? Padding(
                               key: const ValueKey('search-field'),
                               padding: const EdgeInsets.only(bottom: 8),
-                              child: TextField(
-                                controller: _searchCtrl,
-                                autofocus: true,
-                                cursorColor: _ServerPalette.primary,
-                                decoration: InputDecoration(
-                                  prefixIcon: const Icon(Icons.search),
-                                  hintText: l.tr('servers.searchHint'),
-                                  filled: true,
-                                  fillColor: _ServerPalette.card,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: _ServerPalette.border,
-                                    ),
+                              child: SizedBox(
+                                height: 40,
+                                child: TextField(
+                                  controller: _searchCtrl,
+                                  autofocus: true,
+                                  cursorColor: _ServerPalette.primary,
+                                  style: const TextStyle(
+                                    color: _ServerPalette.text,
+                                    fontSize: 14,
                                   ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: _ServerPalette.border,
-                                    ),
+                                  decoration: _searchFieldDecoration(
+                                    hintText: l.tr('servers.searchHint'),
                                   ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: _ServerPalette.primary,
-                                    ),
+                                  onChanged: (value) => setState(
+                                    () => _query = value.trim().toLowerCase(),
                                   ),
-                                ),
-                                onChanged: (value) => setState(
-                                  () => _query = value.trim().toLowerCase(),
                                 ),
                               ),
                             )
@@ -493,10 +462,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     return null;
   }
 
-  List<ServerModel> _filterByGroup(
-    List<ServerModel> servers,
-    String? groupId,
-  ) {
+  List<ServerModel> _filterByGroup(List<ServerModel> servers, String? groupId) {
     if (groupId == null) return servers;
     return servers
         .where((server) => _normalizedGroupId(server.group) == groupId)
@@ -507,10 +473,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     return groupId.isEmpty ? 'default' : groupId;
   }
 
-  String _groupDisplayName(
-    ServerModel server,
-    List<ServerGroupModel> groups,
-  ) {
+  String _groupDisplayName(ServerModel server, List<ServerGroupModel> groups) {
     final groupId = _normalizedGroupId(server.group);
     for (final group in groups) {
       if (group.id == groupId) return group.displayName;
@@ -687,9 +650,9 @@ class _ActiveTerminalBanner extends StatelessWidget {
                         : l.trf('servers.activeTerminalsMany', [count]),
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: _ServerPalette.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: _ServerPalette.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 const Icon(
@@ -763,156 +726,155 @@ class _ServerCard extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
-        padding: EdgeInsets.fromLTRB(14, 14, 14, expanded ? 16 : 14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                _ServerOsIcon(enabled: server.canConnect),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () => state._openForm(server: server),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            server.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _ServerPalette.text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+          padding: EdgeInsets.fromLTRB(14, 14, 14, expanded ? 16 : 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  _ServerOsIcon(enabled: server.canConnect),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => state._openForm(server: server),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              server.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _ServerPalette.text,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            server.connectionLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _ServerPalette.softMuted,
-                              fontSize: 12,
-                              fontFamily: 'monospace',
+                            const SizedBox(height: 4),
+                            Text(
+                              server.connectionLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _ServerPalette.softMuted,
+                                fontSize: 12,
+                                fontFamily: 'monospace',
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                _IconPillButton(
-                  tooltip: expanded ? 'Collapse' : 'Expand',
-                  icon: expanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                  highlighted: expanded,
-                  onTap: () {
-                    state.setState(() {
-                      if (expanded) {
-                        state._expandedServerIds.remove(server.id);
-                      } else {
-                        state._expandedServerIds.add(server.id);
-                      }
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      if (groupName.isNotEmpty)
-                        _InfoChip(label: groupName),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                _ConnectButton(
-                  connecting: connecting,
-                  label: state._actionText(server),
-                  enabled: server.canConnect || server.isWindows,
-                  onPressed: () => state._connect(server),
-                ),
-              ],
-            ),
-            AnimatedCrossFade(
-              firstChild: const SizedBox(width: double.infinity),
-              secondChild: Column(
-                children: [
-                  const SizedBox(height: 14),
-                  const Divider(height: 1, color: _ServerPalette.border),
-                  const SizedBox(height: 12),
-                  _ServerDetailRow(
-                    icon: Icons.tag_outlined,
-                    label: l.tr('servers.field.index'),
-                    value: '#${server.index}',
-                  ),
-                  _ServerDetailRow(
-                    icon: Icons.folder_outlined,
-                    label: l.tr('servers.field.group'),
-                    value: groupName.isEmpty ? '-' : groupName,
-                  ),
-                  _ServerDetailRow(
-                    icon: Icons.sell_outlined,
-                    label: l.tr('servers.field.tags'),
-                    value: server.tag.isEmpty ? '-' : server.tag.join(', '),
-                  ),
-                  _ServerDetailRow(
-                    icon: Icons.key_outlined,
-                    label: l.tr('servers.field.authType'),
-                    value: state._authTypeLabel(server),
-                  ),
-                  _ServerDetailRow(
-                    icon: Icons.hub_outlined,
-                    label: l.tr('servers.field.proxyType'),
-                    value: proxyLabel,
-                    emphasized:
-                        server.proxyType != 'none' && server.proxyType.isNotEmpty,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SecondaryActionButton(
-                          icon: Icons.delete_outline,
-                          label: l.tr('common.delete'),
-                          destructive: true,
-                          onTap: () => state._confirmDelete(server),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _SecondaryActionButton(
-                          icon: Icons.edit_outlined,
-                          label: l.tr('servers.editServer'),
-                          onTap: () => state._openForm(server: server),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(width: 8),
+                  _IconPillButton(
+                    tooltip: expanded ? 'Collapse' : 'Expand',
+                    icon: expanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    highlighted: expanded,
+                    onTap: () {
+                      state.setState(() {
+                        if (expanded) {
+                          state._expandedServerIds.remove(server.id);
+                        } else {
+                          state._expandedServerIds.add(server.id);
+                        }
+                      });
+                    },
                   ),
                 ],
               ),
-              crossFadeState:
-                  expanded
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 180),
-              sizeCurve: Curves.easeOut,
-            ),
-          ],
-        ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if (groupName.isNotEmpty) _InfoChip(label: groupName),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _ConnectButton(
+                    connecting: connecting,
+                    label: state._actionText(server),
+                    enabled: server.canConnect || server.isWindows,
+                    onPressed: () => state._connect(server),
+                  ),
+                ],
+              ),
+              AnimatedCrossFade(
+                firstChild: const SizedBox(width: double.infinity),
+                secondChild: Column(
+                  children: [
+                    const SizedBox(height: 14),
+                    const Divider(height: 1, color: _ServerPalette.border),
+                    const SizedBox(height: 12),
+                    _ServerDetailRow(
+                      icon: Icons.tag_outlined,
+                      label: l.tr('servers.field.index'),
+                      value: '#${server.index}',
+                    ),
+                    _ServerDetailRow(
+                      icon: Icons.folder_outlined,
+                      label: l.tr('servers.field.group'),
+                      value: groupName.isEmpty ? '-' : groupName,
+                    ),
+                    _ServerDetailRow(
+                      icon: Icons.sell_outlined,
+                      label: l.tr('servers.field.tags'),
+                      value: server.tag.isEmpty ? '-' : server.tag.join(', '),
+                    ),
+                    _ServerDetailRow(
+                      icon: Icons.key_outlined,
+                      label: l.tr('servers.field.authType'),
+                      value: state._authTypeLabel(server),
+                    ),
+                    _ServerDetailRow(
+                      icon: Icons.hub_outlined,
+                      label: l.tr('servers.field.proxyType'),
+                      value: proxyLabel,
+                      emphasized:
+                          server.proxyType != 'none' &&
+                          server.proxyType.isNotEmpty,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SecondaryActionButton(
+                            icon: Icons.delete_outline,
+                            label: l.tr('common.delete'),
+                            destructive: true,
+                            onTap: () => state._confirmDelete(server),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _SecondaryActionButton(
+                            icon: Icons.edit_outlined,
+                            label: l.tr('servers.editServer'),
+                            onTap: () => state._openForm(server: server),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                crossFadeState: expanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                duration: const Duration(milliseconds: 180),
+                sizeCurve: Curves.easeOut,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -976,7 +938,9 @@ class _IconPillButton extends StatelessWidget {
             child: Icon(
               icon,
               size: 20,
-              color: highlighted ? _ServerPalette.primary : _ServerPalette.softMuted,
+              color: highlighted
+                  ? _ServerPalette.primary
+                  : _ServerPalette.softMuted,
             ),
           ),
         ),
@@ -1054,27 +1018,33 @@ class _ConnectButton extends StatelessWidget {
                     height: 34,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          enabled ? Icons.play_arrow_rounded : Icons.lock_outline,
-                          size: 17,
-                          color: enabled ? _ServerPalette.card : _ServerPalette.muted,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          label,
-                          style: TextStyle(
-                            color: enabled ? _ServerPalette.card : _ServerPalette.muted,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            enabled
+                                ? Icons.play_arrow_rounded
+                                : Icons.lock_outline,
+                            size: 17,
+                            color: enabled
+                                ? _ServerPalette.card
+                                : _ServerPalette.muted,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 5),
+                          Text(
+                            label,
+                            style: TextStyle(
+                              color: enabled
+                                  ? _ServerPalette.card
+                                  : _ServerPalette.muted,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                   ),
                 ),
               ),
@@ -1154,8 +1124,9 @@ class _ServerDetailRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.right,
               style: TextStyle(
-                color:
-                    emphasized ? _ServerPalette.primary : _ServerPalette.text,
+                color: emphasized
+                    ? _ServerPalette.primary
+                    : _ServerPalette.text,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -1182,11 +1153,15 @@ class _SecondaryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground =
-        destructive ? _ServerPalette.danger : _ServerPalette.muted;
-    final background =
-        destructive ? _ServerPalette.dangerSoft : _ServerPalette.chip;
-    final border = destructive ? _ServerPalette.dangerBorder : _ServerPalette.border;
+    final foreground = destructive
+        ? _ServerPalette.danger
+        : _ServerPalette.muted;
+    final background = destructive
+        ? _ServerPalette.dangerSoft
+        : _ServerPalette.chip;
+    final border = destructive
+        ? _ServerPalette.dangerBorder
+        : _ServerPalette.border;
     return Material(
       color: background,
       shape: RoundedRectangleBorder(
@@ -1241,12 +1216,35 @@ class _MessageState extends StatelessWidget {
   }
 }
 
+InputDecoration _searchFieldDecoration({required String hintText}) {
+  return InputDecoration(
+    hintText: hintText,
+    isDense: true,
+    filled: true,
+    fillColor: _ServerPalette.card,
+    prefixIcon: const Icon(Icons.search, size: 18),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    hintStyle: const TextStyle(color: _ServerPalette.softMuted, fontSize: 13),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _ServerPalette.border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _ServerPalette.primary, width: 1.2),
+    ),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _ServerPalette.border),
+    ),
+  );
+}
+
 abstract final class _ServerPalette {
   static const canvas = Color(0xFFF7EFE0);
   static const card = Color(0xFFFBF5E6);
   static const chip = Color(0xFFF4ECD7);
   static const banner = Color(0xFFF7E4B0);
-  static const accent = Color(0xFFE5B33A);
   static const primary = Color(0xFF5C4520);
   static const text = Color(0xFF2A2418);
   static const muted = Color(0xFF6B5E3F);
