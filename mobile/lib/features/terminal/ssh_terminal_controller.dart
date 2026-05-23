@@ -16,10 +16,8 @@ import 'ssh_connection_config.dart';
 /// - Toolbar shortcuts feed [writeInput] which writes directly to the SSH
 ///   session (not the local terminal buffer) so the remote sees the keys.
 class SshTerminalController {
-  SshTerminalController({
-    required this.config,
-    Terminal? terminal,
-  }) : terminal = terminal ?? Terminal();
+  SshTerminalController({required this.config, Terminal? terminal})
+    : terminal = terminal ?? Terminal();
 
   final SshConnectionConfig config;
   final Terminal terminal;
@@ -41,12 +39,14 @@ class SshTerminalController {
     // dartssh2 `SSHKeyPair.fromPem` already returns `List<SSHKeyPair>`, no extra
     // wrapping list needed.
     final identities = config.authType == 'privateKey'
-        ? SSHKeyPair.fromPem(config.privateKey, config.passphrase)
+        ? SSHKeyPair.fromPem(config.privateKey, config.privateKeyPassphrase)
         : null;
     _client = SSHClient(
       socket,
       username: config.username,
-      onPasswordRequest: config.authType == 'password' ? () => config.password : null,
+      onPasswordRequest: config.authType == 'password'
+          ? () => config.password
+          : null,
       identities: identities,
     );
     final session = await _client!.shell();

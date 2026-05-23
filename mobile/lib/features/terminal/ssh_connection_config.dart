@@ -31,6 +31,11 @@ class SshConnectionConfig {
   /// Optional passphrase for an encrypted private key.
   final String passphrase;
 
+  String? get privateKeyPassphrase {
+    final trimmed = passphrase.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
   factory SshConnectionConfig.fromJson(Map<String, dynamic> json) {
     final portRaw = json['port'];
     final int port;
