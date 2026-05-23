@@ -359,6 +359,83 @@ class SftpSessionManager extends ChangeNotifier {
     return _readRemoteFile(connection.sftp, remotePath);
   }
 
+  Future<void> downloadToLocalFile(
+    String remotePath,
+    File localFile, {
+    void Function(int received, int? total)? onProgress,
+  }) async {
+    final state = activeSession;
+    if (state == null) {
+      throw StateError('No active SFTP session');
+    }
+    final connection = _connections[state.server.id];
+    if (connection == null) {
+      throw StateError('No active SFTP connection');
+    }
+    final sftp = connection.sftp;
+    int? total;
+    try {
+      total = (await sftp.stat(remotePath)).size;
+    } catch (_) {
+      total = null;
+    }
+    final remote = await sftp.open(remotePath);
+    final sink = localFile.openWrite();
+    try {
+      var received = 0;
+      await for (final chunk in remote.read()) {
+        sink.add(chunk);
+        received += chunk.length;
+        onProgress?.call(received, total);
+      }
+      await sink.flush();
+    } finally {
+      await sink.close();
+      await remote.close();
+    }
+  }
+
+  /// Returns the size of [remotePath] via SFTP stat.
+  Future<int> remoteFileSize(String remotePath) async {
+    final state = activeSession;
+    if (state == null) {
+      throw StateError('No active SFTP session');
+    }
+    final connection = _connections[state.server.id];
+    if (connection == null) {
+      throw StateError('No active SFTP connection');
+    }
+    final attrs = await connection.sftp.stat(remotePath);
+    final size = attrs.size;
+    if (size == null) {
+      throw StateError('Unable to determine file size');
+    }
+    return size;
+  }
+
+  /// Opens a remote file for random-access reads. The returned handle wraps a
+  /// dartssh2 [SftpFile]; callers MUST close it when finished. Used by the
+  /// local HTTP proxy that backs video streaming so a 5 GB file does not need
+  /// to be fully downloaded before playback.
+  Future<SftpReadHandle> openRemoteForRead(String remotePath) async {
+    final state = activeSession;
+    if (state == null) {
+      throw StateError('No active SFTP session');
+    }
+    final connection = _connections[state.server.id];
+    if (connection == null) {
+      throw StateError('No active SFTP connection');
+    }
+    final sftp = connection.sftp;
+    final attrs = await sftp.stat(remotePath);
+    final size = attrs.size;
+    if (size == null) {
+      throw StateError('Unable to determine file size');
+    }
+    final file = await sftp.open(remotePath);
+    return SftpReadHandle._(file, size);
+  }
+
   static const int defaultTextFileMaxBytes = 2 * 1024 * 1024;
   static const int noExtensionSizeLimit = 10 * 1024;
 
@@ -906,7 +983,8 @@ class SftpFileTooLargeException implements Exception {
   final int limit;
 
   @override
-  String toString() => 'SftpFileTooLargeException($path, size=$size, limit=$limit)';
+  String toString() =>
+      'SftpFileTooLargeException($path, size=$size, limit=$limit)';
 }
 
 class SftpBinaryFileException implements Exception {
@@ -916,4 +994,37 @@ class SftpBinaryFileException implements Exception {
 
   @override
   String toString() => 'SftpBinaryFileException($path)';
+}
+
+/// Random-access read handle backed by a dartssh2 [SftpFile]. The local video
+/// streaming server uses this to serve HTTP Range requests without pulling
+/// the entire file to disk first.
+class SftpReadHandle {
+  SftpReadHandle._(this._file, this.size);
+
+  final SftpFile _file;
+  final int size;
+  var _closed = false;
+
+  bool get isClosed => _closed;
+
+  /// Returns a stream of bytes starting at [offset] for [length] bytes. The
+  /// underlying chunked reads are pipelined by dartssh2; cancel the
+  /// subscription to stop fetching further chunks.
+  Stream<Uint8List> read({required int offset, required int length}) {
+    if (_closed) {
+      throw StateError('SftpReadHandle is closed');
+    }
+    return _file.read(offset: offset, length: length);
+  }
+
+  Future<void> close() async {
+    if (_closed) return;
+    _closed = true;
+    try {
+      await _file.close();
+    } catch (_) {
+      // Already closed remote-side or session torn down — ignore.
+    }
+  }
 }

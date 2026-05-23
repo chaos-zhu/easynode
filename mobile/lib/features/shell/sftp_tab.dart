@@ -15,6 +15,9 @@ import '../../state/auth_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/terminal_providers.dart';
 import 'editor/text_editor_page.dart';
+import 'media/image_preview_page.dart';
+import 'media/media_extensions.dart';
+import 'media/video_player_page.dart';
 import 'sftp_session_manager.dart';
 
 class SftpTab extends ConsumerStatefulWidget {
@@ -218,7 +221,7 @@ class _SftpConnectedView extends StatelessWidget {
                                 manager.entryPath(session, entry),
                               );
                             } else {
-                              _openInEditor(context, manager, session, entry);
+                              _openFile(context, manager, session, entry);
                             }
                           },
                           onLongPress: () {
@@ -250,24 +253,38 @@ class _SftpConnectedView extends StatelessWidget {
     );
   }
 
-  Future<void> _openInEditor(
+  Future<void> _openFile(
     BuildContext context,
     SftpSessionManager manager,
     SftpSessionState session,
     SftpFileEntry entry,
   ) async {
     final remotePath = manager.entryPath(session, entry);
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TextEditorPage(
-          manager: manager,
-          remotePath: remotePath,
-          fileName: entry.name,
-        ),
-      ),
+    List<SftpFileEntry>? imageSiblings;
+    var initialImageIndex = 0;
+    if (isImageFileName(entry.name)) {
+      final images = session.entries
+          .where((e) => !e.isDirectory && isImageFileName(e.name))
+          .toList(growable: false);
+      final index = images.indexWhere((e) => e.name == entry.name);
+      if (index >= 0) {
+        imageSiblings = images;
+        initialImageIndex = index;
+      }
+    }
+    final mutatedFile = await _openRemoteFile(
+      context: context,
+      manager: manager,
+      remotePath: remotePath,
+      entry: entry,
+      directoryPath: session.currentPath,
+      imageSiblings: imageSiblings,
+      initialImageIndex: initialImageIndex,
     );
     if (!context.mounted) return;
-    await manager.refreshActive();
+    if (mutatedFile) {
+      await manager.refreshActive();
+    }
   }
 
   void _showFileActionSheet(
@@ -537,6 +554,42 @@ class _SftpConnectedView extends StatelessWidget {
   }
 }
 
+Future<bool> _openRemoteFile({
+  required BuildContext context,
+  required SftpSessionManager manager,
+  required String remotePath,
+  required SftpFileEntry entry,
+  required String directoryPath,
+  List<SftpFileEntry>? imageSiblings,
+  int initialImageIndex = 0,
+}) async {
+  final Widget page;
+  var mayMutate = false;
+  if (isImageFileName(entry.name)) {
+    page = SftpImagePreviewPage(
+      manager: manager,
+      directoryPath: directoryPath,
+      images: imageSiblings ?? [entry],
+      initialIndex: imageSiblings == null ? 0 : initialImageIndex,
+    );
+  } else if (isVideoFileName(entry.name)) {
+    page = SftpVideoPlayerPage(
+      manager: manager,
+      remotePath: remotePath,
+      entry: entry,
+    );
+  } else {
+    page = TextEditorPage(
+      manager: manager,
+      remotePath: remotePath,
+      fileName: entry.name,
+    );
+    mayMutate = true;
+  }
+  await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  return mayMutate;
+}
+
 class _SftpMenuAction {
   const _SftpMenuAction(
     this.icon,
@@ -778,17 +831,26 @@ class _SftpToolbar extends StatelessWidget {
     final fileName = _favoriteBasename(favorite.path);
     await manager.openPath(parent);
     if (!context.mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TextEditorPage(
-          manager: manager,
-          remotePath: favorite.path,
-          fileName: fileName,
-        ),
-      ),
+    final entry = SftpFileEntry(
+      name: fileName,
+      type: '-',
+      size: null,
+      modifyTime: null,
+      permissions: '',
+      ownerName: '',
+      groupName: '',
+    );
+    final mutatedFile = await _openRemoteFile(
+      context: context,
+      manager: manager,
+      remotePath: favorite.path,
+      entry: entry,
+      directoryPath: parent,
     );
     if (!context.mounted) return;
-    await manager.refreshActive();
+    if (mutatedFile) {
+      await manager.refreshActive();
+    }
   }
 
   String _favoriteBasename(String path) {

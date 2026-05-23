@@ -221,7 +221,8 @@ const Map<String, String> stringsEn = {
   'editor.discardKeepEditing': 'Keep editing',
   'editor.discardLeave': 'Discard',
   'editor.discardSaveAndLeave': 'Save & leave',
-  'editor.malformedUtf8': 'File contains non-UTF-8 bytes; saving may lose some characters.',
+  'editor.malformedUtf8':
+      'File contains non-UTF-8 bytes; saving may lose some characters.',
   'editor.statusEncoding': 'UTF-8 · LF · {0}',
   'editor.statusPosition': 'Ln {0}, Col {1}',
   'editor.statusLineCount': '{0} / {1}',
@@ -233,4 +234,15 @@ const Map<String, String> stringsEn = {
   'editor.themeDark': 'Dark',
   'editor.themeLight': 'Light',
   'editor.settingsDone': 'Done',
+
+  // Media preview (image / video)
+  'media.downloading': 'Downloading...',
+  'media.preparingVideo': 'Preparing video...',
+  'media.imageLoadFailed': 'Failed to load image: {0}',
+  'media.videoLoadFailed': 'Failed to load video: {0}',
+  'media.info.title': 'Media info',
+  'media.info.format': 'Format',
+  'media.info.size': 'Size',
+  'media.info.modifiedTime': 'Modified',
+  'media.info.path': 'Path',
 };

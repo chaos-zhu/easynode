@@ -222,4 +222,15 @@ const Map<String, String> stringsZh = {
   'editor.themeDark': '深色',
   'editor.themeLight': '浅色',
   'editor.settingsDone': '完成',
+
+  // Media preview (image / video)
+  'media.downloading': '正在下载...',
+  'media.preparingVideo': '正在准备视频...',
+  'media.imageLoadFailed': '加载图片失败：{0}',
+  'media.videoLoadFailed': '加载视频失败：{0}',
+  'media.info.title': '文件信息',
+  'media.info.format': '格式',
+  'media.info.size': '大小',
+  'media.info.modifiedTime': '修改时间',
+  'media.info.path': '路径',
 };
