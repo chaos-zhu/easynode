@@ -294,7 +294,10 @@ class _TextEditorPageState extends State<TextEditorPage> {
         codeTheme: _language.highlightMode == null
             ? null
             : CodeHighlightTheme(
-                languages: {_language.id: CodeHighlightThemeMode(mode: _language.highlightMode!)},
+                languages: {
+                  _language.id.toLowerCase():
+                      CodeHighlightThemeMode(mode: _language.highlightMode!),
+                },
                 theme: atomOneDarkTheme,
               ),
         backgroundColor: _EditorPalette.background,
