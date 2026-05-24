@@ -142,6 +142,8 @@ const Map<String, String> stringsZh = {
   'sftp.phase.transport': '正在连接服务器...',
   'sftp.phase.channel': '正在打开 SFTP 通道...',
   'sftp.phase.listing': '正在读取目录...',
+  'sftp.connectTimeout': '连接超时（10s）',
+  'sftp.connectFailed': '连接失败',
   'sftp.emptyDirectory': '当前目录为空',
   'sftp.upload': '上传',
   'sftp.newItem': '新建',

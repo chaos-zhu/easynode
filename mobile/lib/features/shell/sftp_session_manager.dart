@@ -13,6 +13,13 @@ import 'editor/editor_language.dart';
 
 enum SftpConnectionStatus { disconnected, connecting, connected, error }
 
+class SftpConnectTimeoutException implements Exception {
+  const SftpConnectTimeoutException();
+
+  @override
+  String toString() => 'SFTP connection timed out';
+}
+
 class SftpFileEntry {
   const SftpFileEntry({
     required this.name,
@@ -160,6 +167,7 @@ class SftpSessionManager extends ChangeNotifier {
     required ServerModel server,
     required SshConnectionConfig config,
     Future<List<SftpFavorite>> Function(String hostId)? loadFavorites,
+    Duration timeout = const Duration(seconds: 10),
   }) async {
     final existing = _states[server.id];
     if (existing?.status == SftpConnectionStatus.connected) {
@@ -182,47 +190,22 @@ class SftpSessionManager extends ChangeNotifier {
 
     try {
       await _connections.remove(server.id)?.close();
-      final transport = await _transportFactory.open(config);
-      final identities = config.authType == 'privateKey'
-          ? SSHKeyPair.fromPem(config.privateKey, config.privateKeyPassphrase)
-          : null;
-      final client = SSHClient(
-        transport.socket,
-        username: config.username,
-        onPasswordRequest: config.authType == 'password'
-            ? () => config.password
-            : null,
-        identities: identities,
-      );
-      state.connectPhase = 'channel';
-      notifyListeners();
-      final sftp = await client.sftp();
-      _connections[server.id] = _SftpConnection(
-        client: client,
-        sftp: sftp,
-        transport: transport,
-      );
-
-      state.connectPhase = 'listing';
-      notifyListeners();
-      final results = await Future.wait<Object?>([
-        _resolveInitialPathAndList(sftp, config.username, state.showHidden),
-        _safeLoadFavorites(loadFavorites, server.id),
-      ]);
-      final listing = results[0] as _InitialListing;
-      final favorites = results[1] as List<SftpFavorite>;
+      return await _runConnect(
+        server: server,
+        config: config,
+        state: state,
+        loadFavorites: loadFavorites,
+      ).timeout(timeout);
+    } on TimeoutException {
+      await _connections.remove(server.id)?.close();
       state.connectPhase = null;
       state.update(
-        status: SftpConnectionStatus.connected,
-        currentPath: listing.path,
-        entries: listing.entries,
-        favorites: favorites,
+        status: SftpConnectionStatus.error,
         loadingDirectory: false,
-        lastError: null,
-        selectedNames: <String>{},
+        lastError: 'timeout',
       );
       notifyListeners();
-      return state;
+      throw const SftpConnectTimeoutException();
     } catch (error) {
       await _connections.remove(server.id)?.close();
       state.connectPhase = null;
@@ -234,6 +217,55 @@ class SftpSessionManager extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  Future<SftpSessionState> _runConnect({
+    required ServerModel server,
+    required SshConnectionConfig config,
+    required SftpSessionState state,
+    required Future<List<SftpFavorite>> Function(String hostId)? loadFavorites,
+  }) async {
+    final transport = await _transportFactory.open(config);
+    final identities = config.authType == 'privateKey'
+        ? SSHKeyPair.fromPem(config.privateKey, config.privateKeyPassphrase)
+        : null;
+    final client = SSHClient(
+      transport.socket,
+      username: config.username,
+      onPasswordRequest: config.authType == 'password'
+          ? () => config.password
+          : null,
+      identities: identities,
+    );
+    state.connectPhase = 'channel';
+    notifyListeners();
+    final sftp = await client.sftp();
+    _connections[server.id] = _SftpConnection(
+      client: client,
+      sftp: sftp,
+      transport: transport,
+    );
+
+    state.connectPhase = 'listing';
+    notifyListeners();
+    final results = await Future.wait<Object?>([
+      _resolveInitialPathAndList(sftp, config.username, state.showHidden),
+      _safeLoadFavorites(loadFavorites, server.id),
+    ]);
+    final listing = results[0] as _InitialListing;
+    final favorites = results[1] as List<SftpFavorite>;
+    state.connectPhase = null;
+    state.update(
+      status: SftpConnectionStatus.connected,
+      currentPath: listing.path,
+      entries: listing.entries,
+      favorites: favorites,
+      loadingDirectory: false,
+      lastError: null,
+      selectedNames: <String>{},
+    );
+    notifyListeners();
+    return state;
   }
 
   void activate(String hostId) {

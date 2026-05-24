@@ -152,6 +152,8 @@ const Map<String, String> stringsEn = {
   'sftp.phase.transport': 'Connecting to server...',
   'sftp.phase.channel': 'Opening SFTP channel...',
   'sftp.phase.listing': 'Reading directory...',
+  'sftp.connectTimeout': 'Connection timed out (10s)',
+  'sftp.connectFailed': 'Connection failed',
   'sftp.emptyDirectory': 'This directory is empty.',
   'sftp.upload': 'Upload',
   'sftp.newItem': 'New',

@@ -88,7 +88,11 @@ class _SftpTabState extends ConsumerState<SftpTab> {
         await ref.read(authProvider.notifier).signOut();
         return;
       }
-      _showSnack(error.toString());
+      if (error is SftpConnectTimeoutException) {
+        _showSnack(l.tr('sftp.connectTimeout'));
+      } else {
+        _showSnack(error.toString());
+      }
     } finally {
       if (mounted) setState(() => _connecting = false);
     }
@@ -114,7 +118,7 @@ class _SftpTabState extends ConsumerState<SftpTab> {
           final session = manager.activeSession;
           final showSelector = !_connecting &&
               session != null &&
-              session.status == SftpConnectionStatus.connected;
+              session.status != SftpConnectionStatus.connecting;
           return Column(
             children: [
               TabHeader(
@@ -174,6 +178,18 @@ class _SftpTabState extends ConsumerState<SftpTab> {
                               ),
                             ),
                           ],
+                        );
+                      }
+                      if (session.status == SftpConnectionStatus.error) {
+                        return _SftpMessageList(
+                          message: session.lastError == 'timeout'
+                              ? l.tr('sftp.connectTimeout')
+                              : (session.lastError ??
+                                  l.tr('sftp.connectFailed')),
+                          action: TextButton(
+                            onPressed: () => _connectOrActivate(session.server),
+                            child: Text(l.tr('common.retry')),
+                          ),
                         );
                       }
                       return _SftpConnectedView(
@@ -647,8 +663,14 @@ class _SftpHeaderSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isError = session.status == SftpConnectionStatus.error;
+    final dotColor = isError ? _SftpPalette.danger : _SftpPalette.success;
+    final screenWidth = MediaQuery.sizeOf(context).width;
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 200),
+      constraints: BoxConstraints(
+        minWidth: screenWidth / 4,
+        maxWidth: screenWidth / 2,
+      ),
       child: Material(
         color: _SftpPalette.card,
         shape: RoundedRectangleBorder(
@@ -663,18 +685,17 @@ class _SftpHeaderSelector extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     width: 6,
                     height: 6,
-                    decoration: const BoxDecoration(
-                      color: _SftpPalette.success,
+                    decoration: BoxDecoration(
+                      color: dotColor,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Flexible(
+                  Expanded(
                     child: Text(
                       session.server.displayName,
                       maxLines: 1,
@@ -2130,12 +2151,10 @@ class _SftpServerRow extends StatelessWidget {
                       color: _SftpPalette.success,
                       size: 20,
                     )
-                  else
+                  else if (!connected)
                     _SftpStatusPill(
-                      label: connected
-                          ? l.tr('sftp.statusConnected')
-                          : l.tr('sftp.statusDisconnected'),
-                      connected: connected,
+                      label: l.tr('sftp.statusDisconnected'),
+                      connected: false,
                     ),
                 ],
               ),
