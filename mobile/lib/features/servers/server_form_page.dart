@@ -508,7 +508,7 @@ class _CardSection extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (trailing != null) trailing!,
+                ?trailing,
               ],
             ),
             if (children.isNotEmpty) const SizedBox(height: 14),
@@ -1093,55 +1093,6 @@ class _ProxyField extends StatelessWidget {
       );
     }
     return const SizedBox.shrink();
-  }
-}
-
-class _DropdownField<T> extends StatelessWidget {
-  const _DropdownField({
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-    this.validator,
-    this.icon,
-    this.enabled = true,
-    this.emptyText,
-    this.selectedItemBuilder,
-  });
-
-  final String label;
-  final T? value;
-  final List<DropdownMenuItem<T>> items;
-  final ValueChanged<T?> onChanged;
-  final String? Function(T?)? validator;
-  final IconData? icon;
-  final bool enabled;
-  final String? emptyText;
-  final DropdownButtonBuilder? selectedItemBuilder;
-
-  @override
-  Widget build(BuildContext context) {
-    return _LabeledBlock(
-      label: label,
-      child: DropdownButtonFormField<T>(
-        initialValue: value,
-        isExpanded: true,
-        items: items,
-        onChanged: enabled ? onChanged : null,
-        validator: validator,
-        hint: emptyText == null
-            ? null
-            : Text(
-                emptyText!,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: _FormColors.label),
-              ),
-        selectedItemBuilder: selectedItemBuilder,
-        icon: Icon(icon ?? Icons.keyboard_arrow_down, color: _FormColors.label),
-        style: const TextStyle(color: _FormColors.text, fontSize: 15),
-        decoration: _fieldDecoration(),
-      ),
-    );
   }
 }
 

@@ -44,6 +44,16 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     super.dispose();
   }
 
+  void toggleServerExpanded(String id) {
+    setState(() {
+      if (_expandedServerIds.contains(id)) {
+        _expandedServerIds.remove(id);
+      } else {
+        _expandedServerIds.add(id);
+      }
+    });
+  }
+
   Future<void> _refresh() async {
     await refreshServerSharedData(ref);
   }
@@ -782,15 +792,7 @@ class _ServerCard extends StatelessWidget {
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
                     highlighted: expanded,
-                    onTap: () {
-                      state.setState(() {
-                        if (expanded) {
-                          state._expandedServerIds.remove(server.id);
-                        } else {
-                          state._expandedServerIds.add(server.id);
-                        }
-                      });
-                    },
+                    onTap: () => state.toggleServerExpanded(server.id),
                   ),
                 ],
               ),

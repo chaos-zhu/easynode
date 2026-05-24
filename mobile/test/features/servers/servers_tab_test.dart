@@ -22,6 +22,7 @@ class _FakeRepository implements ServerRepository {
     this.hosts = const [],
     this.groups = const [],
     this.fetchError,
+    // ignore: unused_element_parameter
     this.groupFetchError,
     SshConnectionConfig? config,
     this.sshError,
