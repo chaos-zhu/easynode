@@ -451,9 +451,7 @@ class _LoginHero extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final info = ref.watch(packageInfoProvider).valueOrNull;
-    final versionLabel = info == null
-        ? ''
-        : 'v${info.version} (${info.buildNumber})';
+    final versionLabel = info == null ? '' : 'v${info.version}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
