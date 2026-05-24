@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../core/ui/palette.dart';
 import '../../core/utils/jwt_expiry.dart';
 import '../../core/utils/validators.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_session.dart';
 import 'login_controller.dart';
-
-const _loginCanvas = Color(0xFFF7EFE0);
-const _loginSurface = Color(0xFFFBF5E6);
-const _loginField = Color(0xFFF4ECD7);
-const _loginBorder = Color(0xFFE2D5B3);
-const _loginAccent = Color(0xFFE5B33A);
-const _loginInk = Color(0xFF2A2418);
-const _loginMuted = Color(0xFF9A8B68);
-const _loginStrongMuted = Color(0xFF6B5E3F);
 
 class LoginPage extends StatefulWidget {
   const LoginPage({
@@ -139,7 +131,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: _loginCanvas,
+      backgroundColor: AppPalette.canvas,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
@@ -228,9 +220,9 @@ class _LoginFormCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
       decoration: BoxDecoration(
-        color: _loginSurface,
+        color: AppPalette.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _loginBorder),
+        border: Border.all(color: AppPalette.border),
       ),
       child: Column(
         children: [
@@ -316,38 +308,38 @@ class _LoginTextField extends StatelessWidget {
       onSubmitted: onSubmitted,
       obscureText: obscureText,
       style: const TextStyle(
-        color: _loginInk,
+        color: AppPalette.text,
         fontSize: 14,
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, size: 18, color: _loginStrongMuted),
+        prefixIcon: Icon(icon, size: 18, color: AppPalette.muted),
         filled: true,
-        fillColor: _loginField,
+        fillColor: AppPalette.chip,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
         ),
         labelStyle: const TextStyle(
-          color: _loginMuted,
+          color: AppPalette.softMuted,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
         floatingLabelStyle: const TextStyle(
-          color: _loginStrongMuted,
+          color: AppPalette.muted,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
-        hintStyle: const TextStyle(color: _loginStrongMuted, fontSize: 13),
+        hintStyle: const TextStyle(color: AppPalette.muted, fontSize: 13),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _loginBorder),
+          borderSide: const BorderSide(color: AppPalette.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _loginAccent, width: 1.2),
+          borderSide: const BorderSide(color: AppPalette.accent, width: 1.2),
         ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -370,7 +362,7 @@ class _SavePasswordRow extends StatelessWidget {
         children: [
           const Icon(
             Icons.shield_outlined,
-            color: _loginStrongMuted,
+            color: AppPalette.muted,
             size: 18,
           ),
           const SizedBox(width: 8),
@@ -378,7 +370,7 @@ class _SavePasswordRow extends StatelessWidget {
             child: Text(
               l.tr('login.savePassword'),
               style: const TextStyle(
-                color: _loginStrongMuted,
+                color: AppPalette.muted,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -387,10 +379,10 @@ class _SavePasswordRow extends StatelessWidget {
           Switch(
             key: const Key('switch-save-password'),
             value: value,
-            activeThumbColor: _loginSurface,
-            activeTrackColor: _loginAccent,
-            inactiveThumbColor: _loginSurface,
-            inactiveTrackColor: _loginBorder,
+            activeThumbColor: AppPalette.card,
+            activeTrackColor: AppPalette.accent,
+            inactiveThumbColor: AppPalette.card,
+            inactiveTrackColor: AppPalette.border,
             onChanged: onChanged,
           ),
         ],
@@ -411,8 +403,8 @@ class _LoginBottomBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
       decoration: const BoxDecoration(
-        color: _loginSurface,
-        border: Border(top: BorderSide(color: _loginBorder)),
+        color: AppPalette.card,
+        border: Border(top: BorderSide(color: AppPalette.border)),
       ),
       child: SizedBox(
         width: double.infinity,
@@ -421,10 +413,10 @@ class _LoginBottomBar extends StatelessWidget {
           key: const Key('btn-login'),
           onPressed: submitting ? null : onSubmit,
           style: FilledButton.styleFrom(
-            backgroundColor: _loginAccent,
+            backgroundColor: AppPalette.accent,
             foregroundColor: const Color(0xFF5C4520),
-            disabledBackgroundColor: _loginBorder,
-            disabledForegroundColor: _loginMuted,
+            disabledBackgroundColor: AppPalette.border,
+            disabledForegroundColor: AppPalette.softMuted,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -478,7 +470,7 @@ class _LoginHero extends StatelessWidget {
           title,
           textAlign: TextAlign.center,
           style: theme.textTheme.titleLarge?.copyWith(
-            color: _loginInk,
+            color: AppPalette.text,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -487,7 +479,7 @@ class _LoginHero extends StatelessWidget {
           subtitle,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: _loginMuted,
+            color: AppPalette.softMuted,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -613,7 +605,7 @@ class _ExpiryPicker extends StatelessWidget {
         Text(
           l.tr('login.sessionDuration'),
           style: theme.textTheme.labelLarge?.copyWith(
-            color: _loginStrongMuted,
+            color: AppPalette.muted,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -628,17 +620,17 @@ class _ExpiryPicker extends StatelessWidget {
                 showCheckmark: false,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 visualDensity: VisualDensity.compact,
-                backgroundColor: _loginSurface,
+                backgroundColor: AppPalette.card,
                 selectedColor: const Color(0xFFF7E4B0),
                 side: BorderSide(
-                  color: entry.key == value ? _loginAccent : _loginBorder,
+                  color: entry.key == value ? AppPalette.accent : AppPalette.border,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(999),
                 ),
                 labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                 labelStyle: TextStyle(
-                  color: entry.key == value ? _loginInk : _loginStrongMuted,
+                  color: entry.key == value ? AppPalette.text : AppPalette.muted,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),

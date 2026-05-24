@@ -226,6 +226,41 @@ const Map<String, String> stringsZh = {
   'settings.languageEnglish': 'English',
   'settings.languageChinese': '中文',
 
+  'settings.section.subscription': '订阅与授权',
+  'settings.section.security': '账户安全',
+  'settings.section.connection': '凭据与连接',
+  'settings.section.preferences': '偏好设置',
+
+  'settings.plus.title': 'Plus 订阅',
+  'settings.plus.active': '已激活',
+  'settings.plus.inactive': '未激活',
+  'settings.plus.expiryMeta': '到期 {0}',
+  'settings.plus.inactiveMeta': '激活后解锁代理 / 跳板机 / 批量任务',
+
+  'settings.account.title': '账户与密码',
+  'settings.account.subtitle': '修改用户名 / 密码 / MFA2',
+  'settings.sessions.title': '登录会话',
+  'settings.sessions.subtitle': '登录设备与 IP 白名单',
+  'settings.credentials.title': '凭据托管',
+  'settings.credentials.subtitle': '统一管理 SSH 凭据',
+  'settings.proxy.title': '代理管理',
+  'settings.proxy.subtitle': 'HTTP / SOCKS5 出站代理',
+
+  'settings.theme.title': '主题外观',
+  'settings.theme.wipChip': '开发中',
+  'settings.theme.wipToast': '主题切换功能开发中，敬请期待',
+
+  'settings.profile.hostsLabel': '主机',
+  'settings.profile.credentialsLabel': '凭据',
+  'settings.profile.scriptsLabel': '脚本',
+
+  'settings.comingSoon.title': '即将上线',
+  'settings.comingSoon.body': '该功能稍后接入，敬请期待',
+  'settings.comingSoon.back': '回到设置',
+
+  'settings.notifications.tooltip': '通知',
+  'settings.notifications.empty': '暂无新通知',
+
   // Terminal
   'terminal.title': '终端',
   'terminal.noActive': '没有活动的终端',

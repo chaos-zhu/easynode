@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
+import '../../core/ui/palette.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
@@ -168,9 +169,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                   ),
                   FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: _ServerPalette.danger,
+                      backgroundColor: AppPalette.danger,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: _ServerPalette.danger.withValues(
+                      disabledBackgroundColor: AppPalette.danger.withValues(
                         alpha: 0.62,
                       ),
                       disabledForegroundColor: Colors.white,
@@ -259,10 +260,10 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     final manager = ref.watch(terminalSessionManagerProvider);
 
     return Scaffold(
-      backgroundColor: _ServerPalette.canvas,
+      backgroundColor: AppPalette.canvas,
       body: RefreshIndicator(
-        color: _ServerPalette.primary,
-        backgroundColor: _ServerPalette.card,
+        color: AppPalette.primary,
+        backgroundColor: AppPalette.card,
         displacement: 30,
         edgeOffset: 6,
         strokeWidth: 2,
@@ -377,9 +378,9 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                                 child: TextField(
                                   controller: _searchCtrl,
                                   autofocus: true,
-                                  cursorColor: _ServerPalette.primary,
+                                  cursorColor: AppPalette.primary,
                                   style: const TextStyle(
-                                    color: _ServerPalette.text,
+                                    color: AppPalette.text,
                                     fontSize: 14,
                                   ),
                                   decoration: _searchFieldDecoration(
@@ -571,15 +572,15 @@ class _GroupPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = selected ? _ServerPalette.primary : Colors.transparent;
-    final foreground = selected ? _ServerPalette.card : _ServerPalette.muted;
+    final background = selected ? AppPalette.primary : Colors.transparent;
+    final foreground = selected ? AppPalette.card : AppPalette.muted;
     return Material(
       color: background,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: selected
             ? BorderSide.none
-            : const BorderSide(color: _ServerPalette.border),
+            : const BorderSide(color: AppPalette.border),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -628,7 +629,7 @@ class _ActiveTerminalBanner extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: _ServerPalette.banner,
+        color: AppPalette.banner,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -640,7 +641,7 @@ class _ActiveTerminalBanner extends StatelessWidget {
                 const Icon(
                   Icons.layers_outlined,
                   size: 18,
-                  color: _ServerPalette.primary,
+                  color: AppPalette.primary,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -650,7 +651,7 @@ class _ActiveTerminalBanner extends StatelessWidget {
                         : l.trf('servers.activeTerminalsMany', [count]),
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: _ServerPalette.primary,
+                      color: AppPalette.primary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -658,7 +659,7 @@ class _ActiveTerminalBanner extends StatelessWidget {
                 const Icon(
                   Icons.chevron_right,
                   size: 18,
-                  color: _ServerPalette.primary,
+                  color: AppPalette.primary,
                 ),
                 const SizedBox(width: 4),
                 InkResponse(
@@ -669,7 +670,7 @@ class _ActiveTerminalBanner extends StatelessWidget {
                     child: Icon(
                       Icons.close,
                       size: 18,
-                      color: _ServerPalette.softMuted,
+                      color: AppPalette.softMuted,
                     ),
                   ),
                 ),
@@ -707,15 +708,15 @@ class _ServerCard extends StatelessWidget {
       key: Key('server-${server.id}'),
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: _ServerPalette.card,
+        color: AppPalette.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: expanded ? _ServerPalette.strongBorder : _ServerPalette.border,
+          color: expanded ? AppPalette.strongBorder : AppPalette.border,
         ),
         boxShadow: expanded
             ? [
                 BoxShadow(
-                  color: _ServerPalette.primary.withValues(alpha: 0.08),
+                  color: AppPalette.primary.withValues(alpha: 0.08),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -748,7 +749,7 @@ class _ServerCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: _ServerPalette.text,
+                                color: AppPalette.text,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -759,7 +760,7 @@ class _ServerCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: _ServerPalette.softMuted,
+                                color: AppPalette.softMuted,
                                 fontSize: 12,
                                 fontFamily: 'monospace',
                               ),
@@ -814,7 +815,7 @@ class _ServerCard extends StatelessWidget {
                 secondChild: Column(
                   children: [
                     const SizedBox(height: 14),
-                    const Divider(height: 1, color: _ServerPalette.border),
+                    const Divider(height: 1, color: AppPalette.border),
                     const SizedBox(height: 12),
                     _ServerDetailRow(
                       icon: Icons.tag_outlined,
@@ -902,7 +903,7 @@ class _HeaderIconButton extends StatelessWidget {
         child: SizedBox(
           width: 36,
           height: 36,
-          child: Icon(icon, color: _ServerPalette.muted, size: 22),
+          child: Icon(icon, color: AppPalette.muted, size: 22),
         ),
       ),
     );
@@ -927,7 +928,7 @@ class _IconPillButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: highlighted ? _ServerPalette.banner : Colors.transparent,
+        color: highlighted ? AppPalette.banner : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -939,8 +940,8 @@ class _IconPillButton extends StatelessWidget {
               icon,
               size: 20,
               color: highlighted
-                  ? _ServerPalette.primary
-                  : _ServerPalette.softMuted,
+                  ? AppPalette.primary
+                  : AppPalette.softMuted,
             ),
           ),
         ),
@@ -961,13 +962,13 @@ class _ServerOsIcon extends StatelessWidget {
       height: 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: enabled ? _ServerPalette.banner : _ServerPalette.chip,
+        color: enabled ? AppPalette.banner : AppPalette.chip,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Icon(
         Icons.monitor_outlined,
         size: 22,
-        color: enabled ? _ServerPalette.primary : _ServerPalette.muted,
+        color: enabled ? AppPalette.primary : AppPalette.muted,
       ),
     );
   }
@@ -1002,14 +1003,14 @@ class _ConnectButton extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: _ServerPalette.primary,
+                      color: AppPalette.primary,
                     ),
                   ),
                 ),
               )
             : Material(
                 key: const ValueKey('connect-button'),
-                color: enabled ? _ServerPalette.primary : _ServerPalette.border,
+                color: enabled ? AppPalette.primary : AppPalette.border,
                 borderRadius: BorderRadius.circular(999),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(999),
@@ -1028,16 +1029,16 @@ class _ConnectButton extends StatelessWidget {
                                 : Icons.lock_outline,
                             size: 17,
                             color: enabled
-                                ? _ServerPalette.card
-                                : _ServerPalette.muted,
+                                ? AppPalette.card
+                                : AppPalette.muted,
                           ),
                           const SizedBox(width: 5),
                           Text(
                             label,
                             style: TextStyle(
                               color: enabled
-                                  ? _ServerPalette.card
-                                  : _ServerPalette.muted,
+                                  ? AppPalette.card
+                                  : AppPalette.muted,
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                             ),
@@ -1063,7 +1064,7 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _ServerPalette.banner,
+        color: AppPalette.banner,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -1071,7 +1072,7 @@ class _InfoChip extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: _ServerPalette.primary,
+          color: AppPalette.primary,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -1100,7 +1101,7 @@ class _ServerDetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 18,
-            child: Icon(icon, size: 15, color: _ServerPalette.softMuted),
+            child: Icon(icon, size: 15, color: AppPalette.softMuted),
           ),
           const SizedBox(width: 10),
           SizedBox(
@@ -1110,7 +1111,7 @@ class _ServerDetailRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: _ServerPalette.softMuted,
+                color: AppPalette.softMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -1125,8 +1126,8 @@ class _ServerDetailRow extends StatelessWidget {
               textAlign: TextAlign.right,
               style: TextStyle(
                 color: emphasized
-                    ? _ServerPalette.primary
-                    : _ServerPalette.text,
+                    ? AppPalette.primary
+                    : AppPalette.text,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -1154,14 +1155,14 @@ class _SecondaryActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final foreground = destructive
-        ? _ServerPalette.danger
-        : _ServerPalette.muted;
+        ? AppPalette.danger
+        : AppPalette.muted;
     final background = destructive
-        ? _ServerPalette.dangerSoft
-        : _ServerPalette.chip;
+        ? AppPalette.dangerSoft
+        : AppPalette.chip;
     final border = destructive
-        ? _ServerPalette.dangerBorder
-        : _ServerPalette.border;
+        ? AppPalette.dangerBorder
+        : AppPalette.border;
     return Material(
       color: background,
       shape: RoundedRectangleBorder(
@@ -1209,7 +1210,7 @@ class _MessageState extends StatelessWidget {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: _ServerPalette.muted),
+          style: const TextStyle(color: AppPalette.muted),
         ),
       ),
     );
@@ -1221,38 +1222,21 @@ InputDecoration _searchFieldDecoration({required String hintText}) {
     hintText: hintText,
     isDense: true,
     filled: true,
-    fillColor: _ServerPalette.card,
+    fillColor: AppPalette.card,
     prefixIcon: const Icon(Icons.search, size: 18),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    hintStyle: const TextStyle(color: _ServerPalette.softMuted, fontSize: 13),
+    hintStyle: const TextStyle(color: AppPalette.softMuted, fontSize: 13),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _ServerPalette.border),
+      borderSide: const BorderSide(color: AppPalette.border),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _ServerPalette.primary, width: 1.2),
+      borderSide: const BorderSide(color: AppPalette.primary, width: 1.2),
     ),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _ServerPalette.border),
+      borderSide: const BorderSide(color: AppPalette.border),
     ),
   );
-}
-
-abstract final class _ServerPalette {
-  static const canvas = Color(0xFFF7EFE0);
-  static const card = Color(0xFFFBF5E6);
-  static const chip = Color(0xFFF4ECD7);
-  static const banner = Color(0xFFF7E4B0);
-  static const primary = Color(0xFF5C4520);
-  static const text = Color(0xFF2A2418);
-  static const muted = Color(0xFF6B5E3F);
-  static const softMuted = Color(0xFF9A8B68);
-  static const border = Color(0xFFE2D5B3);
-  static const strongBorder = Color(0xFFC9B98D);
-  static const success = Color(0xFF5A8E3A);
-  static const danger = Color(0xFFB9473D);
-  static const dangerSoft = Color(0xFFFFECE8);
-  static const dangerBorder = Color(0xFFF2C4BC);
 }

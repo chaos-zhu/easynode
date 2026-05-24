@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/ui/palette.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/credential_list_notifier.dart';
@@ -428,14 +429,14 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
 }
 
 class _FormColors {
-  static const surface = Color(0xFFF7EFE0);
-  static const card = Color(0xFFFBF5E6);
-  static const field = Color(0xFFF4ECD7);
-  static const primary = Color(0xFF5C4520);
-  static const border = Color(0xFFE2D5B3);
-  static const text = Color(0xFF2A2418);
-  static const textMuted = Color(0xFF6B5E3F);
-  static const label = Color(0xFF9A8B68);
+  static const surface = AppPalette.canvas;
+  static const card = AppPalette.card;
+  static const field = AppPalette.chip;
+  static const primary = AppPalette.primary;
+  static const border = AppPalette.border;
+  static const text = AppPalette.text;
+  static const textMuted = AppPalette.muted;
+  static const label = AppPalette.softMuted;
 }
 
 class _CardSection extends StatelessWidget {

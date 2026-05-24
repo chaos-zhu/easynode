@@ -239,6 +239,41 @@ const Map<String, String> stringsEn = {
   'settings.languageEnglish': 'English',
   'settings.languageChinese': '中文',
 
+  'settings.section.subscription': 'Subscription',
+  'settings.section.security': 'Account & Security',
+  'settings.section.connection': 'Credentials & Connection',
+  'settings.section.preferences': 'Preferences',
+
+  'settings.plus.title': 'Plus subscription',
+  'settings.plus.active': 'Active',
+  'settings.plus.inactive': 'Inactive',
+  'settings.plus.expiryMeta': 'Expires {0}',
+  'settings.plus.inactiveMeta': 'Activate to unlock proxy, jump host & batch ops',
+
+  'settings.account.title': 'Account & password',
+  'settings.account.subtitle': 'Username, password and MFA2',
+  'settings.sessions.title': 'Login sessions',
+  'settings.sessions.subtitle': 'Devices and IP allow-list',
+  'settings.credentials.title': 'Credentials',
+  'settings.credentials.subtitle': 'Centrally managed SSH credentials',
+  'settings.proxy.title': 'Proxies',
+  'settings.proxy.subtitle': 'HTTP / SOCKS5 outbound proxies',
+
+  'settings.theme.title': 'Appearance',
+  'settings.theme.wipChip': 'WIP',
+  'settings.theme.wipToast': 'Theme switching is on the roadmap.',
+
+  'settings.profile.hostsLabel': 'Hosts',
+  'settings.profile.credentialsLabel': 'Credentials',
+  'settings.profile.scriptsLabel': 'Scripts',
+
+  'settings.comingSoon.title': 'Coming soon',
+  'settings.comingSoon.body': 'This area is being wired up — stay tuned.',
+  'settings.comingSoon.back': 'Back to settings',
+
+  'settings.notifications.tooltip': 'Notifications',
+  'settings.notifications.empty': 'No notifications yet',
+
   // Terminal shell
   'terminal.title': 'Terminal',
   'terminal.noActive': 'No active terminal',
