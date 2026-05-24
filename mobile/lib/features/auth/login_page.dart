@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ui/palette.dart';
 import '../../core/utils/jwt_expiry.dart';
 import '../../core/utils/validators.dart';
 import '../../l10n/app_localizations.dart';
+import '../../state/package_info_provider.dart';
 import 'auth_session.dart';
 import 'login_controller.dart';
 
@@ -145,7 +147,6 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       _LoginHero(
                         title: l.tr('app.title'),
-                        subtitle: l.tr('app.subtitle'),
                       ),
                       const SizedBox(height: 22),
                       _LoginFormCard(
@@ -441,15 +442,18 @@ class _LoginBottomBar extends StatelessWidget {
   }
 }
 
-class _LoginHero extends StatelessWidget {
-  const _LoginHero({required this.title, required this.subtitle});
+class _LoginHero extends ConsumerWidget {
+  const _LoginHero({required this.title});
 
   final String title;
-  final String subtitle;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final info = ref.watch(packageInfoProvider).valueOrNull;
+    final versionLabel = info == null
+        ? ''
+        : 'v${info.version} (${info.buildNumber})';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -476,7 +480,7 @@ class _LoginHero extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          subtitle,
+          versionLabel,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
             color: AppPalette.softMuted,

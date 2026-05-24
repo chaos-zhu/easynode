@@ -1,0 +1,4 @@
+storePassword=<your-store-password>
+keyPassword=<your-key-password>
+keyAlias=easynode
+storeFile=easynode-release.jks

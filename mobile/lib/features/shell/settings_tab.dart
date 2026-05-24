@@ -7,6 +7,7 @@ import '../../state/auth_notifier.dart';
 import '../../state/credential_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/locale_notifier.dart';
+import '../../state/package_info_provider.dart';
 import '../../state/plus_discount_notifier.dart';
 import '../../state/plus_info_notifier.dart';
 import '../../state/script_list_notifier.dart';
@@ -207,6 +208,10 @@ class SettingsTab extends ConsumerWidget {
     final discount = ref.watch(plusDiscountProvider).valueOrNull ??
         const PlusDiscount(discount: false, content: '');
     final hasDiscount = discount.discount && discount.content.isNotEmpty;
+    final packageInfo = ref.watch(packageInfoProvider).valueOrNull;
+    final versionLabel = packageInfo == null
+        ? ''
+        : 'v${packageInfo.version} (${packageInfo.buildNumber})';
 
     return Scaffold(
       backgroundColor: AppPalette.canvas,
@@ -221,6 +226,19 @@ class SettingsTab extends ConsumerWidget {
               child: TabHeader(
                 title: l.tr('settings.title'),
                 actions: [
+                  if (versionLabel.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Text(
+                        versionLabel,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: AppPalette.softMuted,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
                   if (!plusActive)
                     _SettingsBellButton(
                       hasDiscount: hasDiscount,
