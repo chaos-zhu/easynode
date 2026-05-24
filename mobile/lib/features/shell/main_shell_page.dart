@@ -1,14 +1,17 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ui/palette.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/auth_notifier.dart';
+import '../../state/terminal_providers.dart';
 import '../servers/servers_tab.dart';
 import 'scripts_tab.dart';
 import 'settings_tab.dart';
+import 'sftp_session_manager.dart';
 import 'sftp_tab.dart';
 
 /// Top-level shell shown after login. Hosts the four bottom-nav tabs the
@@ -39,34 +42,85 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
     ref.listen(authProvider, (_, _) {});
 
     final l = AppLocalizations.of(context);
-    return Scaffold(
-      backgroundColor: AppPalette.canvas,
-      body: SafeArea(
-        child: IndexedStack(index: _index, children: _tabs),
+    final sftpManager = ref.watch(sftpSessionManagerProvider);
+    return AnimatedBuilder(
+      animation: sftpManager,
+      builder: (context, child) {
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            if (_canGoUpInSftp(sftpManager)) {
+              sftpManager.goParent();
+            } else {
+              _confirmExit(context);
+            }
+          },
+          child: child!,
+        );
+      },
+      child: Scaffold(
+        backgroundColor: AppPalette.canvas,
+        body: SafeArea(
+          child: IndexedStack(index: _index, children: _tabs),
+        ),
+        bottomNavigationBar: _WarmBottomBar(
+          selectedIndex: _index,
+          onSelected: (i) => setState(() => _index = i),
+          items: [
+            _WarmBottomBarItem(
+              icon: Icons.monitor_outlined,
+              label: l.tr('tabs.servers'),
+            ),
+            _WarmBottomBarItem(
+              icon: Icons.folder_outlined,
+              label: l.tr('tabs.sftp'),
+            ),
+            _WarmBottomBarItem(
+              icon: Icons.article_outlined,
+              label: l.tr('tabs.scripts'),
+            ),
+            _WarmBottomBarItem(
+              icon: Icons.settings_outlined,
+              label: l.tr('tabs.settings'),
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: _WarmBottomBar(
-        selectedIndex: _index,
-        onSelected: (i) => setState(() => _index = i),
-        items: [
-          _WarmBottomBarItem(
-            icon: Icons.monitor_outlined,
-            label: l.tr('tabs.servers'),
+    );
+  }
+
+  bool _canGoUpInSftp(SftpSessionManager manager) {
+    if (_index != 1) return false;
+    final session = manager.activeSession;
+    if (session == null) return false;
+    if (session.status != SftpConnectionStatus.connected) return false;
+    final path = session.currentPath;
+    return path.isNotEmpty && path != '/' && path != '~';
+  }
+
+  Future<void> _confirmExit(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.tr('common.exitAppTitle')),
+        content: Text(l.tr('common.exitAppBody')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l.tr('common.cancel')),
           ),
-          _WarmBottomBarItem(
-            icon: Icons.folder_outlined,
-            label: l.tr('tabs.sftp'),
-          ),
-          _WarmBottomBarItem(
-            icon: Icons.article_outlined,
-            label: l.tr('tabs.scripts'),
-          ),
-          _WarmBottomBarItem(
-            icon: Icons.settings_outlined,
-            label: l.tr('tabs.settings'),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l.tr('common.exitApp')),
           ),
         ],
       ),
     );
+    if (confirmed == true) {
+      await SystemNavigator.pop();
+    }
   }
 }
 

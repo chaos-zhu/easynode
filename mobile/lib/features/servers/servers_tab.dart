@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/api/api_result.dart';
 import '../../core/ui/palette.dart';
@@ -721,7 +722,10 @@ class _ServerCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  _ServerOsIcon(enabled: server.canConnect),
+                  _ServerOsIcon(
+                    enabled: server.canConnect,
+                    isWindows: server.isWindows,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: InkWell(
@@ -939,12 +943,14 @@ class _IconPillButton extends StatelessWidget {
 }
 
 class _ServerOsIcon extends StatelessWidget {
-  const _ServerOsIcon({required this.enabled});
+  const _ServerOsIcon({required this.enabled, required this.isWindows});
 
   final bool enabled;
+  final bool isWindows;
 
   @override
   Widget build(BuildContext context) {
+    final asset = isWindows ? 'assets/windows.svg' : 'assets/linux.svg';
     return Container(
       width: 40,
       height: 40,
@@ -953,10 +959,14 @@ class _ServerOsIcon extends StatelessWidget {
         color: enabled ? AppPalette.banner : AppPalette.chip,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(
-        Icons.monitor_outlined,
-        size: 22,
-        color: enabled ? AppPalette.primary : AppPalette.muted,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.45,
+        child: SvgPicture.asset(
+          asset,
+          width: 22,
+          height: 22,
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }

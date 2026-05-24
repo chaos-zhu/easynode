@@ -21,6 +21,9 @@ const Map<String, String> stringsEn = {
   'common.system': 'System default',
   'common.delete': 'Delete',
   'common.optional': 'Optional',
+  'common.exitApp': 'Exit',
+  'common.exitAppTitle': 'Exit app?',
+  'common.exitAppBody': 'Are you sure you want to exit the app?',
 
   // Login page
   'login.serverAddress': 'Server address',

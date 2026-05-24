@@ -20,6 +20,9 @@ const Map<String, String> stringsZh = {
   'common.system': '跟随系统',
   'common.delete': '删除',
   'common.optional': '可选',
+  'common.exitApp': '退出',
+  'common.exitAppTitle': '退出 App？',
+  'common.exitAppBody': '确认退出 App？',
 
   // Login
   'login.serverAddress': '服务端地址',
