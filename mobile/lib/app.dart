@@ -142,12 +142,26 @@ class _AppRoot extends ConsumerStatefulWidget {
 
 class _AppRootState extends ConsumerState<_AppRoot> {
   late final LoginController _loginController;
+  final GlobalKey<ScaffoldMessengerState> _messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
 
   @override
   void initState() {
     super.initState();
     _loginController = LoginController(apiClientFactory: _buildApiClient)
       ..onLoginSuccess(_onLoginSuccess);
+    // The ApiClient built during bootstrap (restored from saved login) was
+    // constructed before authProvider existed, so it has no onUnauthorized
+    // callback. Wire it now so 401/403 from a restored session also signs
+    // the user out.
+    ref.read(authProvider).apiClient?.setOnUnauthorized(_signOutOnUnauthorized);
+  }
+
+  Future<void> _signOutOnUnauthorized(String? message) async {
+    // Stash the server-provided reason before clearing auth state so the
+    // SnackBar listener below can surface it on the LoginPage.
+    ref.read(signOutReasonProvider.notifier).state = message;
+    await ref.read(authProvider.notifier).signOut();
   }
 
   ApiClient _buildApiClient(String serverAddress, {String? token}) {
@@ -155,6 +169,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       serverAddress: serverAddress,
       cookieStore: ref.read(cookieStoreProvider),
       token: token,
+      onUnauthorized: _signOutOnUnauthorized,
     );
   }
 
@@ -179,6 +194,29 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     final auth = ref.watch(authProvider);
     final appStorage = ref.watch(appStorageProvider);
 
+    // Show a SnackBar whenever the 401/403 interceptor stashes a reason, then
+    // clear it so the same message isn't shown twice on rebuilds.
+    ref.listen<String?>(signOutReasonProvider, (_, next) {
+      if (next == null || next.isEmpty) return;
+      final messenger = _messengerKey.currentState;
+      if (messenger == null) return;
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(next),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      // Reset on the next frame so we don't trigger another listener pass
+      // while the current one is still running.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(signOutReasonProvider.notifier).state = null;
+      });
+    });
+
     final Widget home;
     if (auth.signedIn) {
       home = const MainShellPage();
@@ -195,6 +233,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
 
     return MaterialApp(
       title: 'EasyNode',
+      scaffoldMessengerKey: _messengerKey,
       themeMode: ThemeMode.system,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.amber),
       darkTheme: ThemeData(

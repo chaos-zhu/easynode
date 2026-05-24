@@ -55,17 +55,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> signOut() async {
-    await _ref.read(terminalSessionManagerProvider).closeAll();
-    final secureStorage = _ref.read(secureStorageProvider);
-    final cookieStore = _ref.read(cookieStoreProvider);
-    await secureStorage.deleteToken();
-    await secureStorage.deleteDeviceId();
-    await cookieStore.clear();
-    _ref.invalidate(plusInfoProvider);
+    // Flip auth state FIRST so _AppRoot rebuilds to LoginPage immediately,
+    // regardless of whether the IO cleanup below succeeds. Otherwise an
+    // exception inside closeAll / secureStorage / cookieStore would leave
+    // the user stuck on a screen whose API calls keep 401-ing.
     state = AuthState.empty;
+    try {
+      await _ref.read(terminalSessionManagerProvider).closeAll();
+    } catch (_) {}
+    try {
+      final secureStorage = _ref.read(secureStorageProvider);
+      await secureStorage.deleteToken();
+      await secureStorage.deleteDeviceId();
+    } catch (_) {}
+    try {
+      await _ref.read(cookieStoreProvider).clear();
+    } catch (_) {}
+    try {
+      _ref.invalidate(plusInfoProvider);
+    } catch (_) {}
   }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   throw UnimplementedError('authProvider must be overridden in bootstrap');
 });
+
+/// Holds the reason (server-provided `msg`) of the most recent forced
+/// sign-out so the LoginPage can surface it to the user. Set by the 401/403
+/// interceptor, consumed once and reset back to null after the SnackBar is
+/// shown.
+final signOutReasonProvider = StateProvider<String?>((ref) => null);

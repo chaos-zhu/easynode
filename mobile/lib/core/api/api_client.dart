@@ -35,9 +35,11 @@ class ApiClient {
     required String serverAddress,
     required SessionCookieStore cookieStore,
     String? token,
+    Future<void> Function(String? message)? onUnauthorized,
     Dio? dio,
   }) : _cookieStore = cookieStore,
        _token = token,
+       _onUnauthorized = onUnauthorized,
        _dio =
            dio ??
            Dio(
@@ -79,16 +81,37 @@ class ApiClient {
           }
           handler.next(response);
         },
+        onError: (error, handler) {
+          final status = error.response?.statusCode;
+          if (status == 401 || status == 403) {
+            final cb = _onUnauthorized;
+            if (cb != null) {
+              final body = error.response?.data;
+              String? msg;
+              if (body is Map && body['msg'] is String) {
+                msg = body['msg'] as String;
+              }
+              _signOutFuture ??= cb(msg);
+            }
+          }
+          handler.next(error);
+        },
       ),
     );
   }
 
   final Dio _dio;
   final SessionCookieStore _cookieStore;
+  Future<void> Function(String? message)? _onUnauthorized;
+  Future<void>? _signOutFuture;
   String? _token;
 
   void setToken(String? token) {
     _token = token;
+  }
+
+  void setOnUnauthorized(Future<void> Function(String? message)? cb) {
+    _onUnauthorized = cb;
   }
 
   Future<String> getPublicKey() async {
