@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:dartssh2/dartssh2.dart';
@@ -18,6 +19,22 @@ class SftpConnectTimeoutException implements Exception {
 
   @override
   String toString() => 'SFTP connection timed out';
+}
+
+class UnsupportedArchiveFormatException implements Exception {
+  const UnsupportedArchiveFormatException();
+
+  @override
+  String toString() => 'Unsupported archive format';
+}
+
+class SftpExtractCommandException implements Exception {
+  const SftpExtractCommandException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }
 
 class SftpFileEntry {
@@ -578,6 +595,78 @@ class SftpSessionManager extends ChangeNotifier {
       state.update(loadingDirectory: false, lastError: error.toString());
       rethrow;
     }
+  }
+
+  static bool isCompressedFile(String name) =>
+      _buildExtractCommand('a', 'b', name) != null;
+
+  Future<void> extractEntry(SftpFileEntry entry, {String? destDir}) async {
+    final state = activeSession;
+    if (state == null || entry.isDirectory) return;
+    final connection = _connections[state.server.id];
+    if (connection == null) return;
+    final filePath = joinPath(state.currentPath, entry.name);
+    final target = (destDir == null || destDir.trim().isEmpty)
+        ? state.currentPath
+        : destDir.trim();
+    final command = _buildExtractCommand(filePath, target, entry.name);
+    if (command == null) {
+      throw const UnsupportedArchiveFormatException();
+    }
+    state.update(loadingDirectory: true, lastError: null);
+    try {
+      await connection.client.run('mkdir -p ${_shellQuote(target)}');
+      final session = await connection.client.execute(command);
+      final stderrBuf = BytesBuilder(copy: false);
+      final stderrSub = session.stderr.listen(stderrBuf.add);
+      final stdoutSub = session.stdout.listen((_) {});
+      await session.done;
+      await stderrSub.cancel();
+      await stdoutSub.cancel();
+      final exitCode = session.exitCode ?? 0;
+      if (exitCode != 0) {
+        final stderrText = utf8
+            .decode(stderrBuf.takeBytes(), allowMalformed: true)
+            .trim();
+        throw SftpExtractCommandException(
+          stderrText.isEmpty ? 'exit $exitCode' : stderrText,
+        );
+      }
+      await refreshActive();
+    } catch (error) {
+      state.update(loadingDirectory: false, lastError: error.toString());
+      rethrow;
+    }
+  }
+
+  static String _shellQuote(String value) =>
+      "'${value.replaceAll("'", "'\\''")}'";
+
+  static String? _buildExtractCommand(
+    String filePath,
+    String destDir,
+    String name,
+  ) {
+    final lower = name.toLowerCase();
+    final f = _shellQuote(filePath);
+    final d = _shellQuote(destDir);
+    if (lower.endsWith('.zip')) return 'unzip -o $f -d $d';
+    if (lower.endsWith('.tar.gz') || lower.endsWith('.tgz')) {
+      return 'tar -xzf $f -C $d';
+    }
+    if (lower.endsWith('.tar.bz2') || lower.endsWith('.tbz2')) {
+      return 'tar -xjf $f -C $d';
+    }
+    if (lower.endsWith('.tar.xz') || lower.endsWith('.txz')) {
+      return 'tar -xJf $f -C $d';
+    }
+    if (lower.endsWith('.tar')) return 'tar -xf $f -C $d';
+    if (lower.endsWith('.7z')) return '7z x -y -o$d $f';
+    if (lower.endsWith('.rar')) return 'cd $d && unrar x -o+ $f';
+    if (lower.endsWith('.gz')) return 'gunzip -kf $f';
+    if (lower.endsWith('.bz2')) return 'bunzip2 -kf $f';
+    if (lower.endsWith('.xz')) return 'unxz -kf $f';
+    return null;
   }
 
   Future<void> deleteEntries(List<SftpFileEntry> entries) async {

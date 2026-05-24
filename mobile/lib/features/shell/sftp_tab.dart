@@ -256,6 +256,10 @@ class _SftpConnectedView extends StatelessWidget {
                               manager.openPath(
                                 manager.entryPath(session, entry),
                               );
+                            } else if (SftpSessionManager.isCompressedFile(
+                              entry.name,
+                            )) {
+                              _promptAndExtract(context, session, entry);
                             } else {
                               _openFile(context, manager, session, entry);
                             }
@@ -333,6 +337,10 @@ class _SftpConnectedView extends StatelessWidget {
         .where((entry) => session.selectedNames.contains(entry.name))
         .toList(growable: false);
     final multi = selectedEntries.length > 1;
+    final canExtract = !multi &&
+        selectedEntries.length == 1 &&
+        !selectedEntries.first.isDirectory &&
+        SftpSessionManager.isCompressedFile(selectedEntries.first.name);
     final actions = <_SftpMenuAction>[
       _SftpMenuAction(
         Icons.download_outlined,
@@ -354,6 +362,12 @@ class _SftpConnectedView extends StatelessWidget {
         l.tr('sftp.action.compress'),
         _SftpMenuActionType.compress,
       ),
+      if (canExtract)
+        _SftpMenuAction(
+          Icons.unarchive_outlined,
+          l.tr('sftp.action.extract'),
+          _SftpMenuActionType.extract,
+        ),
       _SftpMenuAction(
         Icons.delete_outline,
         l.tr('sftp.action.delete'),
@@ -466,6 +480,8 @@ class _SftpConnectedView extends StatelessWidget {
             entries,
             zipName: name.trim(),
           );
+        case _SftpMenuActionType.extract:
+          await _promptAndExtract(context, session, anchor);
         case _SftpMenuActionType.delete:
           final confirmed = await _showDeleteConfirm(context, entries.length);
           if (!confirmed) return;
@@ -588,6 +604,33 @@ class _SftpConnectedView extends StatelessWidget {
           _SftpNameDialog(title: title, hint: hint, initialValue: initialValue),
     );
   }
+
+  Future<void> _promptAndExtract(
+    BuildContext context,
+    SftpSessionState session,
+    SftpFileEntry entry,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final target = await _showTextInputDialog(
+      context,
+      title: l.tr('sftp.extractToTitle'),
+      hint: l.tr('sftp.extractPathHint'),
+      initialValue: session.currentPath,
+    );
+    if (target == null || target.trim().isEmpty) return;
+    try {
+      await manager.extractEntry(entry, destDir: target.trim());
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.tr('sftp.extractDone'))),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
 }
 
 Future<bool> _openRemoteFile({
@@ -645,6 +688,7 @@ enum _SftpMenuActionType {
   copyTo,
   moveTo,
   compress,
+  extract,
   delete,
   rename,
   copyPath,
