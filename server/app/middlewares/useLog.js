@@ -8,7 +8,8 @@ const SENSITIVE_HEADER_KEYS = ['authorization', 'cookie', 'token', 'uid']
 const SENSITIVE_BODY_KEYS = [
   'password', 'pwd', 'code', 'captcha', 'token',
   'oldloginname', 'oldpwd', 'newloginname', 'newpwd',
-  'loginname', 'ciphertext', 'jwtexpires', 'mfa2token'
+  'loginname', 'ciphertext', 'jwtexpires', 'mfa2token',
+  'encryptedkey', 'privatekey', 'passphrase', 'secret'
 ]
 
 const MAX_BODY_LOG_LEN = 1000 // 请求 body 最多记录长度
@@ -95,8 +96,9 @@ function formatResultForLog(result) {
     return '[stream]'
   }
 
-  // 其它对象，直接 stringify 截断
-  return safeStringify(result, MAX_RESULT_LOG_LEN)
+  // 其它对象，先脱敏再 stringify 截断
+  const masked = result && typeof result === 'object' ? maskSensitiveBody(result) : result
+  return safeStringify(masked, MAX_RESULT_LOG_LEN)
 }
 
 const useLog = () => {
