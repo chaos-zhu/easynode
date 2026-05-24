@@ -213,7 +213,7 @@ const getPlusInfo = async ({ res }) => {
 }
 
 const getPlusDiscount = async ({ res } = {}) => {
-  if (process.env.EXEC_ENV === 'local') return res.success({ discount: false })
+  // if (process.env.EXEC_ENV === 'local') return res.success({ discount: false })
 
   try {
     const response = await requestWithFailover(`/api/announcement/public?version=${ version }`)

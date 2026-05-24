@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/api_client.dart';
 import '../features/scripts/script_repository.dart';
 import '../features/servers/server_repository.dart';
+import '../features/settings/settings_repository.dart';
 import 'auth_notifier.dart';
 
 /// Resolves the active [ApiClient] from the auth state. Pages should not
@@ -37,4 +38,17 @@ final scriptRepositoryProvider = Provider<ScriptRepository>((ref) {
     throw StateError('scriptRepositoryProvider read while signed out');
   }
   return ApiScriptRepository(apiClient: api);
+});
+
+/// Repository for the Settings sub-pages — account, plus, sessions, proxy
+/// CRUD and credential CRUD. Holds the public key needed for RSA-wrapping
+/// passwords and credential tempKeys.
+final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
+  final auth = ref.watch(authProvider);
+  final api = auth.apiClient;
+  final pubKey = auth.publicKeyPem;
+  if (api == null || pubKey == null) {
+    throw StateError('settingsRepositoryProvider read while signed out');
+  }
+  return SettingsRepository(apiClient: api, publicKeyPem: pubKey);
 });

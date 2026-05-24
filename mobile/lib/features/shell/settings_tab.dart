@@ -7,9 +7,12 @@ import '../../state/auth_notifier.dart';
 import '../../state/credential_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/locale_notifier.dart';
+import '../../state/plus_discount_notifier.dart';
+import '../../state/plus_info_notifier.dart';
 import '../../state/script_list_notifier.dart';
 import '../settings/account_security_page.dart';
 import '../settings/credentials_page.dart';
+import '../settings/models/plus_info.dart';
 import '../settings/plus_subscription_page.dart';
 import '../settings/proxy_page.dart';
 import '../settings/sessions_page.dart';
@@ -97,32 +100,38 @@ class SettingsTab extends ConsumerWidget {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
   }
 
-  void _showNotifications(BuildContext context) {
+  void _showNotifications(BuildContext context, PlusDiscount discount) {
     final l = AppLocalizations.of(context);
+    final hasDiscount = discount.discount && discount.content.isNotEmpty;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppPalette.card,
+      constraints: const BoxConstraints(maxWidth: double.infinity),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppPalette.border,
-                    borderRadius: BorderRadius.circular(4),
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppPalette.border,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   l.tr('settings.notifications.tooltip'),
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -130,16 +139,30 @@ class SettingsTab extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Icon(
-                  Icons.notifications_off_outlined,
-                  size: 36,
-                  color: AppPalette.softMuted,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l.tr('settings.notifications.empty'),
-                  style: const TextStyle(fontSize: 13, color: AppPalette.muted),
-                ),
+                if (hasDiscount)
+                  _DiscountNotificationCard(
+                    content: discount.content,
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      _push(context, const PlusSubscriptionPage());
+                    },
+                  )
+                else ...[
+                  Icon(
+                    Icons.notifications_off_outlined,
+                    size: 36,
+                    color: AppPalette.softMuted,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l.tr('settings.notifications.empty'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppPalette.muted,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
               ],
             ),
@@ -159,6 +182,16 @@ class SettingsTab extends ConsumerWidget {
     );
   }
 
+  Future<void> _refresh(WidgetRef ref) async {
+    await Future.wait([
+      ref.read(hostListProvider.notifier).refresh(),
+      ref.read(credentialListProvider.notifier).refresh(),
+      ref.read(scriptListProvider.notifier).refresh(),
+      ref.read(plusInfoProvider.notifier).refresh(),
+      ref.read(plusDiscountProvider.notifier).refresh(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -168,17 +201,27 @@ class SettingsTab extends ConsumerWidget {
     final credentialCount =
         ref.watch(credentialListProvider).valueOrNull?.length ?? 0;
     final scriptCount = ref.watch(scriptListProvider).valueOrNull?.length ?? 0;
+    final plusActive =
+        ref.watch(plusInfoProvider).valueOrNull?.isActive ?? false;
+    final discount = ref.watch(plusDiscountProvider).valueOrNull ??
+        const PlusDiscount(discount: false, content: '');
+    final hasDiscount = discount.discount && discount.content.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppPalette.canvas,
       body: SafeArea(
         bottom: false,
-        child: CustomScrollView(
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: () => _refresh(ref),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
             SliverToBoxAdapter(
               child: _Header(
                 title: l.tr('settings.title'),
-                onBellTap: () => _showNotifications(context),
+                showBell: !plusActive,
+                hasDiscount: hasDiscount,
+                onBellTap: () => _showNotifications(context, discount),
               ),
             ),
             SliverToBoxAdapter(
@@ -188,23 +231,9 @@ class SettingsTab extends ConsumerWidget {
                 hostCount: hostCount,
                 credentialCount: credentialCount,
                 scriptCount: scriptCount,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: SettingsSection(
-                title: l.tr('settings.section.subscription'),
-                children: [
-                  SettingsRow(
-                    icon: Icons.workspace_premium_outlined,
-                    title: l.tr('settings.plus.title'),
-                    subtitle: l.tr('settings.plus.inactiveMeta'),
-                    trailing: _StatusChip(
-                      label: l.tr('settings.plus.inactive'),
-                      tone: _ChipTone.muted,
-                    ),
-                    onTap: () => _push(context, const PlusSubscriptionPage()),
-                  ),
-                ],
+                plusActive: plusActive,
+                onPlusTap: () => _push(context, const PlusSubscriptionPage()),
+                onLogoutTap: () => _confirmLogout(context, ref),
               ),
             ),
             SliverToBoxAdapter(
@@ -268,16 +297,9 @@ class SettingsTab extends ConsumerWidget {
                 ],
               ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-                child: _LogoutButton(
-                  label: l.tr('settings.logout'),
-                  onTap: () => _confirmLogout(context, ref),
-                ),
-              ),
-            ),
-          ],
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            ],
+          ),
         ),
       ),
     );
@@ -285,10 +307,17 @@ class SettingsTab extends ConsumerWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.title, required this.onBellTap});
+  const _Header({
+    required this.title,
+    required this.onBellTap,
+    required this.hasDiscount,
+    required this.showBell,
+  });
 
   final String title;
   final VoidCallback onBellTap;
+  final bool hasDiscount;
+  final bool showBell;
 
   @override
   Widget build(BuildContext context) {
@@ -307,26 +336,49 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          Material(
-            color: AppPalette.card,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: const BorderSide(color: AppPalette.border),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: onBellTap,
-              child: const SizedBox(
-                width: 40,
-                height: 40,
-                child: Icon(
-                  Icons.notifications_none_outlined,
-                  size: 20,
-                  color: AppPalette.primary,
+          if (showBell)
+            Material(
+              color: AppPalette.card,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: const BorderSide(color: AppPalette.border),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: onBellTap,
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Icon(
+                        Icons.notifications_none_outlined,
+                        size: 20,
+                        color: AppPalette.primary,
+                      ),
+                      if (hasDiscount)
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: AppPalette.danger,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppPalette.card,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -340,6 +392,9 @@ class _ProfileCard extends StatelessWidget {
     required this.hostCount,
     required this.credentialCount,
     required this.scriptCount,
+    required this.plusActive,
+    required this.onPlusTap,
+    required this.onLogoutTap,
   });
 
   final String username;
@@ -347,11 +402,13 @@ class _ProfileCard extends StatelessWidget {
   final int hostCount;
   final int credentialCount;
   final int scriptCount;
+  final bool plusActive;
+  final VoidCallback onPlusTap;
+  final VoidCallback onLogoutTap;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
       child: Container(
@@ -367,21 +424,19 @@ class _ProfileCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 52,
-                  height: 52,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: AppPalette.accentSoft,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppPalette.accent, width: 1.5),
+                    color: AppPalette.chip,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppPalette.border),
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    initial,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppPalette.primary,
-                    ),
+                  child: Image.asset(
+                    'assets/logo_v2_01.png',
+                    width: 30,
+                    height: 30,
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -404,10 +459,7 @@ class _ProfileCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _StatusChip(
-                            label: l.tr('settings.plus.inactive'),
-                            tone: _ChipTone.muted,
-                          ),
+                          _PlusBadge(active: plusActive, onTap: onPlusTap),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -423,6 +475,8 @@ class _ProfileCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
+                _LogoutIconButton(onTap: onLogoutTap),
               ],
             ),
             const SizedBox(height: 14),
@@ -504,6 +558,56 @@ class _StatDivider extends StatelessWidget {
 
 enum _ChipTone { muted, accent, success }
 
+class _PlusBadge extends StatelessWidget {
+  const _PlusBadge({required this.active, required this.onTap});
+
+  final bool active;
+  final VoidCallback onTap;
+
+  static const _grayscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0, 0, 0, 1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final image = Image.asset(
+      'assets/plus.png',
+      width: 36,
+      height: 22,
+      fit: BoxFit.contain,
+    );
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            active ? image : ColorFiltered(colorFilter: _grayscale, child: image),
+            if (!active) ...[
+              const SizedBox(width: 6),
+              Text(
+                l.tr('settings.plus.goActivate'),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppPalette.accent,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.label, required this.tone});
 
@@ -539,42 +643,36 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-class _LogoutButton extends StatelessWidget {
-  const _LogoutButton({required this.label, required this.onTap});
+class _LogoutIconButton extends StatelessWidget {
+  const _LogoutIconButton({required this.onTap});
 
-  final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Material(
-      color: AppPalette.dangerSoft,
-      borderRadius: BorderRadius.circular(16),
+      color: AppPalette.chip,
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         key: const Key('settings-logout'),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppPalette.dangerBorder),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.logout, size: 18, color: AppPalette.danger),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppPalette.danger,
-                ),
-              ),
-            ],
+        child: Tooltip(
+          message: l.tr('settings.logout'),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppPalette.border),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.logout,
+              size: 18,
+              color: AppPalette.danger,
+            ),
           ),
         ),
       ),
@@ -608,6 +706,60 @@ class _LangOption extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(child: Text(label)),
         ],
+      ),
+    );
+  }
+}
+
+class _DiscountNotificationCard extends StatelessWidget {
+  const _DiscountNotificationCard({
+    required this.content,
+    required this.onTap,
+  });
+
+  final String content;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppPalette.dangerSoft,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppPalette.dangerBorder),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.local_offer_outlined,
+              size: 18,
+              color: AppPalette.danger,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                content,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppPalette.danger,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: AppPalette.danger,
+            ),
+          ],
+        ),
       ),
     );
   }
