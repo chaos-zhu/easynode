@@ -197,30 +197,9 @@ class _WarmBottomBarButton extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(26),
           onTap: onTap,
-          child: AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOut,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-            ),
-            child: IconTheme(
-              data: IconThemeData(size: 20, color: color),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(item.icon),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
+          child: IconTheme(
+            data: IconThemeData(size: 22, color: color),
+            child: Center(child: Icon(item.icon)),
           ),
         ),
       ),

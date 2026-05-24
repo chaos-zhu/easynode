@@ -12,6 +12,7 @@ import '../../state/server_data_refresh.dart';
 import '../../state/terminal_providers.dart';
 import 'server_form_page.dart';
 import 'server_group_model.dart';
+import '../shell/tab_header.dart';
 import '../terminal/ssh_connection_config.dart';
 import '../terminal/terminal_shell_page.dart';
 import '../terminal/terminal_session_manager.dart';
@@ -277,36 +278,23 @@ class _ServersTabState extends ConsumerState<ServersTab> {
   }
 
   Widget _buildHeader(AppLocalizations l) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: SizedBox(
-        height: 56,
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-              child: Image.asset('assets/logo_v2_01.png', fit: BoxFit.cover),
-            ),
-            const Spacer(),
-            _HeaderIconButton(
-              tooltip: _searchVisible
-                  ? l.tr('common.closeSearch')
-                  : l.tr('common.search'),
-              icon: _searchVisible ? Icons.close : Icons.search,
-              onPressed: _toggleSearch,
-            ),
-            const SizedBox(width: 4),
-            _HeaderIconButton(
-              tooltip: l.tr('servers.addServer'),
-              icon: Icons.add,
-              onPressed: () => _openForm(),
-            ),
-          ],
+    return TabHeader(
+      title: l.tr('tabs.servers'),
+      actions: [
+        _HeaderIconButton(
+          tooltip: _searchVisible
+              ? l.tr('common.closeSearch')
+              : l.tr('common.search'),
+          icon: _searchVisible ? Icons.close : Icons.search,
+          onPressed: _toggleSearch,
         ),
-      ),
+        const SizedBox(width: 4),
+        _HeaderIconButton(
+          tooltip: l.tr('servers.addServer'),
+          icon: Icons.add,
+          onPressed: () => _openForm(),
+        ),
+      ],
     );
   }
 

@@ -12,6 +12,7 @@ import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/script_group_list_notifier.dart';
 import '../../state/script_list_notifier.dart';
+import 'tab_header.dart';
 
 /// Third bottom-nav tab — scripts library. Mirrors design node `Zhupt` and
 /// feature parity with web `web/src/views/scripts/index.vue`: search + group
@@ -187,11 +188,37 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
         final filtered = _filterByGroup(searched, effectiveGroupId);
         return Column(
           children: [
-            _Header(
-              searchVisible: _searchVisible,
-              onToggleSearch: _toggleSearch,
-              onOpenGroups: _openGroups,
-              onAdd: () => _openForm(),
+            TabHeader(
+              title: l.tr('tabs.scripts'),
+              actions: [
+                _HeaderIconButton(
+                  tooltip: _searchVisible
+                      ? l.tr('common.closeSearch')
+                      : l.tr('common.search'),
+                  icon: _searchVisible ? Icons.close : Icons.search,
+                  onPressed: _toggleSearch,
+                ),
+                const SizedBox(width: 4),
+                _HeaderIconButton(
+                  tooltip: l.tr('scripts.groupsManage'),
+                  icon: Icons.account_tree_outlined,
+                  onPressed: _openGroups,
+                ),
+                const SizedBox(width: 4),
+                Material(
+                  color: _ScriptPalette.primary,
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => _openForm(),
+                    child: const SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: Icon(Icons.add, size: 20, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -306,71 +333,6 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
       if (g.id == script.group) return g.displayName;
     }
     return script.group;
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.searchVisible,
-    required this.onToggleSearch,
-    required this.onOpenGroups,
-    required this.onAdd,
-  });
-
-  final bool searchVisible;
-  final VoidCallback onToggleSearch;
-  final VoidCallback onOpenGroups;
-  final VoidCallback onAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: SizedBox(
-        height: 56,
-        child: Row(
-          children: [
-            Text(
-              l.tr('scripts.title'),
-              style: const TextStyle(
-                color: _ScriptPalette.text,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const Spacer(),
-            _HeaderIconButton(
-              tooltip: searchVisible
-                  ? l.tr('common.closeSearch')
-                  : l.tr('common.search'),
-              icon: searchVisible ? Icons.close : Icons.search,
-              onPressed: onToggleSearch,
-            ),
-            const SizedBox(width: 4),
-            _HeaderIconButton(
-              tooltip: l.tr('scripts.groupsManage'),
-              icon: Icons.account_tree_outlined,
-              onPressed: onOpenGroups,
-            ),
-            const SizedBox(width: 4),
-            Material(
-              color: _ScriptPalette.primary,
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: onAdd,
-                child: const SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Icon(Icons.add, size: 20, color: Colors.white),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

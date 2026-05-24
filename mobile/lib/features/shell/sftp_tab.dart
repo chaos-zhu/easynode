@@ -19,6 +19,7 @@ import 'media/image_preview_page.dart';
 import 'media/media_extensions.dart';
 import 'media/video_player_page.dart';
 import 'sftp_session_manager.dart';
+import 'tab_header.dart';
 
 class SftpTab extends ConsumerStatefulWidget {
   const SftpTab({super.key});
@@ -107,59 +108,85 @@ class _SftpTabState extends ConsumerState<SftpTab> {
 
     return Scaffold(
       backgroundColor: _SftpPalette.canvas,
-      body: RefreshIndicator(
-        color: _SftpPalette.primary,
-        backgroundColor: _SftpPalette.card,
-        onRefresh: _refresh,
-        child: hostsAsync.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: _SftpPalette.primary),
-          ),
-          error: (error, _) {
-            if (error is UnauthorizedFailure) return const SizedBox.shrink();
-            return _SftpMessageList(
-              message: error.toString(),
-              action: TextButton(
-                onPressed: _refresh,
-                child: Text(l.tr('common.retry')),
-              ),
-            );
-          },
-          data: (_) => AnimatedBuilder(
-            animation: manager,
-            builder: (context, _) {
-              final session = manager.activeSession;
-              if (_connecting ||
-                  session?.status == SftpConnectionStatus.connecting) {
-                return _SftpConnectingView(
-                  server: session?.server,
-                  phase: session?.connectPhase,
-                );
-              }
-              if (session == null) {
-                return ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 72, 16, 24),
-                  children: [
-                    SizedBox(
-                      height: MediaQuery.sizeOf(context).height * 0.58,
-                      child: Center(
-                        child: _SftpEmptyCard(
-                          onChooseServer: _openServerPicker,
+      body: AnimatedBuilder(
+        animation: manager,
+        builder: (context, _) {
+          final session = manager.activeSession;
+          final showSelector = !_connecting &&
+              session != null &&
+              session.status == SftpConnectionStatus.connected;
+          return Column(
+            children: [
+              TabHeader(
+                title: l.tr('tabs.sftp'),
+                actions: showSelector
+                    ? [
+                        _SftpHeaderSelector(
+                          session: session,
+                          onTap: _openServerPicker,
+                          onDisconnect: () => manager.disconnectActive(),
                         ),
+                      ]
+                    : const [],
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  color: _SftpPalette.primary,
+                  backgroundColor: _SftpPalette.card,
+                  onRefresh: _refresh,
+                  child: hostsAsync.when(
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: _SftpPalette.primary,
                       ),
                     ),
-                  ],
-                );
-              }
-              return _SftpConnectedView(
-                session: session,
-                manager: manager,
-                onChooseServer: _openServerPicker,
-              );
-            },
-          ),
-        ),
+                    error: (error, _) {
+                      if (error is UnauthorizedFailure) {
+                        return const SizedBox.shrink();
+                      }
+                      return _SftpMessageList(
+                        message: error.toString(),
+                        action: TextButton(
+                          onPressed: _refresh,
+                          child: Text(l.tr('common.retry')),
+                        ),
+                      );
+                    },
+                    data: (_) {
+                      if (_connecting ||
+                          session?.status == SftpConnectionStatus.connecting) {
+                        return _SftpConnectingView(
+                          server: session?.server,
+                          phase: session?.connectPhase,
+                        );
+                      }
+                      if (session == null) {
+                        return ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 72, 16, 24),
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.sizeOf(context).height * 0.58,
+                              child: Center(
+                                child: _SftpEmptyCard(
+                                  onChooseServer: _openServerPicker,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return _SftpConnectedView(
+                        session: session,
+                        manager: manager,
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -169,12 +196,10 @@ class _SftpConnectedView extends StatelessWidget {
   const _SftpConnectedView({
     required this.session,
     required this.manager,
-    required this.onChooseServer,
   });
 
   final SftpSessionState session;
   final SftpSessionManager manager;
-  final VoidCallback onChooseServer;
 
   @override
   Widget build(BuildContext context) {
@@ -183,11 +208,6 @@ class _SftpConnectedView extends StatelessWidget {
       builder: (context, _) {
         return Column(
           children: [
-            _SftpTopSelector(
-              session: session,
-              onTap: onChooseServer,
-              onDisconnect: () => manager.disconnectActive(),
-            ),
             _SftpToolbar(session: session, manager: manager),
             _SftpPathBar(session: session, manager: manager),
             _SftpTableHeader(
@@ -614,8 +634,8 @@ enum _SftpMenuActionType {
   copyPath,
 }
 
-class _SftpTopSelector extends StatelessWidget {
-  const _SftpTopSelector({
+class _SftpHeaderSelector extends StatelessWidget {
+  const _SftpHeaderSelector({
     required this.session,
     required this.onTap,
     required this.onDisconnect,
@@ -627,62 +647,58 @@ class _SftpTopSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 200),
       child: Material(
         color: _SftpPalette.card,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: _SftpPalette.strongBorder, width: 1.5),
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: _SftpPalette.strongBorder),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           onTap: onTap,
           child: SizedBox(
-            height: 44,
+            height: 34,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.dns_outlined,
-                    size: 18,
-                    color: _SftpPalette.muted,
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: _SftpPalette.success,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
+                  const SizedBox(width: 6),
+                  Flexible(
                     child: Text(
                       session.server.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: _SftpPalette.text,
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: _SftpPalette.success,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                   const Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    size: 18,
+                    size: 16,
                     color: _SftpPalette.muted,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 2),
                   InkResponse(
-                    radius: 18,
+                    radius: 14,
                     onTap: onDisconnect,
                     child: const Icon(
                       Icons.close_rounded,
-                      size: 18,
+                      size: 14,
                       color: _SftpPalette.muted,
                     ),
                   ),

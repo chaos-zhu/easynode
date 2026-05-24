@@ -18,6 +18,7 @@ import '../settings/proxy_page.dart';
 import '../settings/sessions_page.dart';
 import '../settings/widgets/settings_row.dart';
 import '../settings/widgets/settings_section.dart';
+import 'tab_header.dart';
 
 class SettingsTab extends ConsumerWidget {
   const SettingsTab({super.key});
@@ -217,11 +218,15 @@ class SettingsTab extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
             SliverToBoxAdapter(
-              child: _Header(
+              child: TabHeader(
                 title: l.tr('settings.title'),
-                showBell: !plusActive,
-                hasDiscount: hasDiscount,
-                onBellTap: () => _showNotifications(context, discount),
+                actions: [
+                  if (!plusActive)
+                    _SettingsBellButton(
+                      hasDiscount: hasDiscount,
+                      onTap: () => _showNotifications(context, discount),
+                    ),
+                ],
               ),
             ),
             SliverToBoxAdapter(
@@ -306,80 +311,57 @@ class SettingsTab extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.title,
-    required this.onBellTap,
+class _SettingsBellButton extends StatelessWidget {
+  const _SettingsBellButton({
     required this.hasDiscount,
-    required this.showBell,
+    required this.onTap,
   });
 
-  final String title;
-  final VoidCallback onBellTap;
   final bool hasDiscount;
-  final bool showBell;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 16, 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppPalette.text,
-                letterSpacing: -0.2,
+    return Material(
+      color: AppPalette.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: AppPalette.border),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Icon(
+                Icons.notifications_none_outlined,
+                size: 20,
+                color: AppPalette.primary,
               ),
-            ),
-          ),
-          if (showBell)
-            Material(
-              color: AppPalette.card,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: const BorderSide(color: AppPalette.border),
-              ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: onBellTap,
-                child: SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const Icon(
-                        Icons.notifications_none_outlined,
-                        size: 20,
-                        color: AppPalette.primary,
+              if (hasDiscount)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: AppPalette.danger,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppPalette.card,
+                        width: 1.5,
                       ),
-                      if (hasDiscount)
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: AppPalette.danger,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppPalette.card,
-                                width: 1.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
