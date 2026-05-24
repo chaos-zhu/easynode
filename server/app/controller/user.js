@@ -21,6 +21,19 @@ const getpublicKey = async ({ res }) => {
   res.success({ data })
 }
 
+const parseLoginAgentInfo = (userAgent = '') => {
+  const mobileMatch = userAgent.match(/^EasyNode-Mobile\/(\S+)\s*(?:\(([^)]*)\))?/)
+  if (mobileMatch) {
+    const [, appVersion, parenContent = ''] = mobileMatch
+    const parts = parenContent.split(';').map(s => s.trim()).filter(Boolean)
+    return {
+      browser: { name: 'EasyNode Mobile', version: appVersion || '' },
+      os: { name: parts[0] || 'Mobile', version: parts.slice(1).join('; ') || '' }
+    }
+  }
+  return uap(userAgent)
+}
+
 let timer = null
 const allowErrCount = 5 // 允许错误的次数
 const forbidTimer = 60 * 5 // 禁止登录时间
@@ -75,7 +88,7 @@ const login = async (ctx) => {
     if (!timingSafeEqual(loginName, user) || !timingSafeEqual(loginPwd, pwd)) return res.fail({ msg: `用户名或密码错误 ${ loginErrTotal }/${ allowErrCount }` })
     if (loginName !== user || loginPwd !== pwd) return res.fail({ msg: `用户名或密码错误 ${ loginErrTotal }/${ allowErrCount }` })
 
-    const { token, session, deviceId } = await beforeLoginHandler(clientIp, jwtExpires, jwtExpireAt, uap(header?.['user-agent'] || ''))
+    const { token, session, deviceId } = await beforeLoginHandler(clientIp, jwtExpires, jwtExpireAt, parseLoginAgentInfo(header?.['user-agent'] || ''))
     ctx.cookies.set('session', session, {
       httpOnly: true,
       expires: new Date(jwtExpireAt),

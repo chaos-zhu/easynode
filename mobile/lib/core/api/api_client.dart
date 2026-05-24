@@ -1,8 +1,34 @@
+import 'dart:io' show Platform;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import 'api_result.dart';
 import 'cookie_store.dart';
+
+const String _mobileAppVersion = '0.1.0';
+
+String buildMobileUserAgent() {
+  String osName;
+  if (Platform.isAndroid) {
+    osName = 'Android';
+  } else if (Platform.isIOS) {
+    osName = 'iOS';
+  } else if (Platform.isMacOS) {
+    osName = 'macOS';
+  } else if (Platform.isWindows) {
+    osName = 'Windows';
+  } else if (Platform.isLinux) {
+    osName = 'Linux';
+  } else {
+    osName = 'Unknown';
+  }
+  final sanitizedVersion = Platform.operatingSystemVersion
+      .replaceAll('(', '[')
+      .replaceAll(')', ']')
+      .trim();
+  return 'EasyNode-Mobile/$_mobileAppVersion ($osName; $sanitizedVersion)';
+}
 
 class ApiClient {
   ApiClient({
@@ -19,6 +45,9 @@ class ApiClient {
                baseUrl: '$serverAddress/api/v1',
                connectTimeout: const Duration(seconds: 30),
                receiveTimeout: const Duration(seconds: 30),
+               headers: {
+                 'User-Agent': buildMobileUserAgent(),
+               },
              ),
            ) {
     if (kDebugMode) {

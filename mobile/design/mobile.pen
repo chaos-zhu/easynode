@@ -3961,7 +3961,8 @@
                                               "fill": "$font-muted",
                                               "content": "1.2.3.4",
                                               "fontFamily": "JetBrains Mono",
-                                              "fontSize": 11
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -4030,7 +4031,8 @@
                                               "fill": "$font-muted",
                                               "content": "10.0.5.12",
                                               "fontFamily": "JetBrains Mono",
-                                              "fontSize": 11
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -4099,7 +4101,8 @@
                                               "fill": "$font-muted",
                                               "content": "172.16.8.21",
                                               "fontFamily": "JetBrains Mono",
-                                              "fontSize": 11
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -14477,7 +14480,7 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "ViDCo",
+                  "id": "FJetM",
                   "width": 36,
                   "height": 36,
                   "cornerRadius": "$radius-control",
@@ -14486,50 +14489,10 @@
                   "children": [
                     {
                       "type": "icon_font",
-                      "id": "C3nHsy",
+                      "id": "ws0IO",
                       "width": 20,
                       "height": 20,
-                      "iconFontName": "search",
-                      "iconFontFamily": "lucide",
-                      "fill": "$font-primary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "w07qi",
-                  "width": 36,
-                  "height": 36,
-                  "cornerRadius": "$radius-control",
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon_font",
-                      "id": "v7lY1",
-                      "width": 20,
-                      "height": 20,
-                      "iconFontName": "upload",
-                      "iconFontFamily": "lucide",
-                      "fill": "$font-primary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "wCF0O",
-                  "width": 36,
-                  "height": 36,
-                  "cornerRadius": "$radius-control",
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon_font",
-                      "id": "eUjfZ",
-                      "width": 20,
-                      "height": 20,
-                      "iconFontName": "download",
+                      "iconFontName": "folder-tree",
                       "iconFontFamily": "lucide",
                       "fill": "$font-primary"
                     }
@@ -14953,8 +14916,12 @@
                   "type": "frame",
                   "id": "bYuST",
                   "width": "fill_container",
-                  "fill": "$surface-inverse",
+                  "fill": "$surface-card-strong",
                   "cornerRadius": 10,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$border"
+                  },
                   "gap": 8,
                   "padding": [
                     10,
@@ -14965,7 +14932,7 @@
                     {
                       "type": "text",
                       "id": "aMHdM",
-                      "fill": "$terminal-green",
+                      "fill": "$font-muted",
                       "content": "$",
                       "fontFamily": "JetBrains Mono",
                       "fontSize": 12,
@@ -14974,7 +14941,7 @@
                     {
                       "type": "text",
                       "id": "k3TzX1",
-                      "fill": "$terminal-green",
+                      "fill": "$font-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "apt update && apt upgrade -y",
@@ -15200,8 +15167,12 @@
                   "type": "frame",
                   "id": "B92Fwq",
                   "width": "fill_container",
-                  "fill": "$surface-inverse",
+                  "fill": "$surface-card-strong",
                   "cornerRadius": 10,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$border"
+                  },
                   "gap": 8,
                   "padding": [
                     10,
@@ -15212,7 +15183,7 @@
                     {
                       "type": "text",
                       "id": "EsRoX",
-                      "fill": "$terminal-green",
+                      "fill": "$font-muted",
                       "content": "$",
                       "fontFamily": "JetBrains Mono",
                       "fontSize": 12,
@@ -15221,7 +15192,7 @@
                     {
                       "type": "text",
                       "id": "xo2xu",
-                      "fill": "$terminal-green",
+                      "fill": "$font-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "df -h",
@@ -15447,8 +15418,12 @@
                   "type": "frame",
                   "id": "wKewQ",
                   "width": "fill_container",
-                  "fill": "$surface-inverse",
+                  "fill": "$surface-card-strong",
                   "cornerRadius": 10,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$border"
+                  },
                   "gap": 8,
                   "padding": [
                     10,
@@ -15459,7 +15434,7 @@
                     {
                       "type": "text",
                       "id": "u5MwPb",
-                      "fill": "$terminal-green",
+                      "fill": "$font-muted",
                       "content": "$",
                       "fontFamily": "JetBrains Mono",
                       "fontSize": 12,
@@ -15468,7 +15443,7 @@
                     {
                       "type": "text",
                       "id": "wRQAA",
-                      "fill": "$terminal-green",
+                      "fill": "$font-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "nginx -t && systemctl reload nginx",
@@ -15694,8 +15669,12 @@
                   "type": "frame",
                   "id": "B3OzIq",
                   "width": "fill_container",
-                  "fill": "$surface-inverse",
+                  "fill": "$surface-card-strong",
                   "cornerRadius": 10,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$border"
+                  },
                   "gap": 8,
                   "padding": [
                     10,
@@ -15706,7 +15685,7 @@
                     {
                       "type": "text",
                       "id": "Cabmh",
-                      "fill": "$terminal-green",
+                      "fill": "$font-muted",
                       "content": "$",
                       "fontFamily": "JetBrains Mono",
                       "fontSize": 12,
@@ -15715,7 +15694,7 @@
                     {
                       "type": "text",
                       "id": "JEt76",
-                      "fill": "$terminal-green",
+                      "fill": "$font-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "docker compose up -d --remove-orphans",
@@ -16509,8 +16488,12 @@
                   "type": "frame",
                   "id": "XFj9b",
                   "width": "fill_container",
-                  "fill": "$surface-inverse",
+                  "fill": "$surface-card-strong",
                   "cornerRadius": "$radius-control",
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$border"
+                  },
                   "layout": "vertical",
                   "gap": 6,
                   "padding": 14,
@@ -16518,7 +16501,7 @@
                     {
                       "type": "text",
                       "id": "D47JEd",
-                      "fill": "#7C8B9A",
+                      "fill": "$font-muted",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "# 检查 nginx 配置是否合法",
@@ -16530,7 +16513,7 @@
                     {
                       "type": "text",
                       "id": "l6V9h",
-                      "fill": "$terminal-green",
+                      "fill": "$font-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "nginx -t \\",
@@ -16542,7 +16525,7 @@
                     {
                       "type": "text",
                       "id": "QUgdj",
-                      "fill": "$terminal-green",
+                      "fill": "$font-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "  && systemctl reload nginx \\",
@@ -16554,7 +16537,7 @@
                     {
                       "type": "text",
                       "id": "WkUTI",
-                      "fill": "$terminal-green",
+                      "fill": "$font-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "  && echo \"reload ok\"",
@@ -16566,7 +16549,7 @@
                     {
                       "type": "text",
                       "id": "u8glyW",
-                      "fill": "$terminal-green",
+                      "fill": "$font-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": " ",
@@ -16578,7 +16561,7 @@
                     {
                       "type": "text",
                       "id": "iDQq0",
-                      "fill": "#7C8B9A",
+                      "fill": "$font-muted",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "# 输出当前 nginx 版本",
@@ -16590,7 +16573,7 @@
                     {
                       "type": "text",
                       "id": "X3Wrrg",
-                      "fill": "$terminal-green",
+                      "fill": "$font-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "nginx -v",
