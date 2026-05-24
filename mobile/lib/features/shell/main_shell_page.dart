@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/ui/palette.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/auth_notifier.dart';
+import '../../state/plus_info_notifier.dart';
 import '../../state/terminal_providers.dart';
 import '../servers/servers_tab.dart';
 import 'scripts_tab.dart';
@@ -40,6 +41,9 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
     // signOut wipes auth state; AppRoot re-renders to LoginPage automatically.
     // We don't need to handle that here.
     ref.listen(authProvider, (_, _) {});
+    // Eager-load Plus status so gating UI in Scripts / Server form can read
+    // it synchronously without each page firing its own request.
+    ref.watch(plusInfoProvider);
 
     final l = AppLocalizations.of(context);
     final sftpManager = ref.watch(sftpSessionManagerProvider);

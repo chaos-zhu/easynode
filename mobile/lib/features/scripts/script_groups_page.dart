@@ -6,6 +6,7 @@ import '../../core/api/api_result.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
+import '../../state/plus_info_notifier.dart';
 import '../../state/script_group_list_notifier.dart';
 import '../../state/script_list_notifier.dart';
 import 'script_group_model.dart';
@@ -27,7 +28,17 @@ class ScriptGroupsPage extends ConsumerStatefulWidget {
 class _ScriptGroupsPageState extends ConsumerState<ScriptGroupsPage> {
   bool _busy = false;
 
+  bool _ensurePlusOrWarn() {
+    if (ref.read(isPlusActiveProvider)) return true;
+    final l = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l.tr('scripts.groupsPlusTip'))),
+    );
+    return false;
+  }
+
   Future<void> _openForm({ScriptGroupModel? group}) async {
+    if (!_ensurePlusOrWarn()) return;
     final l = AppLocalizations.of(context);
     final groups =
         ref.read(scriptGroupListProvider).valueOrNull ??
@@ -69,6 +80,7 @@ class _ScriptGroupsPageState extends ConsumerState<ScriptGroupsPage> {
   }
 
   Future<void> _confirmDelete(ScriptGroupModel group) async {
+    if (!_ensurePlusOrWarn()) return;
     final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
@@ -127,6 +139,7 @@ class _ScriptGroupsPageState extends ConsumerState<ScriptGroupsPage> {
     final groupsAsync = ref.watch(scriptGroupListProvider);
     final scripts =
         ref.watch(scriptListProvider).valueOrNull ?? const <ScriptModel>[];
+    final isPlus = ref.watch(isPlusActiveProvider);
     return Scaffold(
       backgroundColor: _GroupPalette.canvas,
       appBar: AppBar(
@@ -172,6 +185,10 @@ class _ScriptGroupsPageState extends ConsumerState<ScriptGroupsPage> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             children: [
+              if (!isPlus) ...[
+                _PlusBanner(message: l.tr('scripts.groupsPlusTip')),
+                const SizedBox(height: 10),
+              ],
               _HintCard(body: l.tr('scripts.groupsHintBody')),
               const SizedBox(height: 12),
               for (var i = 0; i < groups.length; i++)
@@ -228,6 +245,49 @@ class _HintCard extends StatelessWidget {
               style: const TextStyle(
                 color: _GroupPalette.muted,
                 fontSize: 12,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlusBanner extends StatelessWidget {
+  const _PlusBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: _GroupPalette.banner,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _GroupPalette.strongBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.workspace_premium_outlined,
+              size: 16,
+              color: _GroupPalette.primary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: _GroupPalette.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
                 height: 1.4,
               ),
             ),

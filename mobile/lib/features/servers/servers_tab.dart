@@ -9,6 +9,7 @@ import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/group_list_notifier.dart';
+import '../../state/plus_info_notifier.dart';
 import '../../state/server_data_refresh.dart';
 import '../../state/terminal_providers.dart';
 import 'server_form_page.dart';
@@ -53,6 +54,18 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         SnackBar(
           content: Text(
             AppLocalizations.of(context).tr('servers.windowsUnsupported'),
+          ),
+        ),
+      );
+      return;
+    }
+    if (!ref.read(isPlusActiveProvider) &&
+        (server.proxyType == 'proxyServer' ||
+            server.proxyType == 'jumpHosts')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).tr('servers.connectPlusRequired'),
           ),
         ),
       );

@@ -46,6 +46,7 @@ const Map<String, String> stringsEn = {
   'login.errSchemeUnsupported': 'Server address must use http or https',
   'login.errLoginGeneric': 'Login failed',
   'login.errMissingFields': 'Server login response is missing required fields',
+  'login.errPlusRequired': 'Beta build is restricted to Plus subscribers',
 
   // Login expiry options
   'login.expiry.temporary': 'Temporary, 1 hour',
@@ -70,6 +71,9 @@ const Map<String, String> stringsEn = {
   'servers.notConfigured': 'Not configured',
   'servers.fetchSshFailed': 'Failed to get SSH config: {0}',
   'servers.windowsUnsupported': 'Windows connections are not supported yet.',
+  'servers.connectPlusRequired':
+      'Proxy type is restricted. Please activate Plus and try again.',
+  'servers.proxyPlusTip': 'Proxy / jump host requires Plus.',
   'servers.activeTerminalsOne': '1 active terminal',
   'servers.activeTerminalsMany': '{0} active terminals',
   'servers.closeAllTitle': 'Close all terminals?',
@@ -201,6 +205,7 @@ const Map<String, String> stringsEn = {
   'scripts.groupsHint': 'Groups organize your scripts.',
   'scripts.groupsHintBody':
       'Deleting a group moves its scripts to the default group.',
+  'scripts.groupsPlusTip': 'Plus feature.',
   'scripts.addGroup': 'Add group',
   'scripts.editGroup': 'Edit group',
   'scripts.groupName': 'Group name',

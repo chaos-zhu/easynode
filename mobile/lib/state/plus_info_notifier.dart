@@ -36,3 +36,9 @@ class PlusInfoNotifier extends AsyncNotifier<PlusInfo> {
 
 final plusInfoProvider =
     AsyncNotifierProvider<PlusInfoNotifier, PlusInfo>(PlusInfoNotifier.new);
+
+/// Derived boolean — `true` only when the loaded record is in-date. Loading
+/// or error states are treated as inactive so gating UI fails closed.
+final isPlusActiveProvider = Provider<bool>((ref) {
+  return ref.watch(plusInfoProvider).valueOrNull?.isActive ?? false;
+});

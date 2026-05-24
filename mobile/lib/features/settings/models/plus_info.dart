@@ -16,7 +16,15 @@ class PlusInfo {
   final int maxIPs;
   final List<String> usedIPs;
 
-  bool get isActive => key.isNotEmpty;
+  /// Mirrors web's `isPlusActive = new Date(expiryDate) > new Date()`. A
+  /// stored key alone is not enough — an expired record must still be
+  /// treated as inactive so gating UI keeps blocking Plus features.
+  bool get isActive {
+    if (key.isEmpty) return false;
+    final parsed = DateTime.tryParse(expiryDate);
+    if (parsed == null) return false;
+    return parsed.isAfter(DateTime.now());
+  }
 
   factory PlusInfo.empty() => const PlusInfo(
         key: '',

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/api_client.dart';
 import '../features/auth/auth_session.dart';
 import 'auth_state.dart';
+import 'plus_info_notifier.dart';
 import 'storage_providers.dart';
 import 'terminal_providers.dart';
 
@@ -47,6 +48,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       apiClient: apiClient,
       publicKeyPem: publicKeyPem,
     );
+    // Plus state may have changed between sessions (different account, key
+    // activated elsewhere). Re-fetch eagerly so gating UI never reads stale
+    // data from a previous login.
+    _ref.invalidate(plusInfoProvider);
   }
 
   Future<void> signOut() async {
@@ -56,6 +61,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await secureStorage.deleteToken();
     await secureStorage.deleteDeviceId();
     await cookieStore.clear();
+    _ref.invalidate(plusInfoProvider);
     state = AuthState.empty;
   }
 }

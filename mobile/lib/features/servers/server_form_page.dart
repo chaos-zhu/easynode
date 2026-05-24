@@ -7,6 +7,7 @@ import '../../state/api_providers.dart';
 import '../../state/credential_list_notifier.dart';
 import '../../state/group_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
+import '../../state/plus_info_notifier.dart';
 import '../../state/proxy_list_notifier.dart';
 import '../../state/server_data_refresh.dart';
 import 'server_credential_model.dart';
@@ -92,6 +93,7 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
         const <ServerCredentialModel>[];
     final proxies =
         ref.watch(proxyListProvider).valueOrNull ?? const <ServerProxyModel>[];
+    final isPlusActive = ref.watch(isPlusActiveProvider);
     final jumpHostOptions = hosts
         .where((host) => host.isConfig && host.id != _form.id)
         .toList(growable: false);
@@ -266,8 +268,22 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
                             children: [
                               _ProxyTypeSegment(
                                 value: _form.proxyType,
+                                isPlusActive: isPlusActive,
                                 onChanged: _changeProxyType,
+                                onPlusRequired: _showProxyPlusRequiredSnack,
                               ),
+                              if (!isPlusActive)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(
+                                    l.tr('servers.proxyPlusTip'),
+                                    style: const TextStyle(
+                                      color: _FormColors.label,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
                               AnimatedSize(
                                 duration: const Duration(milliseconds: 180),
                                 curve: Curves.easeOutCubic,
@@ -361,6 +377,13 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
       if (next != 'jumpHosts') _form.jumpHosts = const [];
       if (next != 'proxyServer') _form.proxyServer = '';
     });
+  }
+
+  void _showProxyPlusRequiredSnack() {
+    final l = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l.tr('servers.proxyPlusTip'))),
+    );
   }
 
   String? _normalizeGroupValue(List<ServerGroupModel> groups) {
@@ -575,10 +598,14 @@ class _ProxyTypeSegment extends StatelessWidget {
   const _ProxyTypeSegment({
     required this.value,
     required this.onChanged,
+    required this.isPlusActive,
+    required this.onPlusRequired,
   });
 
   final String value;
   final ValueChanged<String> onChanged;
+  final bool isPlusActive;
+  final VoidCallback onPlusRequired;
 
   @override
   Widget build(BuildContext context) {
@@ -598,13 +625,17 @@ class _ProxyTypeSegment extends StatelessWidget {
             selected: value == 'proxyServer',
             icon: Icons.public,
             label: l.tr('servers.proxy.socksShort'),
-            onTap: () => onChanged('proxyServer'),
+            disabled: !isPlusActive,
+            onTap: () =>
+                isPlusActive ? onChanged('proxyServer') : onPlusRequired(),
           ),
           _SegmentButton(
             selected: value == 'jumpHosts',
             icon: Icons.hub_outlined,
             label: l.tr('servers.proxy.jumpHostsShort'),
-            onTap: () => onChanged('jumpHosts'),
+            disabled: !isPlusActive,
+            onTap: () =>
+                isPlusActive ? onChanged('jumpHosts') : onPlusRequired(),
           ),
         ],
       ),
@@ -649,42 +680,50 @@ class _SegmentButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.disabled = false,
   });
 
   final bool selected;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool disabled;
 
   @override
   Widget build(BuildContext context) {
+    final foreground = selected
+        ? _FormColors.card
+        : (disabled ? _FormColors.label : _FormColors.textMuted);
     return Material(
       color: selected ? _FormColors.primary : Colors.transparent,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: onTap,
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  selected ? Icons.check : icon,
-                  size: 16,
-                  color: selected ? _FormColors.card : _FormColors.textMuted,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: selected ? _FormColors.card : _FormColors.textMuted,
-                    fontSize: 13,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        child: Opacity(
+          opacity: disabled && !selected ? 0.55 : 1,
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    selected ? Icons.check : icon,
+                    size: 16,
+                    color: foreground,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: foreground,
+                      fontSize: 13,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
