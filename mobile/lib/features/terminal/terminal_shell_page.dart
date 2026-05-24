@@ -302,6 +302,7 @@ class _TerminalTopBar extends StatelessWidget {
       ],
     );
     if (selected == null) return;
+    if (!context.mounted) return;
     if (selected == _kCloseAllTerminalsAction) {
       final confirmed = await showDialog<bool>(
         context: context,

@@ -45,9 +45,7 @@ class ApiClient {
                baseUrl: '$serverAddress/api/v1',
                connectTimeout: const Duration(seconds: 30),
                receiveTimeout: const Duration(seconds: 30),
-               headers: {
-                 'User-Agent': buildMobileUserAgent(),
-               },
+               headers: {'User-Agent': buildMobileUserAgent()},
              ),
            ) {
     if (kDebugMode) {
@@ -127,6 +125,15 @@ class ApiClient {
   ) async {
     try {
       final response = await _dio.put(path, data: data);
+      return _asJson(response);
+    } on DioException catch (error) {
+      throw _toFailure(error);
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteJson(String path) async {
+    try {
+      final response = await _dio.delete(path);
       return _asJson(response);
     } on DioException catch (error) {
       throw _toFailure(error);

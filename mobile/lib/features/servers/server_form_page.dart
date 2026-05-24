@@ -1084,7 +1084,7 @@ class _DropdownField<T> extends StatelessWidget {
     return _LabeledBlock(
       label: label,
       child: DropdownButtonFormField<T>(
-        value: value,
+        initialValue: value,
         isExpanded: true,
         items: items,
         onChanged: enabled ? onChanged : null,
@@ -1407,7 +1407,7 @@ class _SwitchRow extends StatelessWidget {
         ),
         Switch(
           value: enabled && value,
-          activeColor: _FormColors.card,
+          activeThumbColor: _FormColors.card,
           activeTrackColor: _FormColors.primary,
           onChanged: enabled ? onChanged : null,
         ),
@@ -1442,7 +1442,9 @@ class _JumpHostSelector extends StatelessWidget {
       }
     }
     return _LabeledBlock(
-      label: '${l.tr('servers.field.jumpHosts')} (${selectedHosts.length}/${options.length})',
+      label: options.isEmpty
+          ? '${l.tr('servers.field.jumpHosts')} (${selectedHosts.length}/${options.length})'
+          : '${l.tr('servers.field.jumpHosts')} (${selectedHosts.length}/${options.length})（${l.tr('servers.jumpHosts.orderHint')}）',
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: options.isEmpty ? null : () => _showPicker(context),
@@ -1450,7 +1452,7 @@ class _JumpHostSelector extends StatelessWidget {
           decoration: _fieldDecoration(
             helperText: options.isEmpty
                 ? l.tr('servers.jumpHosts.empty')
-                : l.tr('servers.jumpHosts.orderHint'),
+                : null,
           ).copyWith(errorText: errorText),
           child: selectedHosts.isEmpty
               ? Text(
