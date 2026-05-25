@@ -6,6 +6,12 @@
 * 探针接入
 * 支持csv模板特定格式导入
 
+## [3.7.0](https://github.com/chaos-zhu/easynode/releases) (2026-05-30)
+* 原生Android移动端内测版发布，IOS稍后发布，欢迎Android用户加入内测反馈使用体验
+* 鉴权优化，移除IP统计
+* 其他功能优化与bug修复
+
+
 ## [3.6.1](https://github.com/chaos-zhu/easynode/releases) (2026-03-15)
 * 新增终端内右键挂起&单窗口模式头部右键菜单
 * 修复交互式脚本stdin行为异常(终端高亮模式引起路径重复显示问题)
