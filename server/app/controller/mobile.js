@@ -1,5 +1,6 @@
 const crypto = require('crypto')
 const { RSADecryptAsync } = require('../utils/encrypt')
+const decryptAndExecuteAsync = require('../utils/decrypt-file')
 
 function encryptJsonForMobile(payload, key) {
   if (!Buffer.isBuffer(key) || key.length !== 32) {
@@ -54,10 +55,6 @@ function normalizeMobileProxy(proxy = {}) {
   }
 }
 
-function normalizeMobileJumpHost({ hostId, name, ...authInfo }) {
-  return normalizeMobileAuthPayload(hostId, name, authInfo)
-}
-
 function toMobileSshPayload(hostId, name, authInfo, topology = {}) {
   const payload = normalizeMobileAuthPayload(hostId, name, authInfo)
   const proxyType = topology.proxyType || ''
@@ -84,7 +81,9 @@ function toMobileSshPayload(hostId, name, authInfo, topology = {}) {
       ...payload,
       proxyType,
       proxy: null,
-      jumpHosts: topology.jumpHosts.map(normalizeMobileJumpHost)
+      jumpHosts: topology.jumpHosts.map(({ hostId, name, ...authInfo }) =>
+        normalizeMobileAuthPayload(hostId, name, authInfo)
+      )
     }
   }
 
