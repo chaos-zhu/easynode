@@ -37,7 +37,7 @@ const Map<String, String> stringsZh = {
   'login.submit': '登录',
   'login.failed': '登录失败',
   'login.httpRiskTitle': 'HTTP 连接未加密',
-  'login.httpRiskBody': '您的所有数据可能会被盗取，建议使用 HTTPS(内网环境除外)。是否继续？',
+  'login.httpRiskBody': 'http协议下存在数据泄露风险，公网使用请配置https协议。是否继续？',
   'login.errEmptyUsername': '请输入用户名',
   'login.errEmptyPassword': '请输入密码',
   'login.errInvalidServer': '请输入有效的服务端地址',

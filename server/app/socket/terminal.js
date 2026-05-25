@@ -31,7 +31,7 @@ async function getConnectionOptions(hostId) {
       authInfo.authType = authType
       authInfo[authType] = await AESDecryptAsync(hostInfo[authType])
     }
-    return { authInfo, name }
+    return { authInfo, name, hostInfo }
   } catch (err) {
     throw new Error(`解密认证信息失败: ${ err.message }`)
   }

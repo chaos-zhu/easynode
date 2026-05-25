@@ -1,4 +1,5 @@
 const { getSSHList, addSSH, updateSSH, removeSSH, getCommand, decryptPrivateKey, getRdpToken } = require('../controller/ssh')
+const { getSftpFavorites } = require('../controller/sftp')
 const { getHostList, addHost, updateHost, batchUpdateHost, removeHost, importHost, updateLastConnectTime } = require('../controller/host')
 const { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2, getPlusInfo, getPlusDiscount, getPlusConf, updatePlusKey } = require('../controller/user')
 const { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } = require('../controller/notify')
@@ -12,7 +13,7 @@ const { getProxyList, addProxy, updateProxy, removeProxy } = require('../control
 const { getTerminalConfig, saveTerminalConfig } = require('../controller/terminal-config')
 const { getServerListConfig, saveServerListConfig } = require('../controller/server-list-config')
 const { getSuspendedSessions, getTerminalSessionConfig, updateTerminalSessionConfig } = require('../controller/terminal')
-const { getMobileSshConnection, getMobileSftpFavorites } = require('../controller/mobile')
+const { getMobileSshConnection } = require('../controller/mobile')
 
 const ssh = [
   {
@@ -398,11 +399,14 @@ const mobile = [
     method: 'post',
     path: '/mobile/ssh-connection',
     controller: getMobileSshConnection
-  },
+  }
+]
+
+const sftp = [
   {
     method: 'get',
-    path: '/mobile/sftp-favorites/:hostId',
-    controller: getMobileSftpFavorites
+    path: '/sftp/favorites/:hostId',
+    controller: getSftpFavorites
   }
 ]
 
@@ -421,5 +425,6 @@ module.exports = [].concat(
   terminalConfig,
   serverListConfig,
   terminal,
-  mobile
+  mobile,
+  sftp
 )

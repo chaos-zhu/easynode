@@ -157,7 +157,7 @@ class ApiServerRepository implements ServerRepository {
 
   @override
   Future<List<SftpFavorite>> fetchSftpFavorites(String hostId) async {
-    final response = await _api.getJson('/mobile/sftp-favorites/$hostId');
+    final response = await _api.getJson('/sftp/favorites/$hostId');
     final raw = response['data'];
     if (raw is! List) return const [];
     return raw

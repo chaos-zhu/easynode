@@ -1,16 +1,22 @@
+const crypto = require('crypto')
 const { RSADecryptAsync } = require('../utils/encrypt')
-const { encryptJsonForMobile } = require('../utils/mobile-crypto')
-const { HostListDB, FavoriteSftpDB } = require('../utils/db-class')
 
-// `getConnectionOptions` and `getProxyConfig` are lazily required inside
-// functions. Loading `../socket/terminal` at module scope pulls in
-// `terminal-session`, which expects `global.logger` to exist after app boot.
-const hostListDB = new HostListDB().getInstance()
-const favoriteSftpDB = new FavoriteSftpDB().getInstance()
+function encryptJsonForMobile(payload, key) {
+  if (!Buffer.isBuffer(key) || key.length !== 32) {
+    throw new Error('temporary key must be 32 bytes')
+  }
+  const iv = crypto.randomBytes(12)
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
+  const plaintext = Buffer.from(JSON.stringify(payload), 'utf8')
+  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()])
+  const tag = cipher.getAuthTag()
 
-function normalizePort(port) {
-  const numericPort = Number(port)
-  return Number.isFinite(numericPort) && numericPort > 0 ? numericPort : 22
+  return {
+    alg: 'AES-256-GCM',
+    iv: iv.toString('base64'),
+    tag: tag.toString('base64'),
+    ciphertext: ciphertext.toString('base64')
+  }
 }
 
 function normalizeMobileAuthPayload(hostId, name, authInfo = {}) {
@@ -23,7 +29,7 @@ function normalizeMobileAuthPayload(hostId, name, authInfo = {}) {
     hostId,
     name,
     host: host || '',
-    port: normalizePort(port),
+    port: Number(port),
     username: username || '',
     authType,
     password: authType === 'password' ? authInfo.password || '' : '',
@@ -42,19 +48,14 @@ function normalizeMobileProxy(proxy = {}) {
     name: proxy.name || '',
     type: proxy.type,
     host: proxy.host || '',
-    port: normalizePort(proxy.port),
+    port: Number(proxy.port),
     username: proxy.username || '',
     password: proxy.password || ''
   }
 }
 
-function normalizeMobileJumpHost(jumpHost) {
-  const authInfo = jumpHost.authInfo || jumpHost
-  return normalizeMobileAuthPayload(
-    jumpHost.hostId || jumpHost._id || authInfo.hostId || authInfo._id,
-    jumpHost.name || authInfo.name,
-    authInfo
-  )
+function normalizeMobileJumpHost({ hostId, name, ...authInfo }) {
+  return normalizeMobileAuthPayload(hostId, name, authInfo)
 }
 
 function toMobileSshPayload(hostId, name, authInfo, topology = {}) {
@@ -139,11 +140,7 @@ async function getMobileSshConnection({ request, res }) {
     const tempKeyText = await RSADecryptAsync(encryptedKey)
     const tempKey = Buffer.from(tempKeyText, 'base64')
     const { getConnectionOptions } = require('../socket/terminal')
-    const { authInfo, name } = await getConnectionOptions(hostId)
-    const hostInfo = await hostListDB.findOneAsync({ _id: hostId })
-    if (!hostInfo) {
-      throw new Error(`Host with ID ${ hostId } not found`)
-    }
+    const { authInfo, name, hostInfo } = await getConnectionOptions(hostId)
     const topology = await getMobileConnectionTopology(hostInfo)
     const payload = toMobileSshPayload(hostId, name, authInfo, topology)
     const data = encryptJsonForMobile(payload, tempKey)
@@ -155,29 +152,8 @@ async function getMobileSshConnection({ request, res }) {
   }
 }
 
-async function getMobileSftpFavorites({ params, request, res }) {
-  try {
-    const hostId = params?.hostId || request.query?.hostId
-    if (!hostId) {
-      return res.fail({ msg: 'missing hostId' })
-    }
-    const favorites = await favoriteSftpDB.findAsync(
-      { hostId },
-      { sort: { createTime: -1 } }
-    )
-    return res.success({ data: favorites, msg: 'success' })
-  } catch (error) {
-    logger.error('getMobileSftpFavorites error:', error.message)
-    return res.fail({ msg: error.message || 'mobile sftp favorites failed' })
-  }
-}
+
 
 module.exports = {
-  getMobileSshConnection,
-  getMobileSftpFavorites,
-  getMobileConnectionTopology,
-  normalizePort,
-  normalizeMobileAuthPayload,
-  normalizeMobileProxy,
-  toMobileSshPayload
+  getMobileSshConnection
 }
