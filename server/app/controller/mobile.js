@@ -1,4 +1,5 @@
 const crypto = require('crypto')
+const path = require('path')
 const { RSADecryptAsync } = require('../utils/encrypt')
 const decryptAndExecuteAsync = require('../utils/decrypt-file')
 
@@ -39,94 +40,19 @@ function normalizeMobileAuthPayload(hostId, name, authInfo = {}) {
   }
 }
 
-function normalizeMobileProxy(proxy = {}) {
-  if (!['socks5', 'http'].includes(proxy.type)) {
-    throw new Error(`unsupported mobile proxy type: ${ proxy.type || 'empty' }`)
-  }
-
-  return {
-    id: proxy.id || proxy._id || '',
-    name: proxy.name || '',
-    type: proxy.type,
-    host: proxy.host || '',
-    port: Number(proxy.port),
-    username: proxy.username || '',
-    password: proxy.password || ''
-  }
-}
-
-function toMobileSshPayload(hostId, name, authInfo, topology = {}) {
-  const payload = normalizeMobileAuthPayload(hostId, name, authInfo)
-  const proxyType = topology.proxyType || ''
-
-  if (proxyType === 'proxyServer') {
-    if (!topology.proxy) {
-      throw new Error('mobile proxy is required')
-    }
-
-    return {
-      ...payload,
-      proxyType,
-      proxy: normalizeMobileProxy(topology.proxy),
-      jumpHosts: []
-    }
-  }
-
-  if (proxyType === 'jumpHosts') {
-    if (!Array.isArray(topology.jumpHosts) || topology.jumpHosts.length === 0) {
-      throw new Error('mobile jump host chain is empty')
-    }
-
-    return {
-      ...payload,
-      proxyType,
-      proxy: null,
-      jumpHosts: topology.jumpHosts.map(({ hostId, name, ...authInfo }) =>
-        normalizeMobileAuthPayload(hostId, name, authInfo)
-      )
-    }
-  }
-
-  if (proxyType) {
-    throw new Error(`unsupported mobile proxy type: ${ proxyType }`)
-  }
-
-  return {
-    ...payload,
-    proxyType: '',
-    proxy: null,
-    jumpHosts: []
-  }
-}
-
-async function getMobileConnectionTopology(hostInfo = {}) {
+async function buildMobileTopology(hostInfo = {}) {
   const { proxyType } = hostInfo
-
-  if (proxyType === 'proxyServer') {
-    const { getProxyConfig } = require('../socket/terminal')
-    return {
-      proxyType,
-      proxy: await getProxyConfig(hostInfo.proxyServer)
-    }
+  if (!['proxyServer', 'jumpHosts'].includes(proxyType)) {
+    return { proxyType: '', proxy: null, jumpHosts: [] }
   }
 
-  if (proxyType === 'jumpHosts') {
-    const jumpHosts = Array.isArray(hostInfo.jumpHosts) ? hostInfo.jumpHosts : []
-    const { getConnectionOptions } = require('../socket/terminal')
-    return {
-      proxyType,
-      jumpHosts: await Promise.all(jumpHosts.map(async (jumpHostId) => {
-        const { authInfo, name } = await getConnectionOptions(jumpHostId)
-        return {
-          hostId: jumpHostId,
-          name,
-          ...authInfo
-        }
-      }))
-    }
+  let { getConnectionHelper } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  if (getConnectionHelper) {
+    const config = await getConnectionHelper(proxyType, hostInfo, normalizeMobileAuthPayload)
+    return config
+  } else {
+    throw new Error('跳板机&代理服务为Plus功能')
   }
-
-  return {}
 }
 
 async function getMobileSshConnection({ request, res }) {
@@ -140,8 +66,10 @@ async function getMobileSshConnection({ request, res }) {
     const tempKey = Buffer.from(tempKeyText, 'base64')
     const { getConnectionOptions } = require('../socket/terminal')
     const { authInfo, name, hostInfo } = await getConnectionOptions(hostId)
-    const topology = await getMobileConnectionTopology(hostInfo)
-    const payload = toMobileSshPayload(hostId, name, authInfo, topology)
+    const payload = {
+      ...normalizeMobileAuthPayload(hostId, name, authInfo),
+      ...await buildMobileTopology(hostInfo)
+    }
     const data = encryptJsonForMobile(payload, tempKey)
 
     return res.success({ data, msg: 'success' })
@@ -150,8 +78,6 @@ async function getMobileSshConnection({ request, res }) {
     return res.fail({ msg: error.message || 'mobile ssh connection failed' })
   }
 }
-
-
 
 module.exports = {
   getMobileSshConnection
