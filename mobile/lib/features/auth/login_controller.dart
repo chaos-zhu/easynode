@@ -3,7 +3,6 @@ import '../../core/api/api_result.dart';
 import '../../core/crypto/rsa_crypto.dart';
 import '../../core/utils/jwt_expiry.dart';
 import '../../core/utils/validators.dart';
-import '../settings/models/plus_info.dart';
 import 'auth_session.dart';
 
 /// Result of [LoginController.login].
@@ -124,26 +123,6 @@ class LoginController {
         token: data['token'] as String,
         deviceId: data['deviceId'] as String,
       );
-      // Beta-only gate: only Plus subscribers may use the mobile app for now.
-      // Fetch with a token-bearing client; failures are treated as "not Plus"
-      // so we never leak a partial-auth session.
-      final authedApi = _apiClientFactory(normalized, token: session.token);
-      bool isPlus = false;
-      try {
-        final res = await authedApi.getJson('/plus-info');
-        final raw = res['data'];
-        if (raw is Map && raw.isNotEmpty) {
-          isPlus = PlusInfo.fromJson(Map<String, dynamic>.from(raw)).isActive;
-        }
-      } on ApiFailure {
-        isPlus = false;
-      }
-      if (!isPlus) {
-        return const LoginResult(
-          message: '内测版本仅 Plus 订阅可用',
-          messageKey: 'login.errPlusRequired',
-        );
-      }
       // ignore: parameter_assignments
       _onLoginSuccess?.call(session, savePassword ? password : null);
       return LoginResult(success: true, session: session);

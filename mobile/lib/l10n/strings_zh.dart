@@ -44,7 +44,6 @@ const Map<String, String> stringsZh = {
   'login.errSchemeUnsupported': '服务端地址仅支持 http 或 https',
   'login.errLoginGeneric': '登录失败',
   'login.errMissingFields': '服务端登录响应缺少必要字段',
-  'login.errPlusRequired': '内测版本仅 Plus 订阅可用',
   'login.expiry.temporary': '临时会话，1 小时',
   'login.expiry.currentDay': '今天',
   'login.expiry.threeDays': '3 天',

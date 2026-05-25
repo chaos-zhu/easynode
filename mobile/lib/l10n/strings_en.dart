@@ -46,7 +46,6 @@ const Map<String, String> stringsEn = {
   'login.errSchemeUnsupported': 'Server address must use http or https',
   'login.errLoginGeneric': 'Login failed',
   'login.errMissingFields': 'Server login response is missing required fields',
-  'login.errPlusRequired': 'Beta build is restricted to Plus subscribers',
 
   // Login expiry options
   'login.expiry.temporary': 'Temporary, 1 hour',
