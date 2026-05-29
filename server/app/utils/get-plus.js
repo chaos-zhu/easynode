@@ -14,7 +14,7 @@ async function getLicenseInfo(key = '') {
   const existing = (await plusDB.findOneAsync({})) || {}
   const { key: plusKey, deviceId: existingDeviceId } = existing
   key = key || plusKey || process.env.PLUS_KEY
-  if (!key || key.length < 16) return { success: false, msg: 'Invalid Plus Key', terminated: true }
+  if (!key || key.length < 16) return { success: false, msg: 'Invalid Plus Key' }
   try {
     const requestOptions = {
       method: 'POST',
@@ -35,12 +35,12 @@ async function getLicenseInfo(key = '') {
 
     const { success, data } = await response.json()
     if (success) {
-      let { decryptKey, expiryDate, usedIPCount, maxIPs, usedIPs } = data
+      let { decryptKey } = data
       const decryptKeyCipher = await AESEncryptAsync(decryptKey)
       runtimeState.setDecryptKey(decryptKeyCipher)
       const deviceId = existingDeviceId || crypto.randomUUID()
       logger.info('🎉PLUS功能激活成功')
-      const plusData = { key, deviceId, expiryDate, usedIPCount, maxIPs, usedIPs }
+      const plusData = { key, deviceId }
       const count = await plusDB.countAsync({})
       if (count === 0) {
         await plusDB.insertAsync(plusData)
@@ -51,45 +51,35 @@ async function getLicenseInfo(key = '') {
       return { success: true, msg: '激活成功' }
     }
     logger.error('😒激活PLUS功能失败: ', data)
-    return { success: false, msg: '激活失败', terminated: true }
+    return { success: false, msg: '激活失败' }
   } catch (error) {
     logger.error(`😒激活PLUS功能失败: ${ error.message || error.errMsg?.message }`)
     if (error.clear) {
       await plusDB.removeAsync({}, { multi: true })
       runtimeState.clearDecryptKey()
-      return { success: false, msg: error.errMsg?.message || error.message, terminated: true }
     }
-    return { success: false, msg: error.message || error.errMsg?.message }
+    return { success: false, msg: error.errMsg?.message || error.message }
   }
+}
+
+async function activateOrRetry() {
+  const { key: plusKey } = (await plusDB.findOneAsync({})) || {}
+  if (!plusKey && !process.env.PLUS_KEY) return
+  const result = await getLicenseInfo()
+  if (!result.success) scheduleNextActivation()
 }
 
 function scheduleNextActivation() {
   if (retryTimer) return
-  retryTimer = setTimeout(async () => {
+  retryTimer = setTimeout(() => {
     retryTimer = null
-    const result = await getLicenseInfo()
-    if (!result.success && !result.terminated) {
-      scheduleNextActivation()
-    }
+    activateOrRetry()
   }, RETRY_INTERVAL_MS)
   if (retryTimer.unref) retryTimer.unref()
 }
 
-async function purgeLegacyDecryptKey() {
-  const existing = await plusDB.findOneAsync({})
-  if (existing && Object.prototype.hasOwnProperty.call(existing, 'decryptKey')) {
-    await plusDB.updateAsync({}, { $unset: { decryptKey: true } }, { multi: true })
-    logger.info('已清理 plusDB 中的遗留 decryptKey 字段')
-  }
-}
-
 async function startActivation() {
-  await purgeLegacyDecryptKey()
-  const result = await getLicenseInfo()
-  if (!result.success && !result.terminated) {
-    scheduleNextActivation()
-  }
-  return result
+  await activateOrRetry()
 }
 
 module.exports = getLicenseInfo
