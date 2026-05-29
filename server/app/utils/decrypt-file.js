@@ -2,17 +2,20 @@ const fs = require('fs-extra')
 const path = require('path')
 const CryptoJS = require('crypto-js')
 const { AESDecryptAsync } = require('./encrypt')
-const { PlusDB } = require('./db-class')
-const plusDB = new PlusDB().getInstance()
+const { RuntimeState } = require('./runtime-state')
+const runtimeState = new RuntimeState().getInstance()
 
 function decryptAndExecuteAsync(plusPath) {
   return new Promise(async (resolve) => {
     try {
-      let { decryptKey } = await plusDB.findOneAsync({})
-      if (!decryptKey) {
+      const decryptKeyCipher = runtimeState.getDecryptKey()
+      if (!decryptKeyCipher) {
         throw new Error('缺少解密密钥')
       }
-      decryptKey = await AESDecryptAsync(decryptKey)
+      const decryptKey = await AESDecryptAsync(decryptKeyCipher)
+      if (!decryptKey) {
+        throw new Error('解密密钥解析失败')
+      }
       const encryptedContent = fs.readFileSync(plusPath, 'utf-8')
       const bytes = CryptoJS.AES.decrypt(encryptedContent, decryptKey)
       const decryptedContent = bytes.toString(CryptoJS.enc.Utf8)
