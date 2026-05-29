@@ -15,26 +15,11 @@ async function getLicenseInfo(key = '') {
   const { key: plusKey, deviceId: existingDeviceId } = existing
   key = key || plusKey || process.env.PLUS_KEY
   if (!key || key.length < 16) return { success: false, msg: 'Invalid Plus Key', terminated: true }
-  let ip = ''
-  if (global.serverIp && (Date.now() - global.getServerIpLastTime) / 1000 / 60 < 60) {
-    ip = global.serverIp
-    logger.info('通过缓存获取服务器IP: ', ip)
-  } else {
-    ip = await getLocalNetIP()
-    global.serverIp = ip
-    global.getServerIpLastTime = Date.now()
-    logger.info('通过接口获取服务器IP: ', ip)
-  }
-  if (!ip) {
-    logger.error('😒激活PLUS功能失败: get public ip failed')
-    global.serverIp = ''
-    return { success: false, msg: 'get public ip failed' }
-  }
   try {
     const requestOptions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ip, key, version })
+      body: JSON.stringify({ key, version })
     }
 
     const response = await requestWithFailover('/api/licenses/activate', requestOptions)
