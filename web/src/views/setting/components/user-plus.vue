@@ -98,7 +98,7 @@ const handleUpdate = () => {
         localStorage.setItem('plusErrCount', ++errCount.value)
         if (errCount.value > 3) {
           ElMessageBox.confirm(
-            '激活失败，请确认key正确，有疑问请tg联系作者@chaoszhu',
+            '激活失败，请确认key正确并重启服务重试，有疑问请tg联系作者@chaoszhu',
             'Warning',
             {
               showCancelButton : false,
