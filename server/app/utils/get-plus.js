@@ -70,7 +70,7 @@ async function getLicenseInfo(key = '') {
       await plusDB.removeAsync({}, { multi: true })
       runtimeState.clearDecryptKey()
     }
-    return { success: false, msg: error.errMsg?.message || error.message, clear: error.clear }
+    return { success: false, msg: error?.errMsg || error?.message || error, clear: error.clear }
   }
 }
 
