@@ -43,52 +43,6 @@
     <div class="status_header">
       <span>Plus专属功能已激活</span>
     </div>
-    <div class="status_info">
-      <div class="info_item">
-        <span class="label">到期时间:</span>
-        <span class="value holder">{{ plusInfo.expiryDate }}</span>
-      </div>
-      <div class="info_item">
-        <span class="label">授权IP数:</span>
-        <span class="value">{{ plusInfo.maxIPs }}</span>
-      </div>
-      <div class="info_item">
-        <span class="label">已授权IP数:</span>
-        <span class="value">{{ plusInfo.usedIPCount }}</span>
-      </div>
-      <div class="info_item ip_list">
-        <span class="label">已授权IP:</span>
-        <div class="ip_tags">
-          <el-tag
-            v-for="ip in displayedIPs"
-            :key="ip"
-            size="small"
-            class="ip_tag"
-          >
-            {{ ip }}
-          </el-tag>
-          <el-button
-            v-if="hasMoreIPs"
-            type="primary"
-            link
-            size="small"
-            class="view_all_btn"
-            @click="showAllIPsDialog = true"
-          >
-            查看所有({{ totalIPCount }})
-          </el-button>
-          <el-button
-            type="success"
-            size="small"
-            link
-            :loading="whitelistLoading"
-            @click="handleSetToWhitelist"
-          >
-            [追加所有IP到登录白名单]
-          </el-button>
-        </div>
-      </div>
-    </div>
   </div>
   <PlusTable />
 
@@ -120,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, getCurrentInstance, computed } from 'vue'
+import { ref, reactive, onMounted, getCurrentInstance, computed, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { TopRight } from '@element-plus/icons-vue'
 import { handlePlusSupport } from '@/utils'
@@ -161,6 +115,10 @@ const totalIPCount = computed(() => {
   return plusInfo.value?.usedIPs?.length || 0
 })
 
+watch(() => plusInfo.value, (newVal) => {
+  formData.key = newVal?.key || ''
+}, { immediate: true, deep: true })
+
 const handleUpdate = () => {
   formRef.value.validate()
     .then(async () => {
@@ -193,18 +151,6 @@ const handleUpdate = () => {
       loading.value = false
       $store.getPlusInfo()
     })
-}
-
-const getPlusConf = async () => {
-  try {
-    loading.value = true
-    let { data } = await $api.getPlusConf()
-    formData.key = data
-  } catch (error) {
-    $message({ type: 'error', center: true, message: error.message })
-  } finally {
-    loading.value = false
-  }
 }
 
 const getPlusDiscount = async () => {
@@ -263,7 +209,6 @@ const handleSetToWhitelist = async () => {
 }
 
 onMounted(() => {
-  getPlusConf()
   getPlusDiscount()
 })
 </script>

@@ -177,16 +177,8 @@ const useStore = defineStore('global', {
     },
     async getPlusInfo() {
       const { data: plusInfo = {} } = await $api.getPlusInfo()
-      if (plusInfo?.expiryDate) {
-        const isPlusActive = new Date(plusInfo.expiryDate) > new Date()
-        this.$patch({ isPlusActive })
-        plusInfo.expiryDate = dayjs(plusInfo.expiryDate).format('YYYY-MM-DD')
-        plusInfo.expiryDate?.startsWith('9999') && (plusInfo.expiryDate = '永久授权')
-        this.$patch({ plusInfo })
-      } else {
-        this.$patch({ isPlusActive: false })
-      }
       this.$patch({ plusInfo })
+      this.$patch({ isPlusActive: Boolean(plusInfo?.key && plusInfo?.deviceId) })
     },
     async getTerminalConfig() {
       const { data: terminalConfig } = await $api.getTerminalConfig()
