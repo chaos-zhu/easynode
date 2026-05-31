@@ -1,6 +1,8 @@
 const crypto = require('crypto')
-const { getLocalNetIP, requestWithFailover } = require('./tools')
+const path = require('path')
+const { requestWithFailover } = require('./tools')
 const { AESEncryptAsync } = require('./encrypt')
+const decryptAndExecuteAsync = require('./decrypt-file')
 const version = require('../../package.json').version
 const { PlusDB } = require('./db-class')
 const { RuntimeState } = require('./runtime-state')
@@ -8,7 +10,17 @@ const plusDB = new PlusDB().getInstance()
 const runtimeState = new RuntimeState().getInstance()
 
 const RETRY_INTERVAL_MS = 30 * 1000
+let maxRetryCount = 3
 let retryTimer = null
+
+async function startHeartbeatIfAvailable() {
+  const plusModule = await decryptAndExecuteAsync(path.join(__dirname, '../controller/plus.js'))
+  if (typeof plusModule?.startHeartbeat === 'function') {
+    plusModule.startHeartbeat()
+  } else {
+    logger.info('[Plus] Heartbeat module is not available')
+  }
+}
 
 async function getLicenseInfo(key = '') {
   const existing = (await plusDB.findOneAsync({})) || {}
@@ -25,10 +37,9 @@ async function getLicenseInfo(key = '') {
     const response = await requestWithFailover('/api/licenses/activate', requestOptions)
 
     if (!response.ok) {
-      logger.info('😒激活PLUS功能失败: ', response.status)
       if (response.status === 403) {
         const errMsg = await response.json()
-        throw { errMsg, clear: true }
+        throw { errMsg: `403: ${ errMsg?.message }`, clear: true }
       }
       throw Error({ errMsg: `HTTP error! status: ${ response.status }` })
     }
@@ -48,17 +59,18 @@ async function getLicenseInfo(key = '') {
         await plusDB.removeAsync({}, { multi: true })
         await plusDB.insertAsync(plusData)
       }
+      await startHeartbeatIfAvailable()
       return { success: true, msg: '激活成功' }
     }
     logger.error('😒激活PLUS功能失败: ', data)
     return { success: false, msg: '激活失败' }
   } catch (error) {
-    logger.error(`😒激活PLUS功能失败: ${ error.message || error.errMsg?.message }`)
+    logger.error(`😒激活PLUS功能失败: ${ error?.errMsg || error?.message || error }`)
     if (error.clear) {
       await plusDB.removeAsync({}, { multi: true })
       runtimeState.clearDecryptKey()
     }
-    return { success: false, msg: error.errMsg?.message || error.message }
+    return { success: false, msg: error.errMsg?.message || error.message, clear: error.clear }
   }
 }
 
@@ -66,11 +78,13 @@ async function activateOrRetry() {
   const { key: plusKey } = (await plusDB.findOneAsync({})) || {}
   if (!plusKey && !process.env.PLUS_KEY) return
   const result = await getLicenseInfo()
+  if (result.clear) return logger.error('[Plus] Plus key has been cleared due to activation issues')
   if (!result.success) scheduleNextActivation()
 }
 
 function scheduleNextActivation() {
-  if (retryTimer) return
+  maxRetryCount--
+  if (retryTimer || maxRetryCount <= 0) return
   retryTimer = setTimeout(() => {
     retryTimer = null
     activateOrRetry()
@@ -78,9 +92,5 @@ function scheduleNextActivation() {
   if (retryTimer.unref) retryTimer.unref()
 }
 
-async function startActivation() {
-  await activateOrRetry()
-}
-
 module.exports = getLicenseInfo
-module.exports.startActivation = startActivation
+module.exports.startActivation = activateOrRetry
