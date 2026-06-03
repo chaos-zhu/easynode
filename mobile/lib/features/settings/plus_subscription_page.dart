@@ -74,7 +74,8 @@ class _PlusSubscriptionPageState extends ConsumerState<PlusSubscriptionPage> {
       _showSnack(l.tr('plus.activateSuccess'));
     } on ApiFailure catch (err) {
       if (!mounted) return;
-      _showSnack(err.message);
+      // Kicked sessions require a service restart before re-activation.
+      _showSnack(err.needRestart ? l.tr('plus.needRestart') : err.message);
     } catch (_) {
       if (!mounted) return;
       _showSnack(l.tr('plus.activateFailed'));

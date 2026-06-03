@@ -1,58 +1,58 @@
 /// Server `GET /plus-info` response shape — `{ data: PlusInfo | null }`.
-/// `null` or empty `data` means inactive. Active records carry expiry + IP
-/// usage statistics from the license server.
+/// `null` or empty `data` means inactive. The server now reports the runtime
+/// activation state directly via `active` (decryptKey present in memory and
+/// the session has not been kicked), so the client trusts that boolean instead
+/// of re-deriving it from an expiry date.
 class PlusInfo {
   const PlusInfo({
     required this.key,
-    required this.expiryDate,
-    required this.usedIPCount,
-    required this.maxIPs,
-    required this.usedIPs,
+    required this.instanceId,
+    required this.active,
+    required this.status,
+    required this.needRestart,
+    required this.error,
   });
 
   final String key;
-  final String expiryDate;
-  final int usedIPCount;
-  final int maxIPs;
-  final List<String> usedIPs;
+  final String instanceId;
 
-  /// Mirrors web's `isPlusActive = new Date(expiryDate) > new Date()`. A
-  /// stored key alone is not enough — an expired record must still be
-  /// treated as inactive so gating UI keeps blocking Plus features.
-  bool get isActive {
-    if (key.isEmpty) return false;
-    final parsed = DateTime.tryParse(expiryDate);
-    if (parsed == null) return false;
-    return parsed.isAfter(DateTime.now());
-  }
+  /// Runtime activation state from the server. `true` only when Plus is truly
+  /// usable right now (memory decryptKey present and not kicked).
+  final bool active;
+
+  /// One of: `active` | `kicked` | `inactive` | `unset`.
+  final String status;
+
+  /// `true` when the current process was kicked by the license server and the
+  /// user must restart the panel service to re-activate.
+  final bool needRestart;
+
+  /// Human-readable error to surface when kicked / abnormal.
+  final String error;
+
+  /// Trust the server-reported runtime state.
+  bool get isActive => active;
 
   factory PlusInfo.empty() => const PlusInfo(
         key: '',
-        expiryDate: '',
-        usedIPCount: 0,
-        maxIPs: 0,
-        usedIPs: [],
+        instanceId: '',
+        active: false,
+        status: 'unset',
+        needRestart: false,
+        error: '',
       );
 
   factory PlusInfo.fromJson(Map<String, dynamic> json) {
-    int parseInt(Object? raw) {
-      if (raw is int) return raw;
-      if (raw is num) return raw.toInt();
-      if (raw is String) return int.tryParse(raw) ?? 0;
-      return 0;
-    }
-
-    final ips = (json['usedIPs'] as List?)
-            ?.map((e) => e.toString())
-            .toList(growable: false) ??
-        const <String>[];
+    bool parseBool(Object? raw) =>
+        raw == true || raw == 1 || raw == '1' || raw == 'true';
 
     return PlusInfo(
       key: (json['key'] ?? '').toString(),
-      expiryDate: (json['expiryDate'] ?? '').toString(),
-      usedIPCount: parseInt(json['usedIPCount']),
-      maxIPs: parseInt(json['maxIPs']),
-      usedIPs: ips,
+      instanceId: (json['instanceId'] ?? '').toString(),
+      active: parseBool(json['active']),
+      status: (json['status'] ?? '').toString(),
+      needRestart: parseBool(json['needRestart']),
+      error: (json['error'] ?? '').toString(),
     );
   }
 }

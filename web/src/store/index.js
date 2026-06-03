@@ -178,7 +178,7 @@ const useStore = defineStore('global', {
     async getPlusInfo() {
       const { data: plusInfo = {} } = await $api.getPlusInfo()
       this.$patch({ plusInfo })
-      this.$patch({ isPlusActive: Boolean(plusInfo?.key && plusInfo?.deviceId) })
+      this.$patch({ isPlusActive: Boolean(plusInfo?.active) })
     },
     async getTerminalConfig() {
       const { data: terminalConfig } = await $api.getTerminalConfig()

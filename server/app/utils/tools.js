@@ -373,8 +373,6 @@ async function requestWithFailover(path, options = {}, timeout = 5000) {
   for (let i = 0; i < plusServers.length; i++) {
     const server = plusServers[i]
     try {
-      logger.info(`Plus服务: ${ i + 1 }/${ plusServers.length }: ${ server }${ path }`)
-
       const response = await fetch(server + path, {
         method,
         headers,
@@ -382,9 +380,13 @@ async function requestWithFailover(path, options = {}, timeout = 5000) {
         timeout
       })
 
-      // 如果状态码是200或403，不需要尝试下一个服务器
+      // 200+
       if (response.ok || response.status === 403) {
-        logger.info(`Plus服务: ${ i + 1 }/${ plusServers.length }: ${ server }${ path } 响应成功，状态码: ${ response.status }`)
+        return response
+      }
+      // 403
+      if (response.status === 403) {
+        logger.info(`Plus服务: ${ i + 1 }/${ plusServers.length }: ${ server }${ path } 响应失败，状态码: ${ response.status }`)
         return response
       }
 

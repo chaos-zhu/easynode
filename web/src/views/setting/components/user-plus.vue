@@ -44,7 +44,12 @@
       <span>Plus专属功能已激活</span>
     </div>
   </div>
-  <div v-if="plusError" class="plus_status">
+  <div v-else-if="needRestart" class="plus_status is_danger">
+    <div class="status_header">
+      <span>授权已在其它实例被占用，请重启面板服务后重试</span>
+    </div>
+  </div>
+  <div v-else-if="plusError" class="plus_status is_warning">
     <div class="status_header">
       <span>Plus状态错误：{{ plusError }}</span>
     </div>
@@ -76,6 +81,7 @@ const discountContent = ref('')
 const isPlusActive = computed(() => $store.isPlusActive)
 const plusInfo = computed(() => $store.plusInfo)
 const plusError = computed(() => $store.plusInfo?.error)
+const needRestart = computed(() => $store.plusInfo?.needRestart === true)
 
 watch(() => plusInfo.value, (newVal) => {
   formData.key = newVal?.key || ''
@@ -173,6 +179,14 @@ onMounted(() => {
     .el-icon {
       margin-right: 5px;
     }
+  }
+
+  &.is_danger .status_header {
+    color: #f56c6c;
+  }
+
+  &.is_warning .status_header {
+    color: #e6a23c;
   }
 
   .status_info {

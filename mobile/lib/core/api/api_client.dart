@@ -172,14 +172,18 @@ class ApiClient {
   ApiFailure _toFailure(DioException error) {
     final body = error.response?.data;
     String? msg;
+    Object? data;
     if (body is Map && body['msg'] is String) {
       msg = body['msg'] as String;
+    }
+    if (body is Map) {
+      data = body['data'];
     }
     final statusCode = error.response?.statusCode;
     final message = msg ?? error.message ?? 'Network error';
     if (statusCode == 401 || statusCode == 403) {
-      return UnauthorizedFailure(message, statusCode: statusCode);
+      return UnauthorizedFailure(message, statusCode: statusCode, data: data);
     }
-    return ApiFailure(message, statusCode: statusCode);
+    return ApiFailure(message, statusCode: statusCode, data: data);
   }
 }

@@ -10,10 +10,12 @@ const { sendNoticeAsync } = require('../utils/notify')
 const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt, SHA256Encrypt } = require('../utils/encrypt')
 const { getNetIPInfo, requestWithFailover, timingSafeEqual } = require('../utils/tools')
 const { KeyDB, PlusDB, SessionDB } = require('../utils/db-class')
+const { RuntimeState } = require('../utils/runtime-state')
 
 const keyDB = new KeyDB().getInstance()
 const sessionDB = new SessionDB().getInstance()
 const plusDB = new PlusDB().getInstance()
+const runtimeState = new RuntimeState().getInstance()
 
 const getpublicKey = async ({ res }) => {
   let { publicKey: data } = await keyDB.findOneAsync({})
@@ -206,9 +208,26 @@ const disableMFA2 = async ({ res, request }) => {
 }
 
 const getPlusInfo = async ({ res }) => {
-  let data = await plusDB.findOneAsync({})
-  delete data?._id
-  delete data?.decryptKey
+  const dbData = (await plusDB.findOneAsync({})) || {}
+  delete dbData._id
+  delete dbData.decryptKey
+
+  // 运行时真实激活状态：内存里 decryptKey 在 + 未被踢 = 真正可用
+  const kicked = runtimeState.getPlusKicked()
+  const active = Boolean(runtimeState.getDecryptKey()) && !kicked
+  const data = {
+    key: dbData.key || '',
+    instanceId: dbData.instanceId || '',
+    active, // 前端/移动端用这个判断「Plus 正常激活使用中」
+    status: active ? 'active'
+      : kicked ? 'kicked'
+        : dbData.key ? 'inactive' : 'unset',
+    needRestart: kicked,
+    tokenExpireAt: runtimeState.getTokenExpireAt() || 0,
+    error: kicked
+      ? '授权已在其它实例被占用，请重启服务；若非本人操作请联系客服更换 Key'
+      : ''
+  }
   res.success({ data, msg: 'success' })
 }
 
@@ -240,8 +259,12 @@ const getPlusConf = async ({ res }) => {
 
 const updatePlusKey = async ({ res, request }) => {
   const { body: { key } } = request
-  const { success, msg } = await getLicenseInfo(key)
-  if (!success) return res.fail({ msg })
+  if (runtimeState.getPlusKicked()) {
+    runtimeState.clearSessionId()
+    return res.fail({ data: { needRestart: true }, msg: '检测到授权已在其它实例被占用，请重启面板服务后重试' })
+  }
+  const { success, msg, needRestart } = await getLicenseInfo(key)
+  if (!success) return res.fail({ data: { needRestart }, msg })
   res.success({ msg: 'success' })
 }
 
