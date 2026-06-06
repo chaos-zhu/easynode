@@ -3,7 +3,7 @@ const path = require('path')
 const { RSADecryptAsync } = require('../utils/encrypt')
 const decryptAndExecuteAsync = require('../utils/decrypt-file')
 
-function encryptJsonForMobile(payload, key) {
+function encryptJsonForNative(payload, key) {
   if (!Buffer.isBuffer(key) || key.length !== 32) {
     throw new Error('temporary key must be 32 bytes')
   }
@@ -21,10 +21,10 @@ function encryptJsonForMobile(payload, key) {
   }
 }
 
-function normalizeMobileAuthPayload(hostId, name, authInfo = {}) {
+function normalizeNativeAuthPayload(hostId, name, authInfo = {}) {
   const { host, port, username, authType } = authInfo
   if (!['password', 'privateKey'].includes(authType)) {
-    throw new Error(`unsupported mobile ssh auth type: ${ authType || 'empty' }`)
+    throw new Error(`unsupported native ssh auth type: ${ authType || 'empty' }`)
   }
 
   return {
@@ -40,7 +40,7 @@ function normalizeMobileAuthPayload(hostId, name, authInfo = {}) {
   }
 }
 
-async function buildMobileTopology(hostInfo = {}) {
+async function buildNativeTopology(hostInfo = {}) {
   const { proxyType } = hostInfo
   if (!['proxyServer', 'jumpHosts'].includes(proxyType)) {
     return { proxyType: '', proxy: null, jumpHosts: [] }
@@ -48,14 +48,14 @@ async function buildMobileTopology(hostInfo = {}) {
 
   let { getConnectionHelper } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
   if (getConnectionHelper) {
-    const config = await getConnectionHelper(proxyType, hostInfo, normalizeMobileAuthPayload)
+    const config = await getConnectionHelper(proxyType, hostInfo, normalizeNativeAuthPayload)
     return config
   } else {
     throw new Error('跳板机&代理服务为Plus功能')
   }
 }
 
-async function getMobileSshConnection({ request, res }) {
+async function getNativeSshConnection({ request, res }) {
   try {
     const { hostId, encryptedKey } = request.body || {}
     if (!hostId || !encryptedKey) {
@@ -67,18 +67,18 @@ async function getMobileSshConnection({ request, res }) {
     const { getConnectionOptions } = require('../socket/terminal')
     const { authInfo, name, hostInfo } = await getConnectionOptions(hostId)
     const payload = {
-      ...normalizeMobileAuthPayload(hostId, name, authInfo),
-      ...await buildMobileTopology(hostInfo)
+      ...normalizeNativeAuthPayload(hostId, name, authInfo),
+      ...await buildNativeTopology(hostInfo)
     }
-    const data = encryptJsonForMobile(payload, tempKey)
+    const data = encryptJsonForNative(payload, tempKey)
 
     return res.success({ data, msg: 'success' })
   } catch (error) {
-    logger.error('getMobileSshConnection error:', error.message)
-    return res.fail({ msg: error.message || 'mobile ssh connection failed' })
+    logger.error('getNativeSshConnection error:', error.message)
+    return res.fail({ msg: error.message || 'native ssh connection failed' })
   }
 }
 
 module.exports = {
-  getMobileSshConnection
+  getNativeSshConnection
 }

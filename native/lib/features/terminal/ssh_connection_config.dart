@@ -1,5 +1,5 @@
-/// Plaintext SSH connection parameters returned by `/mobile/ssh-connection`
-/// after AES-GCM decryption. Mirrors `toMobileSshPayload` on the server.
+/// Plaintext SSH connection parameters returned by `/native/ssh-connection`
+/// after AES-GCM decryption. Mirrors the native SSH payload on the server.
 class SshAuthConfig {
   const SshAuthConfig({
     required this.hostId,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/api/api_client.dart';
@@ -30,6 +31,7 @@ class _Bootstrap {
     required this.secureStorage,
     required this.cookieStore,
     required this.flutterSecureStorage,
+    required this.appVersion,
     required this.initialPassword,
     required this.initialAuthState,
   });
@@ -38,6 +40,7 @@ class _Bootstrap {
   final SecureAppStorage secureStorage;
   final SessionCookieStore cookieStore;
   final FlutterSecureStorage flutterSecureStorage;
+  final String appVersion;
   final String initialPassword;
   final AuthState initialAuthState;
 }
@@ -53,6 +56,10 @@ class EasyNodeApp extends StatelessWidget {
     final secureWrapper = SecureAppStorage(secure);
     final appStorage = AppStorage(prefs);
     final cookieStore = SessionCookieStore(secureWrapper);
+    final packageInfo = await PackageInfo.fromPlatform();
+    final appVersion = packageInfo.buildNumber.isEmpty
+        ? packageInfo.version
+        : '${packageInfo.version}+${packageInfo.buildNumber}';
 
     var initialPassword = '';
     if (appStorage.savePassword) {
@@ -83,6 +90,7 @@ class EasyNodeApp extends StatelessWidget {
         serverAddress: appStorage.serverAddress,
         cookieStore: cookieStore,
         token: token,
+        appVersion: appVersion,
       );
       try {
         final pubKey = await api.getPublicKey();
@@ -109,6 +117,7 @@ class EasyNodeApp extends StatelessWidget {
         secureStorage: secureWrapper,
         cookieStore: cookieStore,
         flutterSecureStorage: secure,
+        appVersion: appVersion,
         initialPassword: initialPassword,
         initialAuthState: initialAuthState,
       ),
@@ -126,15 +135,19 @@ class EasyNodeApp extends StatelessWidget {
           (ref) => AuthNotifier(ref, _b.initialAuthState),
         ),
       ],
-      child: _AppRoot(initialPassword: _b.initialPassword),
+      child: _AppRoot(
+        initialPassword: _b.initialPassword,
+        appVersion: _b.appVersion,
+      ),
     );
   }
 }
 
 class _AppRoot extends ConsumerStatefulWidget {
-  const _AppRoot({required this.initialPassword});
+  const _AppRoot({required this.initialPassword, required this.appVersion});
 
   final String initialPassword;
+  final String appVersion;
 
   @override
   ConsumerState<_AppRoot> createState() => _AppRootState();
@@ -170,6 +183,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       cookieStore: ref.read(cookieStoreProvider),
       token: token,
       onUnauthorized: _signOutOnUnauthorized,
+      appVersion: widget.appVersion,
     );
   }
 

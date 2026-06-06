@@ -13,7 +13,7 @@ const { getProxyList, addProxy, updateProxy, removeProxy } = require('../control
 const { getTerminalConfig, saveTerminalConfig } = require('../controller/terminal-config')
 const { getServerListConfig, saveServerListConfig } = require('../controller/server-list-config')
 const { getSuspendedSessions, getTerminalSessionConfig, updateTerminalSessionConfig } = require('../controller/terminal')
-const { getMobileSshConnection } = require('../controller/mobile')
+const { getNativeSshConnection } = require('../controller/native')
 
 const ssh = [
   {
@@ -404,11 +404,11 @@ const terminal = [
   }
 ]
 
-const mobile = [
+const native = [
   {
     method: 'post',
-    path: '/mobile/ssh-connection',
-    controller: getMobileSshConnection
+    path: '/native/ssh-connection',
+    controller: getNativeSshConnection
   }
 ]
 
@@ -435,6 +435,6 @@ module.exports = [].concat(
   terminalConfig,
   serverListConfig,
   terminal,
-  mobile,
+  native,
   sftp
 )

@@ -11,7 +11,7 @@ abstract class DeviceIdStore {
 class SecureDeviceIdStore implements DeviceIdStore {
   SecureDeviceIdStore(this._storage);
   final FlutterSecureStorage _storage;
-  static const _key = 'mobileDeviceId';
+  static const _key = 'nativeDeviceId';
 
   @override
   Future<String?> read() => _storage.read(key: _key);

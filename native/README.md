@@ -1,6 +1,6 @@
 # EasyNode Native
 
-EasyNode 的 Flutter Native App，复用现有后端 (`/api/v1`)，在手机上提供服务器列表、SSH 终端、SFTP 文件管理、脚本库、账户安全等能力。App 自身不打包后端地址，登录时由用户填写。
+EasyNode 的 Flutter Native App，复用现有后端 (`/api/v1`)，在原生端上提供服务器列表、SSH 终端、SFTP 文件管理、脚本库、账户安全等能力。App 自身不打包后端地址，登录时由用户填写。
 
 ## 技术栈
 
@@ -68,7 +68,7 @@ native/
 
 - 登录密码：`core/crypto/rsa_crypto.dart#encryptPassword` → PKCS1 + utf8，对应服务端 `node-rsa.decrypt(ct, 'utf8')`。
 - Native 端 SSH 临时密钥：32 字节 AES key → base64 → utf8 → RSA，对应 `RSADecryptAsync` + `Buffer.from(text, 'base64')`。
-- `/mobile/ssh-connection` 返回的 `{ iv, tag, ciphertext }` 由 `core/crypto/aes_gcm_crypto.dart` AES-GCM 解密。
+- `/native/ssh-connection` 返回的 `{ iv, tag, ciphertext }` 由 `core/crypto/aes_gcm_crypto.dart` AES-GCM 解密。
 - **修改加密协议必须 server / native 同步升级**，否则破坏现有 App 兼容性。
 
 ### 登录流程
@@ -93,7 +93,7 @@ native/
 
 - `features/terminal/ssh_terminal_controller.dart`：dartssh2 起 shell session，stdout/stderr 写入 `xterm.Terminal`；`terminal.onOutput` 把按键回送给 SSH session；支持 `Ctrl + 字母` 一次性修饰键。Shell 启动后主动 `resizeTerminal()` 一次，避免 PTY 卡在 80x24。
 - `terminal_session_manager.dart`：所有终端会话集合 + 当前激活 id，提供 open / setActive / reconnect / close / closeAll。`reconnect` 复用现有 `Terminal` buffer，避免清屏。
-- `ssh_connection_config.dart`：与服务端 `toMobileSshPayload` 对齐的纯数据类。
+- `ssh_connection_config.dart`：与服务端 native SSH payload 对齐的纯数据类。
 - `http_proxy_connector.dart` / `socks5_connector.dart` / `ssh_transport.dart`：代理与跳板机连接通道。
 
 ### 存储分层
@@ -196,5 +196,5 @@ iOS 构建需要 macOS + Xcode。
 ## 后端约定
 
 - Native 端复用 `/api/v1` 全部接口，鉴权与 Web 端一致：`token` header + `session` cookie。
-- 专属端点：`POST /api/v1/mobile/ssh-connection`，返回 AES-GCM 加密后的 SSH 连接参数。修改时同步更新 `server/app/controller/mobile.js` 与 `native/lib/features/servers/server_repository.dart`、`native/lib/core/crypto/aes_gcm_crypto.dart`。
+- 专属端点：`POST /api/v1/native/ssh-connection`，返回 AES-GCM 加密后的 SSH 连接参数。修改时同步更新 `server/app/controller/native.js` 与 `native/lib/features/servers/server_repository.dart`、`native/lib/core/crypto/aes_gcm_crypto.dart`。
 - 解密后的 SSH 凭据**不得写入磁盘或日志**。

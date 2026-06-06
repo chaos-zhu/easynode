@@ -113,7 +113,7 @@ class ApiServerRepository implements ServerRepository {
   ///
   /// 1. Generate a fresh 32-byte AES key.
   /// 2. RSA-encrypt it with the public key fetched at login time.
-  /// 3. POST to `/mobile/ssh-connection`.
+  /// 3. POST to `/native/ssh-connection`.
   /// 4. AES-GCM-decrypt the response envelope.
   /// 5. Return a strongly typed [SshConnectionConfig].
   ///
@@ -122,7 +122,7 @@ class ApiServerRepository implements ServerRepository {
   Future<SshConnectionConfig> fetchSshConfig(String hostId) async {
     final keyBytes = _randomBytes(32);
     final encryptedKey = _rsa.encryptTemporaryKey(_publicKeyPem, keyBytes);
-    final response = await _api.postJson('/mobile/ssh-connection', {
+    final response = await _api.postJson('/native/ssh-connection', {
       'hostId': hostId,
       'encryptedKey': encryptedKey,
     });

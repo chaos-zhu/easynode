@@ -24,13 +24,13 @@ const getpublicKey = async ({ res }) => {
 }
 
 const parseLoginAgentInfo = (userAgent = '') => {
-  const mobileMatch = userAgent.match(/^EasyNode-Mobile\/(\S+)\s*(?:\(([^)]*)\))?/)
-  if (mobileMatch) {
-    const [, appVersion, parenContent = ''] = mobileMatch
+  const nativeMatch = userAgent.match(/^EasyNode-(Android|iOS|macOS|Windows|Linux|Native)\/(\S+)\s*(?:\(([^)]*)\))?/)
+  if (nativeMatch) {
+    const [, clientName, appVersion, parenContent = ''] = nativeMatch
     const parts = parenContent.split(';').map(s => s.trim()).filter(Boolean)
     return {
-      browser: { name: 'EasyNode Mobile', version: appVersion || '' },
-      os: { name: parts[0] || 'Mobile', version: parts.slice(1).join('; ') || '' }
+      browser: { name: `EasyNode ${ clientName }`, version: appVersion || '' },
+      os: { name: clientName, version: parts.join('; ') || '' }
     }
   }
   return uap(userAgent)

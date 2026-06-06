@@ -30,8 +30,17 @@ class LoginSession {
   final int createAt;
   final int expireAt;
 
-  bool get isNativeClient =>
-      browser.contains('EasyNode-Mobile') || os.contains('EasyNode-Mobile');
+  bool get isNativeClient {
+    const prefixes = [
+      'EasyNode Android',
+      'EasyNode iOS',
+      'EasyNode macOS',
+      'EasyNode Windows',
+      'EasyNode Linux',
+      'EasyNode Native',
+    ];
+    return prefixes.any((prefix) => browser.contains(prefix));
+  }
 
   String get location {
     final parts = <String>[

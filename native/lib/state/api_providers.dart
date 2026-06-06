@@ -17,7 +17,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return api;
 });
 
-/// Repository for `/host-list` and `/mobile/ssh-connection`. Depends on the
+/// Repository for `/host-list` and `/native/ssh-connection`. Depends on the
 /// active ApiClient and the public key fetched at login time, both of
 /// which are derived from [authProvider].
 final serverRepositoryProvider = Provider<ServerRepository>((ref) {

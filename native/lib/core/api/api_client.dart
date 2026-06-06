@@ -6,28 +6,31 @@ import 'package:flutter/foundation.dart';
 import 'api_result.dart';
 import 'cookie_store.dart';
 
-const String _mobileAppVersion = '0.1.0';
+const String _fallbackNativeAppVersion = 'unknown';
 
-String buildMobileUserAgent() {
-  String osName;
+String buildNativeUserAgent({String? appVersion}) {
+  String clientName;
   if (Platform.isAndroid) {
-    osName = 'Android';
+    clientName = 'Android';
   } else if (Platform.isIOS) {
-    osName = 'iOS';
+    clientName = 'iOS';
   } else if (Platform.isMacOS) {
-    osName = 'macOS';
+    clientName = 'macOS';
   } else if (Platform.isWindows) {
-    osName = 'Windows';
+    clientName = 'Windows';
   } else if (Platform.isLinux) {
-    osName = 'Linux';
+    clientName = 'Linux';
   } else {
-    osName = 'Unknown';
+    clientName = 'Native';
   }
   final sanitizedVersion = Platform.operatingSystemVersion
       .replaceAll('(', '[')
       .replaceAll(')', ']')
       .trim();
-  return 'EasyNode-Mobile/$_mobileAppVersion ($osName; $sanitizedVersion)';
+  final version = appVersion?.trim().isNotEmpty == true
+      ? appVersion!.trim()
+      : _fallbackNativeAppVersion;
+  return 'EasyNode-$clientName/$version ($sanitizedVersion)';
 }
 
 class ApiClient {
@@ -36,6 +39,7 @@ class ApiClient {
     required SessionCookieStore cookieStore,
     String? token,
     Future<void> Function(String? message)? onUnauthorized,
+    String? appVersion,
     Dio? dio,
   }) : _cookieStore = cookieStore,
        _token = token,
@@ -47,7 +51,9 @@ class ApiClient {
                baseUrl: '$serverAddress/api/v1',
                connectTimeout: const Duration(seconds: 30),
                receiveTimeout: const Duration(seconds: 30),
-               headers: {'User-Agent': buildMobileUserAgent()},
+               headers: {
+                 'User-Agent': buildNativeUserAgent(appVersion: appVersion),
+               },
              ),
            ) {
     if (kDebugMode) {
