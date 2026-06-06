@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/features/shell/editor/editor_language.dart';
+import 'package:easynode_native/features/shell/editor/editor_language.dart';
 
 void main() {
   group('detectFromFileName', () {

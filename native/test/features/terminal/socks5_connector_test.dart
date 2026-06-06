@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/features/terminal/socks5_connector.dart';
+import 'package:easynode_native/features/terminal/socks5_connector.dart';
 
 Future<List<int>> readExactlyFromIterator(
   StreamIterator<List<int>> iterator,

@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'strings_en.dart';
 import 'strings_zh.dart';
 
-/// Lightweight hand-rolled localization layer for the mobile app.
+/// Lightweight hand-rolled localization layer for the native app.
 ///
 /// Why not the generated `flutter gen-l10n` flow? Adding the ARB pipeline and
 /// keeping it in sync with the Dart codebase is more ceremony than this app

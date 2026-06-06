@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/core/utils/validators.dart';
+import 'package:easynode_native/core/utils/validators.dart';
 
 void main() {
   test('normalizes server address by trimming and removing trailing slash', () {

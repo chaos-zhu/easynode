@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/features/servers/server_form_data.dart';
-import 'package:mobile/features/servers/server_model.dart';
+import 'package:easynode_native/features/servers/server_form_data.dart';
+import 'package:easynode_native/features/servers/server_model.dart';
 
 void main() {
   test('new server form defaults to password auth and no proxy', () {

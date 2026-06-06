@@ -1,6 +1,6 @@
-/// Mobile-side projection of `/api/v1/host-list` items.
+/// Native-side projection of `/api/v1/host-list` items.
 ///
-/// Only fields needed for the mobile list and connect action are kept;
+/// Only fields needed for the native list and connect action are kept;
 /// passwords, private keys, etc. are intentionally excluded — the server
 /// also clears them in its host-list response.
 class ServerModel {

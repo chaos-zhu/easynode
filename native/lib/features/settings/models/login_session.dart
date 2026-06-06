@@ -30,7 +30,7 @@ class LoginSession {
   final int createAt;
   final int expireAt;
 
-  bool get isMobile =>
+  bool get isNativeClient =>
       browser.contains('EasyNode-Mobile') || os.contains('EasyNode-Mobile');
 
   String get location {

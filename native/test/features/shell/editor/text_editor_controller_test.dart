@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/features/shell/editor/editor_language.dart';
-import 'package:mobile/features/shell/editor/text_editor_controller.dart';
+import 'package:easynode_native/features/shell/editor/editor_language.dart';
+import 'package:easynode_native/features/shell/editor/text_editor_controller.dart';
 
 class _FakeWriter implements TextEditorWriter {
   _FakeWriter({this.shouldThrow = false});

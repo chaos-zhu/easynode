@@ -3,9 +3,9 @@ import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/features/terminal/http_proxy_connector.dart';
-import 'package:mobile/features/terminal/ssh_connection_config.dart';
-import 'package:mobile/features/terminal/ssh_transport.dart';
+import 'package:easynode_native/features/terminal/http_proxy_connector.dart';
+import 'package:easynode_native/features/terminal/ssh_connection_config.dart';
+import 'package:easynode_native/features/terminal/ssh_transport.dart';
 
 void main() {
   const directConfig = SshConnectionConfig(
@@ -63,7 +63,7 @@ void main() {
         isA<SshTransportException>().having(
           (error) => error.message,
           'message',
-          'Unsupported mobile proxy type: http',
+          'Unsupported native proxy type: http',
         ),
       ),
     );

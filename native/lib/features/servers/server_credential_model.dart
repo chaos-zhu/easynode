@@ -1,6 +1,6 @@
 /// Server `ssh.js` returns credential records with secrets stripped:
 /// `{ id, name, authType, privateKey:'', password:'', openSSHKeyPassword:'', date }`.
-/// For mobile we only display the metadata; secrets are write-only via the
+/// For the native client we only display the metadata; secrets are write-only via the
 /// add/update flow.
 class ServerCredentialModel {
   const ServerCredentialModel({

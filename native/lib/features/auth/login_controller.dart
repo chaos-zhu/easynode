@@ -38,7 +38,7 @@ class LoginResult {
 /// a stub client so the controller can be exercised without real network.
 typedef ApiClientFactory = ApiClient Function(String serverAddress, {String? token});
 
-/// Orchestrates the mobile login flow.
+/// Orchestrates the native client login flow.
 class LoginController {
   LoginController({
     required ApiClientFactory apiClientFactory,

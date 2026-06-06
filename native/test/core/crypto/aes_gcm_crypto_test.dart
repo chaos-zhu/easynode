@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/core/crypto/aes_gcm_crypto.dart';
+import 'package:easynode_native/core/crypto/aes_gcm_crypto.dart';
 import 'package:pointycastle/export.dart';
 
 Uint8List _encryptForTest(Uint8List key, Uint8List iv, Uint8List plaintext) {

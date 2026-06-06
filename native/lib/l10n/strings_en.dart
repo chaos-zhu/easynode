@@ -4,7 +4,7 @@
 const Map<String, String> stringsEn = {
   // App
   'app.title': 'EasyNode',
-  'app.subtitle': 'Mobile terminal access',
+  'app.subtitle': 'Native terminal access',
 
   // Common
   'common.cancel': 'Cancel',
@@ -91,7 +91,7 @@ const Map<String, String> stringsEn = {
   'servers.submit': 'Add / Update',
   'servers.secretEditHint': 'Leave blank to keep the existing saved secret.',
   'servers.credentialUnsupported':
-      'Credential selection is reserved for a later mobile credentials screen.',
+      'Credential selection is reserved for a later native credentials screen.',
   'servers.tagsHint': 'Separate tags with commas',
   'servers.field.group': 'Group',
   'servers.field.name': 'Name',
@@ -333,7 +333,7 @@ const Map<String, String> stringsEn = {
       'All login records older than 7 days will be deleted.',
   'sessions.purgeDone': 'Old records cleared',
   'sessions.current': 'Current session',
-  'sessions.mobile': 'Mobile',
+  'sessions.native': 'Native',
   'sessions.revoked': 'Revoked',
   'sessions.revoke': 'Revoke',
   'sessions.revokeConfirmTitle': 'Revoke session?',
@@ -453,7 +453,7 @@ const Map<String, String> stringsEn = {
   'terminal.status.disconnected': 'Disconnected',
   'terminal.status.error': 'Error',
 
-  // Editor (mobile SFTP text file)
+  // Editor (native SFTP text file)
   'editor.tooLarge': 'File exceeds 2 MB. Download to edit.',
   'editor.binary': 'Binary file is not editable.',
   'editor.readFailed': 'Read failed: {0}',

@@ -143,7 +143,7 @@ class SshTransportFactory {
       }
 
       throw SshTransportException(
-        'Unsupported mobile proxy type: ${proxy.type}',
+        'Unsupported native proxy type: ${proxy.type}',
       );
     }
 
@@ -211,7 +211,7 @@ class SshTransportFactory {
     }
 
     throw SshTransportException(
-      'Unsupported mobile proxy type: ${config.proxyType}',
+      'Unsupported native proxy type: ${config.proxyType}',
     );
   }
 }

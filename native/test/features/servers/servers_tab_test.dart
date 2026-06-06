@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/core/api/api_result.dart';
-import 'package:mobile/features/servers/server_form_data.dart';
-import 'package:mobile/features/servers/server_model.dart';
-import 'package:mobile/features/servers/server_group_model.dart';
-import 'package:mobile/features/servers/server_repository.dart';
-import 'package:mobile/features/shell/sftp_session_manager.dart';
-import 'package:mobile/features/servers/servers_tab.dart';
-import 'package:mobile/features/terminal/ssh_connection_config.dart';
-import 'package:mobile/l10n/app_localizations.dart';
-import 'package:mobile/state/auth_notifier.dart';
-import 'package:mobile/state/auth_state.dart';
-import 'package:mobile/state/api_providers.dart';
-import 'package:mobile/state/host_list_notifier.dart';
-import 'package:mobile/state/group_list_notifier.dart';
+import 'package:easynode_native/core/api/api_result.dart';
+import 'package:easynode_native/features/servers/server_form_data.dart';
+import 'package:easynode_native/features/servers/server_model.dart';
+import 'package:easynode_native/features/servers/server_group_model.dart';
+import 'package:easynode_native/features/servers/server_repository.dart';
+import 'package:easynode_native/features/shell/sftp_session_manager.dart';
+import 'package:easynode_native/features/servers/servers_tab.dart';
+import 'package:easynode_native/features/terminal/ssh_connection_config.dart';
+import 'package:easynode_native/l10n/app_localizations.dart';
+import 'package:easynode_native/state/auth_notifier.dart';
+import 'package:easynode_native/state/auth_state.dart';
+import 'package:easynode_native/state/api_providers.dart';
+import 'package:easynode_native/state/host_list_notifier.dart';
+import 'package:easynode_native/state/group_list_notifier.dart';
 
 class _FakeRepository implements ServerRepository {
   _FakeRepository({

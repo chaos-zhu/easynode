@@ -315,7 +315,7 @@ const Map<String, String> stringsZh = {
   'sessions.purgeConfirmBody': '将删除 7 天前的所有登录记录，确定继续？',
   'sessions.purgeDone': '已清理过期记录',
   'sessions.current': '当前会话',
-  'sessions.mobile': '移动端',
+  'sessions.native': '本地端',
   'sessions.revoked': '已撤销',
   'sessions.revoke': '撤销',
   'sessions.revokeConfirmTitle': '撤销会话？',
@@ -429,7 +429,7 @@ const Map<String, String> stringsZh = {
   'terminal.status.disconnected': '已断开',
   'terminal.status.error': '错误',
 
-  // Editor (mobile SFTP 文本文件)
+  // Editor (native SFTP 文本文件)
   'editor.tooLarge': '文件超过 2 MB，请下载后再编辑',
   'editor.binary': '二进制文件不支持编辑',
   'editor.readFailed': '读取失败：{0}',

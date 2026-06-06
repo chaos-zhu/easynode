@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/features/auth/auth_session.dart';
-import 'package:mobile/features/auth/login_controller.dart';
-import 'package:mobile/features/auth/login_page.dart';
-import 'package:mobile/l10n/app_localizations.dart';
+import 'package:easynode_native/features/auth/auth_session.dart';
+import 'package:easynode_native/features/auth/login_controller.dart';
+import 'package:easynode_native/features/auth/login_page.dart';
+import 'package:easynode_native/l10n/app_localizations.dart';
 
 void main() {
   Widget wrap(Widget child) => MaterialApp(

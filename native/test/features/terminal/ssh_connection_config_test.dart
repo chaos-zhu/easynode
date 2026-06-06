@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/features/terminal/ssh_connection_config.dart';
+import 'package:easynode_native/features/terminal/ssh_connection_config.dart';
 
 void main() {
   Map<String, dynamic> basePayload({String passphrase = ''}) => {

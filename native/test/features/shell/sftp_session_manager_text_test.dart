@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/features/shell/sftp_session_manager.dart';
+import 'package:easynode_native/features/shell/sftp_session_manager.dart';
 
 void main() {
   group('Sftp text exceptions', () {

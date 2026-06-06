@@ -545,7 +545,7 @@ class _SessionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final mobile = session.isMobile;
+    final nativeClient = session.isNativeClient;
     final bg = isCurrent ? AppPalette.accentSoft : AppPalette.card;
     final borderColor = isCurrent ? AppPalette.primary : AppPalette.border;
     final borderWidth = isCurrent ? 2.0 : 1.0;
@@ -568,7 +568,7 @@ class _SessionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Icon(
-                mobile
+                nativeClient
                     ? Icons.smartphone_rounded
                     : Icons.monitor_rounded,
                 size: 18,
@@ -612,7 +612,7 @@ class _SessionCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                mobile
+                nativeClient
                     ? Icons.smartphone_outlined
                     : Icons.monitor_outlined,
                 size: 14,
@@ -668,7 +668,7 @@ class _SessionCard extends StatelessWidget {
     if (isCurrent) return l.tr('sessions.current');
     if (session.revoked) return l.tr('sessions.revoked');
     if (_expired) return l.tr('terminal.status.disconnected');
-    return l.tr('sessions.mobile');
+    return l.tr('sessions.native');
   }
 
   _StatusTone _statusTone() {

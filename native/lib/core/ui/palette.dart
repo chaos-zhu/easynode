@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Shared color tokens for the mobile UI. Matches the warm cream/amber palette
-/// defined in the Pencil design (`mobile/design/mobile.pen`).
+/// Shared color tokens for the native UI. Matches the warm cream/amber palette
+/// defined in the Pencil design (`native/design/native.pen`).
 abstract final class AppPalette {
   static const canvas = Color(0xFFF7EFE0);
   static const card = Color(0xFFFBF5E6);

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/features/shell/editor/editor_text_sniffer.dart';
+import 'package:easynode_native/features/shell/editor/editor_text_sniffer.dart';
 
 void main() {
   group('sniffAndDecode', () {

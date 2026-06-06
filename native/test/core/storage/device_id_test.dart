@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/core/storage/device_id.dart';
+import 'package:easynode_native/core/storage/device_id.dart';
 
 class _FakeStore implements DeviceIdStore {
   String? _value;

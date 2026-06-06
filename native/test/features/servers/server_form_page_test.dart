@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile/features/servers/server_form_data.dart';
-import 'package:mobile/features/servers/server_form_page.dart';
-import 'package:mobile/features/servers/server_group_model.dart';
-import 'package:mobile/features/servers/server_model.dart';
-import 'package:mobile/features/servers/server_repository.dart';
-import 'package:mobile/features/shell/sftp_session_manager.dart';
-import 'package:mobile/features/terminal/ssh_connection_config.dart';
-import 'package:mobile/l10n/app_localizations.dart';
-import 'package:mobile/state/api_providers.dart';
+import 'package:easynode_native/features/servers/server_form_data.dart';
+import 'package:easynode_native/features/servers/server_form_page.dart';
+import 'package:easynode_native/features/servers/server_group_model.dart';
+import 'package:easynode_native/features/servers/server_model.dart';
+import 'package:easynode_native/features/servers/server_repository.dart';
+import 'package:easynode_native/features/shell/sftp_session_manager.dart';
+import 'package:easynode_native/features/terminal/ssh_connection_config.dart';
+import 'package:easynode_native/l10n/app_localizations.dart';
+import 'package:easynode_native/state/api_providers.dart';
 
 class _FakeRepository implements ServerRepository {
   int createCalls = 0;

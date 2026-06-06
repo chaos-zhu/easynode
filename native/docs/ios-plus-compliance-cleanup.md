@@ -2,17 +2,17 @@
 
 ## 目标
 
-让 EasyNode Mobile 在 iOS 上架时保持清晰定位：
+让 EasyNode Native 在 iOS 上架时保持清晰定位：
 
-> App 不销售数字内容，只访问用户自托管 EasyNode 服务端上的既有 Plus 能力。Plus 授权由用户连接的服务端管理，Mobile 端只展示服务端返回的授权状态，不主动提供购买、获取 key 或外部购买引导。
+> App 不销售数字内容，只访问用户自托管 EasyNode 服务端上的既有 Plus 能力。Plus 授权由用户连接的服务端管理，Native 端只展示服务端返回的授权状态，不主动提供购买、获取 key 或外部购买引导。
 
 ## 背景
 
 当前 Plus 功能授权在服务端完成：
 
-- Mobile 登录用户自己的 EasyNode 服务端。
-- Mobile 调用服务端 `/plus-info` 查看 Plus 运行时状态。
-- Mobile 调用服务端 `/plus-conf` 提交 Plus Key。
+- Native 登录用户自己的 EasyNode 服务端。
+- Native 调用服务端 `/plus-info` 查看 Plus 运行时状态。
+- Native 调用服务端 `/plus-conf` 提交 Plus Key。
 - EasyNode 服务端再向授权服务器激活 key，并在内存中保存解密 key。
 
 因此，iOS App 不应表现为「在 App 内销售或引导购买 Plus」。否则容易被 Apple 认为是在绕过 IAP。
@@ -33,7 +33,7 @@
 
 Android / Web 是否保留购买入口可单独决定。为了最大程度降低审核风险，本清单只要求 iOS 隐藏购买引导。
 
-## 需要修改的 mobile 文件
+## 需要修改的 native 文件
 
 ### 1. `lib/features/settings/plus_subscription_page.dart`
 
@@ -155,7 +155,7 @@ if (widget.onDiscountTap != null &&
 如果需要新增状态说明：
 
 ```dart
-'plus.iosManagedByServer': 'Plus 授权由当前连接的服务端管理，Mobile 端仅展示服务端返回的授权状态。',
+'plus.iosManagedByServer': 'Plus 授权由当前连接的服务端管理，Native 端仅展示服务端返回的授权状态。',
 ```
 
 ### 3. `lib/l10n/strings_en.dart`
@@ -189,7 +189,7 @@ if (widget.onDiscountTap != null &&
 如需新增：
 
 ```dart
-'plus.iosManagedByServer': 'Plus authorization is managed by the connected server. The mobile app only displays the server-reported authorization status.',
+'plus.iosManagedByServer': 'Plus authorization is managed by the connected server. The native app only displays the server-reported authorization status.',
 ```
 
 ### 4. `lib/features/settings/models/plus_info.dart`
@@ -329,13 +329,13 @@ final String error;
 提交审核时，在 App Review Notes 中说明：
 
 ```text
-EasyNode Mobile is a client app for connecting to a user self-hosted EasyNode server. Plus capabilities are authorized and managed on the connected server. The iOS app does not sell digital content or provide purchase links; it only displays the authorization status reported by the user's server.
+EasyNode Native is a client app for connecting to a user self-hosted EasyNode server. Plus capabilities are authorized and managed on the connected server. The iOS app does not sell digital content or provide purchase links; it only displays the authorization status reported by the user's server.
 ```
 
 中文含义：
 
 ```text
-EasyNode Mobile 是连接用户自托管 EasyNode 服务端的客户端。Plus 能力在用户连接的服务端上授权和管理。iOS App 不销售数字内容，也不提供购买链接，只展示用户服务端返回的授权状态。
+EasyNode Native 是连接用户自托管 EasyNode 服务端的客户端。Plus 能力在用户连接的服务端上授权和管理。iOS App 不销售数字内容，也不提供购买链接，只展示用户服务端返回的授权状态。
 ```
 
 ## 验收清单
