@@ -29,7 +29,7 @@
       :data="devices"
       class="devices_table"
       empty-text="暂无在线设备"
-      :header-cell-style="{ background: '#f5f7fa', color: '#606266', fontWeight: 600 }"
+      :header-cell-style="{ background: 'var(--el-fill-color-light)', color: 'var(--el-text-color-regular)', fontWeight: 600 }"
     >
       <el-table-column
         label="#"
@@ -164,9 +164,8 @@ onMounted(() => {
 .plus_devices {
   margin-bottom: 15px;
   padding: 16px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
-  background: #fff;
 
   .devices_header {
     display: flex;
@@ -182,7 +181,6 @@ onMounted(() => {
       .title {
         font-size: 16px;
         font-weight: 600;
-        color: #303133;
       }
 
       .quota_tag {
@@ -207,19 +205,16 @@ onMounted(() => {
       .instance_id {
         font-family: 'Menlo', 'Consolas', monospace;
         font-size: 14px;
-        color: #303133;
       }
     }
 
     .ip_text {
       font-family: 'Menlo', 'Consolas', monospace;
       font-size: 14px;
-      color: #606266;
     }
 
     .version_text {
       font-size: 13px;
-      color: #909399;
     }
 
     .active_dot {
@@ -250,11 +245,8 @@ onMounted(() => {
     margin-top: 14px;
     padding: 10px 12px;
     border-radius: 6px;
-    background: #ecf5ff;
-    border: 1px solid #d9ecff;
     font-size: 13px;
     line-height: 1.6;
-    color: #606266;
 
     .tip_icon {
       flex-shrink: 0;
