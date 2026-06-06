@@ -462,29 +462,6 @@ class SftpSessionManager extends ChangeNotifier {
     return size;
   }
 
-  /// Opens a remote file for random-access reads. The returned handle wraps a
-  /// dartssh2 [SftpFile]; callers MUST close it when finished. Used by the
-  /// local HTTP proxy that backs video streaming so a 5 GB file does not need
-  /// to be fully downloaded before playback.
-  Future<SftpReadHandle> openRemoteForRead(String remotePath) async {
-    final state = activeSession;
-    if (state == null) {
-      throw StateError('No active SFTP session');
-    }
-    final connection = _connections[state.server.id];
-    if (connection == null) {
-      throw StateError('No active SFTP connection');
-    }
-    final sftp = connection.sftp;
-    final attrs = await sftp.stat(remotePath);
-    final size = attrs.size;
-    if (size == null) {
-      throw StateError('Unable to determine file size');
-    }
-    final file = await sftp.open(remotePath);
-    return SftpReadHandle._(file, size);
-  }
-
   static const int defaultTextFileMaxBytes = 2 * 1024 * 1024;
   static const int noExtensionSizeLimit = 10 * 1024;
 
@@ -1115,37 +1092,4 @@ class SftpBinaryFileException implements Exception {
 
   @override
   String toString() => 'SftpBinaryFileException($path)';
-}
-
-/// Random-access read handle backed by a dartssh2 [SftpFile]. The local video
-/// streaming server uses this to serve HTTP Range requests without pulling
-/// the entire file to disk first.
-class SftpReadHandle {
-  SftpReadHandle._(this._file, this.size);
-
-  final SftpFile _file;
-  final int size;
-  var _closed = false;
-
-  bool get isClosed => _closed;
-
-  /// Returns a stream of bytes starting at [offset] for [length] bytes. The
-  /// underlying chunked reads are pipelined by dartssh2; cancel the
-  /// subscription to stop fetching further chunks.
-  Stream<Uint8List> read({required int offset, required int length}) {
-    if (_closed) {
-      throw StateError('SftpReadHandle is closed');
-    }
-    return _file.read(offset: offset, length: length);
-  }
-
-  Future<void> close() async {
-    if (_closed) return;
-    _closed = true;
-    try {
-      await _file.close();
-    } catch (_) {
-      // Already closed remote-side or session torn down — ignore.
-    }
-  }
 }

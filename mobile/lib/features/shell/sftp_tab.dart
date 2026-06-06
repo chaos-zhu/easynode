@@ -17,7 +17,6 @@ import '../../state/terminal_providers.dart';
 import 'editor/text_editor_page.dart';
 import 'media/image_preview_page.dart';
 import 'media/media_extensions.dart';
-import 'media/video_player_page.dart';
 import 'sftp_session_manager.dart';
 import 'tab_header.dart';
 
@@ -116,7 +115,8 @@ class _SftpTabState extends ConsumerState<SftpTab> {
         animation: manager,
         builder: (context, _) {
           final session = manager.activeSession;
-          final showSelector = !_connecting &&
+          final showSelector =
+              !_connecting &&
               session != null &&
               session.status != SftpConnectionStatus.connecting;
           return Column(
@@ -185,7 +185,7 @@ class _SftpTabState extends ConsumerState<SftpTab> {
                           message: session.lastError == 'timeout'
                               ? l.tr('sftp.connectTimeout')
                               : (session.lastError ??
-                                  l.tr('sftp.connectFailed')),
+                                    l.tr('sftp.connectFailed')),
                           action: TextButton(
                             onPressed: () => _connectOrActivate(session.server),
                             child: Text(l.tr('common.retry')),
@@ -209,10 +209,7 @@ class _SftpTabState extends ConsumerState<SftpTab> {
 }
 
 class _SftpConnectedView extends StatelessWidget {
-  const _SftpConnectedView({
-    required this.session,
-    required this.manager,
-  });
+  const _SftpConnectedView({required this.session, required this.manager});
 
   final SftpSessionState session;
   final SftpSessionManager manager;
@@ -337,7 +334,8 @@ class _SftpConnectedView extends StatelessWidget {
         .where((entry) => session.selectedNames.contains(entry.name))
         .toList(growable: false);
     final multi = selectedEntries.length > 1;
-    final canExtract = !multi &&
+    final canExtract =
+        !multi &&
         selectedEntries.length == 1 &&
         !selectedEntries.first.isDirectory &&
         SftpSessionManager.isCompressedFile(selectedEntries.first.name);
@@ -621,9 +619,9 @@ class _SftpConnectedView extends StatelessWidget {
     try {
       await manager.extractEntry(entry, destDir: target.trim());
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.tr('sftp.extractDone'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.tr('sftp.extractDone'))));
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -650,12 +648,6 @@ Future<bool> _openRemoteFile({
       directoryPath: directoryPath,
       images: imageSiblings ?? [entry],
       initialIndex: imageSiblings == null ? 0 : initialImageIndex,
-    );
-  } else if (isVideoFileName(entry.name)) {
-    page = SftpVideoPlayerPage(
-      manager: manager,
-      remotePath: remotePath,
-      entry: entry,
     );
   } else {
     page = TextEditorPage(

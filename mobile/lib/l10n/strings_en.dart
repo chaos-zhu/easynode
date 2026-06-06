@@ -258,7 +258,8 @@ const Map<String, String> stringsEn = {
   'settings.section.preferences': 'Preferences',
 
   'settings.plus.title': 'Plus features',
-  'settings.plus.inactiveMeta': 'Activate to unlock proxy, jump host & batch ops',
+  'settings.plus.inactiveMeta':
+      'Activate to unlock proxy, jump host & batch ops',
   'settings.plus.goActivate': 'Activate',
 
   'settings.account.title': 'Account & password',
@@ -292,13 +293,15 @@ const Map<String, String> stringsEn = {
   'plus.keyTooShort': 'Please enter a valid Plus Key',
   'plus.activateSuccess': 'Activated — thanks for the support',
   'plus.activateFailed': 'Activation failed, please verify the key',
-  'plus.needRestart': 'Authorization is occupied by another instance. Please restart the panel service and retry',
+  'plus.needRestart':
+      'Authorization is occupied by another instance. Please restart the panel service and retry',
   'plus.fetchKey': 'Get Plus Key',
   'plus.fetchKeyHint': 'Copied purchase URL to clipboard: {0}',
   'plus.featuresTitle': 'Plus features',
   'plus.featuresSection': 'Plus features',
   'plus.section.activate': 'Activate',
-  'plus.activateHint': 'If you find it helpful, consider supporting the author and keep the project going ❤️',
+  'plus.activateHint':
+      'If you find it helpful, consider supporting the author and keep the project going ❤️',
   'plus.discountTip': 'Limited offer',
   'plus.loadFailed': 'Failed to load Plus info: {0}',
   'plus.feature.ai.title': 'AI Chat',
@@ -478,11 +481,9 @@ const Map<String, String> stringsEn = {
   'editor.themeLight': 'Light',
   'editor.settingsDone': 'Done',
 
-  // Media preview (image / video)
+  // Media preview (image)
   'media.downloading': 'Downloading...',
-  'media.preparingVideo': 'Preparing video...',
   'media.imageLoadFailed': 'Failed to load image: {0}',
-  'media.videoLoadFailed': 'Failed to load video: {0}',
   'media.info.title': 'Media info',
   'media.info.format': 'Format',
   'media.info.size': 'Size',
