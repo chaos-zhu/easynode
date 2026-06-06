@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/api/api_result.dart';
+import '../../core/ui/refresh_feedback.dart';
 import '../../features/servers/server_model.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
@@ -30,7 +31,10 @@ class SftpTab extends ConsumerStatefulWidget {
 class _SftpTabState extends ConsumerState<SftpTab> {
   bool _connecting = false;
 
-  Future<void> _refresh() => ref.read(hostListProvider.notifier).refresh();
+  Future<void> _refresh() => runRefreshWithFeedback(
+    context,
+    () => ref.read(hostListProvider.notifier).refresh(throwOnError: true),
+  );
 
   Future<void> _openServerPicker() async {
     final manager = ref.read(sftpSessionManagerProvider);

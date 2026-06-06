@@ -13,13 +13,18 @@ class CredentialListNotifier
     return _fetch(ref.watch(apiClientProvider));
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh({bool throwOnError = false}) async {
     final previous = state.valueOrNull;
     if (previous == null) state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _fetch(ref.read(apiClientProvider)),
-    );
-    if (state.hasError && previous != null) state = AsyncData(previous);
+    try {
+      state = AsyncData(await _fetch(ref.read(apiClientProvider)));
+    } catch (error, stackTrace) {
+      state = previous == null
+          ? AsyncError(error, stackTrace)
+          : AsyncData(previous);
+      if (!throwOnError) return;
+      rethrow;
+    }
   }
 
   Future<List<ServerCredentialModel>> _fetch(ApiClient api) async {

@@ -21,21 +21,24 @@ class ScriptListNotifier extends AsyncNotifier<List<ScriptModel>> {
     }
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh({bool throwOnError = false}) async {
     final previous = state.valueOrNull;
     if (previous == null) {
       state = const AsyncLoading();
     }
-    state = await AsyncValue.guard(() async {
-      try {
-        return await ref.read(scriptRepositoryProvider).fetchScripts();
-      } on UnauthorizedFailure {
-        await ref.read(authProvider.notifier).signOut();
-        rethrow;
-      }
-    });
-    if (state.hasError && previous != null) {
-      state = AsyncData(previous);
+    try {
+      final scripts = await ref.read(scriptRepositoryProvider).fetchScripts();
+      state = AsyncData(scripts);
+    } on UnauthorizedFailure {
+      await ref.read(authProvider.notifier).signOut();
+      if (!throwOnError) return;
+      rethrow;
+    } catch (error, stackTrace) {
+      state = previous == null
+          ? AsyncError(error, stackTrace)
+          : AsyncData(previous);
+      if (!throwOnError) return;
+      rethrow;
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
 import '../../core/ui/palette.dart';
+import '../../core/ui/refresh_feedback.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/plus_info_notifier.dart';
@@ -247,7 +248,12 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => ref.read(proxyListProvider.notifier).refresh(),
+              onRefresh: () => runRefreshWithFeedback(
+                context,
+                () => ref
+                    .read(proxyListProvider.notifier)
+                    .refresh(throwOnError: true),
+              ),
               child: async.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, _) => _ErrorBody(

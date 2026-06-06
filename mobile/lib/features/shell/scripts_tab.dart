@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
+import '../../core/ui/refresh_feedback.dart';
 import '../../features/scripts/script_form_page.dart';
 import '../../features/scripts/script_group_model.dart';
 import '../../features/scripts/script_groups_page.dart';
@@ -39,10 +40,15 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
   }
 
   Future<void> _refresh() async {
-    await Future.wait([
-      ref.read(scriptListProvider.notifier).refresh(),
-      ref.read(scriptGroupListProvider.notifier).refresh(),
-    ]);
+    await runRefreshWithFeedback(
+      context,
+      () => Future.wait([
+        ref.read(scriptListProvider.notifier).refresh(throwOnError: true),
+        ref
+            .read(scriptGroupListProvider.notifier)
+            .refresh(throwOnError: true),
+      ]),
+    );
   }
 
   Future<void> _openForm({ScriptModel? script}) async {

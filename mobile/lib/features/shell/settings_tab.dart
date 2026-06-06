@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ui/palette.dart';
+import '../../core/ui/refresh_feedback.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/credential_list_notifier.dart';
@@ -184,14 +185,14 @@ class SettingsTab extends ConsumerWidget {
     );
   }
 
-  Future<void> _refresh(WidgetRef ref) async {
-    await Future.wait([
-      ref.read(hostListProvider.notifier).refresh(),
-      ref.read(credentialListProvider.notifier).refresh(),
-      ref.read(scriptListProvider.notifier).refresh(),
-      ref.read(plusInfoProvider.notifier).refresh(),
-      ref.read(plusDiscountProvider.notifier).refresh(),
-    ]);
+  Future<void> _refresh(BuildContext context, WidgetRef ref) async {
+    await runRefreshWithFeedback(context, () => Future.wait([
+      ref.read(hostListProvider.notifier).refresh(throwOnError: true),
+      ref.read(credentialListProvider.notifier).refresh(throwOnError: true),
+      ref.read(scriptListProvider.notifier).refresh(throwOnError: true),
+      ref.read(plusInfoProvider.notifier).refresh(throwOnError: true),
+      ref.read(plusDiscountProvider.notifier).refresh(throwOnError: true),
+    ]));
   }
 
   @override
@@ -218,7 +219,7 @@ class SettingsTab extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
-          onRefresh: () => _refresh(ref),
+          onRefresh: () => _refresh(context, ref),
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [

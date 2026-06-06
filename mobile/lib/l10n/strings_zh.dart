@@ -24,6 +24,8 @@ const Map<String, String> stringsZh = {
   'common.exitAppTitle': '退出 App？',
   'common.exitAppBody': '确认退出 App？',
 
+  'common.refreshFailed': '刷新失败：{0}',
+
   // Login
   'login.serverAddress': '服务端地址',
   'login.serverAddressHint': 'https://example.com',

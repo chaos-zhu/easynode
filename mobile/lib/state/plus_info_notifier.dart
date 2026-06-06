@@ -17,20 +17,23 @@ class PlusInfoNotifier extends AsyncNotifier<PlusInfo> {
     }
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh({bool throwOnError = false}) async {
     final previous = state.valueOrNull;
     if (previous == null) state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () async {
-        try {
-          return await ref.read(settingsRepositoryProvider).getPlusInfo();
-        } on UnauthorizedFailure {
-          await ref.read(authProvider.notifier).signOut();
-          rethrow;
-        }
-      },
-    );
-    if (state.hasError && previous != null) state = AsyncData(previous);
+    try {
+      final plusInfo = await ref.read(settingsRepositoryProvider).getPlusInfo();
+      state = AsyncData(plusInfo);
+    } on UnauthorizedFailure {
+      await ref.read(authProvider.notifier).signOut();
+      if (!throwOnError) return;
+      rethrow;
+    } catch (error, stackTrace) {
+      state = previous == null
+          ? AsyncError(error, stackTrace)
+          : AsyncData(previous);
+      if (!throwOnError) return;
+      rethrow;
+    }
   }
 }
 

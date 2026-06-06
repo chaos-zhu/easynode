@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_result.dart';
 import '../../core/ui/palette.dart';
+import '../../core/ui/refresh_feedback.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/plus_info_notifier.dart';
@@ -127,10 +128,12 @@ class _PlusSubscriptionPageState extends ConsumerState<PlusSubscriptionPage> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(plusInfoProvider.notifier).refresh();
+        onRefresh: () => runRefreshWithFeedback(context, () async {
+          await ref
+              .read(plusInfoProvider.notifier)
+              .refresh(throwOnError: true);
           await _loadInitial();
-        },
+        }),
         child: plusAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => _ErrorBody(

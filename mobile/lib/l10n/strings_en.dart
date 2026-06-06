@@ -24,6 +24,7 @@ const Map<String, String> stringsEn = {
   'common.exitApp': 'Exit',
   'common.exitAppTitle': 'Exit app?',
   'common.exitAppBody': 'Are you sure you want to exit the app?',
+  'common.refreshFailed': 'Refresh failed: {0}',
 
   // Login page
   'login.serverAddress': 'Server address',

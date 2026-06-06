@@ -11,12 +11,19 @@ class PlusDiscountNotifier extends AsyncNotifier<PlusDiscount> {
     return ref.watch(settingsRepositoryProvider).getPlusDiscount();
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh({bool throwOnError = false}) async {
     final previous = state.valueOrNull;
-    state = await AsyncValue.guard(
-      () => ref.read(settingsRepositoryProvider).getPlusDiscount(),
-    );
-    if (state.hasError && previous != null) state = AsyncData(previous);
+    try {
+      state = AsyncData(
+        await ref.read(settingsRepositoryProvider).getPlusDiscount(),
+      );
+    } catch (error, stackTrace) {
+      state = previous == null
+          ? AsyncError(error, stackTrace)
+          : AsyncData(previous);
+      if (!throwOnError) return;
+      rethrow;
+    }
   }
 }
 

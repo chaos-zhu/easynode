@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
 import '../../core/ui/palette.dart';
+import '../../core/ui/refresh_feedback.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
@@ -212,7 +213,11 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(loginLogProvider.notifier).refresh(),
+        onRefresh: () => runRefreshWithFeedback(
+          context,
+          () =>
+              ref.read(loginLogProvider.notifier).refresh(throwOnError: true),
+        ),
         child: logAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => _ErrorBody(

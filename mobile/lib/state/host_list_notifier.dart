@@ -20,21 +20,24 @@ class HostListNotifier extends AsyncNotifier<List<ServerModel>> {
     }
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh({bool throwOnError = false}) async {
     final previous = state.valueOrNull;
     if (previous == null) {
       state = const AsyncLoading();
     }
-    state = await AsyncValue.guard(() async {
-      try {
-        return await ref.read(serverRepositoryProvider).fetchHosts();
-      } on UnauthorizedFailure {
-        await ref.read(authProvider.notifier).signOut();
-        rethrow;
-      }
-    });
-    if (state.hasError && previous != null) {
-      state = AsyncData(previous);
+    try {
+      final hosts = await ref.read(serverRepositoryProvider).fetchHosts();
+      state = AsyncData(hosts);
+    } on UnauthorizedFailure {
+      await ref.read(authProvider.notifier).signOut();
+      if (!throwOnError) return;
+      rethrow;
+    } catch (error, stackTrace) {
+      state = previous == null
+          ? AsyncError(error, stackTrace)
+          : AsyncData(previous);
+      if (!throwOnError) return;
+      rethrow;
     }
   }
 }

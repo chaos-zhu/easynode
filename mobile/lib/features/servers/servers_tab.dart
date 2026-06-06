@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/api/api_result.dart';
 import '../../core/ui/palette.dart';
+import '../../core/ui/refresh_feedback.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
@@ -55,7 +56,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
   }
 
   Future<void> _refresh() async {
-    await refreshServerSharedData(ref);
+    await runRefreshWithFeedback(context, () => refreshServerSharedData(ref));
   }
 
   Future<void> _connect(ServerModel server) async {

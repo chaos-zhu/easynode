@@ -43,7 +43,6 @@ class _LoginPageState extends State<LoginPage> {
   LoginExpiry _expiry = LoginExpiry.currentDay;
   bool _savePassword = false;
   bool _httpRiskAccepted = false;
-  bool _showHttpRiskBanner = false;
   bool _submitting = false;
   String? _errorMessage;
 
@@ -108,7 +107,11 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
       if (result.requiresHttpRiskConfirmation) {
-        setState(() => _showHttpRiskBanner = true);
+        setState(() => _submitting = false);
+        final accepted = await _confirmHttpRisk();
+        if (!mounted || accepted != true) return;
+        setState(() => _httpRiskAccepted = true);
+        await _submit();
         return;
       }
       if (!result.success || result.session == null) {
@@ -121,12 +124,25 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _acceptHttpRiskAndSubmit() async {
-    setState(() {
-      _httpRiskAccepted = true;
-      _showHttpRiskBanner = false;
-    });
-    await _submit();
+  Future<bool?> _confirmHttpRisk() {
+    final l = AppLocalizations.of(context);
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.tr('login.httpRiskTitle')),
+        content: Text(l.tr('login.httpRiskBody')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l.tr('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l.tr('common.continue')),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -170,10 +186,6 @@ class _LoginPageState extends State<LoginPage> {
                         onChanged: (value) =>
                             setState(() => _savePassword = value),
                       ),
-                      if (_showHttpRiskBanner) ...[
-                        const SizedBox(height: 14),
-                        _HttpRiskBanner(onConfirm: _acceptHttpRiskAndSubmit),
-                      ],
                       if (_errorMessage != null) ...[
                         const SizedBox(height: 14),
                         _ErrorBox(message: _errorMessage!),
@@ -486,65 +498,6 @@ class _LoginHero extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _HttpRiskBanner extends StatelessWidget {
-  const _HttpRiskBanner({required this.onConfirm});
-
-  final VoidCallback onConfirm;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFE8BF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE6A23C)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.warning_amber, color: Color(0xFF7A4A00), size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l.tr('login.httpRiskTitle'),
-                  style: const TextStyle(
-                    color: Color(0xFF7A4A00),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  l.tr('login.httpRiskBody'),
-                  style: const TextStyle(
-                    color: Color(0xFF7A4A00),
-                    fontSize: 13,
-                    height: 1.35,
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: onConfirm,
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF7A4A00),
-                    ),
-                    child: Text(l.tr('common.continue')),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
