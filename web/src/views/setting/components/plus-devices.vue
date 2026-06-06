@@ -31,12 +31,24 @@
       empty-text="暂无在线设备"
       :header-cell-style="{ background: '#f5f7fa', color: '#606266', fontWeight: 600 }"
     >
-      <el-table-column label="#" type="index" width="50" align="center" />
+      <el-table-column
+        label="#"
+        type="index"
+        width="50"
+        align="center"
+      />
       <el-table-column label="实例" min-width="170">
         <template #default="{ row }">
           <div class="instance_cell">
             <span class="instance_id">实例 {{ shortId(row.instanceId) }}</span>
-            <el-tag v-if="row.isCurrent" type="success" size="small" effect="plain">本机</el-tag>
+            <el-tag
+              v-if="row.isCurrent"
+              type="success"
+              size="small"
+              effect="plain"
+            >
+              本机
+            </el-tag>
           </div>
         </template>
       </el-table-column>
@@ -75,7 +87,8 @@
     <div class="devices_tip">
       <el-icon class="tip_icon"><InfoFilled /></el-icon>
       <span>
-        当新实例启动且额度已满时，将自动移除最久未活跃的实例。如需主动腾出额度，可点击对应实例的「释放」按钮。
+        当新实例启动且额度已满时，将自动移除最久未活跃实例的Plus授权。
+        <span class="tip_release">如需主动腾出额度，可点击对应实例的「释放」按钮。</span>
       </span>
     </div>
   </div>
@@ -248,6 +261,10 @@ onMounted(() => {
       margin-top: 2px;
       color: #409eff;
       font-size: 15px;
+    }
+
+    .tip_release {
+      text-decoration: underline;
     }
   }
 }

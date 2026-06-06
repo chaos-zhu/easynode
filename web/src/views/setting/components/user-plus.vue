@@ -1,7 +1,7 @@
 <template>
   <el-form
     ref="formRef"
-    class="plus-form"
+    class="plus_form"
     :model="formData"
     :rules="rules"
     :hide-required-asterisk="true"
@@ -14,19 +14,28 @@
       <el-input
         v-model.trim="formData.key"
         clearable
+        show-password
+        type="password"
         placeholder=""
         autocomplete="off"
         class="input"
         @keyup.enter.prevent="handleUpdate"
       />
+      <el-button
+        type="success"
+        :loading="loading"
+        style="margin-left: 15px;"
+        @click="handleUpdate"
+      >
+        {{ isPlusActive ? '已激活' : '立即激活' }}
+      </el-button>
+      <el-button type="primary" @click="handlePlusSupport">
+        获取 Plus Key
+        <el-icon class="el-icon--right"><TopRight /></el-icon>
+      </el-button>
     </el-form-item>
     <el-form-item>
       <div class="form_footer">
-        <el-button type="success" :loading="loading" @click="handleUpdate">立即激活</el-button>
-        <el-button type="primary" @click="handlePlusSupport">
-          获取 Plus Key
-          <el-icon class="el-icon--right"><TopRight /></el-icon>
-        </el-button>
         <span v-if="!isPlusActive && discount" class="discount_wrapper" @click="handlePlusSupport">
           <img
             class="discount_badge"
@@ -137,6 +146,9 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.plus_form {
+  margin-bottom: -15px;
+}
 .form_item {
   .input {
     width: 450px;
@@ -148,7 +160,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: start;
-  margin-bottom: 15px;
   .discount_wrapper {
     height: 100%;
     display: flex;
