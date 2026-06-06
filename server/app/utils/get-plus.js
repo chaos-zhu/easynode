@@ -42,7 +42,7 @@ async function getLicenseInfo(key = '') {
       body: JSON.stringify({ key, version, instanceId, sessionId })
     }
 
-    const response = await requestWithFailover('/api/licenses/activate', requestOptions)
+    const response = await requestWithFailover('/api/plus/activate', requestOptions)
 
     if (!response.ok) {
       if (response.status === 403) {

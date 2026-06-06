@@ -1,7 +1,7 @@
 const { getSSHList, addSSH, updateSSH, removeSSH, getCommand, decryptPrivateKey, getRdpToken } = require('../controller/ssh')
 const { getSftpFavorites } = require('../controller/sftp')
 const { getHostList, addHost, updateHost, batchUpdateHost, removeHost, importHost, updateLastConnectTime } = require('../controller/host')
-const { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2, getPlusInfo, getPlusDiscount, getPlusConf, updatePlusKey } = require('../controller/user')
+const { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2, getPlusInfo, getPlusDiscount, getPlusConf, updatePlusKey, getPlusDevices, releasePlusDevice } = require('../controller/user')
 const { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } = require('../controller/notify')
 const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
 const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript, batchRemoveScript, importScript } = require('../controller/scripts')
@@ -139,6 +139,16 @@ const user = [
     method: 'get',
     path: '/plus-discount',
     controller: getPlusDiscount
+  },
+  {
+    method: 'get',
+    path: '/plus-devices',
+    controller: getPlusDevices
+  },
+  {
+    method: 'post',
+    path: '/plus-release',
+    controller: releasePlusDevice
   },
   {
     method: 'get',

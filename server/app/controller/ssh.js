@@ -1,4 +1,5 @@
 const path = require('path')
+const crypto = require('crypto')
 const { RSADecryptAsync, AESEncryptAsync, AESDecryptAsync } = require('../utils/encrypt')
 const { HostListDB, CredentialsDB } = require('../utils/db-class')
 const decryptAndExecuteAsync = require('../utils/decrypt-file')
@@ -89,11 +90,30 @@ const getCommand = async ({ res, request }) => {
 }
 
 const decryptPrivateKey = async ({ res, request }) => {
-  let { dePrivateKey } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
-  if (dePrivateKey) {
-    await dePrivateKey({ res, request })
-  } else {
-    return res.fail({ data: false, msg: 'Plus专属功能，无法解密私钥!' })
+  const { privateKey, password } = request.body
+  if (!privateKey || !password) {
+    return res.fail({ msg: 'param error' })
+  }
+  try {
+    const privateKeyObject = crypto.createPrivateKey({
+      key: privateKey,
+      format: 'pem',
+      passphrase: password
+    })
+    const decryptedKey = privateKeyObject.export({
+      type: 'pkcs1',
+      format: 'pem'
+    })
+    res.success({
+      data: decryptedKey,
+      msg: 'decrypt success'
+    })
+  } catch (error) {
+    logger.error('Private key decryption failed:', error.message)
+    res.fail({
+      msg: 'decrypt failed',
+      data: { message: error.message }
+    })
   }
 }
 

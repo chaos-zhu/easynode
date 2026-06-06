@@ -225,7 +225,7 @@ const getPlusInfo = async ({ res }) => {
     needRestart: kicked,
     tokenExpireAt: runtimeState.getTokenExpireAt() || 0,
     error: kicked
-      ? '授权已在其它实例被占用，请重启服务；若非本人操作请联系客服更换 Key'
+      ? '授权已在其它实例被占用，重启服务后重试'
       : ''
   }
   res.success({ data, msg: 'success' })
@@ -268,6 +268,48 @@ const updatePlusKey = async ({ res, request }) => {
   res.success({ msg: 'success' })
 }
 
+const getPlusDevices = async ({ res }) => {
+  if (runtimeState.getPlusKicked()) return res.fail({ data: { needRestart: true }, msg: '授权已在其它实例被占用，请重启面板服务后重试' })
+  const { key, instanceId } = (await plusDB.findOneAsync({})) || {}
+  const sessionId = runtimeState.getSessionId()
+  if (!key || !instanceId || !sessionId) return res.fail({ msg: 'Plus未激活' })
+  try {
+    const response = await requestWithFailover('/api/plus/devices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, instanceId, sessionId, version })
+    })
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok || !body?.success) return res.fail({ msg: body?.message || '获取设备列表失败' })
+    res.success({ data: body.data })
+  } catch (error) {
+    logger.error(`获取Plus设备列表失败: ${ error?.message || error }`)
+    res.fail({ msg: error?.message || '获取设备列表失败' })
+  }
+}
+
+const releasePlusDevice = async ({ res, request }) => {
+  if (runtimeState.getPlusKicked()) return res.fail({ data: { needRestart: true }, msg: '授权已在其它实例被占用，请重启面板服务后重试' })
+  const { targetInstanceId } = request.body
+  const { key, instanceId } = (await plusDB.findOneAsync({})) || {}
+  const sessionId = runtimeState.getSessionId()
+  if (!key || !instanceId || !sessionId) return res.fail({ msg: 'Plus未激活' })
+  if (!targetInstanceId || targetInstanceId === instanceId) return res.fail({ msg: '不能释放本机' })
+  try {
+    const response = await requestWithFailover('/api/plus/release', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, instanceId, sessionId, version, targetInstanceId })
+    })
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok || !body?.success) return res.fail({ msg: body?.message || '释放失败' })
+    res.success({ msg: '释放成功' })
+  } catch (error) {
+    logger.error(`释放Plus设备失败: ${ error?.message || error }`)
+    res.fail({ msg: error?.message || '释放失败' })
+  }
+}
+
 module.exports = {
   login,
   getpublicKey,
@@ -280,5 +322,7 @@ module.exports = {
   getPlusInfo,
   getPlusDiscount,
   getPlusConf,
-  updatePlusKey
+  updatePlusKey,
+  getPlusDevices,
+  releasePlusDevice
 }

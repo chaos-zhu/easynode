@@ -28,6 +28,12 @@ export default {
   getPlusDiscount() {
     return axios({ url: '/plus-discount', method: 'get' })
   },
+  getPlusDevices() {
+    return axios({ url: '/plus-devices', method: 'get' })
+  },
+  releasePlusDevice(data) {
+    return axios({ url: '/plus-release', method: 'post', data })
+  },
   getCommand(hostId) {
     return axios({ url: '/command', method: 'get', params: { hostId } })
   },

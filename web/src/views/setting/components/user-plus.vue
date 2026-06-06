@@ -54,6 +54,7 @@
       <span>Plus状态错误：{{ plusError }}</span>
     </div>
   </div>
+  <PlusDevices v-if="isPlusActive" />
   <PlusTable />
 </template>
 
@@ -63,6 +64,7 @@ import { ElMessageBox } from 'element-plus'
 import { TopRight } from '@element-plus/icons-vue'
 import { handlePlusSupport } from '@/utils'
 import PlusTable from '@/components/plus-table.vue'
+import PlusDevices from '@/views/setting/components/plus-devices.vue'
 
 const { proxy: { $api, $message, $store } } = getCurrentInstance()
 
@@ -104,7 +106,7 @@ const handleUpdate = () => {
         localStorage.setItem('plusErrCount', ++errCount.value)
         if (errCount.value > 3) {
           ElMessageBox.confirm(
-            '激活失败，请确认key正确并重启服务重试，有疑问请tg联系作者@chaoszhu',
+            '激活失败，请确认key正确并重启服务重试，恶意激活将导致IP封锁，有疑问请tg联系作者@chaoszhu',
             'Warning',
             {
               showCancelButton : false,
