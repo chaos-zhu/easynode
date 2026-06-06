@@ -93,6 +93,7 @@ class SftpSessionState extends ChangeNotifier {
   List<SftpFavorite> favorites = const [];
   Set<String> selectedNames = <String>{};
   bool loadingDirectory = false;
+  bool showDirectoryLoading = false;
   bool showHidden = false;
   String? lastError;
   String? connectPhase;
@@ -110,6 +111,7 @@ class SftpSessionState extends ChangeNotifier {
     List<SftpFavorite>? favorites,
     Set<String>? selectedNames,
     bool? loadingDirectory,
+    bool? showDirectoryLoading,
     bool? showHidden,
     String? lastError,
   }) {
@@ -118,7 +120,13 @@ class SftpSessionState extends ChangeNotifier {
     if (entries != null) this.entries = entries;
     if (favorites != null) this.favorites = favorites;
     if (selectedNames != null) this.selectedNames = selectedNames;
-    if (loadingDirectory != null) this.loadingDirectory = loadingDirectory;
+    if (loadingDirectory != null) {
+      this.loadingDirectory = loadingDirectory;
+      this.showDirectoryLoading =
+          showDirectoryLoading ?? (loadingDirectory ? true : false);
+    } else if (showDirectoryLoading != null) {
+      this.showDirectoryLoading = showDirectoryLoading;
+    }
     if (showHidden != null) this.showHidden = showHidden;
     this.lastError = lastError;
     notifyListeners();
@@ -302,12 +310,16 @@ class SftpSessionManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> openPath(String path) async {
+  Future<void> openPath(String path, {bool showLoading = true}) async {
     final state = activeSession;
     if (state == null) return;
     final connection = _connections[state.server.id];
     if (connection == null) return;
-    state.update(loadingDirectory: true, lastError: null);
+    state.update(
+      loadingDirectory: true,
+      showDirectoryLoading: showLoading,
+      lastError: null,
+    );
     try {
       final entries = await _listDirectory(
         connection.sftp,
@@ -325,10 +337,10 @@ class SftpSessionManager extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshActive() async {
+  Future<void> refreshActive({bool showLoading = true}) async {
     final path = activeSession?.currentPath;
     if (path == null) return;
-    await openPath(path);
+    await openPath(path, showLoading: showLoading);
   }
 
   Future<void> createDirectory(String name) async {
@@ -751,7 +763,7 @@ class SftpSessionManager extends ChangeNotifier {
   Future<void> goParent() async {
     final state = activeSession;
     if (state == null) return;
-    await openPath(parentPath(state.currentPath));
+    await openPath(parentPath(state.currentPath), showLoading: false);
   }
 
   Future<void> setShowHidden(bool value) async {

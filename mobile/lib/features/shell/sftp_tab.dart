@@ -219,6 +219,8 @@ class _SftpConnectedView extends StatelessWidget {
     return AnimatedBuilder(
       animation: session,
       builder: (context, _) {
+        final showDirectoryLoading =
+            session.loadingDirectory && session.showDirectoryLoading;
         return Column(
           children: [
             _SftpToolbar(session: session, manager: manager),
@@ -230,7 +232,7 @@ class _SftpConnectedView extends StatelessWidget {
             Expanded(
               child: Stack(
                 children: [
-                  if (session.entries.isEmpty && !session.loadingDirectory)
+                  if (session.entries.isEmpty && !showDirectoryLoading)
                     _SftpMessageList(
                       message: AppLocalizations.of(
                         context,
@@ -270,7 +272,7 @@ class _SftpConnectedView extends StatelessWidget {
                         );
                       },
                     ),
-                  if (session.loadingDirectory)
+                  if (showDirectoryLoading)
                     const Positioned.fill(
                       child: ColoredBox(
                         color: Color(0x44F7EFE0),
@@ -320,7 +322,7 @@ class _SftpConnectedView extends StatelessWidget {
     );
     if (!context.mounted) return;
     if (mutatedFile) {
-      await manager.refreshActive();
+      await manager.refreshActive(showLoading: false);
     }
   }
 
@@ -922,7 +924,7 @@ class _SftpToolbar extends StatelessWidget {
     );
     if (!context.mounted) return;
     if (mutatedFile) {
-      await manager.refreshActive();
+      await manager.refreshActive(showLoading: false);
     }
   }
 
