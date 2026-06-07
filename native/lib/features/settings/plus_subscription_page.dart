@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_result.dart';
 import '../../core/ui/palette.dart';
 import '../../core/ui/refresh_feedback.dart';
+import '../../core/utils/app_store_compliance.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/plus_info_notifier.dart';
 import 'models/plus_info.dart';
-
-const String _plusPurchaseUrl = 'https://en.221022.xyz/buy-plus';
 
 class PlusSubscriptionPage extends ConsumerStatefulWidget {
   const PlusSubscriptionPage({super.key});
@@ -41,6 +38,7 @@ class _PlusSubscriptionPageState extends ConsumerState<PlusSubscriptionPage> {
   }
 
   Future<void> _loadInitial() async {
+    if (isIosAppStoreCompliance) return;
     final repo = ref.read(settingsRepositoryProvider);
     try {
       final saved = await repo.getPlusKey();
@@ -52,12 +50,14 @@ class _PlusSubscriptionPageState extends ConsumerState<PlusSubscriptionPage> {
     } catch (_) {
       // /plus-conf is optional pre-activation — silent fallback.
     }
-    try {
-      final discount = await repo.getPlusDiscount();
-      if (!mounted) return;
-      setState(() => _discount = discount);
-    } catch (_) {
-      // ignore
+    if (!isIosAppStoreCompliance) {
+      try {
+        final discount = await repo.getPlusDiscount();
+        if (!mounted) return;
+        setState(() => _discount = discount);
+      } catch (_) {
+        // ignore
+      }
     }
   }
 
@@ -86,22 +86,6 @@ class _PlusSubscriptionPageState extends ConsumerState<PlusSubscriptionPage> {
     }
   }
 
-  Future<void> _openPurchaseUrl() async {
-    final l = AppLocalizations.of(context);
-    final uri = Uri.parse(_plusPurchaseUrl);
-    try {
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!launched) throw Exception('launch returned false');
-    } catch (_) {
-      await Clipboard.setData(const ClipboardData(text: _plusPurchaseUrl));
-      if (!mounted) return;
-      _showSnack(l.trf('plus.fetchKeyHint', const [_plusPurchaseUrl]));
-    }
-  }
-
   void _showSnack(String text) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(text), behavior: SnackBarBehavior.floating),
@@ -120,12 +104,6 @@ class _PlusSubscriptionPageState extends ConsumerState<PlusSubscriptionPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(l.tr('settings.plus.title')),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _FetchKeyButton(onTap: _openPurchaseUrl),
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => runRefreshWithFeedback(context, () async {
@@ -148,18 +126,25 @@ class _PlusSubscriptionPageState extends ConsumerState<PlusSubscriptionPage> {
 
   Widget _buildContent(PlusInfo info) {
     final l = AppLocalizations.of(context);
+    final iosCompliance = isIosAppStoreCompliance;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        _SectionHeader(label: l.tr('plus.section.activate')),
-        _ActivateCard(
-          controller: _keyController,
-          formKey: _formKey,
-          discount: _discount,
-          loading: _activating,
-          onSubmit: _activate,
-          onDiscountTap: _openPurchaseUrl,
+        _SectionHeader(
+          label: l.tr(
+            iosCompliance ? 'plus.section.status' : 'plus.section.activate',
+          ),
         ),
+        if (iosCompliance)
+          _AuthorizationStatusCard(info: info)
+        else
+          _ActivateCard(
+            controller: _keyController,
+            formKey: _formKey,
+            discount: _discount,
+            loading: _activating,
+            onSubmit: _activate,
+          ),
         const SizedBox(height: 18),
         _SectionHeader(label: l.tr('plus.featuresSection')),
         const _FeaturesCard(),
@@ -168,43 +153,111 @@ class _PlusSubscriptionPageState extends ConsumerState<PlusSubscriptionPage> {
   }
 }
 
-class _FetchKeyButton extends StatelessWidget {
-  const _FetchKeyButton({required this.onTap});
+class _AuthorizationStatusCard extends StatelessWidget {
+  const _AuthorizationStatusCard({required this.info});
 
-  final VoidCallback onTap;
+  final PlusInfo info;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Material(
-      color: AppPalette.accentSoft,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+    final statusText = info.isActive
+        ? l.tr('plus.status.active')
+        : l.tr('plus.status.inactive');
+    final detail = info.error.isNotEmpty
+        ? info.error
+        : l.tr('plus.status.serverManagedHint');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppPalette.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppPalette.border),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              const Icon(
-                Icons.open_in_new,
-                size: 14,
-                color: AppPalette.accent,
+              Icon(
+                info.isActive
+                    ? Icons.verified_outlined
+                    : Icons.info_outline_rounded,
+                size: 20,
+                color: info.isActive ? AppPalette.success : AppPalette.muted,
               ),
-              const SizedBox(width: 6),
-              Text(
-                l.tr('plus.fetchKey'),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppPalette.accent,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  statusText,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppPalette.text,
+                  ),
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          Text(
+            detail,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+              color: AppPalette.muted,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _StatusLine(label: l.tr('plus.status.label'), value: info.status),
+          if (info.instanceId.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _StatusLine(
+              label: l.tr('plus.status.instance'),
+              value: info.instanceId,
+            ),
+          ],
+        ],
       ),
+    );
+  }
+}
+
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 96,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppPalette.softMuted,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value.isEmpty ? '-' : value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppPalette.text,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -238,7 +291,6 @@ class _ActivateCard extends StatefulWidget {
     required this.discount,
     required this.loading,
     required this.onSubmit,
-    required this.onDiscountTap,
   });
 
   final TextEditingController controller;
@@ -246,7 +298,6 @@ class _ActivateCard extends StatefulWidget {
   final PlusDiscount discount;
   final bool loading;
   final VoidCallback onSubmit;
-  final VoidCallback onDiscountTap;
 
   @override
   State<_ActivateCard> createState() => _ActivateCardState();
@@ -358,40 +409,35 @@ class _ActivateCardState extends State<_ActivateCard> {
             ),
             if (widget.discount.discount && widget.discount.content.isNotEmpty) ...[
               const SizedBox(height: 10),
-              InkWell(
-                onTap: widget.onDiscountTap,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppPalette.dangerSoft,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppPalette.dangerBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.local_offer_outlined,
-                        size: 14,
-                        color: AppPalette.danger,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          widget.discount.content,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppPalette.danger,
-                            decoration: TextDecoration.underline,
-                          ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppPalette.dangerSoft,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppPalette.dangerBorder),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: AppPalette.danger,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        widget.discount.content,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppPalette.danger,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ],

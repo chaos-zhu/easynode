@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ui/palette.dart';
 import '../../core/ui/refresh_feedback.dart';
+import '../../core/utils/app_store_compliance.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/credential_list_notifier.dart';
@@ -186,13 +187,20 @@ class SettingsTab extends ConsumerWidget {
   }
 
   Future<void> _refresh(BuildContext context, WidgetRef ref) async {
-    await runRefreshWithFeedback(context, () => Future.wait([
-      ref.read(hostListProvider.notifier).refresh(throwOnError: true),
-      ref.read(credentialListProvider.notifier).refresh(throwOnError: true),
-      ref.read(scriptListProvider.notifier).refresh(throwOnError: true),
-      ref.read(plusInfoProvider.notifier).refresh(throwOnError: true),
-      ref.read(plusDiscountProvider.notifier).refresh(throwOnError: true),
-    ]));
+    await runRefreshWithFeedback(context, () async {
+      final refreshes = <Future<void>>[
+        ref.read(hostListProvider.notifier).refresh(throwOnError: true),
+        ref.read(credentialListProvider.notifier).refresh(throwOnError: true),
+        ref.read(scriptListProvider.notifier).refresh(throwOnError: true),
+        ref.read(plusInfoProvider.notifier).refresh(throwOnError: true),
+      ];
+      if (!isIosAppStoreCompliance) {
+        refreshes.add(
+          ref.read(plusDiscountProvider.notifier).refresh(throwOnError: true),
+        );
+      }
+      await Future.wait(refreshes);
+    });
   }
 
   @override
@@ -208,7 +216,9 @@ class SettingsTab extends ConsumerWidget {
         ref.watch(plusInfoProvider).valueOrNull?.isActive ?? false;
     final discount = ref.watch(plusDiscountProvider).valueOrNull ??
         const PlusDiscount(discount: false, content: '');
-    final hasDiscount = discount.discount && discount.content.isNotEmpty;
+    final hasDiscount = !isIosAppStoreCompliance &&
+        discount.discount &&
+        discount.content.isNotEmpty;
     final packageInfo = ref.watch(packageInfoProvider).valueOrNull;
     final versionLabel = packageInfo == null
         ? ''
@@ -240,7 +250,7 @@ class SettingsTab extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  if (!plusActive)
+                  if (!plusActive && !isIosAppStoreCompliance)
                     _SettingsBellButton(
                       hasDiscount: hasDiscount,
                       onTap: () => _showNotifications(context, discount),

@@ -72,8 +72,9 @@ const Map<String, String> stringsEn = {
   'servers.fetchSshFailed': 'Failed to get SSH config: {0}',
   'servers.windowsUnsupported': 'Windows connections are not supported yet.',
   'servers.connectPlusRequired':
-      'Proxy type is restricted. Please activate Plus and try again.',
-  'servers.proxyPlusTip': 'Proxy / jump host requires Plus.',
+      'This connection capability is not enabled by the connected server.',
+  'servers.proxyPlusTip':
+      'This proxy capability is not enabled by the connected server.',
   'servers.activeTerminalsOne': '1 active terminal',
   'servers.activeTerminalsMany': '{0} active terminals',
   'servers.closeAllTitle': 'Close all terminals?',
@@ -205,7 +206,8 @@ const Map<String, String> stringsEn = {
   'scripts.groupsHint': 'Groups organize your scripts.',
   'scripts.groupsHintBody':
       'Deleting a group moves its scripts to the default group.',
-  'scripts.groupsPlusTip': 'Plus feature.',
+  'scripts.groupsPlusTip':
+      'This capability is not enabled by the connected server.',
   'scripts.addGroup': 'Add group',
   'scripts.editGroup': 'Edit group',
   'scripts.groupName': 'Group name',
@@ -260,8 +262,8 @@ const Map<String, String> stringsEn = {
 
   'settings.plus.title': 'Plus features',
   'settings.plus.inactiveMeta':
-      'Activate to unlock proxy, jump host & batch ops',
-  'settings.plus.goActivate': 'Activate',
+      'Server authorization is not active',
+  'settings.plus.goActivate': 'View status',
 
   'settings.account.title': 'Account & password',
   'settings.account.subtitle': 'Username, password and MFA2',
@@ -288,23 +290,30 @@ const Map<String, String> stringsEn = {
   'settings.notifications.empty': 'No notifications yet',
 
   // Plus subscription
-  'plus.activate': 'Activate now',
-  'plus.keyLabel': 'Plus Key',
-  'plus.keyHint': 'Enter your Plus Key',
-  'plus.keyTooShort': 'Please enter a valid Plus Key',
-  'plus.activateSuccess': 'Activated — thanks for the support',
-  'plus.activateFailed': 'Activation failed, please verify the key',
+  'plus.activate': 'Update authorization',
+  'plus.keyLabel': 'Authorization Key',
+  'plus.keyHint': 'Enter the server authorization key',
+  'plus.keyTooShort': 'Please enter a valid authorization key',
+  'plus.activateSuccess': 'Authorization updated',
+  'plus.activateFailed': 'Authorization update failed',
   'plus.needRestart':
       'Authorization is occupied by another instance. Please restart the panel service and retry',
-  'plus.fetchKey': 'Get Plus Key',
-  'plus.fetchKeyHint': 'Copied purchase URL to clipboard: {0}',
+  'plus.fetchKey': 'Open authorization page',
+  'plus.fetchKeyHint': 'Copied authorization URL to clipboard: {0}',
   'plus.featuresTitle': 'Plus features',
   'plus.featuresSection': 'Plus features',
-  'plus.section.activate': 'Activate',
+  'plus.section.activate': 'Authorization',
+  'plus.section.status': 'Authorization status',
   'plus.activateHint':
-      'If you find it helpful, consider supporting the author and keep the project going ❤️',
-  'plus.discountTip': 'Limited offer',
+      'Authorization is configured on your EasyNode server.',
+  'plus.discountTip': 'Service notice',
   'plus.loadFailed': 'Failed to load Plus info: {0}',
+  'plus.status.active': 'Server authorization active',
+  'plus.status.inactive': 'Server authorization inactive',
+  'plus.status.serverManagedHint':
+      'Authorization is managed by the connected self-hosted server.',
+  'plus.status.label': 'Status',
+  'plus.status.instance': 'Instance',
   'plus.feature.ai.title': 'AI Chat',
   'plus.feature.ai.desc': 'Built-in AI assistant for terminals',
   'plus.feature.proxy.title': 'Proxy & jump hosts',
@@ -410,8 +419,9 @@ const Map<String, String> stringsEn = {
   'credentials.saved': 'Saved',
 
   // Proxy
-  'proxy.plusTipTitle': 'Plus feature',
-  'proxy.plusTipBody': 'Proxy services require an active Plus license.',
+  'proxy.plusTipTitle': 'Server authorization required',
+  'proxy.plusTipBody':
+      'This capability is not enabled by the connected server.',
   'proxy.add': 'Add proxy',
   'proxy.edit': 'Edit proxy',
   'proxy.deleteConfirmTitle': 'Delete proxy?',
