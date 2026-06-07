@@ -102,10 +102,19 @@ jobs:
             exit 1
           fi
 
+      - name: Compute artifact name
+        id: meta
+        shell: bash
+        run: |
+          REF="${{ github.event.inputs.ref || github.ref_name }}"
+          # artifact 名不允许 / : < > | * ? \ 等字符，统一替换为 -
+          SAFE=$(printf '%s' "$REF" | tr -c 'A-Za-z0-9._-' '-')
+          echo "artifact=easynode-native-android-${SAFE}" >> "$GITHUB_OUTPUT"
+
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: easynode-native-android-${{ github.event.inputs.ref || github.ref_name }}
+          name: ${{ steps.meta.outputs.artifact }}
           path: |
             native/build/app/outputs/flutter-apk/*.apk
 
