@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: '分支或标签，留空则用上方所选分支；标签形如 native-v0.1.0-beta.1'
+        description: '分支或标签，留空则用上方所选分支；标签形如 native-v0.1.0'
         required: false
         type: string
       publish_release:
@@ -44,7 +44,7 @@ jobs:
           TAG="${{ github.ref_name }}"
           if [[ ! "$TAG" =~ ^native-v[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
             echo "Invalid tag: $TAG"
-            echo "Tag must look like native-v0.1.0 or native-v0.1.0-beta.1"
+            echo "Tag must look like native-v0.1.0"
             exit 1
           fi
 
