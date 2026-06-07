@@ -194,8 +194,9 @@ workflow 会在还原签名后校验上述 Secret 非空，并在构建后用 `a
 
 CI 产物：
 
-- APK: `native/build/app/outputs/flutter-apk/*.apk`
-- AAB: `native/build/app/outputs/bundle/release/*.aab`
+- APK: `native/build/app/outputs/flutter-apk/*.apk`（APK 可直接安装/侧载，当前分发方式）
+
+> AAB（Google Play 上架格式）默认不构建，workflow 里 `Build app bundle` 步骤已注释。需要上架 Google Play 时取消注释，并恢复两个上传步骤里的 `*.aab` 路径。
 
 发布版本时需要同步更新：
 

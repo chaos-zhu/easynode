@@ -82,8 +82,10 @@ jobs:
       - name: Build split APK
         run: flutter build apk --release --split-per-abi
 
-      - name: Build app bundle
-        run: flutter build appbundle --release
+      # AAB 仅用于上架 Google Play。当前走 GitHub Release / APK 直装分发，暂不构建。
+      # 若要上架 Google Play，取消下面两行注释，并恢复后续两个上传步骤里的 *.aab 路径。
+      # - name: Build app bundle
+      #   run: flutter build appbundle --release
 
       - name: Verify release signing (reject debug keystore)
         shell: bash
@@ -105,12 +107,10 @@ jobs:
           name: easynode-native-android-${{ github.event.inputs.tag || github.ref_name }}
           path: |
             native/build/app/outputs/flutter-apk/*.apk
-            native/build/app/outputs/bundle/release/*.aab
 
-      - name: Upload APK and AAB to GitHub Release
+      - name: Upload APK to GitHub Release
         if: startsWith(github.ref, 'refs/tags/native-v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             native/build/app/outputs/flutter-apk/*.apk
-            native/build/app/outputs/bundle/release/*.aab
