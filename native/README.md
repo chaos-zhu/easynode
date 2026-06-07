@@ -160,6 +160,50 @@ flutter test             # 单元测试（仅在显式需要时执行）
    - APK: `native/build/app/outputs/flutter-apk/`
    - AAB: `native/build/app/outputs/bundle/release/`
 
+### Android CI 构建
+
+GitHub Actions 使用 `.github/workflows/native-android-release.yml` 构建 Android 产物。
+
+触发方式：
+
+- 推送 `native-v*` 标签，例如 `native-v0.1.0-beta.1`（会构建并上传到对应 GitHub Release）
+- 在 Actions 页面手动运行 `Build Native Android`（只产出 artifact，不写 Release）
+
+需要在仓库配置以下 GitHub Secrets（`Settings → Secrets and variables → Actions`）：
+
+- `ANDROID_KEYSTORE_BASE64`：`native/android/easynode-release.jks` 的 base64 内容
+- `ANDROID_STORE_PASSWORD`：keystore store password
+- `ANDROID_KEY_PASSWORD`：key password
+- `ANDROID_KEY_ALIAS`：默认 `easynode`
+
+生成 keystore 的 base64（任选其一）：
+
+```powershell
+# Windows PowerShell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("native/android/easynode-release.jks"))
+```
+
+```bash
+# Linux
+base64 -w 0 native/android/easynode-release.jks
+# macOS
+base64 -i native/android/easynode-release.jks
+```
+
+workflow 会在还原签名后校验上述 Secret 非空，并在构建后用 `apksigner` 校验产物证书不是 debug keystore，任一不满足直接失败。
+
+CI 产物：
+
+- APK: `native/build/app/outputs/flutter-apk/*.apk`
+- AAB: `native/build/app/outputs/bundle/release/*.aab`
+
+发布版本时需要同步更新：
+
+- `native/pubspec.yaml` 的 `version: x.y.z+build`（`+build`/versionCode 必须单调递增，否则无法上架 Google Play）
+- `server/version.json` 的 `nativeVersion: native-vx.y.z`
+
+> 提示：发布 `native-v*` 的 GitHub Release 不会触发服务端 Docker 构建（`docker-builder.yml` 已对 `native-`/`client` 前缀加了跳过守卫），Web 端更新检测也已忽略 `native-v*` 标签。
+
 ### iOS
 
 iOS 构建需要 macOS + Xcode。

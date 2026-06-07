@@ -1,0 +1,116 @@
+name: Build Native Android
+
+on:
+  push:
+    tags:
+      - 'native-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要构建的 native 标签，例如 native-v0.1.0-beta.1'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: native
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
+
+      - name: Validate native tag
+        shell: bash
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          if [[ ! "$TAG" =~ ^native-v[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
+            echo "Invalid tag: $TAG"
+            echo "Tag must look like native-v0.1.0 or native-v0.1.0-beta.1"
+            exit 1
+          fi
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Flutter analyze
+        run: flutter analyze
+
+      - name: Restore Android signing files
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          # 任一签名 Secret 为空就直接失败，避免 gradle 静默回退到 debug keystore
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_PASSWORD ANDROID_KEY_ALIAS; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required secret: $name"
+              exit 1
+            fi
+          done
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/easynode-release.jks
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_STORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=easynode-release.jks
+          EOF
+
+      - name: Build split APK
+        run: flutter build apk --release --split-per-abi
+
+      - name: Build app bundle
+        run: flutter build appbundle --release
+
+      - name: Verify release signing (reject debug keystore)
+        shell: bash
+        run: |
+          # build.gradle.kts 在 key.properties 缺失/为空时会回退到 debug 签名且不报错，
+          # 这里强制校验产物证书，确保是 release keystore 而非 debug keystore。
+          APK=$(ls build/app/outputs/flutter-apk/app-arm64-v8a-release.apk)
+          APKSIGNER=$(ls "$ANDROID_SDK_ROOT"/build-tools/*/apksigner | sort -V | tail -n1)
+          CERTS=$("$APKSIGNER" verify --print-certs "$APK")
+          echo "$CERTS"
+          if echo "$CERTS" | grep -qi "CN=Android Debug"; then
+            echo "APK is signed with the debug keystore. Release signing failed."
+            exit 1
+          fi
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: easynode-native-android-${{ github.event.inputs.tag || github.ref_name }}
+          path: |
+            native/build/app/outputs/flutter-apk/*.apk
+            native/build/app/outputs/bundle/release/*.aab
+
+      - name: Upload APK and AAB to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/native-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            native/build/app/outputs/flutter-apk/*.apk
+            native/build/app/outputs/bundle/release/*.aab

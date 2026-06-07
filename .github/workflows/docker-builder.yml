@@ -12,6 +12,11 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # 仅构建 server 正式版；跳过 native-* / client* 的 Release，避免误构建并覆盖 latest 镜像
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (!startsWith(github.event.release.tag_name, 'native-') &&
+       !startsWith(github.event.release.tag_name, 'client'))
     steps:
     - name: Check out the repository
       uses: actions/checkout@v3
