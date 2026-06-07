@@ -22,7 +22,11 @@
   "license": "ISC",
   "scripts": {
     "dev": "concurrently \"yarn workspace web run dev\" \"yarn workspace server run local\"",
-    "clean": "rimraf web/node_modules server/node_modules node_modules",
+    "clean": "yarn clean:web-server && yarn clean:native",
+    "clean:web-server": "rimraf web/node_modules server/node_modules node_modules",
+    "clean:native": "rimraf native/build native/.dart_tool native/.pub native/.pub-cache native/coverage native/android/.gradle native/android/app/build native/ios/Pods native/ios/.symlinks native/ios/Flutter/.last_build_id",
+    "android": "cd native && flutter run -d android",
+    "ios": "cd native && flutter run -d ios",
     "encrypt": "node ./local-script/encrypt-file.js"
   },
   "bugs": {
