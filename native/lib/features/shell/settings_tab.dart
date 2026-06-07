@@ -6,6 +6,7 @@ import '../../core/ui/refresh_feedback.dart';
 import '../../core/utils/app_store_compliance.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/auth_notifier.dart';
+import '../../state/app_update_notifier.dart';
 import '../../state/credential_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/locale_notifier.dart';
@@ -14,6 +15,7 @@ import '../../state/plus_discount_notifier.dart';
 import '../../state/plus_info_notifier.dart';
 import '../../state/script_list_notifier.dart';
 import '../settings/account_security_page.dart';
+import '../settings/app_update_prompt.dart';
 import '../settings/credentials_page.dart';
 import '../settings/models/plus_info.dart';
 import '../settings/plus_subscription_page.dart';
@@ -186,6 +188,34 @@ class SettingsTab extends ConsumerWidget {
     );
   }
 
+  Future<void> _checkForUpdates(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final result = await ref.read(appUpdateProvider.notifier).check();
+    if (!context.mounted) return;
+
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.tr('settings.update.failed')),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (!result.hasUpdate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.tr('settings.update.latest')),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    await showAppUpdateDialog(context, result);
+  }
+
   Future<void> _refresh(BuildContext context, WidgetRef ref) async {
     await runRefreshWithFeedback(context, () async {
       final refreshes = <Future<void>>[
@@ -214,12 +244,15 @@ class SettingsTab extends ConsumerWidget {
     final scriptCount = ref.watch(scriptListProvider).valueOrNull?.length ?? 0;
     final plusActive =
         ref.watch(plusInfoProvider).valueOrNull?.isActive ?? false;
-    final discount = ref.watch(plusDiscountProvider).valueOrNull ??
+    final discount =
+        ref.watch(plusDiscountProvider).valueOrNull ??
         const PlusDiscount(discount: false, content: '');
-    final hasDiscount = !isIosAppStoreCompliance &&
+    final hasDiscount =
+        !isIosAppStoreCompliance &&
         discount.discount &&
         discount.content.isNotEmpty;
     final packageInfo = ref.watch(packageInfoProvider).valueOrNull;
+    final updateState = ref.watch(appUpdateProvider);
     final versionLabel = packageInfo == null
         ? ''
         : 'v${packageInfo.version} (${packageInfo.buildNumber})';
@@ -233,105 +266,125 @@ class SettingsTab extends ConsumerWidget {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-            SliverToBoxAdapter(
-              child: TabHeader(
-                title: l.tr('settings.title'),
-                actions: [
-                  if (versionLabel.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Text(
-                        versionLabel,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: AppPalette.softMuted,
-                          letterSpacing: 0.2,
+              SliverToBoxAdapter(
+                child: TabHeader(
+                  title: l.tr('settings.title'),
+                  actions: [
+                    if (versionLabel.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Text(
+                          versionLabel,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: AppPalette.softMuted,
+                            letterSpacing: 0.2,
+                          ),
                         ),
                       ),
+                    if (!plusActive && !isIosAppStoreCompliance)
+                      _SettingsBellButton(
+                        hasDiscount: hasDiscount,
+                        onTap: () => _showNotifications(context, discount),
+                      ),
+                  ],
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _ProfileCard(
+                  username: session?.username ?? '-',
+                  serverAddress: session?.serverAddress ?? '',
+                  hostCount: hostCount,
+                  credentialCount: credentialCount,
+                  scriptCount: scriptCount,
+                  plusActive: plusActive,
+                  onPlusTap: () => _push(context, const PlusSubscriptionPage()),
+                  onLogoutTap: () => _confirmLogout(context, ref),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SettingsSection(
+                  title: l.tr('settings.section.security'),
+                  children: [
+                    SettingsRow(
+                      icon: Icons.lock_outline,
+                      title: l.tr('settings.account.title'),
+                      subtitle: l.tr('settings.account.subtitle'),
+                      onTap: () => _push(context, const AccountSecurityPage()),
                     ),
-                  if (!plusActive && !isIosAppStoreCompliance)
-                    _SettingsBellButton(
-                      hasDiscount: hasDiscount,
-                      onTap: () => _showNotifications(context, discount),
+                    SettingsRow(
+                      icon: Icons.devices_outlined,
+                      title: l.tr('settings.sessions.title'),
+                      subtitle: l.tr('settings.sessions.subtitle'),
+                      onTap: () => _push(context, const SessionsPage()),
                     ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _ProfileCard(
-                username: session?.username ?? '-',
-                serverAddress: session?.serverAddress ?? '',
-                hostCount: hostCount,
-                credentialCount: credentialCount,
-                scriptCount: scriptCount,
-                plusActive: plusActive,
-                onPlusTap: () => _push(context, const PlusSubscriptionPage()),
-                onLogoutTap: () => _confirmLogout(context, ref),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: SettingsSection(
-                title: l.tr('settings.section.security'),
-                children: [
-                  SettingsRow(
-                    icon: Icons.lock_outline,
-                    title: l.tr('settings.account.title'),
-                    subtitle: l.tr('settings.account.subtitle'),
-                    onTap: () => _push(context, const AccountSecurityPage()),
-                  ),
-                  SettingsRow(
-                    icon: Icons.devices_outlined,
-                    title: l.tr('settings.sessions.title'),
-                    subtitle: l.tr('settings.sessions.subtitle'),
-                    onTap: () => _push(context, const SessionsPage()),
-                  ),
-                ],
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: SettingsSection(
-                title: l.tr('settings.section.connection'),
-                children: [
-                  SettingsRow(
-                    icon: Icons.vpn_key_outlined,
-                    title: l.tr('settings.credentials.title'),
-                    subtitle: l.tr('settings.credentials.subtitle'),
-                    onTap: () => _push(context, const CredentialsPage()),
-                  ),
-                  SettingsRow(
-                    icon: Icons.cloud_outlined,
-                    title: l.tr('settings.proxy.title'),
-                    subtitle: l.tr('settings.proxy.subtitle'),
-                    onTap: () => _push(context, const ProxyPage()),
-                  ),
-                ],
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: SettingsSection(
-                title: l.tr('settings.section.preferences'),
-                children: [
-                  SettingsRow(
-                    key: const Key('settings-language'),
-                    icon: Icons.translate,
-                    title: l.tr('settings.language'),
-                    subtitle: _languageSubtitle(context, locale),
-                    onTap: () => _pickLanguage(context, ref),
-                  ),
-                  SettingsRow(
-                    icon: Icons.palette_outlined,
-                    title: l.tr('settings.theme.title'),
-                    trailing: _StatusChip(
-                      label: l.tr('settings.theme.wipChip'),
-                      tone: _ChipTone.muted,
+              SliverToBoxAdapter(
+                child: SettingsSection(
+                  title: l.tr('settings.section.connection'),
+                  children: [
+                    SettingsRow(
+                      icon: Icons.vpn_key_outlined,
+                      title: l.tr('settings.credentials.title'),
+                      subtitle: l.tr('settings.credentials.subtitle'),
+                      onTap: () => _push(context, const CredentialsPage()),
                     ),
-                    onTap: () => _showThemeWip(context),
-                  ),
-                ],
+                    SettingsRow(
+                      icon: Icons.cloud_outlined,
+                      title: l.tr('settings.proxy.title'),
+                      subtitle: l.tr('settings.proxy.subtitle'),
+                      onTap: () => _push(context, const ProxyPage()),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              SliverToBoxAdapter(
+                child: SettingsSection(
+                  title: l.tr('settings.section.preferences'),
+                  children: [
+                    SettingsRow(
+                      key: const Key('settings-language'),
+                      icon: Icons.translate,
+                      title: l.tr('settings.language'),
+                      subtitle: _languageSubtitle(context, locale),
+                      onTap: () => _pickLanguage(context, ref),
+                    ),
+                    SettingsRow(
+                      key: const Key('settings-check-update'),
+                      icon: Icons.system_update_alt_outlined,
+                      title: l.tr('settings.update.title'),
+                      subtitle: updateState.status == AppUpdateStatus.available
+                          ? l.trf('settings.update.availableSubtitle', [
+                              updateState.result!.info.latestVersion,
+                            ])
+                          : l.tr('settings.update.subtitle'),
+                      trailing: updateState.isChecking
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : null,
+                      onTap: updateState.isChecking
+                          ? null
+                          : () => _checkForUpdates(context, ref),
+                    ),
+                    SettingsRow(
+                      icon: Icons.palette_outlined,
+                      title: l.tr('settings.theme.title'),
+                      trailing: _StatusChip(
+                        label: l.tr('settings.theme.wipChip'),
+                        tone: _ChipTone.muted,
+                      ),
+                      onTap: () => _showThemeWip(context),
+                    ),
+                  ],
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
             ],
           ),
         ),
@@ -341,10 +394,7 @@ class SettingsTab extends ConsumerWidget {
 }
 
 class _SettingsBellButton extends StatelessWidget {
-  const _SettingsBellButton({
-    required this.hasDiscount,
-    required this.onTap,
-  });
+  const _SettingsBellButton({required this.hasDiscount, required this.onTap});
 
   final bool hasDiscount;
   final VoidCallback onTap;
@@ -381,10 +431,7 @@ class _SettingsBellButton extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppPalette.danger,
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppPalette.card,
-                        width: 1.5,
-                      ),
+                      border: Border.all(color: AppPalette.card, width: 1.5),
                     ),
                   ),
                 ),
@@ -576,10 +623,26 @@ class _PlusBadge extends StatelessWidget {
   final VoidCallback onTap;
 
   static const _grayscale = ColorFilter.matrix(<double>[
-    0.2126, 0.7152, 0.0722, 0, 0,
-    0.2126, 0.7152, 0.0722, 0, 0,
-    0.2126, 0.7152, 0.0722, 0, 0,
-    0, 0, 0, 1, 0,
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
   ]);
 
   @override
@@ -599,7 +662,9 @@ class _PlusBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            active ? image : ColorFiltered(colorFilter: _grayscale, child: image),
+            active
+                ? image
+                : ColorFiltered(colorFilter: _grayscale, child: image),
             if (!active) ...[
               const SizedBox(width: 6),
               Text(
@@ -679,11 +744,7 @@ class _LogoutIconButton extends StatelessWidget {
               border: Border.all(color: AppPalette.border),
             ),
             alignment: Alignment.center,
-            child: const Icon(
-              Icons.logout,
-              size: 18,
-              color: AppPalette.danger,
-            ),
+            child: const Icon(Icons.logout, size: 18, color: AppPalette.danger),
           ),
         ),
       ),
@@ -723,10 +784,7 @@ class _LangOption extends StatelessWidget {
 }
 
 class _DiscountNotificationCard extends StatelessWidget {
-  const _DiscountNotificationCard({
-    required this.content,
-    required this.onTap,
-  });
+  const _DiscountNotificationCard({required this.content, required this.onTap});
 
   final String content;
   final VoidCallback onTap;

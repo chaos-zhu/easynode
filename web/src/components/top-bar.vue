@@ -192,7 +192,10 @@ async function checkLatestVersionByGitRelease() {
     }
     const releases = await response.json()
     // console.log('releases:', releases)
-    const filteredReleases = releases.filter(release => !release.tag_name.startsWith('client'))
+    const filteredReleases = releases.filter(release => {
+      const tagName = release.tag_name || ''
+      return tagName.startsWith('v') && !tagName.startsWith('native-v') && !tagName.startsWith('client')
+    })
     if (filteredReleases.length > 0) {
       latestVersion.value = filteredReleases[0].tag_name
     }
@@ -221,7 +224,7 @@ async function checkLatestVersionByJson() {
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('请求超时')), timeout)
     )
-    const url = `https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/refs/heads/main/server/version.json?ts=${ new Date().getTime() }`
+    const url = `https://easynode-version.chaoszhu.com/chaos-zhu/easynode/refs/heads/main/server/version.json?ts=${ new Date().getTime() }`
     const fetchPromise = fetch(url)
     const response = await Promise.race([fetchPromise, timeoutPromise,])
     if (!response.ok) {
@@ -230,8 +233,15 @@ async function checkLatestVersionByJson() {
     const releases = await response.json()
     // console.log('releases:', releases)
     if (Array.isArray(releases) && releases.length > 0) {
-      latestVersion.value = releases[0].version
-      features.value = releases[0].features
+      const latestWebRelease = releases.find(release => {
+        const version = release?.version || ''
+        return version.startsWith('v') && !version.startsWith('native-v') && !version.startsWith('client')
+      })
+      if (!latestWebRelease) {
+        return
+      }
+      latestVersion.value = latestWebRelease.version
+      features.value = latestWebRelease.features || []
       localStorage.setItem('lastGetVersionTime', date.getTime())
       localStorage.setItem('latestVersion', latestVersion.value)
       localStorage.setItem('features', JSON.stringify(features.value))

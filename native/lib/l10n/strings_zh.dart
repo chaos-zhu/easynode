@@ -262,6 +262,17 @@ const Map<String, String> stringsZh = {
   'settings.theme.wipChip': '开发中',
   'settings.theme.wipToast': '主题切换功能开发中，敬请期待',
 
+  'settings.update.title': '检查更新',
+  'settings.update.subtitle': '对比最新原生端版本',
+  'settings.update.availableSubtitle': '发现新版本：{0}',
+  'settings.update.latest': '当前已是最新版本',
+  'settings.update.failed': '检查更新失败，请稍后重试',
+  'settings.update.availableTitle': '发现新版本',
+  'settings.update.versionLine': '当前版本：{0}\n最新版本：{1}',
+  'settings.update.notesTitle': '更新内容：',
+  'settings.update.noReleaseUrl': '发现新版本，但当前平台尚未配置下载页面。',
+  'settings.update.openRelease': '前往下载',
+
   'settings.profile.hostsLabel': '主机',
   'settings.profile.credentialsLabel': '凭据',
   'settings.profile.scriptsLabel': '脚本',

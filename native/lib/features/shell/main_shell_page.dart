@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ui/palette.dart';
+import '../../features/settings/app_update_prompt.dart';
 import '../../l10n/app_localizations.dart';
+import '../../state/app_update_notifier.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/plus_info_notifier.dart';
 import '../../state/terminal_providers.dart';
@@ -35,6 +37,20 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
     ScriptsTab(),
     SettingsTab(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _checkUpdatesSilently(),
+    );
+  }
+
+  Future<void> _checkUpdatesSilently() async {
+    final result = await ref.read(appUpdateProvider.notifier).check();
+    if (!mounted || result == null || !result.hasUpdate) return;
+    await showAppUpdateDialog(context, result);
+  }
 
   @override
   Widget build(BuildContext context) {

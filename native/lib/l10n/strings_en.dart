@@ -261,8 +261,7 @@ const Map<String, String> stringsEn = {
   'settings.section.preferences': 'Preferences',
 
   'settings.plus.title': 'Plus features',
-  'settings.plus.inactiveMeta':
-      'Server authorization is not active',
+  'settings.plus.inactiveMeta': 'Server authorization is not active',
   'settings.plus.goActivate': 'View status',
 
   'settings.account.title': 'Account & password',
@@ -277,6 +276,18 @@ const Map<String, String> stringsEn = {
   'settings.theme.title': 'Appearance',
   'settings.theme.wipChip': 'WIP',
   'settings.theme.wipToast': 'Theme switching is on the roadmap.',
+
+  'settings.update.title': 'Check for updates',
+  'settings.update.subtitle': 'Compare with the latest native release',
+  'settings.update.availableSubtitle': 'New version available: {0}',
+  'settings.update.latest': 'You are using the latest version.',
+  'settings.update.failed': 'Update check failed. Please try again later.',
+  'settings.update.availableTitle': 'New version available',
+  'settings.update.versionLine': 'Current: {0}\nLatest: {1}',
+  'settings.update.notesTitle': 'Updates:',
+  'settings.update.noReleaseUrl':
+      'A release is available, but no download page is configured for this platform yet.',
+  'settings.update.openRelease': 'Open release page',
 
   'settings.profile.hostsLabel': 'Hosts',
   'settings.profile.credentialsLabel': 'Credentials',
@@ -304,8 +315,7 @@ const Map<String, String> stringsEn = {
   'plus.featuresSection': 'Plus features',
   'plus.section.activate': 'Authorization',
   'plus.section.status': 'Authorization status',
-  'plus.activateHint':
-      'Authorization is configured on your EasyNode server.',
+  'plus.activateHint': 'Authorization is configured on your EasyNode server.',
   'plus.discountTip': 'Service notice',
   'plus.loadFailed': 'Failed to load Plus info: {0}',
   'plus.status.active': 'Server authorization active',
