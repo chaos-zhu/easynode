@@ -76,5 +76,13 @@
 		<string>http</string>
 		<string>https</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>EasyNode 需要访问相机以拍摄照片用于上传文件或设置头像。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>EasyNode 需要访问相册以选择图片用于上传文件或设置头像。</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>EasyNode 需要保存图片到相册。</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>EasyNode 需要在使用期间访问位置信息以提供相关服务。</string>
 </dict>
 </plist>

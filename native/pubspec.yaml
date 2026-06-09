@@ -1,7 +1,7 @@
 name: easynode_native
 description: "EasyNode native app."
 publish_to: 'none'
-version: 0.1.1+3
+version: 0.1.1+4
 
 environment:
   sdk: ^3.11.5
