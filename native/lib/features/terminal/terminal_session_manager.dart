@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:uuid/uuid.dart';
+import 'package:xterm/ui.dart';
 
 import 'ssh_connection_config.dart';
 import 'ssh_terminal_controller.dart';
@@ -40,6 +41,9 @@ class TerminalSessionManager extends ChangeNotifier {
       config: config,
       displayName: displayName,
       controller: controller,
+      viewController: TerminalController(),
+      scrollController: ScrollController(),
+      viewKey: GlobalKey<TerminalViewState>(),
     );
     _sessions.add(session);
     _activeId = session.id;
@@ -72,6 +76,8 @@ class TerminalSessionManager extends ChangeNotifier {
     if (index == -1) return;
     final session = _sessions.removeAt(index);
     await session.controller.disconnect();
+    session.viewController.dispose();
+    session.scrollController.dispose();
     session.status = TerminalSessionStatus.disconnected;
     if (_activeId == id) {
       _activeId = _sessions.isEmpty ? null : _sessions.first.id;
@@ -85,6 +91,8 @@ class TerminalSessionManager extends ChangeNotifier {
     _activeId = null;
     for (final session in copy) {
       await session.controller.disconnect();
+      session.viewController.dispose();
+      session.scrollController.dispose();
     }
     notifyListeners();
   }

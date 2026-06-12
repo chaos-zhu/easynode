@@ -1,19 +1,18 @@
-import 'dart:math' as math;
+import 'dart:async' show Timer;
+import 'dart:math' show max;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:xterm/ui.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:xterm/src/ui/render.dart';
+import 'package:xterm/xterm.dart';
 
-import '../../core/api/api_result.dart';
 import '../../l10n/app_localizations.dart';
-import '../../state/api_providers.dart';
-import '../../state/auth_notifier.dart';
-import '../../state/host_list_notifier.dart';
 import '../../state/terminal_providers.dart';
-import '../servers/server_model.dart';
+import 'terminal_bottom_menu.dart';
 import 'terminal_session.dart';
 import 'terminal_session_manager.dart';
-import 'terminal_toolbar.dart';
 
 class TerminalShellPage extends ConsumerStatefulWidget {
   const TerminalShellPage({super.key});
@@ -23,114 +22,47 @@ class TerminalShellPage extends ConsumerStatefulWidget {
 }
 
 class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
-  bool _openingServer = false;
-  List<ServerModel>? _cachedServers;
+  static final RegExp _urlPattern = RegExp(
+    "((https?|ftp):\\/\\/[^\\s<>\"']+|www\\.[^\\s<>\"']+)",
+    caseSensitive: false,
+  );
+
+  double _lastKeyboardHeight = 0;
+  bool _showKeyPanel = false;
+  bool _allowTerminalFocus = true;
+  final FocusNode _terminalFocusNode = FocusNode();
+  final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  final Map<String, VoidCallback> _selectionListeners = {};
+  final Map<String, _TerminalSearchState> _searchStates = {};
+  String? _touchSelectingSessionId;
+  final Map<String, Offset> _touchSelectionStartPositions = {};
+  bool _showSearchBar = false;
+  Timer? _searchDebounce;
 
   TerminalSessionManager get _manager =>
       ref.read(terminalSessionManagerProvider);
 
-  Future<void> _openServerMenu(BuildContext anchorContext) async {
-    if (_openingServer) return;
-    final cached = _cachedServers ??
-        ref.read(hostListProvider).maybeWhen(
-              data: (data) => data,
-              orElse: () => null,
-            );
-    if (cached != null && cached.isNotEmpty) {
-      _cachedServers = cached;
-      await _showServerMenu(anchorContext, cached);
-      return;
-    }
-
-    setState(() => _openingServer = true);
-    final List<ServerModel> servers;
-    try {
-      servers = await ref.read(serverRepositoryProvider).fetchHosts();
-    } catch (error) {
-      if (!mounted) return;
-      if (error is UnauthorizedFailure) {
-        setState(() => _openingServer = false);
-        await ref.read(authProvider.notifier).signOut();
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)
-                .trf('terminal.loadServersFailed', [error.toString()]),
-          ),
-        ),
-      );
-      setState(() => _openingServer = false);
-      return;
-    }
-    if (!mounted || !anchorContext.mounted) return;
-    setState(() => _openingServer = false);
-    _cachedServers = servers;
-    await _showServerMenu(anchorContext, servers);
-  }
-
-  Future<void> _showServerMenu(
-    BuildContext anchorContext,
-    List<ServerModel> servers,
-  ) async {
-    if (!anchorContext.mounted) return;
-    final overlayState = Navigator.of(anchorContext).overlay;
-    final overlayBox = overlayState?.context.findRenderObject() as RenderBox?;
-    if (overlayState == null || overlayBox == null) return;
-    final overlaySize = overlayBox.size;
-    final menuWidth = overlaySize.width / 2;
-    // showMenu 的 position 相对于 Navigator overlay（覆盖整个屏幕），
-    // 所以需要加上 overlay context 的顶部 padding（状态栏高度）再加 topbar 高度。
-    final topPadding = MediaQuery.paddingOf(overlayState.context).top;
-    final menuTop = topPadding + _kTopBarHeight;
-    // 右侧菜单：right=0
-    final menuRect = Rect.fromLTWH(overlaySize.width, menuTop, 0, 0);
-    final overlayRect = Offset.zero & overlaySize;
-    final selected = await showMenu<ServerModel>(
-      context: anchorContext,
-      position: RelativeRect.fromRect(menuRect, overlayRect),
-      constraints: BoxConstraints.tightFor(width: menuWidth),
-      items: servers.isEmpty
-          ? [
-              PopupMenuItem<ServerModel>(
-                enabled: false,
-                child: Text(
-                  AppLocalizations.of(anchorContext).tr('terminal.noServers'),
-                ),
-              ),
-            ]
-          : [
-              for (final server in servers.take(12))
-                PopupMenuItem<ServerModel>(
-                  enabled: server.canConnect,
-                  value: server,
-                  height: 56,
-                  child: _OpenServerMenuItem(server: server),
-                ),
-            ],
-    );
-    if (selected == null || !mounted) return;
-    try {
-      final config =
-          await ref.read(serverRepositoryProvider).fetchSshConfig(selected.id);
-      await _manager.openSession(config);
-    } catch (error) {
-      if (!mounted) return;
-      if (error is UnauthorizedFailure) {
-        await ref.read(authProvider.notifier).signOut();
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)
-                .trf('terminal.openFailed', [error.toString()]),
-          ),
-        ),
-      );
+  void _onToggleInput() {
+    if (_showSearchBar) _closeSearchBar();
+    final keyboardUp = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (keyboardUp) {
+      _terminalFocusNode.unfocus();
+      setState(() {
+        _showKeyPanel = true;
+        _allowTerminalFocus = false;
+      });
+    } else {
+      setState(() => _allowTerminalFocus = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _terminalFocusNode.requestFocus();
+      });
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && _showKeyPanel) {
+          setState(() => _showKeyPanel = false);
+        }
+      });
     }
   }
 
@@ -147,75 +79,625 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
     }
   }
 
-  Future<void> _closeAllAndLeave(TerminalSessionManager manager) async {
-    await manager.closeAll();
-    if (mounted) {
-      Navigator.of(context).maybePop();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncSessionBindings();
+  }
+
+  void _syncSessionBindings() {
+    final liveIds = <String>{};
+    for (final session in _manager.sessions) {
+      liveIds.add(session.id);
+      if (_selectionListeners.containsKey(session.id)) continue;
+      void listener() {
+        if (mounted) setState(() {});
+      }
+
+      session.viewController.addListener(listener);
+      _selectionListeners[session.id] = listener;
     }
+
+    final removedIds = _selectionListeners.keys
+        .where((id) => !liveIds.contains(id))
+        .toList(growable: false);
+    for (final id in removedIds) {
+      _selectionListeners.remove(id);
+      _searchStates.remove(id)?.dispose();
+    }
+  }
+
+  String? _selectedText(TerminalSession session) {
+    final selection = session.viewController.selection;
+    if (selection == null) return null;
+    final text = session.controller.terminal.buffer.getText(selection).trim();
+    return text.isEmpty ? null : text;
+  }
+
+  String? _normalizeUrl(String raw) {
+    final match = _urlPattern.firstMatch(raw.trim());
+    if (match == null) return null;
+    var url = match.group(0)!;
+    url = url.replaceFirst(RegExp(r'[),.;:!?]+$'), '');
+    if (!url.contains('://')) {
+      url = 'https://$url';
+    }
+    return Uri.tryParse(url)?.hasScheme == true ? url : null;
+  }
+
+  String? _extractUrlAtOffset(TerminalSession session, CellOffset offset) {
+    final lines = session.controller.terminal.buffer.lines;
+    var startLine = offset.y;
+    while (startLine > 0 && lines[startLine].isWrapped) {
+      startLine--;
+    }
+    var endLine = offset.y;
+    while (endLine + 1 < lines.length && lines[endLine + 1].isWrapped) {
+      endLine++;
+    }
+
+    final textBuffer = StringBuffer();
+    var tappedTextOffset = 0;
+    for (var lineIndex = startLine; lineIndex <= endLine; lineIndex++) {
+      final line = lines[lineIndex];
+      final lineText = line.getText(0, line.getTrimmedLength());
+      if (lineIndex < offset.y) {
+        tappedTextOffset += lineText.length;
+      } else if (lineIndex == offset.y) {
+        tappedTextOffset += offset.x.clamp(0, lineText.length);
+      }
+      textBuffer.write(lineText);
+    }
+
+    final text = textBuffer.toString();
+    if (text.isEmpty) return null;
+    for (final match in _urlPattern.allMatches(text)) {
+      final raw = match.group(0)!;
+      final normalized = _normalizeUrl(raw);
+      if (normalized == null) continue;
+      if (tappedTextOffset >= match.start && tappedTextOffset < match.end) {
+        return normalized;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _onTerminalTap(
+    TerminalSession session,
+    CellOffset offset,
+  ) async {
+    final url = _extractUrlAtOffset(session, offset);
+    if (url == null || !mounted) return;
+    final l = AppLocalizations.of(context);
+    final shouldOpen = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.tr('terminal.linkDialogTitle')),
+        content: Text(l.trf('terminal.linkDialogBody', [url])),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l.tr('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l.tr('terminal.openBrowser')),
+          ),
+        ],
+      ),
+    );
+    if (shouldOpen != true) return;
+    final ok = await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!ok && mounted) {
+      _showTerminalSnack(l.tr('terminal.openLinkFailed'));
+    }
+  }
+
+  RenderTerminal? _renderTerminalFor(TerminalSession session) {
+    final state = session.viewKey.currentState;
+    if (state == null || !state.mounted) return null;
+    return state.renderTerminal;
+  }
+
+  CellOffset? _cellOffsetForGlobalPosition(
+    TerminalSession session,
+    Offset globalPosition,
+  ) {
+    final render = _renderTerminalFor(session);
+    if (render == null) return null;
+    final local = render.globalToLocal(globalPosition);
+    return render.getCellOffset(local);
+  }
+
+  void _handleLinkTap(TerminalSession session, TapUpDetails details) {
+    final offset = _cellOffsetForGlobalPosition(
+      session,
+      details.globalPosition,
+    );
+    if (offset == null) return;
+    _onTerminalTap(session, offset);
+  }
+
+  void _handleSelectionStart(
+    TerminalSession session,
+    LongPressStartDetails details,
+  ) {
+    final render = _renderTerminalFor(session);
+    if (render == null) return;
+    _touchSelectingSessionId = session.id;
+    final localPosition = render.globalToLocal(details.globalPosition);
+    _touchSelectionStartPositions[session.id] = localPosition;
+    render.selectWord(localPosition);
+  }
+
+  void _handleSelectionUpdate(
+    TerminalSession session,
+    LongPressMoveUpdateDetails details,
+  ) {
+    if (_touchSelectingSessionId != session.id) return;
+    final render = _renderTerminalFor(session);
+    final from = _touchSelectionStartPositions[session.id];
+    if (render == null || from == null) return;
+    final to = render.globalToLocal(details.globalPosition);
+    render.selectWord(from, to);
+  }
+
+  void _handleSelectionEnd(TerminalSession session) {
+    if (_touchSelectingSessionId == session.id) {
+      _touchSelectingSessionId = null;
+    }
+    _touchSelectionStartPositions.remove(session.id);
+  }
+
+  void _showTerminalSnack(String message) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final insets = MediaQuery.viewInsetsOf(context);
+    final padding = MediaQuery.viewPaddingOf(context);
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.fromLTRB(
+            12,
+            0,
+            12,
+            (insets.bottom > 0 ? insets.bottom : padding.bottom) + 12,
+          ),
+        ),
+      );
+  }
+
+  BufferRange? _normalizedSelection(TerminalSession session) {
+    return session.viewController.selection?.normalized;
+  }
+
+  Offset? _selectionHandleOffset(
+    TerminalSession session, {
+    required bool start,
+  }) {
+    final render = _renderTerminalFor(session);
+    final selection = _normalizedSelection(session);
+    if (render == null || selection == null) return null;
+    final cell = start ? selection.begin : selection.end;
+    var offset = render.getOffset(cell);
+    if (!start) {
+      offset = offset.translate(render.cellSize.width, render.cellSize.height);
+    } else {
+      offset = offset.translate(0, render.cellSize.height);
+    }
+    return offset;
+  }
+
+  void _updateSelectionHandle(
+    TerminalSession session, {
+    required bool start,
+    required DragUpdateDetails details,
+  }) {
+    final buffer = session.controller.terminal.buffer;
+    final selection = _normalizedSelection(session);
+    final target = _cellOffsetForGlobalPosition(
+      session,
+      details.globalPosition,
+    );
+    if (selection == null || target == null) return;
+    final begin = start ? target : selection.begin;
+    final end = start ? selection.end : target;
+    session.viewController.setSelection(
+      buffer.createAnchorFromOffset(begin),
+      buffer.createAnchorFromOffset(end),
+    );
+  }
+
+  Offset? _selectionMenuOffset(TerminalSession session) {
+    final render = _renderTerminalFor(session);
+    final selection = _normalizedSelection(session);
+    if (render == null || selection == null) return null;
+    final beginOffset = render.getOffset(selection.begin);
+    final boxSize = render.size;
+    const menuWidth = 200.0;
+    const menuHeight = 44.0;
+    const gap = 12.0;
+    final preferredLeft = beginOffset.dx + gap;
+    final preferredTop = beginOffset.dy - menuHeight - gap;
+    final left = preferredLeft.clamp(8.0, boxSize.width - menuWidth - 8.0);
+    final top = preferredTop < 8.0
+        ? (beginOffset.dy + render.cellSize.height + gap).clamp(
+            8.0,
+            boxSize.height - menuHeight - 8.0,
+          )
+        : preferredTop.clamp(8.0, boxSize.height - menuHeight - 8.0);
+    return Offset(left, top);
+  }
+
+  Future<void> _copySelection(TerminalSession session) async {
+    final text = _selectedText(session);
+    if (text == null) return;
+    await Clipboard.setData(ClipboardData(text: text));
+    session.viewController.clearSelection();
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    _showTerminalSnack(l.tr('terminal.selectionCopied'));
+  }
+
+  Future<void> _pasteToTerminal(TerminalSession session) async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text;
+    if (text == null || text.isEmpty) return;
+    session.controller.writeInput(text);
+    session.viewController.clearSelection();
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    _showTerminalSnack(l.tr('terminal.pasted'));
+  }
+
+  void _clearTerminal(TerminalSession session) {
+    session.controller.clearTerminal();
+    session.viewController.clearSelection();
+    _searchStates.remove(session.id)?.dispose();
+    final l = AppLocalizations.of(context);
+    _showTerminalSnack(l.tr('terminal.cleared'));
+  }
+
+  void _toggleSearchBar() {
+    if (_showSearchBar) {
+      _closeSearchBar();
+    } else {
+      setState(() => _showSearchBar = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _searchFocusNode.requestFocus();
+      });
+    }
+  }
+
+  void _closeSearchBar() {
+    _searchDebounce?.cancel();
+    final active = _manager.activeSession;
+    if (active != null) {
+      _searchStates.remove(active.id)?.dispose();
+    }
+    _searchCtrl.clear();
+    setState(() => _showSearchBar = false);
+    _searchFocusNode.unfocus();
+    if (active != null && _allowTerminalFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _terminalFocusNode.requestFocus();
+      });
+    }
+  }
+
+  void _onSearchTextChanged(TerminalSession session, String text) {
+    _searchDebounce?.cancel();
+    final query = text.trim();
+    if (query.isEmpty) {
+      _searchStates.remove(session.id)?.dispose();
+      setState(() {});
+      return;
+    }
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _runSearch(session, query);
+    });
+  }
+
+  Future<void> _runSearch(TerminalSession session, String query) async {
+    if (query.isEmpty) return;
+    _searchStates.remove(session.id)?.dispose();
+    final state = _buildSearchState(session, query);
+    _searchStates[session.id] = state;
+    session.viewController.clearSelection();
+    if (state.matches.isNotEmpty) {
+      _applySearchHighlight(session, state);
+    }
+    setState(() {});
+  }
+
+  void _jumpSearch(TerminalSession session, bool forward) {
+    final state = _searchStates[session.id];
+    if (state == null || state.matches.isEmpty) return;
+    if (forward) {
+      state.next();
+    } else {
+      state.previous();
+    }
+    _applySearchHighlight(session, state);
+    setState(() {});
+  }
+
+  _TerminalSearchState _buildSearchState(
+    TerminalSession session,
+    String query,
+  ) {
+    final terminal = session.controller.terminal;
+    final matches = <_TerminalSearchMatch>[];
+    for (var lineIndex = 0; lineIndex < terminal.buffer.height; lineIndex++) {
+      final line = terminal.buffer.lines[lineIndex];
+      final text = line.getText(0, line.getTrimmedLength());
+      if (text.isEmpty) continue;
+      var start = 0;
+      while (start <= text.length - query.length) {
+        final matchIndex = text.indexOf(query, start);
+        if (matchIndex < 0) break;
+        matches.add(
+          _TerminalSearchMatch(
+            line: lineIndex,
+            start: matchIndex,
+            end: matchIndex + query.length,
+          ),
+        );
+        start = matchIndex + query.length;
+      }
+    }
+    return _TerminalSearchState(query: query, matches: matches);
+  }
+
+  void _applySearchHighlight(
+    TerminalSession session,
+    _TerminalSearchState state,
+  ) {
+    state.highlight?.dispose();
+    if (state.matches.isEmpty) return;
+    final current = state.current;
+    final buffer = session.controller.terminal.buffer;
+    state.highlight = session.viewController.highlight(
+      p1: buffer.createAnchor(current.start, current.line),
+      p2: buffer.createAnchor(current.end, current.line),
+      color: Colors.yellowAccent.withValues(alpha: 0.55),
+    );
+    final lineHeight = session.viewKey.currentState?.renderTerminal.lineHeight;
+    if (lineHeight != null && session.scrollController.hasClients) {
+      final target = (current.line * lineHeight).clamp(
+        0.0,
+        session.scrollController.position.maxScrollExtent,
+      );
+      session.scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    for (final session in _manager.sessions) {
+      final listener = _selectionListeners[session.id];
+      if (listener != null) {
+        session.viewController.removeListener(listener);
+      }
+    }
+    for (final state in _searchStates.values) {
+      state.dispose();
+    }
+    _searchCtrl.dispose();
+    _searchFocusNode.dispose();
+    _terminalFocusNode.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final manager = ref.watch(terminalSessionManagerProvider);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    if (_terminalFocusNode.hasFocus && bottomInset > _lastKeyboardHeight) {
+      _lastKeyboardHeight = bottomInset;
+    }
+    final keyboardVisible = _terminalFocusNode.hasFocus && bottomInset > 0;
+
+    final bottomSafe = MediaQuery.viewPaddingOf(context).bottom;
+    final panelHeight = _lastKeyboardHeight > 0
+        ? (_lastKeyboardHeight - bottomSafe).clamp(200.0, 600.0)
+        : 260.0;
+    final panelSpace = _showKeyPanel ? panelHeight : 0.0;
+    final bottomSpace = max(bottomInset, panelSpace + bottomSafe) - panelSpace;
     return AnimatedBuilder(
       animation: manager,
       builder: (context, _) {
+        _syncSessionBindings();
         final sessions = manager.sessions.toList(growable: false);
         final active = manager.activeSession;
         final activeIndex = active == null
             ? 0
-            : math.max(
-                0,
-                sessions.indexWhere((session) => session.id == active.id),
-              );
+            : sessions.indexWhere((session) => session.id == active.id);
+        final activeRange = active == null
+            ? null
+            : _normalizedSelection(active);
+        final activeSearchState = active == null
+            ? null
+            : _searchStates[active.id];
         return Scaffold(
-          resizeToAvoidBottomInset: true,
+          resizeToAvoidBottomInset: false,
           body: SafeArea(
-            child: Column(
+            bottom: false,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                _TerminalTopBar(
-                  sessions: sessions,
-                  active: active,
-                  openingServer: _openingServer,
-                  onSelect: manager.setActive,
-                  onNew: _openServerMenu,
-                  onClose: _closeActive,
-                  onCloseAll: () => _closeAllAndLeave(manager),
-                  onReconnect: active == null
-                      ? null
-                      : () => manager.reconnect(active.id),
-                ),
-                Expanded(
-                  child: ColoredBox(
-                    color: Colors.black,
-                    child: sessions.isEmpty
-                        ? Center(
-                            child: Text(
-                              AppLocalizations.of(context)
-                                  .tr('terminal.noActive'),
-                              style: const TextStyle(color: Colors.white70),
-                            ),
-                          )
-                        : IndexedStack(
-                            index: activeIndex,
-                            children: [
-                              for (final session in sessions)
-                                TerminalView(
-                                  session.controller.terminal,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                    vertical: 6,
-                                  ),
+                Column(
+                  children: [
+                    _TerminalTopBar(
+                      active: active,
+                      showSearchBar: _showSearchBar,
+                      onClose: _closeActive,
+                      onSearchToggle: active == null ? null : _toggleSearchBar,
+                      onReconnect: active == null
+                          ? null
+                          : () => manager.reconnect(active.id),
+                    ),
+                    Expanded(
+                      child: ColoredBox(
+                        color: Colors.black,
+                        child: sessions.isEmpty
+                            ? Center(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  ).tr('terminal.noActive'),
+                                  style: const TextStyle(color: Colors.white70),
                                 ),
-                            ],
-                          ),
+                              )
+                            : FocusScope(
+                                canRequestFocus: _allowTerminalFocus,
+                                child: IndexedStack(
+                                  index: activeIndex < 0 ? 0 : activeIndex,
+                                  children: [
+                                    for (final session in sessions)
+                                      Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          TerminalView(
+                                            key: session.viewKey,
+                                            session.controller.terminal,
+                                            controller: session.viewController,
+                                            scrollController:
+                                                session.scrollController,
+                                            focusNode: session.id == active?.id
+                                                ? _terminalFocusNode
+                                                : null,
+                                            autofocus: session.id == active?.id,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 6,
+                                            ),
+                                          ),
+                                          if (session.id == active?.id)
+                                            Positioned.fill(
+                                              child: GestureDetector(
+                                                behavior:
+                                                    HitTestBehavior.translucent,
+                                                onTapUp: (details) =>
+                                                    _handleLinkTap(
+                                                      session,
+                                                      details,
+                                                    ),
+                                                onLongPressStart: (details) =>
+                                                    _handleSelectionStart(
+                                                      session,
+                                                      details,
+                                                    ),
+                                                onLongPressMoveUpdate:
+                                                    (details) =>
+                                                        _handleSelectionUpdate(
+                                                          session,
+                                                          details,
+                                                        ),
+                                                onLongPressEnd: (_) =>
+                                                    _handleSelectionEnd(
+                                                      session,
+                                                    ),
+                                              ),
+                                            ),
+                                          if (session.id == active?.id &&
+                                              activeRange != null) ...[
+                                            _SelectionContextMenu(
+                                              offset: _selectionMenuOffset(
+                                                session,
+                                              ),
+                                              onCopy: () =>
+                                                  _copySelection(session),
+                                              onPaste: () =>
+                                                  _pasteToTerminal(session),
+                                              onClear: () =>
+                                                  _clearTerminal(session),
+                                            ),
+                                            _SelectionHandle(
+                                              offset: _selectionHandleOffset(
+                                                session,
+                                                start: true,
+                                              ),
+                                              alignLeft: true,
+                                              onDragUpdate: (details) =>
+                                                  _updateSelectionHandle(
+                                                    session,
+                                                    start: true,
+                                                    details: details,
+                                                  ),
+                                            ),
+                                            _SelectionHandle(
+                                              offset: _selectionHandleOffset(
+                                                session,
+                                                start: false,
+                                              ),
+                                              alignLeft: false,
+                                              onDragUpdate: (details) =>
+                                                  _updateSelectionHandle(
+                                                    session,
+                                                    start: false,
+                                                    details: details,
+                                                  ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                    ),
+                    TerminalBottomBar(
+                      manager: manager,
+                      active: active,
+                      controller: active?.controller,
+                      onInput: (value) =>
+                          manager.activeSession?.controller.writeInput(value),
+                      showKeyPanel: _showKeyPanel,
+                      onToggleInput: _onToggleInput,
+                      panelHeight: panelHeight,
+                      keyboardVisible: keyboardVisible,
+                    ),
+                    SizedBox(height: bottomSpace),
+                  ],
+                ),
+                if (active != null && _showSearchBar)
+                  Positioned(
+                    top: _kTopBarHeight + 6,
+                    right: 8,
+                    child: _TerminalSearchBar(
+                      controller: _searchCtrl,
+                      focusNode: _searchFocusNode,
+                      resultText: activeSearchState == null
+                          ? null
+                          : AppLocalizations.of(
+                              context,
+                            ).trf('terminal.findResults', [
+                              activeSearchState.query,
+                              '${activeSearchState.index + 1}',
+                              '${activeSearchState.matches.length}',
+                            ]),
+                      onChanged: (text) =>
+                          _onSearchTextChanged(active, text),
+                      onPrevious: activeSearchState == null
+                          ? null
+                          : () => _jumpSearch(active, false),
+                      onNext: activeSearchState == null
+                          ? null
+                          : () => _jumpSearch(active, true),
+                    ),
                   ),
-                ),
-                TerminalToolbar(
-                  controller: active?.controller,
-                  onInput: (value) =>
-                      manager.activeSession?.controller.writeInput(value),
-                ),
               ],
             ),
           ),
@@ -227,107 +709,18 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
 
 class _TerminalTopBar extends StatelessWidget {
   const _TerminalTopBar({
-    required this.sessions,
     required this.active,
-    required this.openingServer,
-    required this.onSelect,
-    required this.onNew,
+    required this.showSearchBar,
     required this.onClose,
-    required this.onCloseAll,
+    required this.onSearchToggle,
     required this.onReconnect,
   });
 
-  final List<TerminalSession> sessions;
   final TerminalSession? active;
-  final bool openingServer;
-  final ValueChanged<String> onSelect;
-  final ValueChanged<BuildContext> onNew;
+  final bool showSearchBar;
   final VoidCallback onClose;
-  final Future<void> Function() onCloseAll;
+  final VoidCallback? onSearchToggle;
   final VoidCallback? onReconnect;
-
-  Future<void> _openSessionsMenu(BuildContext context) async {
-    final overlayState = Navigator.of(context).overlay;
-    final overlayBox = overlayState?.context.findRenderObject() as RenderBox?;
-    if (overlayState == null || overlayBox == null) return;
-    final overlaySize = overlayBox.size;
-    final menuWidth = overlaySize.width / 2;
-    // 同 _showServerMenu：基于 overlay context 的 padding，加上 topbar 高度。
-    final topPadding = MediaQuery.paddingOf(overlayState.context).top;
-    final menuTop = topPadding + _kTopBarHeight;
-    // 左侧菜单：left=0
-    final menuRect = Rect.fromLTWH(0, menuTop, 0, 0);
-    final overlayRect = Offset.zero & overlaySize;
-    final activeSession = active;
-    final l = AppLocalizations.of(context);
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(menuRect, overlayRect),
-      constraints: BoxConstraints.tightFor(width: menuWidth),
-      items: [
-        if (sessions.length >= 2) ...[
-          PopupMenuItem<String>(
-            value: _kCloseAllTerminalsAction,
-            child: Row(
-              children: [
-                const Icon(Icons.layers_clear, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(l.tr('terminal.closeAllTerminals')),
-                ),
-              ],
-            ),
-          ),
-          const PopupMenuDivider(),
-        ],
-        for (final session in sessions)
-          PopupMenuItem<String>(
-            value: session.id,
-            child: Row(
-              children: [
-                _StatusDot(status: session.status),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    session.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (session.id == activeSession?.id)
-                  const Icon(Icons.check, size: 18),
-              ],
-            ),
-          ),
-      ],
-    );
-    if (selected == null) return;
-    if (!context.mounted) return;
-    if (selected == _kCloseAllTerminalsAction) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l.tr('terminal.closeAllTitle')),
-          content: Text(l.trf('terminal.closeAllBodyMany', [sessions.length])),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l.tr('common.cancel')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(l.tr('common.closeAll')),
-            ),
-          ],
-        ),
-      );
-      if (confirmed == true) {
-        await onCloseAll();
-      }
-      return;
-    }
-    onSelect(selected);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -344,18 +737,6 @@ class _TerminalTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          InkWell(
-            onTap: sessions.isEmpty ? null : () => _openSessionsMenu(context),
-            borderRadius: BorderRadius.circular(8),
-            child: SizedBox(
-              width: 42,
-              height: 42,
-              child: CustomPaint(
-                painter: _StackedSessionsPainter(count: sessions.length),
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
           Expanded(
             child: activeSession == null
                 ? Text(l.tr('terminal.title'), overflow: TextOverflow.ellipsis)
@@ -383,6 +764,16 @@ class _TerminalTopBar extends StatelessWidget {
                   ),
           ),
           IconButton(
+            tooltip: l.tr('common.search'),
+            onPressed: onSearchToggle,
+            icon: Icon(
+              Icons.search,
+              color: showSearchBar
+                  ? Theme.of(context).colorScheme.primary
+                  : null,
+            ),
+          ),
+          IconButton(
             tooltip: l.tr('terminal.reconnect'),
             onPressed: onReconnect,
             icon: const Icon(Icons.refresh),
@@ -391,69 +782,6 @@ class _TerminalTopBar extends StatelessWidget {
             tooltip: l.tr('terminal.closeTerminal'),
             onPressed: activeSession == null ? null : onClose,
             icon: const Icon(Icons.close),
-          ),
-          Builder(
-            builder: (buttonContext) => IconButton(
-              tooltip: l.tr('terminal.newTerminal'),
-              onPressed: openingServer ? null : () => onNew(buttonContext),
-              icon: openingServer
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.add),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OpenServerMenuItem extends StatelessWidget {
-  const _OpenServerMenuItem({required this.server});
-
-  final ServerModel server;
-
-  @override
-  Widget build(BuildContext context) {
-    final title = server.name.isEmpty ? server.host : server.name;
-    final detail = '${server.username}@${server.host}:${server.port}';
-    final textColor = server.canConnect
-        ? Theme.of(context).colorScheme.onSurface
-        : Theme.of(context).disabledColor;
-    return SizedBox(
-      width: 260,
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  detail,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: server.canConnect
-                        ? Theme.of(context).colorScheme.onSurfaceVariant
-                        : Theme.of(context).disabledColor,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -477,119 +805,313 @@ class _StatusDot extends StatelessWidget {
   }
 }
 
-class _StackedSessionsPainter extends CustomPainter {
-  const _StackedSessionsPainter({required this.count});
-  final int count;
+class _SelectionContextMenu extends StatelessWidget {
+  const _SelectionContextMenu({
+    required this.offset,
+    required this.onCopy,
+    required this.onPaste,
+    required this.onClear,
+  });
+
+  final Offset? offset;
+  final VoidCallback onCopy;
+  final VoidCallback onPaste;
+  final VoidCallback onClear;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final visibleLayers = count <= 0 ? 1 : math.min(count, 3);
-    final layerColors = [
-      const Color(0xff0f766e),
-      const Color(0xff4f46e5),
-      const Color(0xff22d3ee),
-    ];
-    final strokeColors = [
-      const Color(0xff99f6e4),
-      const Color(0xffc4b5fd),
-      const Color(0xffecfeff),
-    ];
-    final offsets = [
-      const Offset(3, 13),
-      const Offset(8, 8),
-      const Offset(13, 3),
-    ];
-
-    for (var i = 0; i < visibleLayers; i++) {
-      final layerIndex = visibleLayers == 1 ? 2 : i;
-      final rect = offsets[i] & Size(size.width - 18, size.height - 18);
-      final radius = Radius.circular(i == visibleLayers - 1 ? 6 : 5);
-      final rrect = RRect.fromRectAndRadius(rect, radius);
-      final path = Path()..addRRect(rrect);
-
-      canvas.drawShadow(
-        path,
-        Colors.black.withValues(alpha: 0.28),
-        3 + i.toDouble(),
-        false,
-      );
-
-      final fill = Paint()
-        ..style = PaintingStyle.fill
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color.lerp(layerColors[layerIndex], Colors.white, 0.16)!,
-            layerColors[layerIndex],
-          ],
-        ).createShader(rect);
-      canvas.drawRRect(rrect, fill);
-
-      final stroke = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = i == visibleLayers - 1 ? 1.4 : 1
-        ..color = strokeColors[layerIndex].withValues(alpha: 0.72);
-      canvas.drawRRect(rrect.deflate(0.5), stroke);
-
-      final highlight = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..color = Colors.white.withValues(
-          alpha: i == visibleLayers - 1 ? 0.42 : 0.22,
-        );
-      canvas.drawLine(
-        rect.topLeft + const Offset(5, 5),
-        rect.topRight + const Offset(-5, 5),
-        highlight,
-      );
+  Widget build(BuildContext context) {
+    final menuOffset = offset;
+    if (menuOffset == null) {
+      return const SizedBox.shrink();
     }
-
-    if (count > 1) {
-      final badgeCenter = Offset(size.width - 8, 9);
-      final badgeShadow = Paint()
-        ..color = Colors.black.withValues(alpha: 0.24)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-      canvas.drawCircle(badgeCenter + const Offset(0, 1), 10, badgeShadow);
-
-      final badgeFill = Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xfffff7ed), Color(0xfff59e0b)],
-        ).createShader(Rect.fromCircle(center: badgeCenter, radius: 9));
-      canvas.drawCircle(badgeCenter, 9, badgeFill);
-
-      final badgeStroke = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
-        ..color = const Color(0xffffffff);
-      canvas.drawCircle(badgeCenter, 9, badgeStroke);
-
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: count > 9 ? '9+' : count.toString(),
-          style: const TextStyle(
-            color: Color(0xff451a03),
-            fontSize: 10.5,
-            fontWeight: FontWeight.w800,
+    final l = AppLocalizations.of(context);
+    return Positioned(
+      left: menuOffset.dx,
+      top: menuOffset.dy,
+      child: Material(
+        elevation: 8,
+        color: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xF5161A22),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SelectionMenuItem(
+                label: l.tr('terminal.selection.copy'),
+                onTap: onCopy,
+              ),
+              _SelectionMenuDivider(),
+              _SelectionMenuItem(
+                label: l.tr('terminal.selection.paste'),
+                onTap: onPaste,
+              ),
+              _SelectionMenuDivider(),
+              _SelectionMenuItem(
+                label: l.tr('terminal.selection.clear'),
+                onTap: onClear,
+              ),
+            ],
           ),
         ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      textPainter.paint(
-        canvas,
-        Offset(
-          badgeCenter.dx - textPainter.width / 2,
-          badgeCenter.dy - textPainter.height / 2,
-        ),
-      );
-    }
+      ),
+    );
   }
+}
+
+class _SelectionMenuItem extends StatelessWidget {
+  const _SelectionMenuItem({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
 
   @override
-  bool shouldRepaint(covariant _StackedSessionsPainter oldDelegate) {
-    return oldDelegate.count != count;
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectionMenuDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 16,
+      color: Colors.white.withValues(alpha: 0.08),
+    );
+  }
+}
+
+class _SelectionHandle extends StatelessWidget {
+  const _SelectionHandle({
+    required this.offset,
+    required this.alignLeft,
+    required this.onDragUpdate,
+  });
+
+  final Offset? offset;
+  final bool alignLeft;
+  final GestureDragUpdateCallback onDragUpdate;
+
+  @override
+  Widget build(BuildContext context) {
+    final handleOffset = offset;
+    if (handleOffset == null) {
+      return const SizedBox.shrink();
+    }
+    const knobRadius = 8.0;
+    const stemHeight = 16.0;
+    final left = alignLeft
+        ? handleOffset.dx - knobRadius
+        : handleOffset.dx - knobRadius;
+    final top = handleOffset.dy - stemHeight;
+    return Positioned(
+      left: left,
+      top: top,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onPanUpdate: onDragUpdate,
+        child: SizedBox(
+          width: knobRadius * 2,
+          height: stemHeight + knobRadius * 2,
+          child: Column(
+            children: [
+              Container(
+                width: 2,
+                height: stemHeight,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              Container(
+                width: knobRadius * 2,
+                height: knobRadius * 2,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TerminalSearchBar extends StatelessWidget {
+  const _TerminalSearchBar({
+    required this.controller,
+    required this.focusNode,
+    required this.onChanged,
+    required this.onPrevious,
+    required this.onNext,
+    this.resultText,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String? resultText;
+  final ValueChanged<String> onChanged;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 10,
+      color: Colors.transparent,
+      child: Container(
+        width: 280,
+        padding: const EdgeInsets.fromLTRB(10, 8, 6, 8),
+        decoration: BoxDecoration(
+          color: const Color(0xF5161A22),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    onChanged: onChanged,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: AppLocalizations.of(
+                        context,
+                      ).tr('common.search'),
+                      hintStyle: const TextStyle(color: Colors.white54),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.06),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 10,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                _SearchNavButton(
+                  icon: Icons.keyboard_arrow_up,
+                  onPressed: onPrevious,
+                ),
+                const SizedBox(width: 2),
+                _SearchNavButton(
+                  icon: Icons.keyboard_arrow_down,
+                  onPressed: onNext,
+                ),
+              ],
+            ),
+            if (resultText != null) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Text(
+                  resultText!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchNavButton extends StatelessWidget {
+  const _SearchNavButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        color: Colors.white,
+        disabledColor: Colors.white38,
+        padding: EdgeInsets.zero,
+        splashRadius: 16,
+        style: IconButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TerminalSearchMatch {
+  const _TerminalSearchMatch({
+    required this.line,
+    required this.start,
+    required this.end,
+  });
+
+  final int line;
+  final int start;
+  final int end;
+}
+
+class _TerminalSearchState {
+  _TerminalSearchState({required this.query, required this.matches});
+
+  final String query;
+  final List<_TerminalSearchMatch> matches;
+  int index = 0;
+  TerminalHighlight? highlight;
+
+  _TerminalSearchMatch get current => matches[index];
+
+  void next() {
+    if (matches.isEmpty) return;
+    index = (index + 1) % matches.length;
+  }
+
+  void previous() {
+    if (matches.isEmpty) return;
+    index = (index - 1 + matches.length) % matches.length;
+  }
+
+  void dispose() {
+    highlight?.dispose();
   }
 }
 
@@ -603,4 +1125,3 @@ String _statusText(AppLocalizations l, TerminalSessionStatus status) {
 }
 
 const double _kTopBarHeight = 52;
-const String _kCloseAllTerminalsAction = '__close_all_terminals__';

@@ -21,15 +21,37 @@ import 'media/media_extensions.dart';
 import 'sftp_session_manager.dart';
 import 'tab_header.dart';
 
-class SftpTab extends ConsumerStatefulWidget {
+class SftpTab extends StatelessWidget {
   const SftpTab({super.key});
 
   @override
-  ConsumerState<SftpTab> createState() => _SftpTabState();
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: _SftpPalette.canvas,
+      body: SftpPanel(showHeader: true),
+    );
+  }
 }
 
-class _SftpTabState extends ConsumerState<SftpTab> {
+class SftpPanel extends ConsumerStatefulWidget {
+  const SftpPanel({
+    super.key,
+    this.showHeader = false,
+    this.initialHostId,
+    this.allowDisconnect = true,
+  });
+
+  final bool showHeader;
+  final String? initialHostId;
+  final bool allowDisconnect;
+
+  @override
+  ConsumerState<SftpPanel> createState() => _SftpPanelState();
+}
+
+class _SftpPanelState extends ConsumerState<SftpPanel> {
   bool _connecting = false;
+  String? _autoConnectAttemptedHostId;
 
   Future<void> _refresh() => runRefreshWithFeedback(
     context,
@@ -113,18 +135,17 @@ class _SftpTabState extends ConsumerState<SftpTab> {
     final hostsAsync = ref.watch(hostListProvider);
     final manager = ref.watch(sftpSessionManagerProvider);
 
-    return Scaffold(
-      backgroundColor: _SftpPalette.canvas,
-      body: AnimatedBuilder(
-        animation: manager,
-        builder: (context, _) {
-          final session = manager.activeSession;
-          final showSelector =
-              !_connecting &&
-              session != null &&
-              session.status != SftpConnectionStatus.connecting;
-          return Column(
-            children: [
+    return AnimatedBuilder(
+      animation: manager,
+      builder: (context, _) {
+        final session = manager.activeSession;
+        final showSelector =
+            !_connecting &&
+            session != null &&
+            session.status != SftpConnectionStatus.connecting;
+        return Column(
+          children: [
+            if (widget.showHeader)
               TabHeader(
                 title: l.tr('tabs.sftp'),
                 actions: showSelector
@@ -132,83 +153,123 @@ class _SftpTabState extends ConsumerState<SftpTab> {
                         _SftpHeaderSelector(
                           session: session,
                           onTap: _openServerPicker,
-                          onDisconnect: () => manager.disconnectActive(),
+                          onDisconnect: widget.allowDisconnect
+                              ? () => manager.disconnectActive()
+                              : null,
                         ),
                       ]
                     : const [],
               ),
-              Expanded(
-                child: RefreshIndicator(
-                  color: _SftpPalette.primary,
-                  backgroundColor: _SftpPalette.card,
-                  onRefresh: _refresh,
-                  child: hostsAsync.when(
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(
-                        color: _SftpPalette.primary,
-                      ),
-                    ),
-                    error: (error, _) {
-                      if (error is UnauthorizedFailure) {
-                        return const SizedBox.shrink();
-                      }
-                      return _SftpMessageList(
-                        message: error.toString(),
-                        action: TextButton(
-                          onPressed: _refresh,
-                          child: Text(l.tr('common.retry')),
-                        ),
-                      );
-                    },
-                    data: (_) {
-                      if (_connecting ||
-                          session?.status == SftpConnectionStatus.connecting) {
-                        return _SftpConnectingView(
-                          server: session?.server,
-                          phase: session?.connectPhase,
-                        );
-                      }
-                      if (session == null) {
-                        return ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 72, 16, 24),
-                          children: [
-                            SizedBox(
-                              height: MediaQuery.sizeOf(context).height * 0.58,
-                              child: Center(
-                                child: _SftpEmptyCard(
-                                  onChooseServer: _openServerPicker,
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-                      if (session.status == SftpConnectionStatus.error) {
-                        return _SftpMessageList(
-                          message: session.lastError == 'timeout'
-                              ? l.tr('sftp.connectTimeout')
-                              : (session.lastError ??
-                                    l.tr('sftp.connectFailed')),
-                          action: TextButton(
-                            onPressed: () => _connectOrActivate(session.server),
-                            child: Text(l.tr('common.retry')),
-                          ),
-                        );
-                      }
-                      return _SftpConnectedView(
-                        session: session,
-                        manager: manager,
-                      );
-                    },
+            if (!widget.showHeader && showSelector)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _SftpHeaderSelector(
+                    session: session,
+                    onTap: _openServerPicker,
+                    onDisconnect: widget.allowDisconnect
+                        ? () => manager.disconnectActive()
+                        : null,
                   ),
                 ),
               ),
-            ],
-          );
-        },
-      ),
+            Expanded(
+              child: RefreshIndicator(
+                color: _SftpPalette.primary,
+                backgroundColor: _SftpPalette.card,
+                onRefresh: _refresh,
+                child: hostsAsync.when(
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(
+                      color: _SftpPalette.primary,
+                    ),
+                  ),
+                  error: (error, _) {
+                    if (error is UnauthorizedFailure) {
+                      return const SizedBox.shrink();
+                    }
+                    return _SftpMessageList(
+                      message: error.toString(),
+                      action: TextButton(
+                        onPressed: _refresh,
+                        child: Text(l.tr('common.retry')),
+                      ),
+                    );
+                  },
+                  data: (servers) {
+                    _autoConnectInitialServer(servers);
+                    if (_connecting ||
+                        session?.status == SftpConnectionStatus.connecting) {
+                      return _SftpConnectingView(
+                        server: session?.server,
+                        phase: session?.connectPhase,
+                      );
+                    }
+                    if (session == null) {
+                      return ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 72, 16, 24),
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.sizeOf(context).height * 0.58,
+                            child: Center(
+                              child: _SftpEmptyCard(
+                                onChooseServer: _openServerPicker,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    if (session.status == SftpConnectionStatus.error) {
+                      return _SftpMessageList(
+                        message: session.lastError == 'timeout'
+                            ? l.tr('sftp.connectTimeout')
+                            : (session.lastError ?? l.tr('sftp.connectFailed')),
+                        action: TextButton(
+                          onPressed: () => _connectOrActivate(session.server),
+                          child: Text(l.tr('common.retry')),
+                        ),
+                      );
+                    }
+                    return _SftpConnectedView(
+                      session: session,
+                      manager: manager,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  void _autoConnectInitialServer(List<ServerModel> servers) {
+    final hostId = widget.initialHostId;
+    if (hostId == null || hostId.isEmpty) return;
+    if (_autoConnectAttemptedHostId == hostId) return;
+    final manager = ref.read(sftpSessionManagerProvider);
+    if (manager.activeHostId == hostId && manager.activeSession != null) {
+      _autoConnectAttemptedHostId = hostId;
+      return;
+    }
+    ServerModel? target;
+    for (final server in servers) {
+      if (server.id == hostId) {
+        target = server;
+        break;
+      }
+    }
+    final targetServer = target;
+    if (targetServer == null) return;
+    _autoConnectAttemptedHostId = hostId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _connectOrActivate(targetServer);
+    });
   }
 }
 
@@ -701,7 +762,7 @@ class _SftpHeaderSelector extends StatelessWidget {
 
   final SftpSessionState session;
   final VoidCallback onTap;
-  final VoidCallback onDisconnect;
+  final VoidCallback? onDisconnect;
 
   @override
   Widget build(BuildContext context) {
@@ -755,16 +816,18 @@ class _SftpHeaderSelector extends StatelessWidget {
                     size: 16,
                     color: _SftpPalette.muted,
                   ),
-                  const SizedBox(width: 2),
-                  InkResponse(
-                    radius: 14,
-                    onTap: onDisconnect,
-                    child: const Icon(
-                      Icons.close_rounded,
-                      size: 14,
-                      color: _SftpPalette.muted,
+                  if (onDisconnect != null) ...[
+                    const SizedBox(width: 2),
+                    InkResponse(
+                      radius: 14,
+                      onTap: onDisconnect,
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 14,
+                        color: _SftpPalette.muted,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

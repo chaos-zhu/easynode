@@ -17,6 +17,11 @@ import 'ssh_transport.dart';
 /// - Toolbar shortcuts feed [writeInput] which writes directly to the SSH
 ///   session (not the local terminal buffer) so the remote sees the keys.
 class SshTerminalController {
+  static final RegExp _urlPattern = RegExp(
+    r'((https?|ftp):\/\/[^\s<>"\u001b]+|www\.[^\s<>"\u001b]+)',
+    caseSensitive: false,
+  );
+
   SshTerminalController({
     required this.config,
     Terminal? terminal,
@@ -72,10 +77,10 @@ class SshTerminalController {
     final session = await _client!.shell();
     _session = session;
     _stdoutSub = session.stdout.listen((data) {
-      terminal.write(utf8.decode(data, allowMalformed: true));
+      _writeTerminalOutput(utf8.decode(data, allowMalformed: true));
     });
     _stderrSub = session.stderr.listen((data) {
-      terminal.write(utf8.decode(data, allowMalformed: true));
+      _writeTerminalOutput(utf8.decode(data, allowMalformed: true));
     });
     terminal.onOutput = (data) {
       final transformed = _applyCtrlIfPending(data);
@@ -100,6 +105,22 @@ class SshTerminalController {
   void writeInput(String data) {
     final transformed = _applyCtrlIfPending(data);
     _session?.write(Uint8List.fromList(utf8.encode(transformed)));
+  }
+
+  void clearTerminal() {
+    terminal.buffer.clear();
+  }
+
+  void _writeTerminalOutput(String text) {
+    terminal.write(_decorateLinks(text));
+  }
+
+  String _decorateLinks(String text) {
+    if (!_urlPattern.hasMatch(text)) return text;
+    return text.replaceAllMapped(_urlPattern, (match) {
+      final url = match.group(0)!;
+      return '\x1b[4m$url\x1b[24m';
+    });
   }
 
   void toggleCtrl() {
