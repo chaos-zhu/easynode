@@ -77,7 +77,7 @@ class _TerminalScriptLibrarySheetState
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                   child: SizedBox(
-                    height: 42,
+                    height: 44,
                     child: TextField(
                       controller: _searchCtrl,
                       cursorColor: AppPalette.primary,
@@ -87,33 +87,32 @@ class _TerminalScriptLibrarySheetState
                       ),
                       decoration: InputDecoration(
                         hintText: l.tr('scripts.searchHint'),
-                        hintStyle: const TextStyle(color: AppPalette.softMuted),
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          size: 19,
+                        hintStyle: const TextStyle(
                           color: AppPalette.softMuted,
+                          fontSize: 13,
                         ),
+                        prefixIcon: const Icon(Icons.search, size: 18),
                         isDense: true,
                         filled: true,
-                        fillColor: AppPalette.chip,
+                        fillColor: AppPalette.card,
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 11,
+                          horizontal: 14,
+                          vertical: 12,
                         ),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(
                             color: AppPalette.border,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(
                             color: AppPalette.border,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(
                             color: AppPalette.primary,
                             width: 1.2,
@@ -251,7 +250,7 @@ class _ScriptListBody extends StatelessWidget {
         else
           for (final script in scripts)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: 12),
               child: _ScriptActionCard(
                 script: script,
                 groupName: _groupName(script, groups),
@@ -293,65 +292,99 @@ class _ScriptGroupChips extends StatelessWidget {
     final visible = groups
         .where((group) => (counts[group.id] ?? 0) > 0)
         .toList(growable: false);
-    if (visible.length < 2) return const SizedBox(height: 4);
+    if (visible.length < 2) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
-    return SizedBox(
-      height: 42,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: visible.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return _FilterChipButton(
-              label: l.tr('common.all'),
-              selected: selectedGroupId == null,
-              onTap: () => onSelected(null),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: SizedBox(
+        height: 36,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: visible.length + 1,
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return _FilterChip(
+                label: l.tr('common.all'),
+                count: scripts.length,
+                selected: selectedGroupId == null,
+                onTap: () => onSelected(null),
+              );
+            }
+            final group = visible[index - 1];
+            return _FilterChip(
+              label: group.displayName,
+              count: counts[group.id] ?? 0,
+              selected: selectedGroupId == group.id,
+              onTap: () => onSelected(group.id),
             );
-          }
-          final group = visible[index - 1];
-          return _FilterChipButton(
-            label: group.displayName,
-            selected: selectedGroupId == group.id,
-            onTap: () => onSelected(group.id),
-          );
-        },
+          },
+        ),
       ),
     );
   }
 }
 
-class _FilterChipButton extends StatelessWidget {
-  const _FilterChipButton({
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
     required this.label,
+    required this.count,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
+  final int count;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
-        selectedColor: AppPalette.primary,
-        backgroundColor: AppPalette.chip,
-        labelStyle: TextStyle(
-          color: selected ? AppPalette.fontOnPrimary : AppPalette.muted,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
+    return Material(
+      color: selected ? AppPalette.primary : Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: selected ? null : Border.all(color: AppPalette.strongBorder),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? Colors.white : AppPalette.text,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : AppPalette.chip,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    color: selected ? Colors.white : AppPalette.softMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        side: BorderSide(
-          color: selected ? AppPalette.primary : AppPalette.border,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        showCheckmark: false,
       ),
     );
   }
@@ -375,14 +408,14 @@ class _ScriptActionCard extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return Material(
       color: AppPalette.card,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         onTap: onSend,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(13, 12, 10, 10),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppPalette.border),
           ),
           child: Column(
@@ -407,7 +440,7 @@ class _ScriptActionCard extends StatelessWidget {
                 ],
               ),
               if (script.description.isNotEmpty) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 Text(
                   script.description,
                   maxLines: 2,
@@ -415,7 +448,7 @@ class _ScriptActionCard extends StatelessWidget {
                   style: const TextStyle(
                     color: AppPalette.muted,
                     fontSize: 12,
-                    height: 1.35,
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -424,9 +457,9 @@ class _ScriptActionCard extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.folder_outlined,
-                    size: 14,
+                    size: 13,
                     color: AppPalette.softMuted,
                   ),
                   const SizedBox(width: 5),
@@ -483,17 +516,17 @@ class _ScriptIconAction extends StatelessWidget {
       message: tooltip,
       child: Material(
         color: !enabled
-            ? AppPalette.chip
+            ? Colors.transparent
             : primary
             ? AppPalette.primary
-            : AppPalette.chip,
-        borderRadius: BorderRadius.circular(9),
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(8),
           onTap: onPressed,
           child: SizedBox(
-            width: 36,
-            height: 34,
+            width: 32,
+            height: 32,
             child: Icon(
               icon,
               size: 18,
@@ -605,7 +638,7 @@ class _TerminalScriptEditSheetState
       child: Padding(
         padding: EdgeInsets.only(bottom: bottom),
         child: FractionallySizedBox(
-          heightFactor: 0.88,
+          heightFactor: 0.78,
           child: _SheetFrame(
             title: l.tr('scripts.editScript'),
             icon: Icons.edit_outlined,
@@ -634,8 +667,8 @@ class _TerminalScriptEditSheetState
                         _TextField(
                           controller: _commandCtrl,
                           label: l.tr('scripts.field.command'),
-                          minLines: 8,
-                          maxLines: 14,
+                          minLines: 4,
+                          maxLines: 8,
                           monospace: true,
                           validator: (value) => (value ?? '').isEmpty
                               ? l.tr('scripts.validation.command')
@@ -813,10 +846,10 @@ class _CommandPreview extends StatelessWidget {
     final firstLine = command.split('\n').first.trim();
     final text = command.contains('\n') ? '$firstLine ...' : firstLine;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppPalette.chip,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppPalette.border),
       ),
       child: Row(
@@ -827,7 +860,7 @@ class _CommandPreview extends StatelessWidget {
               color: AppPalette.softMuted,
               fontFamily: 'monospace',
               fontSize: 12,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(width: 8),
@@ -852,29 +885,41 @@ class _CommandPreview extends StatelessWidget {
 class _EncodingChip extends StatelessWidget {
   const _EncodingChip({required this.useBase64});
 
+  static const _accent = Color(0xFF6F4B2A);
+  static const _accentSoft = Color(0xFFEEDCB5);
+  static const _successSoft = Color(0x225A8E3A);
+
   final bool useBase64;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: useBase64 ? AppPalette.banner : AppPalette.chip,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: useBase64 ? AppPalette.strongBorder : AppPalette.border,
-        ),
+        color: useBase64 ? _accentSoft : _successSoft,
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Text(
-        useBase64
-            ? l.tr('scripts.useBase64.base64')
-            : l.tr('scripts.useBase64.direct'),
-        style: TextStyle(
-          color: useBase64 ? AppPalette.primary : AppPalette.muted,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            useBase64 ? Icons.code : Icons.send_outlined,
+            size: 11,
+            color: useBase64 ? _accent : AppPalette.success,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            useBase64
+                ? l.tr('scripts.useBase64.base64')
+                : l.tr('scripts.useBase64.direct'),
+            style: TextStyle(
+              color: useBase64 ? _accent : AppPalette.success,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -39,11 +39,13 @@ class SftpPanel extends ConsumerStatefulWidget {
     this.showHeader = false,
     this.initialHostId,
     this.allowDisconnect = true,
+    this.lockToHost = false,
   });
 
   final bool showHeader;
   final String? initialHostId;
   final bool allowDisconnect;
+  final bool lockToHost;
 
   @override
   ConsumerState<SftpPanel> createState() => _SftpPanelState();
@@ -140,6 +142,7 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
       builder: (context, _) {
         final session = manager.activeSession;
         final showSelector =
+            !widget.lockToHost &&
             !_connecting &&
             session != null &&
             session.status != SftpConnectionStatus.connecting;

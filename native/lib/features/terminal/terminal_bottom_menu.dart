@@ -137,8 +137,8 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
               const SizedBox(height: 14),
               TextField(
                 controller: ctrl,
-                maxLines: 8,
-                minLines: 4,
+                maxLines: 12,
+                minLines: 6,
                 autofocus: true,
                 autocorrect: false,
                 enableSuggestions: false,
@@ -271,6 +271,7 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
                 ?.config
                 .hostId,
             allowDisconnect: false,
+            lockToHost: true,
           ),
         ),
       ),
