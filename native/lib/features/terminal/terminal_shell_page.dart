@@ -579,6 +579,7 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                                                 ? _terminalFocusNode
                                                 : null,
                                             autofocus: session.id == active?.id,
+                                            deleteDetection: true,
                                             padding: const EdgeInsets.symmetric(
                                               horizontal: 4,
                                               vertical: 6,
