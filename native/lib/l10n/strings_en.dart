@@ -403,6 +403,7 @@ const Map<String, String> stringsEn = {
   'credentials.empty': 'No credentials yet. Tap the + above to add one.',
   'credentials.emptyFiltered': 'No matching credentials.',
   'credentials.add': 'Add credential',
+  'settings.credentials.add': 'Add',
   'credentials.edit': 'Edit credential',
   'credentials.deleteConfirmTitle': 'Delete credential?',
   'credentials.deleteConfirmBody':
@@ -434,6 +435,7 @@ const Map<String, String> stringsEn = {
   'proxy.plusTipBody':
       'This capability is not enabled by the connected server.',
   'proxy.add': 'Add proxy',
+  'settings.proxy.add': 'Add',
   'proxy.edit': 'Edit proxy',
   'proxy.deleteConfirmTitle': 'Delete proxy?',
   'proxy.deleteConfirmBody':
