@@ -571,9 +571,6 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                       showSearchBar: _showSearchBar,
                       onClose: _closeActive,
                       onSearchToggle: active == null ? null : _toggleSearchBar,
-                      onReconnect: active == null
-                          ? null
-                          : () => manager.reconnect(active.id),
                     ),
                     Expanded(
                       child: ColoredBox(
@@ -742,14 +739,12 @@ class _TerminalTopBar extends StatelessWidget {
     required this.showSearchBar,
     required this.onClose,
     required this.onSearchToggle,
-    required this.onReconnect,
   });
 
   final TerminalSession? active;
   final bool showSearchBar;
   final VoidCallback onClose;
   final VoidCallback? onSearchToggle;
-  final VoidCallback? onReconnect;
 
   @override
   Widget build(BuildContext context) {
@@ -804,11 +799,6 @@ class _TerminalTopBar extends StatelessWidget {
                   ? Theme.of(context).colorScheme.primary
                   : null,
             ),
-          ),
-          IconButton(
-            tooltip: l.tr('terminal.reconnect'),
-            onPressed: onReconnect,
-            icon: const Icon(Icons.refresh),
           ),
           IconButton(
             tooltip: l.tr('terminal.closeTerminal'),

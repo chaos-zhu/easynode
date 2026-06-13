@@ -68,12 +68,8 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
                 onTap: () => _showScripts(context),
               ),
               _BarIcon(
-                icon: Icons.add_link_outlined,
-                onTap: () => _showNewConnection(context),
-              ),
-              _BarIcon(
                 icon: Icons.layers_outlined,
-                onTap: () => _showCurrentConnections(context),
+                onTap: () => _showConnections(context),
               ),
               _BarIcon(
                 icon: Icons.folder_outlined,
@@ -235,25 +231,7 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
     return true;
   }
 
-  Future<void> _showCurrentConnections(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.34),
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.70,
-        child: _TerminalSheetFrame(
-          title: l.tr('terminal.menu.current'),
-          icon: Icons.layers_outlined,
-          child: _CurrentConnectionsSheet(manager: widget.manager),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showNewConnection(BuildContext context) {
+  Future<void> _showConnections(BuildContext context) {
     final l = AppLocalizations.of(context);
     return showModalBottomSheet<void>(
       context: context,
@@ -263,9 +241,9 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.82,
         child: _TerminalSheetFrame(
-          title: l.tr('terminal.menu.newConnection'),
-          icon: Icons.add_link_outlined,
-          child: const _NewConnectionSheet(),
+          title: l.tr('terminal.menu.connections'),
+          icon: Icons.layers_outlined,
+          child: _ConnectionsSheet(manager: widget.manager),
         ),
       ),
     );
@@ -579,166 +557,16 @@ class _ToggleKeyBtn extends StatelessWidget {
 // Bottom sheet contents (unchanged)
 // ---------------------------------------------------------------------------
 
-class _CurrentConnectionsSheet extends StatelessWidget {
-  const _CurrentConnectionsSheet({required this.manager});
+class _ConnectionsSheet extends ConsumerStatefulWidget {
+  const _ConnectionsSheet({required this.manager});
 
   final TerminalSessionManager manager;
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: manager,
-      builder: (context, _) {
-        final sessions = manager.sessions.toList(growable: false);
-        final l = AppLocalizations.of(context);
-        if (sessions.isEmpty) {
-          return _MessageList(message: l.tr('terminal.noActive'));
-        }
-        return Column(
-          children: [
-            if (sessions.length > 1)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () => _confirmCloseAll(context, manager),
-                    icon: const Icon(Icons.layers_clear_outlined),
-                    label: Text(l.tr('terminal.closeAllTerminals')),
-                  ),
-                ),
-              ),
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                itemCount: sessions.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final session = sessions[index];
-                  final active = session.id == manager.activeId;
-                  return _SessionRow(
-                    session: session,
-                    active: active,
-                    onSelect: () => manager.setActive(session.id),
-                    onReconnect: () => manager.reconnect(session.id),
-                    onClose: () => manager.closeSession(session.id),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _confirmCloseAll(
-    BuildContext context,
-    TerminalSessionManager manager,
-  ) async {
-    final l = AppLocalizations.of(context);
-    final sessions = manager.sessions.toList(growable: false);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.tr('terminal.closeAllTitle')),
-        content: Text(l.trf('terminal.closeAllBodyMany', [sessions.length])),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l.tr('common.cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l.tr('common.closeAll')),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await manager.closeAll();
-      if (context.mounted) Navigator.of(context).pop();
-    }
-  }
+  ConsumerState<_ConnectionsSheet> createState() => _ConnectionsSheetState();
 }
 
-class _SessionRow extends StatelessWidget {
-  const _SessionRow({
-    required this.session,
-    required this.active,
-    required this.onSelect,
-    required this.onReconnect,
-    required this.onClose,
-  });
-
-  final TerminalSession session;
-  final bool active;
-  final VoidCallback onSelect;
-  final Future<void> Function() onReconnect;
-  final Future<void> Function() onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: active ? colors.primaryContainer : colors.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onSelect,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
-          child: Row(
-            children: [
-              _StatusDot(status: session.status),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      session.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      _statusText(l, session.status),
-                      style: TextStyle(color: colors.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-              if (active) const Icon(Icons.check_rounded),
-              IconButton(
-                tooltip: l.tr('terminal.reconnect'),
-                onPressed: () => onReconnect(),
-                icon: const Icon(Icons.refresh),
-              ),
-              IconButton(
-                tooltip: l.tr('terminal.closeTerminal'),
-                onPressed: () => onClose(),
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NewConnectionSheet extends ConsumerStatefulWidget {
-  const _NewConnectionSheet();
-
-  @override
-  ConsumerState<_NewConnectionSheet> createState() =>
-      _NewConnectionSheetState();
-}
-
-class _NewConnectionSheetState extends ConsumerState<_NewConnectionSheet> {
+class _ConnectionsSheetState extends ConsumerState<_ConnectionsSheet> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _query = '';
   String? _connectingId;
@@ -788,101 +616,227 @@ class _NewConnectionSheetState extends ConsumerState<_NewConnectionSheet> {
   Widget build(BuildContext context) {
     final hostsAsync = ref.watch(hostListProvider);
     final l = AppLocalizations.of(context);
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-          child: SizedBox(
-            height: 42,
-            child: TextField(
-              controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: l.tr('servers.searchHint'),
-                prefixIcon: const Icon(Icons.search, size: 19),
-                isDense: true,
-                filled: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+    final colors = Theme.of(context).colorScheme;
+    return AnimatedBuilder(
+      animation: widget.manager,
+      builder: (context, _) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: SizedBox(
+                height: 42,
+                child: TextField(
+                  controller: _searchCtrl,
+                  decoration: InputDecoration(
+                    hintText: l.tr('servers.searchHint'),
+                    prefixIcon: const Icon(Icons.search, size: 19),
+                    isDense: true,
+                    filled: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (value) =>
+                      setState(() => _query = value.trim().toLowerCase()),
                 ),
               ),
-              onChanged: (value) =>
-                  setState(() => _query = value.trim().toLowerCase()),
             ),
-          ),
-        ),
-        Expanded(
-          child: hostsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => _MessageList(
-              message: l.trf('terminal.loadServersFailed', [error.toString()]),
-              action: TextButton(
-                onPressed: () => ref.read(hostListProvider.notifier).refresh(),
-                child: Text(l.tr('common.retry')),
+            Expanded(
+              child: hostsAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (error, _) => _MessageList(
+                  message: l.trf(
+                    'terminal.loadServersFailed',
+                    [error.toString()],
+                  ),
+                  action: TextButton(
+                    onPressed: () =>
+                        ref.read(hostListProvider.notifier).refresh(),
+                    child: Text(l.tr('common.retry')),
+                  ),
+                ),
+                data: (servers) =>
+                    _buildList(context, servers, colors, l),
               ),
             ),
-            data: (servers) {
-              final filtered = _filterServers(servers);
-              if (filtered.isEmpty) {
-                return _MessageList(message: l.tr('servers.emptyFiltered'));
-              }
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                itemCount: filtered.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final server = filtered[index];
-                  final disabled = server.isWindows || !server.canConnect;
-                  return _ServerRow(
-                    server: server,
-                    disabled: disabled,
-                    connecting: _connectingId == server.id,
-                    onTap: _connectingId == null
-                        ? () => _connect(server)
-                        : null,
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
-  List<ServerModel> _filterServers(List<ServerModel> servers) {
-    if (_query.isEmpty) return servers;
-    return servers
-        .where((server) {
-          final haystack = [
-            server.displayName,
-            server.host,
-            server.username,
-            server.group,
-            ...server.tag,
-          ].join(' ').toLowerCase();
-          return haystack.contains(_query);
-        })
-        .toList(growable: false);
+  Widget _buildList(
+    BuildContext context,
+    List<ServerModel> servers,
+    ColorScheme colors,
+    AppLocalizations l,
+  ) {
+    final sessions = widget.manager.sessions.toList(growable: false);
+    final connectedHostIds = <String>{
+      for (final s in sessions) s.config.hostId,
+    };
+
+    final disconnectedServers = servers.where((server) {
+      if (connectedHostIds.contains(server.id)) return false;
+      if (_query.isEmpty) return true;
+      final haystack = [
+        server.displayName,
+        server.host,
+        server.username,
+        server.group,
+        ...server.tag,
+      ].join(' ').toLowerCase();
+      return haystack.contains(_query);
+    }).toList(growable: false);
+
+    if (sessions.isEmpty && disconnectedServers.isEmpty) {
+      return _MessageList(message: l.tr('servers.emptyFiltered'));
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      children: [
+        if (sessions.isNotEmpty) ...[
+          _SectionLabel(l.tr('terminal.connections.connected')),
+          for (final session in sessions) ...[
+            _ConnectedRow(
+              session: session,
+              active: session.id == widget.manager.activeId,
+              onSelect: () {
+                widget.manager.setActive(session.id);
+                Navigator.of(context).pop();
+              },
+              onReconnect: () => widget.manager.reconnect(session.id),
+              onClose: () => widget.manager.closeSession(session.id),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ],
+        if (disconnectedServers.isNotEmpty) ...[
+          _SectionLabel(l.tr('terminal.connections.disconnected')),
+          for (final server in disconnectedServers) ...[
+            _DisconnectedRow(
+              server: server,
+              connecting: _connectingId == server.id,
+              onTap: _connectingId == null
+                  ? () => _connect(server)
+                  : null,
+            ),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ],
+    );
   }
 }
 
-class _ServerRow extends StatelessWidget {
-  const _ServerRow({
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 0, 8),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: Theme.of(context).colorScheme.outline,
+        ),
+      ),
+    );
+  }
+}
+
+class _ConnectedRow extends StatelessWidget {
+  const _ConnectedRow({
+    required this.session,
+    required this.active,
+    required this.onSelect,
+    required this.onReconnect,
+    required this.onClose,
+  });
+
+  final TerminalSession session;
+  final bool active;
+  final VoidCallback onSelect;
+  final Future<void> Function() onReconnect;
+  final Future<void> Function() onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: active ? colors.primaryContainer : colors.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onSelect,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+          child: Row(
+            children: [
+              _StatusDot(status: session.status),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      session.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _statusText(l, session.status),
+                      style: TextStyle(color: colors.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              if (active)
+                const Icon(Icons.check_rounded),
+              IconButton(
+                tooltip: l.tr('terminal.reconnect'),
+                onPressed: () => onReconnect(),
+                icon: const Icon(Icons.refresh, size: 20),
+              ),
+              IconButton(
+                tooltip: l.tr('terminal.closeTerminal'),
+                onPressed: () => onClose(),
+                icon: const Icon(Icons.close, size: 20),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DisconnectedRow extends StatelessWidget {
+  const _DisconnectedRow({
     required this.server,
-    required this.disabled,
     required this.connecting,
     required this.onTap,
   });
 
   final ServerModel server;
-  final bool disabled;
   final bool connecting;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final disabled = server.isWindows || !server.canConnect;
     final textColor = disabled ? colors.outline : colors.onSurface;
     return Material(
       color: colors.surfaceContainerHighest,
