@@ -8,11 +8,38 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:xterm/src/ui/render.dart';
 import 'package:xterm/xterm.dart';
 
+import '../../core/ui/palette.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/terminal_providers.dart';
 import 'terminal_bottom_menu.dart';
 import 'terminal_session.dart';
 import 'terminal_session_manager.dart';
+
+const _kWarmTerminalTheme = TerminalTheme(
+  cursor: Color(0xFFE5B33A),
+  selection: Color(0x55E5B33A),
+  foreground: Color(0xFF2A2418),
+  background: Color(0xFFF7EFE0),
+  black: Color(0xFF2A2418),
+  red: Color(0xFFB9473D),
+  green: Color(0xFF5A8E3A),
+  yellow: Color(0xFFD4940A),
+  blue: Color(0xFF2472C8),
+  magenta: Color(0xFFBC3FBC),
+  cyan: Color(0xFF11A8CD),
+  white: Color(0xFFF7EFE0),
+  brightBlack: Color(0xFF6B5E3F),
+  brightRed: Color(0xFFD4564A),
+  brightGreen: Color(0xFF6EAF48),
+  brightYellow: Color(0xFFE5B33A),
+  brightBlue: Color(0xFF3B8EEA),
+  brightMagenta: Color(0xFFD670D6),
+  brightCyan: Color(0xFF29B8DB),
+  brightWhite: Color(0xFFFBF5E6),
+  searchHitBackground: Color(0xAAE5B33A),
+  searchHitBackgroundCurrent: Color(0xDD5A8E3A),
+  searchHitForeground: Color(0xFF2A2418),
+);
 
 class TerminalShellPage extends ConsumerStatefulWidget {
   const TerminalShellPage({super.key});
@@ -550,14 +577,14 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                     ),
                     Expanded(
                       child: ColoredBox(
-                        color: Colors.black,
+                        color: AppPalette.canvas,
                         child: sessions.isEmpty
                             ? Center(
                                 child: Text(
                                   AppLocalizations.of(
                                     context,
                                   ).tr('terminal.noActive'),
-                                  style: const TextStyle(color: Colors.white70),
+                                  style: const TextStyle(color: AppPalette.softMuted),
                                 ),
                               )
                             : FocusScope(
@@ -575,6 +602,7 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                                             controller: session.viewController,
                                             scrollController:
                                                 session.scrollController,
+                                            theme: _kWarmTerminalTheme,
                                             focusNode: session.id == active?.id
                                                 ? _terminalFocusNode
                                                 : null,
@@ -727,13 +755,16 @@ class _TerminalTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final activeSession = active;
     final l = AppLocalizations.of(context);
+    final colors = Theme.of(context).colorScheme;
     return Container(
       height: _kTopBarHeight,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: colors.surface,
         border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor),
+          bottom: BorderSide(
+            color: colors.outlineVariant.withValues(alpha: 0.5),
+          ),
         ),
       ),
       child: Row(
@@ -997,6 +1028,8 @@ class _TerminalSearchBar extends StatelessWidget {
                     controller: controller,
                     focusNode: focusNode,
                     onChanged: onChanged,
+                    autocorrect: false,
+                    enableSuggestions: false,
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                     decoration: InputDecoration(
                       isDense: true,

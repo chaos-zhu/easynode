@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
+import '../../core/ui/palette.dart';
 import '../../features/servers/server_model.dart';
 import '../../features/shell/sftp_tab.dart';
 import '../../l10n/app_localizations.dart';
@@ -59,6 +60,10 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
           child: Row(
             children: [
               _BarIcon(
+                icon: Icons.edit_note_outlined,
+                onTap: () => _showCommandInput(context),
+              ),
+              _BarIcon(
                 icon: Icons.code_outlined,
                 onTap: () => _showScripts(context),
               ),
@@ -93,6 +98,113 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
           ),
       ],
     );
+  }
+
+  Future<void> _showCommandInput(BuildContext context) async {
+    final session = ref.read(terminalSessionManagerProvider).activeSession;
+    if (session == null) return;
+    final l = AppLocalizations.of(context);
+    final ctrl = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppPalette.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppPalette.border),
+        ),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 48),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.edit_note_outlined,
+                      color: AppPalette.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    l.tr('terminal.menu.commandInput'),
+                    style: const TextStyle(
+                      color: AppPalette.text,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: ctrl,
+                maxLines: 8,
+                minLines: 4,
+                autofocus: true,
+                autocorrect: false,
+                enableSuggestions: false,
+                textInputAction: TextInputAction.newline,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  color: AppPalette.text,
+                  height: 1.5,
+                ),
+                cursorColor: AppPalette.accent,
+                decoration: InputDecoration(
+                  hintText: l.tr('terminal.commandInput.hint'),
+                  hintStyle: const TextStyle(color: AppPalette.softMuted),
+                  filled: true,
+                  fillColor: AppPalette.canvas,
+                  contentPadding: const EdgeInsets.all(12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppPalette.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppPalette.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppPalette.accent),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppPalette.muted,
+                    ),
+                    child: Text(l.tr('common.cancel')),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: () => Navigator.of(ctx).pop(ctrl.text),
+                    icon: const Icon(Icons.send, size: 16),
+                    label: Text(l.tr('terminal.commandInput.send')),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppPalette.primary,
+                      foregroundColor: AppPalette.fontOnPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (result == null || result.isEmpty) return;
+    widget.onInput(result);
   }
 
   Future<void> _showScripts(BuildContext context) {
