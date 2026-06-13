@@ -11,35 +11,11 @@ import 'package:xterm/xterm.dart';
 import '../../core/ui/palette.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/terminal_providers.dart';
+import '../../state/terminal_settings_notifier.dart';
 import 'terminal_bottom_menu.dart';
 import 'terminal_session.dart';
 import 'terminal_session_manager.dart';
-
-const _kWarmTerminalTheme = TerminalTheme(
-  cursor: Color(0xFFE5B33A),
-  selection: Color(0x55E5B33A),
-  foreground: Color(0xFF2A2418),
-  background: Color(0xFFF7EFE0),
-  black: Color(0xFF2A2418),
-  red: Color(0xFFB9473D),
-  green: Color(0xFF5A8E3A),
-  yellow: Color(0xFFD4940A),
-  blue: Color(0xFF2472C8),
-  magenta: Color(0xFFBC3FBC),
-  cyan: Color(0xFF11A8CD),
-  white: Color(0xFFF7EFE0),
-  brightBlack: Color(0xFF6B5E3F),
-  brightRed: Color(0xFFD4564A),
-  brightGreen: Color(0xFF6EAF48),
-  brightYellow: Color(0xFFE5B33A),
-  brightBlue: Color(0xFF3B8EEA),
-  brightMagenta: Color(0xFFD670D6),
-  brightCyan: Color(0xFF29B8DB),
-  brightWhite: Color(0xFFFBF5E6),
-  searchHitBackground: Color(0xAAE5B33A),
-  searchHitBackgroundCurrent: Color(0xDD5A8E3A),
-  searchHitForeground: Color(0xFF2A2418),
-);
+import 'terminal_settings_page.dart';
 
 class TerminalShellPage extends ConsumerStatefulWidget {
   const TerminalShellPage({super.key});
@@ -530,6 +506,7 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
   @override
   Widget build(BuildContext context) {
     final manager = ref.watch(terminalSessionManagerProvider);
+    final termSettings = ref.watch(terminalSettingsProvider);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     if (_terminalFocusNode.hasFocus && bottomInset > _lastKeyboardHeight) {
       _lastKeyboardHeight = bottomInset;
@@ -569,10 +546,17 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                     _TerminalTopBar(
                       active: active,
                       onClose: _closeActive,
+                      onSettings: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const TerminalSettingsPage(),
+                          ),
+                        );
+                      },
                     ),
                     Expanded(
                       child: ColoredBox(
-                        color: AppPalette.canvas,
+                        color: termSettings.terminalTheme.background,
                         child: sessions.isEmpty
                             ? Center(
                                 child: Text(
@@ -597,7 +581,8 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                                             controller: session.viewController,
                                             scrollController:
                                                 session.scrollController,
-                                            theme: _kWarmTerminalTheme,
+                                            theme: termSettings.terminalTheme,
+                                            textStyle: termSettings.terminalStyle,
                                             focusNode: session.id == active?.id
                                                 ? _terminalFocusNode
                                                 : null,
@@ -742,10 +727,12 @@ class _TerminalTopBar extends StatelessWidget {
   const _TerminalTopBar({
     required this.active,
     required this.onClose,
+    required this.onSettings,
   });
 
   final TerminalSession? active;
   final VoidCallback onClose;
+  final VoidCallback onSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -801,6 +788,11 @@ class _TerminalTopBar extends StatelessWidget {
           //         : null,
           //   ),
           // ),
+          IconButton(
+            tooltip: l.tr('terminal.settings'),
+            onPressed: onSettings,
+            icon: const Icon(Icons.settings_outlined),
+          ),
           IconButton(
             tooltip: l.tr('terminal.closeTerminal'),
             onPressed: activeSession == null ? null : onClose,

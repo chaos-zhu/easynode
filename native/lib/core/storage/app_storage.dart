@@ -64,4 +64,25 @@ class AppStorage {
   String get editorTheme => _prefs.getString(_keyEditorTheme) ?? 'dark';
   Future<void> setEditorTheme(String value) =>
       _prefs.setString(_keyEditorTheme, value);
+
+  // ── Terminal settings ──
+
+  static const _keyTermFontSize = 'terminal.fontSize';
+  static const _keyTermFontFamily = 'terminal.fontFamily';
+  static const _keyTermTheme = 'terminal.themePreset';
+
+  double get terminalFontSize =>
+      _prefs.getDouble(_keyTermFontSize) ?? 12.0;
+  Future<void> setTerminalFontSize(double v) =>
+      _prefs.setDouble(_keyTermFontSize, v);
+
+  String get terminalFontFamily =>
+      _prefs.getString(_keyTermFontFamily) ?? 'monospace';
+  Future<void> setTerminalFontFamily(String v) =>
+      _prefs.setString(_keyTermFontFamily, v);
+
+  String get terminalThemePreset =>
+      _prefs.getString(_keyTermTheme) ?? 'warm';
+  Future<void> setTerminalThemePreset(String v) =>
+      _prefs.setString(_keyTermTheme, v);
 }
