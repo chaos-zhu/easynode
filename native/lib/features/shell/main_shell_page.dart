@@ -183,16 +183,15 @@ class _WarmBottomBar extends StatelessWidget {
               height: 62,
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: AppPalette.card.withValues(alpha: 0.68),
+                color: AppPalette.card,
                 borderRadius: BorderRadius.circular(36),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.52),
-                ),
+                border: Border.all(color: AppPalette.border),
                 boxShadow: [
                   BoxShadow(
-                    color: AppPalette.primary.withValues(alpha: 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+                    color: AppPalette.primary.withValues(alpha: 0.12),
+                    blurRadius: 24,
+                    spreadRadius: 2,
+                    offset: const Offset(0, -6),
                   ),
                 ],
               ),
