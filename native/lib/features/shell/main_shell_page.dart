@@ -84,7 +84,10 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
         backgroundColor: AppPalette.canvas,
         body: SafeArea(
           bottom: false,
-          child: IndexedStack(index: _index, children: _tabs),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 90),
+            child: IndexedStack(index: _index, children: _tabs),
+          ),
         ),
         bottomNavigationBar: _WarmBottomBar(
           selectedIndex: _index,
