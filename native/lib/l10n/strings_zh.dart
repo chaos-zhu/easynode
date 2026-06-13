@@ -259,8 +259,9 @@ const Map<String, String> stringsZh = {
   'settings.proxy.subtitle': 'HTTP / SOCKS5 出站代理',
 
   'settings.theme.title': '主题外观',
-  'settings.theme.wipChip': '开发中',
-  'settings.theme.wipToast': '主题切换功能开发中，敬请期待',
+  'settings.theme.system': '跟随系统',
+  'settings.theme.light': '亮色',
+  'settings.theme.dark': '暗黑',
 
   'settings.update.title': '检查更新',
   'settings.update.subtitle': '对比最新原生端版本',

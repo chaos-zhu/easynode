@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../features/settings/app_update_prompt.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/app_update_notifier.dart';
@@ -81,13 +81,10 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
       },
       child: Scaffold(
         extendBody: true,
-        backgroundColor: AppPalette.canvas,
+        backgroundColor: context.colors.canvas,
         body: SafeArea(
           bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 90),
-            child: IndexedStack(index: _index, children: _tabs),
-          ),
+          child: IndexedStack(index: _index, children: _tabs),
         ),
         bottomNavigationBar: _WarmBottomBar(
           selectedIndex: _index,
@@ -169,9 +166,9 @@ class _WarmBottomBar extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            AppPalette.canvas.withValues(alpha: 0),
-            AppPalette.canvas.withValues(alpha: 0.55),
-            AppPalette.canvas.withValues(alpha: 0.85),
+            context.colors.canvas.withValues(alpha: 0),
+            context.colors.canvas.withValues(alpha: 0.55),
+            context.colors.canvas.withValues(alpha: 0.85),
           ],
           stops: const [0.0, 0.45, 1.0],
         ),
@@ -186,12 +183,12 @@ class _WarmBottomBar extends StatelessWidget {
               height: 62,
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: AppPalette.card,
+                color: context.colors.card,
                 borderRadius: BorderRadius.circular(36),
-                border: Border.all(color: AppPalette.border),
+                border: Border.all(color: context.colors.border),
                 boxShadow: [
                   BoxShadow(
-                    color: AppPalette.primary.withValues(alpha: 0.12),
+                    color: context.colors.primary.withValues(alpha: 0.12),
                     blurRadius: 24,
                     spreadRadius: 2,
                     offset: const Offset(0, -6),
@@ -246,12 +243,12 @@ class _WarmBottomBarIndicator extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
-        color: AppPalette.accent.withValues(alpha: 0.74),
+        color: context.colors.accent.withValues(alpha: 0.74),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: Colors.white.withValues(alpha: 0.38)),
         boxShadow: [
           BoxShadow(
-            color: AppPalette.accent.withValues(alpha: 0.24),
+            color: context.colors.accent.withValues(alpha: 0.24),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -279,7 +276,7 @@ class _WarmBottomBarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? Colors.white : AppPalette.softMuted;
+    final color = selected ? context.colors.fontOnPrimary : context.colors.softMuted;
     return Tooltip(
       message: item.label,
       child: Material(

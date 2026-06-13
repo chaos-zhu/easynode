@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/credential_list_notifier.dart';
@@ -107,9 +107,9 @@ class _CredentialEditPageState extends ConsumerState<CredentialEditPage> {
     final l = AppLocalizations.of(context);
     final isKey = _authType == 'privateKey';
     return Scaffold(
-      backgroundColor: AppPalette.canvas,
+      backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        backgroundColor: AppPalette.canvas,
+        backgroundColor: context.colors.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(_isEdit ? l.tr('credentials.edit') : l.tr('credentials.add')),
@@ -227,8 +227,8 @@ class _CredentialEditPageState extends ConsumerState<CredentialEditPage> {
             const SizedBox(height: 28),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: AppPalette.primary,
-                foregroundColor: AppPalette.fontOnPrimary,
+                backgroundColor: context.colors.primary,
+                foregroundColor: context.colors.fontOnPrimary,
                 minimumSize: const Size.fromHeight(48),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -236,12 +236,12 @@ class _CredentialEditPageState extends ConsumerState<CredentialEditPage> {
               ),
               onPressed: _saving ? null : _save,
               child: _saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 18,
                       width: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppPalette.fontOnPrimary,
+                        color: context.colors.fontOnPrimary,
                       ),
                     )
                   : Text(
@@ -273,7 +273,7 @@ class _AppBarSaveButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppPalette.primary,
+      color: context.colors.primary,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -284,23 +284,23 @@ class _AppBarSaveButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (loading)
-                const SizedBox(
+                SizedBox(
                   height: 14,
                   width: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppPalette.fontOnPrimary,
+                    color: context.colors.fontOnPrimary,
                   ),
                 )
               else
-                const Icon(Icons.check, size: 14, color: AppPalette.fontOnPrimary),
+                Icon(Icons.check, size: 14, color: context.colors.fontOnPrimary),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppPalette.fontOnPrimary,
+                  color: context.colors.fontOnPrimary,
                 ),
               ),
             ],
@@ -324,20 +324,20 @@ class _FieldLabel extends StatelessWidget {
       children: [
         Text(
           text.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.5,
-            color: AppPalette.muted,
+            color: context.colors.muted,
           ),
         ),
         if (trailing != null)
           Text(
             trailing!,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               fontStyle: FontStyle.italic,
-              color: AppPalette.softMuted,
+              color: context.colors.softMuted,
             ),
           ),
       ],
@@ -374,17 +374,17 @@ class _FormField extends StatelessWidget {
       style: TextStyle(
         fontSize: monospace ? 12 : 14,
         fontFamily: monospace ? 'monospace' : null,
-        color: AppPalette.text,
+        color: context.colors.text,
         height: monospace ? 1.5 : null,
       ),
       decoration: InputDecoration(
         isDense: true,
         filled: true,
-        fillColor: monospace ? AppPalette.chip : AppPalette.card,
+        fillColor: monospace ? context.colors.chip : context.colors.card,
         hintText: hint,
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontSize: 13,
-          color: AppPalette.softMuted,
+          color: context.colors.softMuted,
         ),
         suffixIcon: suffix,
         contentPadding: const EdgeInsets.symmetric(
@@ -393,15 +393,15 @@ class _FormField extends StatelessWidget {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppPalette.border),
+          borderSide: BorderSide(color: context.colors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppPalette.border),
+          borderSide: BorderSide(color: context.colors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppPalette.accent),
+          borderSide: BorderSide(color: context.colors.accent),
         ),
       ),
     );
@@ -420,7 +420,7 @@ class _EyeButton extends StatelessWidget {
       icon: Icon(
         open ? Icons.visibility_outlined : Icons.visibility_off_outlined,
         size: 18,
-        color: AppPalette.muted,
+        color: context.colors.muted,
       ),
       onPressed: onTap,
     );
@@ -444,8 +444,8 @@ class _TypeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected ? AppPalette.accentSoft : AppPalette.card;
-    final border = selected ? AppPalette.primary : AppPalette.border;
+    final bg = selected ? context.colors.accentSoft : context.colors.card;
+    final border = selected ? context.colors.primary : context.colors.border;
     final borderWidth = selected ? 2.0 : 1.0;
     return Material(
       color: bg,
@@ -465,7 +465,7 @@ class _TypeOption extends StatelessWidget {
               Icon(
                 icon,
                 size: 20,
-                color: selected ? AppPalette.primary : AppPalette.muted,
+                color: selected ? context.colors.primary : context.colors.muted,
               ),
               const SizedBox(height: 6),
               Text(
@@ -473,16 +473,16 @@ class _TypeOption extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: selected ? AppPalette.primary : AppPalette.text,
+                  color: selected ? context.colors.primary : context.colors.text,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 sublabel,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: AppPalette.softMuted,
+                  color: context.colors.softMuted,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

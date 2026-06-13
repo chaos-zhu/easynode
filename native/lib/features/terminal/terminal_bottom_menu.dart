@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../features/servers/server_model.dart';
 import '../../features/shell/sftp_tab.dart';
 import '../../l10n/app_localizations.dart';
@@ -102,15 +102,16 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
     final session = ref.read(terminalSessionManagerProvider).activeSession;
     if (session == null) return;
     final l = AppLocalizations.of(context);
+    final c = context.colors;
     final ctrl = TextEditingController();
     final result = await showDialog<String>(
       context: context,
       barrierColor: Colors.black54,
       builder: (ctx) => Dialog(
-        backgroundColor: AppPalette.card,
+        backgroundColor: c.card,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppPalette.border),
+          side: BorderSide(color: c.border),
         ),
         insetPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 48),
         child: Padding(
@@ -121,13 +122,13 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.edit_note_outlined,
-                      color: AppPalette.primary, size: 20),
+                  Icon(Icons.edit_note_outlined,
+                      color: c.primary, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     l.tr('terminal.menu.commandInput'),
-                    style: const TextStyle(
-                      color: AppPalette.text,
+                    style: TextStyle(
+                      color: c.text,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -143,30 +144,30 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
                 autocorrect: false,
                 enableSuggestions: false,
                 textInputAction: TextInputAction.newline,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 13,
-                  color: AppPalette.text,
+                  color: c.text,
                   height: 1.5,
                 ),
-                cursorColor: AppPalette.accent,
+                cursorColor: c.accent,
                 decoration: InputDecoration(
                   hintText: l.tr('terminal.commandInput.hint'),
-                  hintStyle: const TextStyle(color: AppPalette.softMuted),
+                  hintStyle: TextStyle(color: c.softMuted),
                   filled: true,
-                  fillColor: AppPalette.canvas,
+                  fillColor: c.canvas,
                   contentPadding: const EdgeInsets.all(12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppPalette.border),
+                    borderSide: BorderSide(color: c.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppPalette.border),
+                    borderSide: BorderSide(color: c.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppPalette.accent),
+                    borderSide: BorderSide(color: c.accent),
                   ),
                 ),
               ),
@@ -177,7 +178,7 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
                   TextButton(
                     onPressed: () => Navigator.of(ctx).pop(),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppPalette.muted,
+                      foregroundColor: c.muted,
                     ),
                     child: Text(l.tr('common.cancel')),
                   ),
@@ -187,8 +188,8 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
                     icon: const Icon(Icons.send, size: 16),
                     label: Text(l.tr('terminal.commandInput.send')),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppPalette.primary,
-                      foregroundColor: AppPalette.fontOnPrimary,
+                      backgroundColor: c.primary,
+                      foregroundColor: c.fontOnPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),

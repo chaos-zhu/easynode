@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../core/ui/refresh_feedback.dart';
 import '../../core/utils/app_store_compliance.dart';
 import '../../l10n/app_localizations.dart';
@@ -98,9 +98,9 @@ class _PlusSubscriptionPageState extends ConsumerState<PlusSubscriptionPage> {
     final plusAsync = ref.watch(plusInfoProvider);
 
     return Scaffold(
-      backgroundColor: AppPalette.canvas,
+      backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        backgroundColor: AppPalette.canvas,
+        backgroundColor: context.colors.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(l.tr('settings.plus.title')),
@@ -170,9 +170,9 @@ class _AuthorizationStatusCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppPalette.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.border),
+        border: Border.all(color: context.colors.border),
       ),
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -185,16 +185,16 @@ class _AuthorizationStatusCard extends StatelessWidget {
                     ? Icons.verified_outlined
                     : Icons.info_outline_rounded,
                 size: 20,
-                color: info.isActive ? AppPalette.success : AppPalette.muted,
+                color: info.isActive ? context.colors.success : context.colors.muted,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   statusText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: AppPalette.text,
+                    color: context.colors.text,
                   ),
                 ),
               ),
@@ -203,11 +203,11 @@ class _AuthorizationStatusCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             detail,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               height: 1.5,
               fontWeight: FontWeight.w500,
-              color: AppPalette.muted,
+              color: context.colors.muted,
             ),
           ),
           const SizedBox(height: 12),
@@ -240,20 +240,20 @@ class _StatusLine extends StatelessWidget {
           width: 96,
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppPalette.softMuted,
+              color: context.colors.softMuted,
             ),
           ),
         ),
         Expanded(
           child: Text(
             value.isEmpty ? '-' : value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppPalette.text,
+              color: context.colors.text,
             ),
           ),
         ),
@@ -273,11 +273,11 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 2, 4, 8),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.5,
-          color: AppPalette.muted,
+          color: context.colors.muted,
         ),
       ),
     );
@@ -311,9 +311,9 @@ class _ActivateCardState extends State<_ActivateCard> {
     final l = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppPalette.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.border),
+        border: Border.all(color: context.colors.border),
       ),
       padding: const EdgeInsets.all(14),
       child: Form(
@@ -323,11 +323,11 @@ class _ActivateCardState extends State<_ActivateCard> {
           children: [
             Text(
               l.tr('plus.keyLabel').toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.5,
-                color: AppPalette.muted,
+                color: context.colors.muted,
               ),
             ),
             const SizedBox(height: 6),
@@ -337,20 +337,20 @@ class _ActivateCardState extends State<_ActivateCard> {
               obscureText: !_showKey,
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => widget.onSubmit(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontFamily: 'monospace',
-                color: AppPalette.text,
+                color: context.colors.text,
               ),
               decoration: InputDecoration(
                 hintText: l.tr('plus.keyHint'),
-                hintStyle: const TextStyle(
+                hintStyle: TextStyle(
                   fontSize: 13,
-                  color: AppPalette.softMuted,
+                  color: context.colors.softMuted,
                 ),
                 isDense: true,
                 filled: true,
-                fillColor: AppPalette.canvas,
+                fillColor: context.colors.canvas,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 12,
@@ -361,21 +361,21 @@ class _ActivateCardState extends State<_ActivateCard> {
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
                     size: 18,
-                    color: AppPalette.muted,
+                    color: context.colors.muted,
                   ),
                   onPressed: () => setState(() => _showKey = !_showKey),
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppPalette.border),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppPalette.border),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppPalette.accent),
+                  borderSide: BorderSide(color: context.colors.accent),
                 ),
               ),
             ),
@@ -385,17 +385,17 @@ class _ActivateCardState extends State<_ActivateCard> {
               child: FilledButton(
                 onPressed: widget.loading ? null : widget.onSubmit,
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppPalette.primary,
-                  foregroundColor: AppPalette.fontOnPrimary,
+                  backgroundColor: context.colors.primary,
+                  foregroundColor: context.colors.fontOnPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 child: widget.loading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppPalette.fontOnPrimary,
+                          color: context.colors.fontOnPrimary,
                         ),
                       )
                     : Text(
@@ -415,25 +415,25 @@ class _ActivateCardState extends State<_ActivateCard> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: AppPalette.dangerSoft,
+                  color: context.colors.dangerSoft,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppPalette.dangerBorder),
+                  border: Border.all(color: context.colors.dangerBorder),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.info_outline,
                       size: 14,
-                      color: AppPalette.danger,
+                      color: context.colors.danger,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         widget.discount.content,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppPalette.danger,
+                          color: context.colors.danger,
                         ),
                       ),
                     ),
@@ -445,26 +445,26 @@ class _ActivateCardState extends State<_ActivateCard> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: AppPalette.chip,
+                color: context.colors.chip,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.info_outline,
                     size: 14,
-                    color: AppPalette.muted,
+                    color: context.colors.muted,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       l.tr('plus.activateHint'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         height: 1.5,
                         fontWeight: FontWeight.w500,
-                        color: AppPalette.muted,
+                        color: context.colors.muted,
                       ),
                     ),
                   ),
@@ -515,9 +515,9 @@ class _FeaturesCard extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppPalette.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Column(
         children: [
@@ -528,9 +528,9 @@ class _FeaturesCard extends StatelessWidget {
               description: l.tr(_features[i].$3),
             ),
             if (i < _features.length - 1)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 14),
-                child: Divider(height: 1, color: AppPalette.border),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Divider(height: 1, color: context.colors.border),
               ),
           ],
         ],
@@ -561,11 +561,11 @@ class _FeatureRow extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppPalette.chip,
+              color: context.colors.chip,
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 16, color: AppPalette.primary),
+            child: Icon(icon, size: 16, color: context.colors.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -574,26 +574,26 @@ class _FeatureRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppPalette.text,
+                    color: context.colors.text,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     height: 1.4,
                     fontWeight: FontWeight.w500,
-                    color: AppPalette.muted,
+                    color: context.colors.muted,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.check_rounded, size: 16, color: AppPalette.success),
+          Icon(Icons.check_rounded, size: 16, color: context.colors.success),
         ],
       ),
     );
@@ -617,16 +617,16 @@ class _ErrorBody extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Column(
               children: [
-                const Icon(
+                Icon(
                   Icons.error_outline,
                   size: 36,
-                  color: AppPalette.danger,
+                  color: context.colors.danger,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 13, color: AppPalette.text),
+                  style: TextStyle(fontSize: 13, color: context.colors.text),
                 ),
                 const SizedBox(height: 16),
                 FilledButton.tonal(

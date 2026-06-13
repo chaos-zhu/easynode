@@ -274,8 +274,9 @@ const Map<String, String> stringsEn = {
   'settings.proxy.subtitle': 'HTTP / SOCKS5 outbound proxies',
 
   'settings.theme.title': 'Appearance',
-  'settings.theme.wipChip': 'WIP',
-  'settings.theme.wipToast': 'Theme switching is on the roadmap.',
+  'settings.theme.system': 'Follow System',
+  'settings.theme.light': 'Light',
+  'settings.theme.dark': 'Dark',
 
   'settings.update.title': 'Check for updates',
   'settings.update.subtitle': 'Compare with the latest native release',

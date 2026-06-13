@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../core/utils/jwt_expiry.dart';
 import '../../core/utils/validators.dart';
 import '../../l10n/app_localizations.dart';
@@ -150,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppPalette.canvas,
+      backgroundColor: context.colors.canvas,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
@@ -234,9 +234,9 @@ class _LoginFormCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
       decoration: BoxDecoration(
-        color: AppPalette.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Column(
         children: [
@@ -321,39 +321,39 @@ class _LoginTextField extends StatelessWidget {
       textInputAction: textInputAction,
       onSubmitted: onSubmitted,
       obscureText: obscureText,
-      style: const TextStyle(
-        color: AppPalette.text,
+      style: TextStyle(
+        color: context.colors.text,
         fontSize: 14,
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, size: 18, color: AppPalette.muted),
+        prefixIcon: Icon(icon, size: 18, color: context.colors.muted),
         filled: true,
-        fillColor: AppPalette.chip,
+        fillColor: context.colors.chip,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
         ),
-        labelStyle: const TextStyle(
-          color: AppPalette.softMuted,
+        labelStyle: TextStyle(
+          color: context.colors.softMuted,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
-        floatingLabelStyle: const TextStyle(
-          color: AppPalette.muted,
+        floatingLabelStyle: TextStyle(
+          color: context.colors.muted,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
-        hintStyle: const TextStyle(color: AppPalette.muted, fontSize: 13),
+        hintStyle: TextStyle(color: context.colors.muted, fontSize: 13),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.border),
+          borderSide: BorderSide(color: context.colors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.accent, width: 1.2),
+          borderSide: BorderSide(color: context.colors.accent, width: 1.2),
         ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -374,17 +374,17 @@ class _SavePasswordRow extends StatelessWidget {
       height: 48,
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.shield_outlined,
-            color: AppPalette.muted,
+            color: context.colors.muted,
             size: 18,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               l.tr('login.savePassword'),
-              style: const TextStyle(
-                color: AppPalette.muted,
+              style: TextStyle(
+                color: context.colors.muted,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -393,10 +393,10 @@ class _SavePasswordRow extends StatelessWidget {
           Switch(
             key: const Key('switch-save-password'),
             value: value,
-            activeThumbColor: AppPalette.card,
-            activeTrackColor: AppPalette.accent,
-            inactiveThumbColor: AppPalette.card,
-            inactiveTrackColor: AppPalette.border,
+            activeThumbColor: context.colors.card,
+            activeTrackColor: context.colors.accent,
+            inactiveThumbColor: context.colors.card,
+            inactiveTrackColor: context.colors.border,
             onChanged: onChanged,
           ),
         ],
@@ -416,9 +416,9 @@ class _LoginBottomBar extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      decoration: const BoxDecoration(
-        color: AppPalette.card,
-        border: Border(top: BorderSide(color: AppPalette.border)),
+      decoration: BoxDecoration(
+        color: context.colors.card,
+        border: Border(top: BorderSide(color: context.colors.border)),
       ),
       child: SizedBox(
         width: double.infinity,
@@ -427,21 +427,21 @@ class _LoginBottomBar extends StatelessWidget {
           key: const Key('btn-login'),
           onPressed: submitting ? null : onSubmit,
           style: FilledButton.styleFrom(
-            backgroundColor: AppPalette.accent,
-            foregroundColor: const Color(0xFF5C4520),
-            disabledBackgroundColor: AppPalette.border,
-            disabledForegroundColor: AppPalette.softMuted,
+            backgroundColor: context.colors.accent,
+            foregroundColor: context.colors.fontOnPrimary,
+            disabledBackgroundColor: context.colors.border,
+            disabledForegroundColor: context.colors.softMuted,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
           ),
           icon: submitting
-              ? const SizedBox(
+              ? SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Color(0xFF5C4520),
+                    color: context.colors.fontOnPrimary,
                   ),
                 )
               : const Icon(Icons.arrow_forward, size: 18),
@@ -485,7 +485,7 @@ class _LoginHero extends ConsumerWidget {
           title,
           textAlign: TextAlign.center,
           style: theme.textTheme.titleLarge?.copyWith(
-            color: AppPalette.text,
+            color: context.colors.text,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -496,7 +496,7 @@ class _LoginHero extends ConsumerWidget {
             Text(
               versionLabel,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: AppPalette.softMuted,
+                color: context.colors.softMuted,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -507,10 +507,10 @@ class _LoginHero extends ConsumerWidget {
                   Uri.parse('https://github.com/chaos-zhu/easynode'),
                   mode: LaunchMode.externalApplication,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.open_in_new,
                   size: 14,
-                  color: AppPalette.softMuted,
+                  color: context.colors.softMuted,
                 ),
               ),
             ],
@@ -532,20 +532,20 @@ class _ErrorBox extends StatelessWidget {
       key: const Key('login-error'),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFE7DE),
+        color: context.colors.dangerSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE28B75)),
+        border: Border.all(color: context.colors.dangerBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, color: Color(0xFF8B2B1C), size: 20),
+          Icon(Icons.error_outline, color: context.colors.danger, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: Color(0xFF8B2B1C),
+              style: TextStyle(
+                color: context.colors.danger,
                 fontSize: 13,
                 height: 1.35,
               ),
@@ -579,7 +579,7 @@ class _ExpiryPicker extends StatelessWidget {
         Text(
           l.tr('login.sessionDuration'),
           style: theme.textTheme.labelLarge?.copyWith(
-            color: AppPalette.muted,
+            color: context.colors.muted,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -594,17 +594,17 @@ class _ExpiryPicker extends StatelessWidget {
                 showCheckmark: false,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 visualDensity: VisualDensity.compact,
-                backgroundColor: AppPalette.card,
-                selectedColor: const Color(0xFFF7E4B0),
+                backgroundColor: context.colors.card,
+                selectedColor: context.colors.banner,
                 side: BorderSide(
-                  color: entry.key == value ? AppPalette.accent : AppPalette.border,
+                  color: entry.key == value ? context.colors.accent : context.colors.border,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(999),
                 ),
                 labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                 labelStyle: TextStyle(
-                  color: entry.key == value ? AppPalette.text : AppPalette.muted,
+                  color: entry.key == value ? context.colors.text : context.colors.muted,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),

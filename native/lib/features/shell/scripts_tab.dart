@@ -15,6 +15,13 @@ import '../../state/script_group_list_notifier.dart';
 import '../../state/script_list_notifier.dart';
 import 'tab_header.dart';
 
+import '../../core/ui/app_color_theme.dart';
+
+/// Script-specific accent — distinct from the global `AppColorTheme.accent`.
+const _kScriptAccent = Color(0xFF6F4B2A);
+const _kScriptAccentSoft = Color(0xFFEEDCB5);
+const _kScriptSuccessSoft = Color(0x225A8E3A);
+
 /// Third bottom-nav tab — scripts library. Mirrors design node `Zhupt` and
 /// feature parity with web `web/src/views/scripts/index.vue`: search + group
 /// chips + card list with copy/edit/delete actions. State is sourced from
@@ -96,7 +103,7 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: _ScriptPalette.danger,
+              backgroundColor: context.colors.danger,
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.of(context).pop(true),
@@ -143,11 +150,12 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
   Widget build(BuildContext context) {
     final scriptsAsync = ref.watch(scriptListProvider);
     final groupsAsync = ref.watch(scriptGroupListProvider);
+    final c = context.colors;
     return Scaffold(
-      backgroundColor: _ScriptPalette.canvas,
+      backgroundColor: c.canvas,
       body: RefreshIndicator(
-        color: _ScriptPalette.primary,
-        backgroundColor: _ScriptPalette.card,
+        color: c.primary,
+        backgroundColor: c.card,
         displacement: 30,
         edgeOffset: 6,
         strokeWidth: 2,
@@ -212,15 +220,15 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
                 ),
                 const SizedBox(width: 4),
                 Material(
-                  color: _ScriptPalette.primary,
+                  color: context.colors.primary,
                   borderRadius: BorderRadius.circular(10),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(10),
                     onTap: () => _openForm(),
-                    child: const SizedBox(
+                    child: SizedBox(
                       width: 36,
                       height: 36,
-                      child: Icon(Icons.add, size: 20, color: Colors.white),
+                      child: Icon(Icons.add, size: 20, color: context.colors.fontOnPrimary),
                     ),
                   ),
                 ),
@@ -248,12 +256,12 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
                                 child: TextField(
                                   controller: _searchCtrl,
                                   autofocus: true,
-                                  cursorColor: _ScriptPalette.primary,
-                                  style: const TextStyle(
-                                    color: _ScriptPalette.text,
+                                  cursorColor: context.colors.primary,
+                                  style: TextStyle(
+                                    color: context.colors.text,
                                     fontSize: 14,
                                   ),
-                                  decoration: _searchFieldDecoration(l)
+                                  decoration: _searchFieldDecoration(context, l)
                                       .copyWith(
                                         hintText: l.tr('scripts.searchHint'),
                                       ),
@@ -281,7 +289,7 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
             Expanded(
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
                 children: [
                   if (scripts.isEmpty)
                     _MessageState(message: l.tr('scripts.emptyHint'))
@@ -413,15 +421,16 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected ? _ScriptPalette.primary : Colors.transparent;
-    final fg = selected ? Colors.white : _ScriptPalette.text;
+    final c = context.colors;
+    final bg = selected ? c.primary : Colors.transparent;
+    final fg = selected ? c.fontOnPrimary : c.text;
     return Material(
       color: bg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: selected
             ? BorderSide.none
-            : const BorderSide(color: _ScriptPalette.strongBorder),
+            : BorderSide(color: c.strongBorder),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -444,14 +453,14 @@ class _Chip extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
                   color: selected
-                      ? Colors.white.withValues(alpha: 0.20)
-                      : _ScriptPalette.chip,
+                      ? c.fontOnPrimary.withValues(alpha: 0.20)
+                      : c.chip,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   count.toString(),
                   style: TextStyle(
-                    color: selected ? Colors.white : _ScriptPalette.softMuted,
+                    color: selected ? c.fontOnPrimary : c.softMuted,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
@@ -482,12 +491,13 @@ class _ScriptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _ScriptPalette.card,
+        color: c.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _ScriptPalette.border),
+        border: Border.all(color: c.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -499,8 +509,8 @@ class _ScriptCard extends StatelessWidget {
                   script.name.isEmpty ? '--' : script.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _ScriptPalette.text,
+                  style: TextStyle(
+                    color: c.text,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -516,8 +526,8 @@ class _ScriptCard extends StatelessWidget {
               script.description,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _ScriptPalette.muted,
+              style: TextStyle(
+                color: c.muted,
                 fontSize: 12,
                 height: 1.4,
               ),
@@ -528,10 +538,10 @@ class _ScriptCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.folder_outlined,
                 size: 13,
-                color: _ScriptPalette.softMuted,
+                color: c.softMuted,
               ),
               const SizedBox(width: 5),
               Expanded(
@@ -539,8 +549,8 @@ class _ScriptCard extends StatelessWidget {
                   groupName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _ScriptPalette.softMuted,
+                  style: TextStyle(
+                    color: c.softMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -549,7 +559,7 @@ class _ScriptCard extends StatelessWidget {
               _ActionIcon(
                 tooltip: AppLocalizations.of(context).tr('scripts.action.copy'),
                 icon: Icons.copy,
-                color: _ScriptPalette.muted,
+                color: c.muted,
                 onTap: onCopy,
               ),
               if (onEdit != null)
@@ -558,7 +568,7 @@ class _ScriptCard extends StatelessWidget {
                     context,
                   ).tr('scripts.action.edit'),
                   icon: Icons.edit_outlined,
-                  color: _ScriptPalette.muted,
+                  color: c.muted,
                   onTap: onEdit,
                 ),
               if (onDelete != null)
@@ -567,7 +577,7 @@ class _ScriptCard extends StatelessWidget {
                     context,
                   ).tr('scripts.action.delete'),
                   icon: Icons.delete_outline,
-                  color: _ScriptPalette.danger,
+                  color: c.danger,
                   onTap: onDelete,
                 ),
             ],
@@ -584,21 +594,22 @@ class _CommandPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final firstLine = command.split('\n').first.trim();
     final hasMore = command.contains('\n');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: _ScriptPalette.chip,
+        color: c.chip,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _ScriptPalette.border),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
-          const Text(
+          Text(
             '\$',
             style: TextStyle(
-              color: _ScriptPalette.softMuted,
+              color: c.softMuted,
               fontFamily: 'monospace',
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -610,8 +621,8 @@ class _CommandPreview extends StatelessWidget {
               hasMore ? '$firstLine …' : firstLine,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _ScriptPalette.text,
+              style: TextStyle(
+                color: c.text,
                 fontFamily: 'monospace',
                 fontSize: 12,
               ),
@@ -631,18 +642,18 @@ class _Base64Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: _ScriptPalette.accentSoft,
+        color: _kScriptAccentSoft,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
+      child: const Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.code, size: 11, color: _ScriptPalette.accent),
+        children: [
+          Icon(Icons.code, size: 11, color: _kScriptAccent),
           SizedBox(width: 4),
           Text(
             'Base64',
             style: TextStyle(
-              color: _ScriptPalette.accent,
+              color: _kScriptAccent,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -661,18 +672,18 @@ class _PlainChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: _ScriptPalette.successSoft,
+        color: _kScriptSuccessSoft,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.send_outlined, size: 11, color: _ScriptPalette.success),
-          SizedBox(width: 4),
+        children: [
+          Icon(Icons.send_outlined, size: 11, color: context.colors.success),
+          const SizedBox(width: 4),
           Text(
             '直接发送',
             style: TextStyle(
-              color: _ScriptPalette.success,
+              color: context.colors.success,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -738,7 +749,7 @@ class _HeaderIconButton extends StatelessWidget {
         child: SizedBox(
           width: 36,
           height: 36,
-          child: Icon(icon, color: _ScriptPalette.muted, size: 22),
+          child: Icon(icon, color: context.colors.muted, size: 22),
         ),
       ),
     );
@@ -757,49 +768,34 @@ class _MessageState extends StatelessWidget {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: _ScriptPalette.muted),
+          style: TextStyle(color: context.colors.muted),
         ),
       ),
     );
   }
 }
 
-InputDecoration _searchFieldDecoration(AppLocalizations l) {
+InputDecoration _searchFieldDecoration(BuildContext context, AppLocalizations l) {
+  final c = context.colors;
   return InputDecoration(
     isDense: true,
     filled: true,
-    fillColor: _ScriptPalette.card,
+    fillColor: c.card,
     prefixIcon: const Icon(Icons.search, size: 18),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    hintStyle: const TextStyle(color: _ScriptPalette.softMuted, fontSize: 13),
+    hintStyle: TextStyle(color: c.softMuted, fontSize: 13),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _ScriptPalette.border),
+      borderSide: BorderSide(color: c.border),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _ScriptPalette.primary, width: 1.2),
+      borderSide: BorderSide(color: c.primary, width: 1.2),
     ),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _ScriptPalette.border),
+      borderSide: BorderSide(color: c.border),
     ),
   );
 }
 
-abstract final class _ScriptPalette {
-  static const canvas = Color(0xFFF7EFE0);
-  static const card = Color(0xFFFBF5E6);
-  static const chip = Color(0xFFF4ECD7);
-  static const primary = Color(0xFF5C4520);
-  static const text = Color(0xFF2A2418);
-  static const muted = Color(0xFF6B5E3F);
-  static const softMuted = Color(0xFF9A8B68);
-  static const border = Color(0xFFE2D5B3);
-  static const strongBorder = Color(0xFFC9B98D);
-  static const danger = Color(0xFFB9473D);
-  static const accent = Color(0xFF6F4B2A);
-  static const accentSoft = Color(0xFFEEDCB5);
-  static const success = Color(0xFF5A8E3A);
-  static const successSoft = Color(0x225A8E3A);
-}

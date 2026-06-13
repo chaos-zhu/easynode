@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../features/scripts/script_group_model.dart';
 import '../../features/scripts/script_model.dart';
 import '../../features/scripts/script_repository.dart';
@@ -59,6 +59,7 @@ class _TerminalScriptLibrarySheetState
     final scriptsAsync = ref.watch(scriptListProvider);
     final groups = ref.watch(scriptGroupListProvider).valueOrNull ?? const [];
     final l = AppLocalizations.of(context);
+    final c = context.colors;
 
     return SafeArea(
       top: false,
@@ -80,41 +81,41 @@ class _TerminalScriptLibrarySheetState
                     height: 44,
                     child: TextField(
                       controller: _searchCtrl,
-                      cursorColor: AppPalette.primary,
-                      style: const TextStyle(
-                        color: AppPalette.text,
+                      cursorColor: c.primary,
+                      style: TextStyle(
+                        color: c.text,
                         fontSize: 14,
                       ),
                       decoration: InputDecoration(
                         hintText: l.tr('scripts.searchHint'),
-                        hintStyle: const TextStyle(
-                          color: AppPalette.softMuted,
+                        hintStyle: TextStyle(
+                          color: c.softMuted,
                           fontSize: 13,
                         ),
                         prefixIcon: const Icon(Icons.search, size: 18),
                         isDense: true,
                         filled: true,
-                        fillColor: AppPalette.card,
+                        fillColor: c.card,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 12,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: AppPalette.border,
+                          borderSide: BorderSide(
+                            color: c.border,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: AppPalette.border,
+                          borderSide: BorderSide(
+                            color: c.border,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: AppPalette.primary,
+                          borderSide: BorderSide(
+                            color: c.primary,
                             width: 1.2,
                           ),
                         ),
@@ -244,7 +245,7 @@ class _ScriptListBody extends StatelessWidget {
             child: Text(
               l.tr('scripts.emptyFiltered'),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppPalette.softMuted),
+              style: TextStyle(color: context.colors.softMuted),
             ),
           )
         else
@@ -341,8 +342,9 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Material(
-      color: selected ? AppPalette.primary : Colors.transparent,
+      color: selected ? c.primary : Colors.transparent,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -351,7 +353,7 @@ class _FilterChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: selected ? null : Border.all(color: AppPalette.strongBorder),
+            border: selected ? null : Border.all(color: c.strongBorder),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -359,7 +361,7 @@ class _FilterChip extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: selected ? Colors.white : AppPalette.text,
+                  color: selected ? c.fontOnPrimary : c.text,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -369,14 +371,14 @@ class _FilterChip extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
                   color: selected
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : AppPalette.chip,
+                      ? c.fontOnPrimary.withValues(alpha: 0.2)
+                      : c.chip,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   '$count',
                   style: TextStyle(
-                    color: selected ? Colors.white : AppPalette.softMuted,
+                    color: selected ? c.fontOnPrimary : c.softMuted,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
@@ -406,8 +408,9 @@ class _ScriptActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final c = context.colors;
     return Material(
-      color: AppPalette.card,
+      color: c.card,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -416,7 +419,7 @@ class _ScriptActionCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppPalette.border),
+            border: Border.all(color: c.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -428,8 +431,8 @@ class _ScriptActionCard extends StatelessWidget {
                       script.name.isEmpty ? '--' : script.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppPalette.text,
+                      style: TextStyle(
+                        color: c.text,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -445,8 +448,8 @@ class _ScriptActionCard extends StatelessWidget {
                   script.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppPalette.muted,
+                  style: TextStyle(
+                    color: c.muted,
                     fontSize: 12,
                     height: 1.4,
                   ),
@@ -457,10 +460,10 @@ class _ScriptActionCard extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.folder_outlined,
                     size: 13,
-                    color: AppPalette.softMuted,
+                    color: c.softMuted,
                   ),
                   const SizedBox(width: 5),
                   Expanded(
@@ -469,7 +472,7 @@ class _ScriptActionCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: AppPalette.softMuted,
+                        color: c.softMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -511,6 +514,7 @@ class _ScriptIconAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final enabled = onPressed != null;
     return Tooltip(
       message: tooltip,
@@ -518,7 +522,7 @@ class _ScriptIconAction extends StatelessWidget {
         color: !enabled
             ? Colors.transparent
             : primary
-            ? AppPalette.primary
+            ? c.primary
             : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
@@ -531,10 +535,10 @@ class _ScriptIconAction extends StatelessWidget {
               icon,
               size: 18,
               color: !enabled
-                  ? AppPalette.softMuted
+                  ? c.softMuted
                   : primary
-                  ? AppPalette.fontOnPrimary
-                  : AppPalette.muted,
+                  ? c.fontOnPrimary
+                  : c.muted,
             ),
           ),
         ),
@@ -709,12 +713,12 @@ class _TerminalScriptEditSheetState
                           child: FilledButton.icon(
                             onPressed: _saving ? null : _saveAndSend,
                             icon: _saving
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 16,
                                     height: 16,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.white,
+                                      color: context.colors.fontOnPrimary,
                                     ),
                                   )
                                 : const Icon(Icons.save_outlined),
@@ -783,11 +787,12 @@ class _SheetFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       decoration: BoxDecoration(
-        color: AppPalette.canvas,
+        color: c.canvas,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        border: const Border(top: BorderSide(color: AppPalette.border)),
+        border: Border(top: BorderSide(color: c.border)),
       ),
       child: Column(
         children: [
@@ -796,7 +801,7 @@ class _SheetFrame extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppPalette.strongBorder,
+              color: c.strongBorder,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -804,15 +809,15 @@ class _SheetFrame extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
             child: Row(
               children: [
-                Icon(icon, size: 21, color: AppPalette.primary),
+                Icon(icon, size: 21, color: c.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppPalette.text,
+                    style: TextStyle(
+                      color: c.text,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
@@ -821,9 +826,9 @@ class _SheetFrame extends StatelessWidget {
                 IconButton(
                   tooltip: AppLocalizations.of(context).tr('common.close'),
                   onPressed: onClose,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
-                    color: AppPalette.muted,
+                    color: c.muted,
                   ),
                 ),
               ],
@@ -843,21 +848,22 @@ class _CommandPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final firstLine = command.split('\n').first.trim();
     final text = command.contains('\n') ? '$firstLine ...' : firstLine;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppPalette.chip,
+        color: c.chip,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppPalette.border),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
-          const Text(
+          Text(
             '\$',
             style: TextStyle(
-              color: AppPalette.softMuted,
+              color: c.softMuted,
               fontFamily: 'monospace',
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -869,8 +875,8 @@ class _CommandPreview extends StatelessWidget {
               text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppPalette.text,
+              style: TextStyle(
+                color: c.text,
                 fontFamily: 'monospace',
                 fontSize: 12,
               ),
@@ -894,6 +900,7 @@ class _EncodingChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final successColor = context.colors.success;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -906,7 +913,7 @@ class _EncodingChip extends StatelessWidget {
           Icon(
             useBase64 ? Icons.code : Icons.send_outlined,
             size: 11,
-            color: useBase64 ? _accent : AppPalette.success,
+            color: useBase64 ? _accent : successColor,
           ),
           const SizedBox(width: 4),
           Text(
@@ -914,7 +921,7 @@ class _EncodingChip extends StatelessWidget {
                 ? l.tr('scripts.useBase64.base64')
                 : l.tr('scripts.useBase64.direct'),
             style: TextStyle(
-              color: useBase64 ? _accent : AppPalette.success,
+              color: useBase64 ? _accent : successColor,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -940,7 +947,7 @@ class _MessageList extends StatelessWidget {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppPalette.softMuted),
+          style: TextStyle(color: context.colors.softMuted),
         ),
       ],
     );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/ui/palette.dart';
+import '../../../core/ui/app_color_theme.dart';
 
 /// A labelled section in the Settings page: an all-caps header plus a rounded
 /// card container that wraps its rows.
@@ -27,37 +27,37 @@ class SettingsSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
             child: Text(
               title.toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.5,
-                color: AppPalette.muted,
+                color: context.colors.muted,
               ),
             ),
           ),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: AppPalette.card,
+              color: context.colors.card,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppPalette.border),
+              border: Border.all(color: context.colors.border),
             ),
-            child: Column(children: _withDividers(children)),
+            child: Column(children: _withDividers(children, context)),
           ),
         ],
       ),
     );
   }
 
-  List<Widget> _withDividers(List<Widget> rows) {
+  List<Widget> _withDividers(List<Widget> rows, BuildContext context) {
     if (rows.length <= 1) return rows;
     final out = <Widget>[];
     for (var i = 0; i < rows.length; i++) {
       out.add(rows[i]);
       if (i < rows.length - 1) {
         out.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(height: 1, color: AppPalette.border),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Divider(height: 1, color: context.colors.border),
           ),
         );
       }

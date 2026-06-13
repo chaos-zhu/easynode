@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/ui/palette.dart';
+import '../../../core/ui/app_color_theme.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// Placeholder shown by settings sub-pages that are not wired up yet.
@@ -23,28 +23,28 @@ class ComingSoonPlaceholder extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppPalette.chip,
+                color: context.colors.chip,
                 borderRadius: BorderRadius.circular(20),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 30, color: AppPalette.primary),
+              child: Icon(icon, size: 30, color: context.colors.primary),
             ),
             const SizedBox(height: 18),
             Text(
               l.tr('settings.comingSoon.title'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppPalette.text,
+                color: context.colors.text,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               l.tr('settings.comingSoon.body'),
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppPalette.muted,
+                color: context.colors.muted,
                 height: 1.5,
               ),
             ),
@@ -52,8 +52,8 @@ class ComingSoonPlaceholder extends StatelessWidget {
             FilledButton.tonal(
               onPressed: () => Navigator.of(context).maybePop(),
               style: FilledButton.styleFrom(
-                backgroundColor: AppPalette.chip,
-                foregroundColor: AppPalette.primary,
+                backgroundColor: context.colors.chip,
+                foregroundColor: context.colors.primary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 22,
                   vertical: 12,

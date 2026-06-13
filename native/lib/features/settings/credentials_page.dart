@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../core/ui/refresh_feedback.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
@@ -65,8 +65,8 @@ class _CredentialsPageState extends ConsumerState<CredentialsPage> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppPalette.danger,
-              foregroundColor: AppPalette.fontOnPrimary,
+              backgroundColor: ctx.colors.danger,
+              foregroundColor: ctx.colors.fontOnPrimary,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l.tr('common.delete')),
@@ -120,9 +120,9 @@ class _CredentialsPageState extends ConsumerState<CredentialsPage> {
     final async = ref.watch(credentialListProvider);
 
     return Scaffold(
-      backgroundColor: AppPalette.canvas,
+      backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        backgroundColor: AppPalette.canvas,
+        backgroundColor: context.colors.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(l.tr('settings.credentials.title')),
@@ -133,7 +133,7 @@ class _CredentialsPageState extends ConsumerState<CredentialsPage> {
                 : l.tr('common.search'),
             onPressed: _toggleSearch,
             icon: Icon(_searchOpen ? Icons.close_rounded : Icons.search_rounded),
-            color: AppPalette.primary,
+            color: context.colors.primary,
           ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -165,16 +165,16 @@ class _CredentialsPageState extends ConsumerState<CredentialsPage> {
                           decoration: InputDecoration(
                             isDense: true,
                             filled: true,
-                            fillColor: AppPalette.card,
+                            fillColor: context.colors.card,
                             hintText: l.tr('credentials.searchHint'),
-                            hintStyle: const TextStyle(
+                            hintStyle: TextStyle(
                               fontSize: 13,
-                              color: AppPalette.softMuted,
+                              color: context.colors.softMuted,
                             ),
-                            prefixIcon: const Icon(
+                            prefixIcon: Icon(
                               Icons.search_rounded,
                               size: 18,
-                              color: AppPalette.softMuted,
+                              color: context.colors.softMuted,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -183,17 +183,17 @@ class _CredentialsPageState extends ConsumerState<CredentialsPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide:
-                                  const BorderSide(color: AppPalette.border),
+                                  BorderSide(color: context.colors.border),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide:
-                                  const BorderSide(color: AppPalette.border),
+                                  BorderSide(color: context.colors.border),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide:
-                                  const BorderSide(color: AppPalette.accent),
+                                  BorderSide(color: context.colors.accent),
                             ),
                           ),
                         ),
@@ -238,8 +238,8 @@ class _CredentialsPageState extends ConsumerState<CredentialsPage> {
                               list.isEmpty
                                   ? l.tr('credentials.empty')
                                   : l.tr('credentials.emptyFiltered'),
-                              style: const TextStyle(
-                                color: AppPalette.softMuted,
+                              style: TextStyle(
+                                color: context.colors.softMuted,
                                 fontSize: 13,
                               ),
                             ),
@@ -283,19 +283,19 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.5,
-            color: AppPalette.muted,
+            color: context.colors.muted,
           ),
         ),
         Text(
           '· $count',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            color: AppPalette.muted,
+            color: context.colors.muted,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -312,18 +312,18 @@ class _AddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppPalette.primary,
+      color: context.colors.primary,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
-        child: const SizedBox(
+        child: SizedBox(
           width: 36,
           height: 36,
           child: Icon(
             Icons.add_rounded,
             size: 20,
-            color: AppPalette.fontOnPrimary,
+            color: context.colors.fontOnPrimary,
           ),
         ),
       ),
@@ -353,7 +353,7 @@ class _CredentialCard extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final isKey = credential.isPrivateKey;
     return Material(
-      color: AppPalette.card,
+      color: context.colors.card,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -361,7 +361,7 @@ class _CredentialCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppPalette.border),
+            border: Border.all(color: context.colors.border),
           ),
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -373,14 +373,14 @@ class _CredentialCard extends StatelessWidget {
                     width: 30,
                     height: 30,
                     decoration: BoxDecoration(
-                      color: AppPalette.chip,
+                      color: context.colors.chip,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
                       isKey ? Icons.vpn_key_outlined : Icons.lock_outline,
                       size: 16,
-                      color: AppPalette.primary,
+                      color: context.colors.primary,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -388,11 +388,11 @@ class _CredentialCard extends StatelessWidget {
                     child: Text(
                       credential.displayName,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                         fontFamily: 'monospace',
-                        color: AppPalette.text,
+                        color: context.colors.text,
                       ),
                     ),
                   ),
@@ -413,23 +413,23 @@ class _CredentialCard extends StatelessWidget {
                         ? const SizedBox.shrink()
                         : Text(
                             dateLabel,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: AppPalette.softMuted,
+                              color: context.colors.softMuted,
                             ),
                           ),
                   ),
                   _ActionButton(
                     icon: Icons.edit_outlined,
-                    bg: AppPalette.accentSoft,
-                    fg: AppPalette.primary,
+                    bg: context.colors.accentSoft,
+                    fg: context.colors.primary,
                     onTap: onEdit,
                   ),
                   const SizedBox(width: 6),
                   _ActionButton(
                     icon: Icons.delete_outline,
-                    bg: AppPalette.dangerSoft,
-                    fg: AppPalette.danger,
+                    bg: context.colors.dangerSoft,
+                    fg: context.colors.danger,
                     loading: deleting,
                     onTap: onDelete,
                   ),
@@ -452,9 +452,9 @@ class _AuthTypeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = isKey
-        ? AppPalette.success.withValues(alpha: 0.16)
-        : AppPalette.accentSoft;
-    final fg = isKey ? AppPalette.success : AppPalette.primary;
+        ? context.colors.success.withValues(alpha: 0.16)
+        : context.colors.accentSoft;
+    final fg = isKey ? context.colors.success : context.colors.primary;
     final icon = isKey ? Icons.vpn_key : Icons.lock;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -543,16 +543,16 @@ class _ErrorBody extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Column(
               children: [
-                const Icon(
+                Icon(
                   Icons.error_outline,
                   size: 36,
-                  color: AppPalette.danger,
+                  color: context.colors.danger,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 13, color: AppPalette.text),
+                  style: TextStyle(fontSize: 13, color: context.colors.text),
                 ),
                 const SizedBox(height: 16),
                 FilledButton.tonal(

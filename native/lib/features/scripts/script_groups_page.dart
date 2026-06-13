@@ -13,6 +13,8 @@ import 'script_group_model.dart';
 import 'script_model.dart';
 import 'script_repository.dart';
 
+import '../../core/ui/app_color_theme.dart';
+
 /// Group manager — full-screen page pushed from the scripts list AppBar.
 /// Mirrors design node `Poem6` and feature parity with web `script-group.vue`:
 /// list groups with script-count, add/edit via bottom sheet, delete with
@@ -39,6 +41,7 @@ class _ScriptGroupsPageState extends ConsumerState<ScriptGroupsPage> {
 
   Future<void> _openForm({ScriptGroupModel? group}) async {
     if (!_ensurePlusOrWarn()) return;
+    final c = context.colors;
     final l = AppLocalizations.of(context);
     final groups =
         ref.read(scriptGroupListProvider).valueOrNull ??
@@ -54,7 +57,7 @@ class _ScriptGroupsPageState extends ConsumerState<ScriptGroupsPage> {
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: _GroupPalette.card,
+      backgroundColor: c.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
@@ -94,7 +97,7 @@ class _ScriptGroupsPageState extends ConsumerState<ScriptGroupsPage> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: _GroupPalette.danger,
+              backgroundColor: context.colors.danger,
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.of(context).pop(true),
@@ -135,25 +138,26 @@ class _ScriptGroupsPageState extends ConsumerState<ScriptGroupsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final l = AppLocalizations.of(context);
     final groupsAsync = ref.watch(scriptGroupListProvider);
     final scripts =
         ref.watch(scriptListProvider).valueOrNull ?? const <ScriptModel>[];
     final isPlus = ref.watch(isPlusActiveProvider);
     return Scaffold(
-      backgroundColor: _GroupPalette.canvas,
+      backgroundColor: c.canvas,
       appBar: AppBar(
-        backgroundColor: _GroupPalette.canvas,
+        backgroundColor: c.canvas,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(
           l.tr('scripts.groupsTitle'),
-          style: const TextStyle(
-            color: _GroupPalette.text,
+          style: TextStyle(
+            color: c.text,
             fontWeight: FontWeight.w800,
           ),
         ),
-        iconTheme: const IconThemeData(color: _GroupPalette.text),
+        iconTheme: IconThemeData(color: c.text),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -221,29 +225,30 @@ class _HintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
-        color: _GroupPalette.banner,
+        color: c.banner,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
             child: Icon(
               Icons.info_outline,
               size: 16,
-              color: _GroupPalette.primary,
+              color: c.primary,
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               body,
-              style: const TextStyle(
-                color: _GroupPalette.muted,
+              style: TextStyle(
+                color: c.muted,
                 fontSize: 12,
                 height: 1.4,
               ),
@@ -262,30 +267,31 @@ class _PlusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
-        color: _GroupPalette.banner,
+        color: c.banner,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _GroupPalette.strongBorder),
+        border: Border.all(color: c.strongBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
             child: Icon(
               Icons.workspace_premium_outlined,
               size: 16,
-              color: _GroupPalette.primary,
+              color: c.primary,
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: _GroupPalette.primary,
+              style: TextStyle(
+                color: c.primary,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 height: 1.4,
@@ -313,13 +319,14 @@ class _GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _GroupPalette.card,
+        color: c.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _GroupPalette.border),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
@@ -334,8 +341,8 @@ class _GroupCard extends StatelessWidget {
                         group.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _GroupPalette.text,
+                        style: TextStyle(
+                          color: c.text,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
@@ -353,16 +360,16 @@ class _GroupCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.description_outlined,
                       size: 13,
-                      color: _GroupPalette.softMuted,
+                      color: c.softMuted,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       l.trf('scripts.scriptCount', [scriptCount]),
-                      style: const TextStyle(
-                        color: _GroupPalette.softMuted,
+                      style: TextStyle(
+                        color: c.softMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -372,12 +379,12 @@ class _GroupCard extends StatelessWidget {
             ),
           ),
           if (group.isBuiltin)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 '--',
                 style: TextStyle(
-                  color: _GroupPalette.softMuted,
+                  color: c.softMuted,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -387,14 +394,14 @@ class _GroupCard extends StatelessWidget {
               children: [
                 _ActionIcon(
                   icon: Icons.edit_outlined,
-                  color: _GroupPalette.muted,
+                  color: c.muted,
                   onTap: onEdit,
                 ),
                 _ActionIcon(
                   icon: Icons.delete_outline,
                   color: onDelete == null
-                      ? _GroupPalette.softMuted
-                      : _GroupPalette.danger,
+                      ? c.softMuted
+                      : c.danger,
                   onTap: onDelete,
                 ),
               ],
@@ -411,16 +418,17 @@ class _RoleChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: _GroupPalette.chip,
+        color: c.chip,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: _GroupPalette.muted,
+        style: TextStyle(
+          color: c.muted,
           fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
@@ -460,8 +468,9 @@ class _AddChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Material(
-      color: _GroupPalette.banner,
+      color: c.banner,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -471,12 +480,12 @@ class _AddChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.add, size: 16, color: _GroupPalette.primary),
+              Icon(Icons.add, size: 16, color: c.primary),
               const SizedBox(width: 4),
               Text(
                 label,
-                style: const TextStyle(
-                  color: _GroupPalette.primary,
+                style: TextStyle(
+                  color: c.primary,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -552,6 +561,7 @@ class _GroupFormState extends ConsumerState<_GroupForm> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -566,7 +576,7 @@ class _GroupFormState extends ConsumerState<_GroupForm> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: _GroupPalette.border,
+                  color: c.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -576,19 +586,19 @@ class _GroupFormState extends ConsumerState<_GroupForm> {
               widget.form.isEdit
                   ? l.tr('scripts.editGroup')
                   : l.tr('scripts.addGroup'),
-              style: const TextStyle(
-                color: _GroupPalette.text,
+              style: TextStyle(
+                color: c.text,
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 14),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 6),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
               child: Text(
                 '分组名称',
                 style: TextStyle(
-                  color: _GroupPalette.softMuted,
+                  color: c.softMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -596,20 +606,20 @@ class _GroupFormState extends ConsumerState<_GroupForm> {
             ),
             TextFormField(
               controller: _nameCtrl,
-              cursorColor: _GroupPalette.primary,
-              style: const TextStyle(color: _GroupPalette.text, fontSize: 14),
+              cursorColor: c.primary,
+              style: TextStyle(color: c.text, fontSize: 14),
               validator: (v) => (v ?? '').trim().isEmpty
                   ? l.tr('scripts.validation.groupName')
                   : null,
               decoration: _decoration(),
             ),
             const SizedBox(height: 10),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 6),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
               child: Text(
                 '序号',
                 style: TextStyle(
-                  color: _GroupPalette.softMuted,
+                  color: c.softMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -617,10 +627,10 @@ class _GroupFormState extends ConsumerState<_GroupForm> {
             ),
             TextFormField(
               controller: _indexCtrl,
-              cursorColor: _GroupPalette.primary,
+              cursorColor: c.primary,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: const TextStyle(color: _GroupPalette.text, fontSize: 14),
+              style: TextStyle(color: c.text, fontSize: 14),
               decoration: _decoration(),
             ),
             const SizedBox(height: 16),
@@ -632,7 +642,7 @@ class _GroupFormState extends ConsumerState<_GroupForm> {
                         ? null
                         : () => Navigator.of(context).pop(false),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: _GroupPalette.strongBorder),
+                      side: BorderSide(color: c.strongBorder),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -640,8 +650,8 @@ class _GroupFormState extends ConsumerState<_GroupForm> {
                     ),
                     child: Text(
                       l.tr('common.cancel'),
-                      style: const TextStyle(
-                        color: _GroupPalette.muted,
+                      style: TextStyle(
+                        color: c.muted,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -652,25 +662,25 @@ class _GroupFormState extends ConsumerState<_GroupForm> {
                   child: FilledButton(
                     onPressed: _saving ? null : _save,
                     style: FilledButton.styleFrom(
-                      backgroundColor: _GroupPalette.primary,
+                      backgroundColor: c.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: _saving
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: c.fontOnPrimary,
                             ),
                           )
                         : Text(
                             l.tr('common.save'),
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: c.fontOnPrimary,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -684,36 +694,25 @@ class _GroupFormState extends ConsumerState<_GroupForm> {
     );
   }
 
-  InputDecoration _decoration() => InputDecoration(
-    isDense: true,
-    filled: true,
-    fillColor: _GroupPalette.chip,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _GroupPalette.border),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _GroupPalette.primary, width: 1.2),
-    ),
-    errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _GroupPalette.danger),
-    ),
-  );
-}
-
-abstract final class _GroupPalette {
-  static const canvas = Color(0xFFF7EFE0);
-  static const card = Color(0xFFFBF5E6);
-  static const chip = Color(0xFFF4ECD7);
-  static const banner = Color(0xFFF7E4B0);
-  static const primary = Color(0xFF5C4520);
-  static const text = Color(0xFF2A2418);
-  static const muted = Color(0xFF6B5E3F);
-  static const softMuted = Color(0xFF9A8B68);
-  static const border = Color(0xFFE2D5B3);
-  static const strongBorder = Color(0xFFC9B98D);
-  static const danger = Color(0xFFB9473D);
+  InputDecoration _decoration() {
+    final c = context.colors;
+    return InputDecoration(
+      isDense: true,
+      filled: true,
+      fillColor: c.chip,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: c.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: c.primary, width: 1.2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: c.danger),
+      ),
+    );
+  }
 }

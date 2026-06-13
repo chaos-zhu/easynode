@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xterm/xterm.dart';
 
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/terminal_settings_notifier.dart';
 import 'terminal_theme_presets.dart';
@@ -17,13 +17,14 @@ class TerminalSettingsPage extends ConsumerWidget {
     final settings = ref.watch(terminalSettingsProvider);
     final notifier = ref.read(terminalSettingsProvider.notifier);
     final l = AppLocalizations.of(context);
+    final c = context.colors;
 
     return Scaffold(
-      backgroundColor: AppPalette.canvas,
+      backgroundColor: c.canvas,
       appBar: AppBar(
         title: Text(l.tr('terminal.settings')),
-        backgroundColor: AppPalette.canvas,
-        foregroundColor: AppPalette.text,
+        backgroundColor: c.canvas,
+        foregroundColor: c.text,
         elevation: 0,
       ),
       body: ListView(
@@ -62,8 +63,8 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         title,
-        style: const TextStyle(
-          color: AppPalette.primary,
+        style: TextStyle(
+          color: context.colors.primary,
           fontSize: 14,
           fontWeight: FontWeight.w700,
         ),
@@ -119,13 +120,14 @@ class _ThemePresetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? AppPalette.accent : AppPalette.border,
+            color: selected ? c.accent : c.border,
             width: selected ? 2 : 1,
           ),
         ),
@@ -166,8 +168,8 @@ class _ThemePresetCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 5),
               decoration: BoxDecoration(
                 color: selected
-                    ? AppPalette.accent.withValues(alpha: 0.12)
-                    : AppPalette.card,
+                    ? c.accent.withValues(alpha: 0.12)
+                    : c.card,
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(9),
                 ),
@@ -178,7 +180,7 @@ class _ThemePresetCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? AppPalette.accent : AppPalette.text,
+                  color: selected ? c.accent : c.text,
                 ),
               ),
             ),
@@ -218,19 +220,20 @@ class _FontSizeSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       decoration: BoxDecoration(
-        color: AppPalette.card,
+        color: c.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppPalette.border),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
           Text(
             '${value.round()}',
-            style: const TextStyle(
-              color: AppPalette.text,
+            style: TextStyle(
+              color: c.text,
               fontSize: 18,
               fontWeight: FontWeight.w700,
               fontFamily: 'monospace',
@@ -240,10 +243,10 @@ class _FontSizeSlider extends StatelessWidget {
           Expanded(
             child: SliderTheme(
               data: SliderThemeData(
-                activeTrackColor: AppPalette.accent,
-                inactiveTrackColor: AppPalette.border,
-                thumbColor: AppPalette.accent,
-                overlayColor: AppPalette.accent.withValues(alpha: 0.15),
+                activeTrackColor: c.accent,
+                inactiveTrackColor: c.border,
+                thumbColor: c.accent,
+                overlayColor: c.accent.withValues(alpha: 0.15),
               ),
               child: Slider(
                 value: value,
@@ -271,6 +274,7 @@ class _FontFamilyPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -281,12 +285,12 @@ class _FontFamilyPicker extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: font == selected ? AppPalette.primary : AppPalette.card,
+                color: font == selected ? c.primary : c.card,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: font == selected
-                      ? AppPalette.primary
-                      : AppPalette.border,
+                      ? c.primary
+                      : c.border,
                 ),
               ),
               child: Text(
@@ -296,8 +300,8 @@ class _FontFamilyPicker extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: font == selected
-                      ? AppPalette.fontOnPrimary
-                      : AppPalette.text,
+                      ? c.fontOnPrimary
+                      : c.text,
                 ),
               ),
             ),

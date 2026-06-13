@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/credential_list_notifier.dart';
@@ -99,9 +99,9 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
         .toList(growable: false);
 
     return Scaffold(
-      backgroundColor: _FormColors.surface,
+      backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        backgroundColor: _FormColors.surface,
+        backgroundColor: context.colors.canvas,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(_form.isEdit ? l.tr('servers.editServer') : l.tr('servers.addServer')),
@@ -245,7 +245,7 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
                   _advancedOpen
                       ? Icons.keyboard_arrow_up
                       : Icons.keyboard_arrow_down,
-                  color: _FormColors.textMuted,
+                  color: context.colors.muted,
                 ),
               ),
               children: _advancedOpen
@@ -277,8 +277,8 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
                                   padding: const EdgeInsets.only(top: 6),
                                   child: Text(
                                     l.tr('servers.proxyPlusTip'),
-                                    style: const TextStyle(
-                                      color: _FormColors.label,
+                                    style: TextStyle(
+                                      color: context.colors.softMuted,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -451,17 +451,6 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
   }
 }
 
-class _FormColors {
-  static const surface = AppPalette.canvas;
-  static const card = AppPalette.card;
-  static const field = AppPalette.chip;
-  static const primary = AppPalette.primary;
-  static const border = AppPalette.border;
-  static const text = AppPalette.text;
-  static const textMuted = AppPalette.muted;
-  static const label = AppPalette.softMuted;
-}
-
 class _CardSection extends StatelessWidget {
   const _CardSection({
     required this.title,
@@ -477,9 +466,9 @@ class _CardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _FormColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _FormColors.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
@@ -492,7 +481,7 @@ class _CardSection extends StatelessWidget {
                   width: 3,
                   height: 14,
                   decoration: BoxDecoration(
-                    color: _FormColors.primary,
+                    color: context.colors.primary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -500,8 +489,8 @@ class _CardSection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
-                      color: _FormColors.textMuted,
+                    style: TextStyle(
+                      color: context.colors.muted,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.4,
@@ -658,9 +647,9 @@ class _SegmentShell extends StatelessWidget {
       height: compact ? 44 : 52,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: _FormColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(compact ? 10 : 16),
-        border: Border.all(color: _FormColors.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Row(
         children: [
@@ -692,10 +681,10 @@ class _SegmentButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final foreground = selected
-        ? _FormColors.card
-        : (disabled ? _FormColors.label : _FormColors.textMuted);
+        ? context.colors.fontOnPrimary
+        : (disabled ? context.colors.softMuted : context.colors.muted);
     return Material(
-      color: selected ? _FormColors.primary : Colors.transparent,
+      color: selected ? context.colors.primary : Colors.transparent,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
@@ -748,8 +737,8 @@ class _LabeledBlock extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: _FormColors.label,
+          style: TextStyle(
+            color: context.colors.softMuted,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -796,37 +785,37 @@ class _TextField extends StatelessWidget {
         maxLines: obscureText ? 1 : maxLines,
         validator: validator,
         style: TextStyle(
-          color: _FormColors.text,
+          color: context.colors.text,
           fontSize: 15,
           fontFamily: mono ? 'monospace' : null,
         ),
-        decoration: _fieldDecoration(helperText: helperText),
+        decoration: _fieldDecoration(context, helperText: helperText),
       ),
     );
   }
 }
 
-InputDecoration _fieldDecoration({String? helperText}) {
+InputDecoration _fieldDecoration(BuildContext context, {String? helperText}) {
   return InputDecoration(
     filled: true,
-    fillColor: _FormColors.field,
+    fillColor: context.colors.chip,
     helperText: helperText,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _FormColors.border),
+      borderSide: BorderSide(color: context.colors.border),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _FormColors.primary, width: 1.6),
+      borderSide: BorderSide(color: context.colors.primary, width: 1.6),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: Colors.redAccent),
+      borderSide: BorderSide(color: context.colors.danger),
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: Colors.redAccent, width: 1.6),
+      borderSide: BorderSide(color: context.colors.danger, width: 1.6),
     ),
   );
 }
@@ -917,14 +906,14 @@ class _AuthField extends StatelessWidget {
         const SizedBox(height: 6),
         Row(
           children: [
-            const Icon(Icons.info_outline, size: 13, color: _FormColors.label),
+            Icon(Icons.info_outline, size: 13, color: context.colors.softMuted),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
                 credentials.isEmpty
                     ? l.tr('servers.credentials.empty')
                     : l.tr('servers.credentials.hint'),
-                style: const TextStyle(color: _FormColors.label, fontSize: 11),
+                style: TextStyle(color: context.colors.softMuted, fontSize: 11),
               ),
             ),
           ],
@@ -1125,14 +1114,14 @@ class _PickerField extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         onTap: enabled ? onTap : null,
         child: InputDecorator(
-          decoration: _fieldDecoration().copyWith(errorText: errorText),
+          decoration: _fieldDecoration(context).copyWith(errorText: errorText),
           child: Row(
             children: [
               if (leadingIcon != null) ...[
                 Icon(
                   leadingIcon,
                   size: 18,
-                  color: enabled ? _FormColors.primary : _FormColors.label,
+                  color: enabled ? context.colors.primary : context.colors.softMuted,
                 ),
                 const SizedBox(width: 10),
               ],
@@ -1141,7 +1130,7 @@ class _PickerField extends StatelessWidget {
                   value.isEmpty ? placeholder : value,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: value.isEmpty ? _FormColors.label : _FormColors.text,
+                    color: value.isEmpty ? context.colors.softMuted : context.colors.text,
                     fontSize: 15,
                   ),
                 ),
@@ -1151,9 +1140,9 @@ class _PickerField extends StatelessWidget {
                 _MetaPill(label: meta!),
               ],
               const SizedBox(width: 8),
-              const Icon(
+              Icon(
                 Icons.keyboard_arrow_down,
-                color: _FormColors.label,
+                color: context.colors.softMuted,
                 size: 18,
               ),
             ],
@@ -1174,16 +1163,16 @@ class _MetaPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: _FormColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: _FormColors.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Text(
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: _FormColors.textMuted,
+        style: TextStyle(
+          color: context.colors.muted,
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
@@ -1215,7 +1204,7 @@ Future<T?> _showChoiceSheet<T>({
   return showModalBottomSheet<T>(
     context: context,
     showDragHandle: true,
-    backgroundColor: _FormColors.card,
+    backgroundColor: context.colors.card,
     builder: (context) {
       return SafeArea(
         child: Padding(
@@ -1228,8 +1217,8 @@ Future<T?> _showChoiceSheet<T>({
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    color: _FormColors.text,
+                  style: TextStyle(
+                    color: context.colors.text,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1245,7 +1234,7 @@ Future<T?> _showChoiceSheet<T>({
                     final option = options[index];
                     final selected = option.value == value;
                     return Material(
-                      color: selected ? _FormColors.field : Colors.transparent,
+                      color: selected ? context.colors.chip : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(10),
@@ -1260,8 +1249,8 @@ Future<T?> _showChoiceSheet<T>({
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: selected
-                                  ? _FormColors.primary
-                                  : _FormColors.border,
+                                  ? context.colors.primary
+                                  : context.colors.border,
                               width: selected ? 1.4 : 1,
                             ),
                           ),
@@ -1272,15 +1261,15 @@ Future<T?> _showChoiceSheet<T>({
                                     ? Icons.check_circle
                                     : option.icon,
                                 size: 20,
-                                color: _FormColors.primary,
+                                color: context.colors.primary,
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   option.label,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: _FormColors.text,
+                                  style: TextStyle(
+                                    color: context.colors.text,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -1339,14 +1328,14 @@ class _DateField extends StatelessWidget {
           if (result != null) onChanged(result);
         },
         child: InputDecorator(
-          decoration: _fieldDecoration(),
+          decoration: _fieldDecoration(context),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   display,
-                  style: const TextStyle(
-                    color: _FormColors.text,
+                  style: TextStyle(
+                    color: context.colors.text,
                     fontSize: 15,
                     fontFamily: 'monospace',
                   ),
@@ -1355,12 +1344,12 @@ class _DateField extends StatelessWidget {
               if (value != null)
                 InkWell(
                   onTap: () => onChanged(null),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(Icons.close, size: 18, color: _FormColors.label),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(Icons.close, size: 18, color: context.colors.softMuted),
                   ),
                 ),
-              const Icon(Icons.calendar_today_outlined, size: 18, color: _FormColors.textMuted),
+              Icon(Icons.calendar_today_outlined, size: 18, color: context.colors.muted),
             ],
           ),
         ),
@@ -1390,7 +1379,7 @@ class _SwitchRow extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: enabled ? _FormColors.textMuted : _FormColors.label,
+              color: enabled ? context.colors.muted : context.colors.softMuted,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
@@ -1398,8 +1387,8 @@ class _SwitchRow extends StatelessWidget {
         ),
         Switch(
           value: enabled && value,
-          activeThumbColor: _FormColors.card,
-          activeTrackColor: _FormColors.primary,
+          activeThumbColor: context.colors.fontOnPrimary,
+          activeTrackColor: context.colors.primary,
           onChanged: enabled ? onChanged : null,
         ),
       ],
@@ -1440,7 +1429,7 @@ class _JumpHostSelector extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         onTap: options.isEmpty ? null : () => _showPicker(context),
         child: InputDecorator(
-          decoration: _fieldDecoration(
+          decoration: _fieldDecoration(context,
             helperText: options.isEmpty
                 ? l.tr('servers.jumpHosts.empty')
                 : null,
@@ -1448,7 +1437,7 @@ class _JumpHostSelector extends StatelessWidget {
           child: selectedHosts.isEmpty
               ? Text(
                   l.tr('servers.jumpHosts.placeholder'),
-                  style: const TextStyle(color: _FormColors.label, fontSize: 14),
+                  style: TextStyle(color: context.colors.softMuted, fontSize: 14),
                 )
               : Column(
                   children: [
@@ -1459,11 +1448,11 @@ class _JumpHostSelector extends StatelessWidget {
                           children: [
                             CircleAvatar(
                               radius: 12,
-                              backgroundColor: _FormColors.primary,
+                              backgroundColor: context.colors.primary,
                               child: Text(
                                 '${i + 1}',
-                                style: const TextStyle(
-                                  color: _FormColors.card,
+                                style: TextStyle(
+                                  color: context.colors.fontOnPrimary,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -1473,7 +1462,7 @@ class _JumpHostSelector extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 selectedHosts[i].displayName,
-                                style: const TextStyle(color: _FormColors.text),
+                                style: TextStyle(color: context.colors.text),
                               ),
                             ),
                             InkWell(
@@ -1482,7 +1471,7 @@ class _JumpHostSelector extends StatelessWidget {
                                   ..remove(selectedHosts[i].id);
                                 onChanged(next);
                               },
-                              child: const Icon(Icons.close, size: 18, color: _FormColors.label),
+                              child: Icon(Icons.close, size: 18, color: context.colors.softMuted),
                             ),
                           ],
                         ),
@@ -1499,7 +1488,7 @@ class _JumpHostSelector extends StatelessWidget {
     final result = await showModalBottomSheet<List<String>>(
       context: context,
       showDragHandle: true,
-      backgroundColor: _FormColors.card,
+      backgroundColor: context.colors.card,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) {
           final l = AppLocalizations.of(context);
@@ -1514,8 +1503,8 @@ class _JumpHostSelector extends StatelessWidget {
                       Expanded(
                         child: Text(
                           l.tr('servers.field.jumpHosts'),
-                          style: const TextStyle(
-                            color: _FormColors.text,
+                          style: TextStyle(
+                            color: context.colors.text,
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1533,14 +1522,14 @@ class _JumpHostSelector extends StatelessWidget {
                     shrinkWrap: true,
                     itemCount: options.length,
                     separatorBuilder: (_, _) =>
-                        const Divider(height: 1, color: _FormColors.border),
+                        Divider(height: 1, color: context.colors.border),
                     itemBuilder: (context, index) {
                       final host = options[index];
                       final selected = next.contains(host.id);
                       final order = next.indexOf(host.id) + 1;
                       return CheckboxListTile(
                         value: selected,
-                        activeColor: _FormColors.primary,
+                        activeColor: context.colors.primary,
                         onChanged: (value) => setSheetState(() {
                           if (value == true) {
                             next.add(host.id);
@@ -1553,10 +1542,10 @@ class _JumpHostSelector extends StatelessWidget {
                         secondary: selected
                             ? CircleAvatar(
                                 radius: 12,
-                                backgroundColor: _FormColors.primary,
+                                backgroundColor: context.colors.primary,
                                 child: Text(
                                   '$order',
-                                  style: const TextStyle(color: _FormColors.card),
+                                  style: TextStyle(color: context.colors.fontOnPrimary),
                                 ),
                               )
                             : null,
@@ -1591,16 +1580,16 @@ class _BottomSaveBar extends StatelessWidget {
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-        decoration: const BoxDecoration(
-          color: _FormColors.card,
-          border: Border(top: BorderSide(color: _FormColors.border)),
+        decoration: BoxDecoration(
+          color: context.colors.card,
+          border: Border(top: BorderSide(color: context.colors.border)),
         ),
         child: SizedBox(
           height: 52,
           child: FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: _FormColors.primary,
-              foregroundColor: _FormColors.card,
+              backgroundColor: context.colors.primary,
+              foregroundColor: context.colors.fontOnPrimary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -1610,10 +1599,7 @@ class _BottomSaveBar extends StatelessWidget {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: _FormColors.card,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Text(
                     label,

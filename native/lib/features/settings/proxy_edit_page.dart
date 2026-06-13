@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/proxy_list_notifier.dart';
@@ -110,8 +110,8 @@ class _ProxyEditPageState extends ConsumerState<ProxyEditPage> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppPalette.danger,
-              foregroundColor: AppPalette.fontOnPrimary,
+              backgroundColor: context.colors.danger,
+              foregroundColor: context.colors.fontOnPrimary,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l.tr('common.delete')),
@@ -149,9 +149,9 @@ class _ProxyEditPageState extends ConsumerState<ProxyEditPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppPalette.canvas,
+      backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        backgroundColor: AppPalette.canvas,
+        backgroundColor: context.colors.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(_isEdit ? l.tr('proxy.edit') : l.tr('proxy.add')),
@@ -272,7 +272,7 @@ class _ProxyEditPageState extends ConsumerState<ProxyEditPage> {
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
                           size: 18,
-                          color: AppPalette.muted,
+                          color: context.colors.muted,
                         ),
                       ),
                     ),
@@ -310,7 +310,7 @@ class _AppBarSaveButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppPalette.primary,
+      color: context.colors.primary,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -321,27 +321,27 @@ class _AppBarSaveButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (loading)
-                const SizedBox(
+                SizedBox(
                   width: 14,
                   height: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppPalette.fontOnPrimary,
+                    color: context.colors.fontOnPrimary,
                   ),
                 )
               else
-                const Icon(
+                Icon(
                   Icons.check_rounded,
                   size: 16,
-                  color: AppPalette.fontOnPrimary,
+                  color: context.colors.fontOnPrimary,
                 ),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppPalette.fontOnPrimary,
+                  color: context.colors.fontOnPrimary,
                 ),
               ),
             ],
@@ -365,20 +365,20 @@ class _FieldLabel extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
             letterSpacing: 1.5,
-            color: AppPalette.muted,
+            color: context.colors.muted,
           ),
         ),
         if (trailing != null && trailing!.isNotEmpty)
           Text(
             trailing!,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: AppPalette.muted,
+              color: context.colors.muted,
             ),
           ),
       ],
@@ -418,18 +418,18 @@ class _FormField extends StatelessWidget {
       style: TextStyle(
         fontSize: 15,
         fontWeight: FontWeight.w500,
-        color: AppPalette.text,
+        color: context.colors.text,
         fontFamily: monospace ? 'monospace' : null,
       ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontSize: 13,
-          color: AppPalette.softMuted,
+          color: context.colors.softMuted,
         ),
         isDense: true,
         filled: true,
-        fillColor: AppPalette.card,
+        fillColor: context.colors.card,
         suffixIcon: suffix,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
@@ -437,23 +437,23 @@ class _FormField extends StatelessWidget {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.border),
+          borderSide: BorderSide(color: context.colors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.border),
+          borderSide: BorderSide(color: context.colors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.accent),
+          borderSide: BorderSide(color: context.colors.accent),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.danger),
+          borderSide: BorderSide(color: context.colors.danger),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.danger),
+          borderSide: BorderSide(color: context.colors.danger),
         ),
       ),
     );
@@ -507,8 +507,8 @@ class _TypeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected ? AppPalette.accentSoft : AppPalette.card;
-    final border = selected ? AppPalette.primary : AppPalette.border;
+    final bg = selected ? context.colors.accentSoft : context.colors.card;
+    final border = selected ? context.colors.primary : context.colors.border;
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
@@ -525,7 +525,7 @@ class _TypeOption extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: selected ? AppPalette.primary : AppPalette.chip,
+                color: selected ? context.colors.primary : context.colors.chip,
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
@@ -533,8 +533,8 @@ class _TypeOption extends StatelessWidget {
                 icon,
                 size: 16,
                 color: selected
-                    ? AppPalette.fontOnPrimary
-                    : AppPalette.primary,
+                    ? context.colors.fontOnPrimary
+                    : context.colors.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -544,19 +544,19 @@ class _TypeOption extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: AppPalette.text,
+                      color: context.colors.text,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: AppPalette.muted,
+                      color: context.colors.muted,
                     ),
                   ),
                 ],
@@ -567,7 +567,7 @@ class _TypeOption extends StatelessWidget {
                   ? Icons.radio_button_checked
                   : Icons.radio_button_off,
               size: 18,
-              color: selected ? AppPalette.primary : AppPalette.softMuted,
+              color: selected ? context.colors.primary : context.colors.softMuted,
             ),
           ],
         ),
@@ -598,10 +598,10 @@ class _BottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppPalette.canvas,
+      decoration: BoxDecoration(
+        color: context.colors.canvas,
         border: Border(
-          top: BorderSide(color: AppPalette.strongBorder, width: 1),
+          top: BorderSide(color: context.colors.strongBorder, width: 1),
         ),
       ),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -614,19 +614,19 @@ class _BottomBar extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: onDelete,
                 style: TextButton.styleFrom(
-                  foregroundColor: AppPalette.danger,
+                  foregroundColor: context.colors.danger,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 8,
                   ),
                 ),
                 icon: deleting
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppPalette.danger,
+                          color: context.colors.danger,
                         ),
                       )
                     : const Icon(Icons.delete_outline, size: 16),
@@ -645,19 +645,19 @@ class _BottomBar extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onSave,
               style: FilledButton.styleFrom(
-                backgroundColor: AppPalette.primary,
-                foregroundColor: AppPalette.fontOnPrimary,
+                backgroundColor: context.colors.primary,
+                foregroundColor: context.colors.fontOnPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                disabledBackgroundColor: AppPalette.chip,
-                disabledForegroundColor: AppPalette.softMuted,
+                disabledBackgroundColor: context.colors.chip,
+                disabledForegroundColor: context.colors.softMuted,
               ),
               icon: saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppPalette.fontOnPrimary,
+                        color: context.colors.fontOnPrimary,
                       ),
                     )
                   : const Icon(Icons.check_rounded, size: 18),

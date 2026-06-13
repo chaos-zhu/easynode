@@ -85,4 +85,12 @@ class AppStorage {
       _prefs.getString(_keyTermTheme) ?? 'warm';
   Future<void> setTerminalThemePreset(String v) =>
       _prefs.setString(_keyTermTheme, v);
+
+  // ── App theme ──
+
+  static const _keyThemeMode = 'app.themeMode';
+
+  String get themeMode => _prefs.getString(_keyThemeMode) ?? 'system';
+  Future<void> setThemeMode(String v) =>
+      _prefs.setString(_keyThemeMode, v);
 }

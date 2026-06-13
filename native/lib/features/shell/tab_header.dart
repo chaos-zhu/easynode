@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 
 /// Unified header used by every bottom-nav tab. Fixed [height] and font size
 /// keep the layout from jumping when the user switches tabs; the left-aligned
@@ -30,10 +30,10 @@ class TabHeader extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: AppPalette.text,
+                  color: context.colors.text,
                   letterSpacing: -0.2,
                 ),
               ),

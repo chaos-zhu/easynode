@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
+import '../../../core/ui/app_color_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../sftp_session_manager.dart';
 import 'media_extensions.dart';
@@ -110,7 +111,7 @@ class _SftpImagePreviewPageState extends State<SftpImagePreviewPage> {
     final currentEntry = widget.images[_currentIndex];
     final currentPath = _remotePathOf(_currentIndex);
     return Scaffold(
-      backgroundColor: SftpMediaPalette.surface,
+      backgroundColor: context.colors.canvas,
       body: SafeArea(
         child: Column(
           children: [
@@ -121,14 +122,14 @@ class _SftpImagePreviewPageState extends State<SftpImagePreviewPage> {
             Expanded(
               child: Container(
                 width: double.infinity,
-                color: SftpMediaPalette.mediaSurface,
+                color: const Color(0xFF0A0F14),
                 child: PhotoViewGallery.builder(
                   pageController: _pageController,
                   itemCount: widget.images.length,
                   onPageChanged: _onPageChanged,
                   scrollPhysics: const BouncingScrollPhysics(),
                   backgroundDecoration: const BoxDecoration(
-                    color: SftpMediaPalette.mediaSurface,
+                    color: Color(0xFF0A0F14),
                   ),
                   builder: (context, index) => _buildPage(l, index),
                 ),

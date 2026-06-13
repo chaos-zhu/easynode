@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../core/ui/refresh_feedback.dart';
 import '../../core/utils/app_store_compliance.dart';
 import '../../l10n/app_localizations.dart';
@@ -10,6 +10,7 @@ import '../../state/app_update_notifier.dart';
 import '../../state/credential_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/locale_notifier.dart';
+import '../../state/theme_mode_notifier.dart';
 import '../../state/package_info_provider.dart';
 import '../../state/plus_discount_notifier.dart';
 import '../../state/plus_info_notifier.dart';
@@ -108,10 +109,11 @@ class SettingsTab extends ConsumerWidget {
 
   void _showNotifications(BuildContext context, PlusDiscount discount) {
     final l = AppLocalizations.of(context);
+    final c = context.colors;
     final hasDiscount = discount.discount && discount.content.isNotEmpty;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppPalette.card,
+      backgroundColor: c.card,
       constraints: const BoxConstraints(maxWidth: double.infinity),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -129,7 +131,7 @@ class SettingsTab extends ConsumerWidget {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppPalette.border,
+                      color: c.border,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -138,10 +140,10 @@ class SettingsTab extends ConsumerWidget {
                 Text(
                   l.tr('settings.notifications.tooltip'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppPalette.text,
+                    color: c.text,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -157,15 +159,15 @@ class SettingsTab extends ConsumerWidget {
                   Icon(
                     Icons.notifications_off_outlined,
                     size: 36,
-                    color: AppPalette.softMuted,
+                    color: c.softMuted,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     l.tr('settings.notifications.empty'),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppPalette.muted,
+                      color: c.muted,
                     ),
                   ),
                 ],
@@ -178,14 +180,42 @@ class SettingsTab extends ConsumerWidget {
     );
   }
 
-  void _showThemeWip(BuildContext context) {
+  void _showThemePicker(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l.tr('settings.theme.wipToast')),
-        behavior: SnackBarBehavior.floating,
+    final current = ref.read(themeModeProvider);
+    showDialog<ThemeMode>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l.tr('settings.theme.title')),
+        children: [
+          for (final entry in [
+            (ThemeMode.system, l.tr('settings.theme.system'), Icons.brightness_auto),
+            (ThemeMode.light, l.tr('settings.theme.light'), Icons.light_mode),
+            (ThemeMode.dark, l.tr('settings.theme.dark'), Icons.dark_mode),
+          ])
+            RadioListTile<ThemeMode>(
+              value: entry.$1,
+              groupValue: current,
+              title: Text(entry.$2),
+              secondary: Icon(entry.$3),
+              onChanged: (mode) {
+                if (mode != null) {
+                  ref.read(themeModeProvider.notifier).setThemeMode(mode);
+                }
+                Navigator.of(ctx).pop();
+              },
+            ),
+        ],
       ),
     );
+  }
+
+  static String _themeModeLabel(AppLocalizations l, ThemeMode mode) {
+    return switch (mode) {
+      ThemeMode.system => l.tr('settings.theme.system'),
+      ThemeMode.light => l.tr('settings.theme.light'),
+      ThemeMode.dark => l.tr('settings.theme.dark'),
+    };
   }
 
   Future<void> _checkForUpdates(BuildContext context, WidgetRef ref) async {
@@ -258,7 +288,7 @@ class SettingsTab extends ConsumerWidget {
         : 'v${packageInfo.version} (${packageInfo.buildNumber})';
 
     return Scaffold(
-      backgroundColor: AppPalette.canvas,
+      backgroundColor: context.colors.canvas,
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
@@ -275,10 +305,10 @@ class SettingsTab extends ConsumerWidget {
                         padding: const EdgeInsets.only(right: 8),
                         child: Text(
                           versionLabel,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: AppPalette.softMuted,
+                            color: context.colors.softMuted,
                             letterSpacing: 0.2,
                           ),
                         ),
@@ -375,16 +405,13 @@ class SettingsTab extends ConsumerWidget {
                     SettingsRow(
                       icon: Icons.palette_outlined,
                       title: l.tr('settings.theme.title'),
-                      trailing: _StatusChip(
-                        label: l.tr('settings.theme.wipChip'),
-                        tone: _ChipTone.muted,
-                      ),
-                      onTap: () => _showThemeWip(context),
+                      subtitle: _themeModeLabel(l, ref.watch(themeModeProvider)),
+                      onTap: () => _showThemePicker(context, ref),
                     ),
                   ],
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 110)),
             ],
           ),
         ),
@@ -401,11 +428,12 @@ class _SettingsBellButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Material(
-      color: AppPalette.card,
+      color: colors.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppPalette.border),
+        side: BorderSide(color: colors.border),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -416,10 +444,10 @@ class _SettingsBellButton extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.notifications_none_outlined,
                 size: 20,
-                color: AppPalette.primary,
+                color: colors.primary,
               ),
               if (hasDiscount)
                 Positioned(
@@ -429,9 +457,9 @@ class _SettingsBellButton extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: AppPalette.danger,
+                      color: colors.danger,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppPalette.card, width: 1.5),
+                      border: Border.all(color: colors.card, width: 1.5),
                     ),
                   ),
                 ),
@@ -467,14 +495,15 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
       child: Container(
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
         decoration: BoxDecoration(
-          color: AppPalette.card,
+          color: colors.card,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppPalette.border),
+          border: Border.all(color: colors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -485,9 +514,9 @@ class _ProfileCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: AppPalette.chip,
+                    color: colors.chip,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppPalette.border),
+                    border: Border.all(color: colors.border),
                   ),
                   alignment: Alignment.center,
                   child: Image.asset(
@@ -509,10 +538,10 @@ class _ProfileCard extends StatelessWidget {
                               username,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w800,
-                                color: AppPalette.text,
+                                color: colors.text,
                               ),
                             ),
                           ),
@@ -525,9 +554,9 @@ class _ProfileCard extends StatelessWidget {
                         serverAddress,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppPalette.softMuted,
+                          color: colors.softMuted,
                         ),
                       ),
                     ],
@@ -541,7 +570,7 @@ class _ProfileCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: AppPalette.chip,
+                color: colors.chip,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
@@ -578,23 +607,24 @@ class _ProfileStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Expanded(
       child: Column(
         children: [
           Text(
             '$value',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: AppPalette.primary,
+              color: colors.primary,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppPalette.muted,
+              color: colors.muted,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.4,
             ),
@@ -610,7 +640,7 @@ class _StatDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 24, color: AppPalette.border);
+    return Container(width: 1, height: 24, color: context.colors.border);
   }
 }
 
@@ -669,10 +699,10 @@ class _PlusBadge extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 l.tr('settings.plus.goActivate'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: AppPalette.accent,
+                  color: context.colors.accent,
                   decoration: TextDecoration.underline,
                 ),
               ),
@@ -692,12 +722,13 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final (bg, fg) = switch (tone) {
-      _ChipTone.muted => (AppPalette.chip, AppPalette.muted),
-      _ChipTone.accent => (AppPalette.accentSoft, AppPalette.primary),
+      _ChipTone.muted => (c.chip, c.muted),
+      _ChipTone.accent => (c.accentSoft, c.primary),
       _ChipTone.success => (
-        AppPalette.success.withValues(alpha: 0.16),
-        AppPalette.success,
+        c.success.withValues(alpha: 0.16),
+        c.success,
       ),
     };
     return Container(
@@ -727,8 +758,9 @@ class _LogoutIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final colors = context.colors;
     return Material(
-      color: AppPalette.chip,
+      color: colors.chip,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         key: const Key('settings-logout'),
@@ -741,10 +773,10 @@ class _LogoutIconButton extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppPalette.border),
+              border: Border.all(color: colors.border),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.logout, size: 18, color: AppPalette.danger),
+            child: Icon(Icons.logout, size: 18, color: colors.danger),
           ),
         ),
       ),
@@ -791,41 +823,42 @@ class _DiscountNotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: AppPalette.dangerSoft,
+          color: colors.dangerSoft,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppPalette.dangerBorder),
+          border: Border.all(color: colors.dangerBorder),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(
+            Icon(
               Icons.local_offer_outlined,
               size: 18,
-              color: AppPalette.danger,
+              color: colors.danger,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 content,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   height: 1.5,
                   fontWeight: FontWeight.w600,
-                  color: AppPalette.danger,
+                  color: colors.danger,
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 18,
-              color: AppPalette.danger,
+              color: colors.danger,
             ),
           ],
         ),

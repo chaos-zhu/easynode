@@ -3,16 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../../core/ui/app_color_theme.dart';
 import '../../../l10n/app_localizations.dart';
-
-abstract final class SftpMediaPalette {
-  static const surface = Color(0xFFF7EFE0);
-  static const card = Color(0xFFFBF5E6);
-  static const border = Color(0xFFE2D5B3);
-  static const text = Color(0xFF2A2418);
-  static const muted = Color(0xFF6B5E3F);
-  static const mediaSurface = Color(0xFF0A0F14);
-}
 
 class SftpMediaTopBar extends StatelessWidget {
   const SftpMediaTopBar({
@@ -29,12 +21,12 @@ class SftpMediaTopBar extends StatelessWidget {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(color: SftpMediaPalette.surface),
+      decoration: BoxDecoration(color: context.colors.canvas),
       child: Row(
         children: [
           IconButton(
             onPressed: () => Navigator.of(context).maybePop(),
-            icon: const Icon(Icons.chevron_left, color: SftpMediaPalette.text),
+            icon: Icon(Icons.chevron_left, color: context.colors.text),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           ),
@@ -48,8 +40,8 @@ class SftpMediaTopBar extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: SftpMediaPalette.text,
+                  style: TextStyle(
+                    color: context.colors.text,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -59,8 +51,8 @@ class SftpMediaTopBar extends StatelessWidget {
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: SftpMediaPalette.muted,
+                  style: TextStyle(
+                    color: context.colors.muted,
                     fontSize: 10,
                     fontFamily: 'monospace',
                   ),
@@ -139,9 +131,9 @@ class SftpMediaInfoCard extends StatelessWidget {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: SftpMediaPalette.card,
+          color: context.colors.card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: SftpMediaPalette.border),
+          border: Border.all(color: context.colors.border),
         ),
         padding: const EdgeInsets.all(14),
         child: Column(
@@ -149,8 +141,8 @@ class SftpMediaInfoCard extends StatelessWidget {
           children: [
             Text(
               l.tr('media.info.title'),
-              style: const TextStyle(
-                color: SftpMediaPalette.text,
+              style: TextStyle(
+                color: context.colors.text,
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
               ),
@@ -203,8 +195,8 @@ class _MediaInfoRow extends StatelessWidget {
           width: 80,
           child: Text(
             label,
-            style: const TextStyle(
-              color: SftpMediaPalette.muted,
+            style: TextStyle(
+              color: context.colors.muted,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -215,7 +207,7 @@ class _MediaInfoRow extends StatelessWidget {
           child: Text(
             value,
             style: TextStyle(
-              color: SftpMediaPalette.text,
+              color: context.colors.text,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               fontFamily: monospace ? 'monospace' : null,

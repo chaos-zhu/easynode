@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/api/api_result.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../core/ui/refresh_feedback.dart';
 import '../../features/servers/server_model.dart';
 import '../../l10n/app_localizations.dart';
@@ -26,9 +27,9 @@ class SftpTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: _SftpPalette.canvas,
-      body: SftpPanel(showHeader: true),
+    return Scaffold(
+      backgroundColor: context.colors.canvas,
+      body: const SftpPanel(showHeader: true),
     );
   }
 }
@@ -179,13 +180,13 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
               ),
             Expanded(
               child: RefreshIndicator(
-                color: _SftpPalette.primary,
-                backgroundColor: _SftpPalette.card,
+                color: context.colors.primary,
+                backgroundColor: context.colors.card,
                 onRefresh: _refresh,
                 child: hostsAsync.when(
-                  loading: () => const Center(
+                  loading: () => Center(
                     child: CircularProgressIndicator(
-                      color: _SftpPalette.primary,
+                      color: context.colors.primary,
                     ),
                   ),
                   error: (error, _) {
@@ -212,7 +213,7 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
                     if (session == null) {
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 72, 16, 24),
+                        padding: const EdgeInsets.fromLTRB(16, 72, 16, 110),
                         children: [
                           SizedBox(
                             height: MediaQuery.sizeOf(context).height * 0.58,
@@ -309,7 +310,7 @@ class _SftpConnectedView extends StatelessWidget {
                   else
                     ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
                       itemCount: session.entries.length,
                       itemBuilder: (context, index) {
                         final entry = session.entries[index];
@@ -341,12 +342,12 @@ class _SftpConnectedView extends StatelessWidget {
                       },
                     ),
                   if (showDirectoryLoading)
-                    const Positioned.fill(
+                    Positioned.fill(
                       child: ColoredBox(
-                        color: Color(0x44F7EFE0),
+                        color: context.colors.canvas.withValues(alpha: 0.27),
                         child: Center(
                           child: CircularProgressIndicator(
-                            color: _SftpPalette.primary,
+                            color: context.colors.primary,
                           ),
                         ),
                       ),
@@ -464,9 +465,9 @@ class _SftpConnectedView extends StatelessWidget {
           margin: const EdgeInsets.all(12),
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: _SftpPalette.card,
+            color: context.colors.card,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _SftpPalette.strongBorder),
+            border: Border.all(color: context.colors.strongBorder),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -477,15 +478,15 @@ class _SftpConnectedView extends StatelessWidget {
                   leading: Icon(
                     action.icon,
                     color: action.destructive
-                        ? _SftpPalette.danger
-                        : _SftpPalette.muted,
+                        ? context.colors.danger
+                        : context.colors.muted,
                   ),
                   title: Text(
                     action.label,
                     style: TextStyle(
                       color: action.destructive
-                          ? _SftpPalette.danger
-                          : _SftpPalette.text,
+                          ? context.colors.danger
+                          : context.colors.text,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -769,8 +770,9 @@ class _SftpHeaderSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final isError = session.status == SftpConnectionStatus.error;
-    final dotColor = isError ? _SftpPalette.danger : _SftpPalette.success;
+    final dotColor = isError ? c.danger : c.success;
     final screenWidth = MediaQuery.sizeOf(context).width;
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -778,10 +780,10 @@ class _SftpHeaderSelector extends StatelessWidget {
         maxWidth: screenWidth / 2,
       ),
       child: Material(
-        color: _SftpPalette.card,
+        color: c.card,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: const BorderSide(color: _SftpPalette.strongBorder),
+          side: BorderSide(color: c.strongBorder),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
@@ -806,28 +808,28 @@ class _SftpHeaderSelector extends StatelessWidget {
                       session.server.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _SftpPalette.text,
+                      style: TextStyle(
+                        color: c.text,
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(
+                  Icon(
                     Icons.keyboard_arrow_down_rounded,
                     size: 16,
-                    color: _SftpPalette.muted,
+                    color: c.muted,
                   ),
                   if (onDisconnect != null) ...[
                     const SizedBox(width: 2),
                     InkResponse(
                       radius: 14,
                       onTap: onDisconnect,
-                      child: const Icon(
+                      child: Icon(
                         Icons.close_rounded,
                         size: 14,
-                        color: _SftpPalette.muted,
+                        color: c.muted,
                       ),
                     ),
                   ],
@@ -1036,6 +1038,7 @@ class _SftpToolbar extends StatelessWidget {
   }
 
   void _showOptionSheet(BuildContext context, List<_SftpSheetAction> actions) {
+    final c = context.colors;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1045,9 +1048,9 @@ class _SftpToolbar extends StatelessWidget {
           margin: const EdgeInsets.all(12),
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: _SftpPalette.card,
+            color: c.card,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _SftpPalette.strongBorder),
+            border: Border.all(color: c.strongBorder),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1055,13 +1058,13 @@ class _SftpToolbar extends StatelessWidget {
               for (final action in actions)
                 ListTile(
                   dense: true,
-                  leading: Icon(action.icon, color: _SftpPalette.muted),
+                  leading: Icon(action.icon, color: c.muted),
                   title: Text(
                     action.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _SftpPalette.text,
+                    style: TextStyle(
+                      color: c.text,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1091,12 +1094,13 @@ class _SftpToolbarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Expanded(
       child: Material(
-        color: enabled ? _SftpPalette.card : _SftpPalette.chip,
+        color: enabled ? c.card : c.chip,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: _SftpPalette.border),
+          side: BorderSide(color: c.border),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -1109,7 +1113,7 @@ class _SftpToolbarButton extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: enabled ? _SftpPalette.text : _SftpPalette.softMuted,
+                    color: enabled ? c.text : c.softMuted,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1118,7 +1122,7 @@ class _SftpToolbarButton extends StatelessWidget {
                 Icon(
                   Icons.keyboard_arrow_down_rounded,
                   size: 14,
-                  color: enabled ? _SftpPalette.muted : _SftpPalette.softMuted,
+                  color: enabled ? c.muted : c.softMuted,
                 ),
               ],
             ),
@@ -1252,6 +1256,7 @@ class _SftpDirectoryPickerSheetState extends State<_SftpDirectoryPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final c = context.colors;
     return SafeArea(
       top: false,
       child: DraggableScrollableSheet(
@@ -1260,10 +1265,10 @@ class _SftpDirectoryPickerSheetState extends State<_SftpDirectoryPickerSheet> {
         maxChildSize: 0.9,
         expand: false,
         builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: _SftpPalette.canvas,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border(top: BorderSide(color: _SftpPalette.border)),
+          decoration: BoxDecoration(
+            color: c.canvas,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border(top: BorderSide(color: c.border)),
           ),
           child: Column(
             children: [
@@ -1272,7 +1277,7 @@ class _SftpDirectoryPickerSheetState extends State<_SftpDirectoryPickerSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: _SftpPalette.strongBorder,
+                  color: c.strongBorder,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1283,8 +1288,8 @@ class _SftpDirectoryPickerSheetState extends State<_SftpDirectoryPickerSheet> {
                     Expanded(
                       child: Text(
                         l.tr('sftp.chooseTargetFolder'),
-                        style: const TextStyle(
-                          color: _SftpPalette.text,
+                        style: TextStyle(
+                          color: c.text,
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                         ),
@@ -1312,8 +1317,8 @@ class _SftpDirectoryPickerSheetState extends State<_SftpDirectoryPickerSheet> {
                         _path,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _SftpPalette.muted,
+                        style: TextStyle(
+                          color: c.muted,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1327,9 +1332,9 @@ class _SftpDirectoryPickerSheetState extends State<_SftpDirectoryPickerSheet> {
               ),
               Expanded(
                 child: _loading
-                    ? const Center(
+                    ? Center(
                         child: CircularProgressIndicator(
-                          color: _SftpPalette.primary,
+                          color: c.primary,
                         ),
                       )
                     : _error != null
@@ -1339,7 +1344,7 @@ class _SftpDirectoryPickerSheetState extends State<_SftpDirectoryPickerSheet> {
                           child: Text(
                             _error!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: _SftpPalette.muted),
+                            style: TextStyle(color: c.muted),
                           ),
                         ),
                       )
@@ -1349,16 +1354,16 @@ class _SftpDirectoryPickerSheetState extends State<_SftpDirectoryPickerSheet> {
                         children: [
                           for (final directory in _directories)
                             ListTile(
-                              leading: const Icon(
+                              leading: Icon(
                                 Icons.folder_rounded,
-                                color: _SftpPalette.gold,
+                                color: c.accent,
                               ),
                               title: Text(
                                 directory.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: _SftpPalette.text,
+                                style: TextStyle(
+                                  color: c.text,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -1412,10 +1417,10 @@ class _SftpPathBar extends StatelessWidget {
             InkResponse(
               radius: 18,
               onTap: () => manager.openPath('/'),
-              child: const Icon(
+              child: Icon(
                 Icons.home_outlined,
                 size: 16,
-                color: _SftpPalette.muted,
+                color: context.colors.muted,
               ),
             ),
             const SizedBox(width: 6),
@@ -1451,6 +1456,7 @@ class _SftpBreadcrumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final segments = path
         .split('/')
         .where((segment) => segment.isNotEmpty)
@@ -1460,12 +1466,12 @@ class _SftpBreadcrumb extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: InkWell(
           onTap: () => manager.openPath('/'),
-          child: const Text(
+          child: Text(
             '/',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: _SftpPalette.text,
+              color: c.text,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -1476,13 +1482,13 @@ class _SftpBreadcrumb extends StatelessWidget {
     return ListView.separated(
       scrollDirection: Axis.horizontal,
       itemCount: segments.length,
-      separatorBuilder: (_, _) => const Center(
+      separatorBuilder: (_, _) => Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 5),
           child: Icon(
             Icons.chevron_right_rounded,
             size: 14,
-            color: _SftpPalette.softMuted,
+            color: c.softMuted,
           ),
         ),
       ),
@@ -1495,8 +1501,8 @@ class _SftpBreadcrumb extends StatelessWidget {
               segments[index],
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _SftpPalette.text,
+              style: TextStyle(
+                color: c.text,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -1519,7 +1525,7 @@ class _SftpIconAction extends StatelessWidget {
     return InkResponse(
       radius: 20,
       onTap: onTap,
-      child: Icon(icon, size: 18, color: _SftpPalette.muted),
+      child: Icon(icon, size: 18, color: context.colors.muted),
     );
   }
 }
@@ -1535,11 +1541,12 @@ class _SftpTableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       height: 32,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: _SftpPalette.border)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: c.border)),
       ),
       child: Row(
         children: [
@@ -1548,38 +1555,38 @@ class _SftpTableHeader extends StatelessWidget {
             child: Checkbox(
               value: allSelected,
               onChanged: (_) => onSelectAll(),
-              activeColor: _SftpPalette.primary,
+              activeColor: c.primary,
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
               '名称',
               style: TextStyle(
-                color: _SftpPalette.muted,
+                color: c.muted,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          const SizedBox(
+          SizedBox(
             width: 64,
             child: Text(
               '大小',
               textAlign: TextAlign.right,
               style: TextStyle(
-                color: _SftpPalette.muted,
+                color: c.muted,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          const SizedBox(
+          SizedBox(
             width: 58,
             child: Text(
               '时间',
               textAlign: TextAlign.right,
               style: TextStyle(
-                color: _SftpPalette.muted,
+                color: c.muted,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -1608,15 +1615,16 @@ class _SftpFileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Material(
-      color: selected ? _SftpPalette.banner : Colors.transparent,
+      color: selected ? c.banner : Colors.transparent,
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
         child: Container(
           height: 48,
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: _SftpPalette.border)),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: c.border)),
           ),
           child: Row(
             children: [
@@ -1625,7 +1633,7 @@ class _SftpFileRow extends StatelessWidget {
                 child: Checkbox(
                   value: selected,
                   onChanged: (_) => onSelectionChanged(),
-                  activeColor: _SftpPalette.primary,
+                  activeColor: c.primary,
                 ),
               ),
               Icon(
@@ -1636,8 +1644,8 @@ class _SftpFileRow extends StatelessWidget {
                     : Icons.insert_drive_file_outlined,
                 size: 20,
                 color: entry.isDirectory
-                    ? _SftpPalette.gold
-                    : _SftpPalette.muted,
+                    ? c.accent
+                    : c.muted,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1645,8 +1653,8 @@ class _SftpFileRow extends StatelessWidget {
                   entry.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _SftpPalette.text,
+                  style: TextStyle(
+                    color: c.text,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1659,8 +1667,8 @@ class _SftpFileRow extends StatelessWidget {
                   maxLines: 1,
                   textAlign: TextAlign.right,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _SftpPalette.softMuted,
+                  style: TextStyle(
+                    color: c.softMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -1673,8 +1681,8 @@ class _SftpFileRow extends StatelessWidget {
                   maxLines: 1,
                   textAlign: TextAlign.right,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _SftpPalette.softMuted,
+                  style: TextStyle(
+                    color: c.softMuted,
                     fontSize: 10,
                   ),
                 ),
@@ -1722,27 +1730,28 @@ class _SftpConnectingView extends StatelessWidget {
       'listing' => l.tr('sftp.phase.listing'),
       _ => l.tr('sftp.connecting'),
     };
+    final c = context.colors;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 120, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 120, 16, 110),
       children: [
         Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(
+              SizedBox(
                 width: 42,
                 height: 42,
                 child: CircularProgressIndicator(
-                  color: _SftpPalette.primary,
+                  color: c.primary,
                   strokeWidth: 3,
                 ),
               ),
               const SizedBox(height: 18),
               Text(
                 phaseLabel,
-                style: const TextStyle(
-                  color: _SftpPalette.text,
+                style: TextStyle(
+                  color: c.text,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
@@ -1750,8 +1759,8 @@ class _SftpConnectingView extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 server?.displayName ?? '',
-                style: const TextStyle(
-                  color: _SftpPalette.softMuted,
+                style: TextStyle(
+                  color: c.softMuted,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1772,6 +1781,7 @@ class _SftpEmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final c = context.colors;
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 420, minHeight: 348),
@@ -1784,8 +1794,8 @@ class _SftpEmptyCard extends StatelessWidget {
           Text(
             l.tr('sftp.emptyTitle'),
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _SftpPalette.text,
+            style: TextStyle(
+              color: c.text,
               fontSize: 20,
               fontWeight: FontWeight.w800,
             ),
@@ -1794,8 +1804,8 @@ class _SftpEmptyCard extends StatelessWidget {
           Text(
             l.tr('sftp.emptyBody'),
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _SftpPalette.softMuted,
+            style: TextStyle(
+              color: c.softMuted,
               fontSize: 13,
               fontWeight: FontWeight.w600,
               height: 1.5,
@@ -1819,25 +1829,26 @@ class _SftpOrbitIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return SizedBox(
       width: 120,
       height: 120,
       child: Stack(
         children: [
-          const Positioned(
+          Positioned(
             left: 6,
             top: 14,
-            child: _SftpDot(size: 10, color: _SftpPalette.banner),
+            child: _SftpDot(size: 10, color: c.banner),
           ),
-          const Positioned(
+          Positioned(
             right: 12,
             top: 8,
-            child: _SftpDot(size: 8, color: _SftpPalette.gold),
+            child: _SftpDot(size: 8, color: c.accent),
           ),
-          const Positioned(
+          Positioned(
             right: 4,
             bottom: 12,
-            child: _SftpDot(size: 12, color: _SftpPalette.banner),
+            child: _SftpDot(size: 12, color: c.banner),
           ),
           const Positioned(
             left: 0,
@@ -1849,13 +1860,13 @@ class _SftpOrbitIcon extends StatelessWidget {
               width: 92,
               height: 92,
               decoration: BoxDecoration(
-                color: _SftpPalette.banner,
+                color: c.banner,
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(color: const Color(0x66E5B33A)),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.folder_rounded,
-                color: _SftpPalette.primary,
+                color: c.primary,
                 size: 42,
               ),
             ),
@@ -1897,8 +1908,9 @@ class _SftpPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Material(
-      color: _SftpPalette.primary,
+      color: c.primary,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -1908,19 +1920,19 @@ class _SftpPrimaryButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 16, color: _SftpPalette.card),
+              Icon(icon, size: 16, color: c.fontOnPrimary),
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
-                  color: _SftpPalette.card,
+                style: TextStyle(
+                  color: c.fontOnPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               if (trailing != null) ...[
                 const SizedBox(width: 8),
-                Icon(trailing, size: 16, color: _SftpPalette.card),
+                Icon(trailing, size: 16, color: c.fontOnPrimary),
               ],
             ],
           ),
@@ -1961,6 +1973,7 @@ class _SftpServerPickerSheetState
   Widget build(BuildContext context) {
     final hostsAsync = ref.watch(hostListProvider);
     final l = AppLocalizations.of(context);
+    final c = context.colors;
 
     return SafeArea(
       top: false,
@@ -1971,10 +1984,10 @@ class _SftpServerPickerSheetState
         expand: false,
         builder: (context, scrollController) {
           return Container(
-            decoration: const BoxDecoration(
-              color: _SftpPalette.canvas,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              border: Border(top: BorderSide(color: _SftpPalette.border)),
+            decoration: BoxDecoration(
+              color: c.canvas,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              border: Border(top: BorderSide(color: c.border)),
             ),
             child: Column(
               children: [
@@ -1983,7 +1996,7 @@ class _SftpServerPickerSheetState
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: _SftpPalette.strongBorder,
+                    color: c.strongBorder,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1997,8 +2010,8 @@ class _SftpServerPickerSheetState
                           children: [
                             Text(
                               l.tr('sftp.sheetTitle'),
-                              style: const TextStyle(
-                                color: _SftpPalette.text,
+                              style: TextStyle(
+                                color: c.text,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -2006,8 +2019,8 @@ class _SftpServerPickerSheetState
                             const SizedBox(height: 3),
                             Text(
                               l.tr('sftp.sheetSubtitle'),
-                              style: const TextStyle(
-                                color: _SftpPalette.softMuted,
+                              style: TextStyle(
+                                color: c.softMuted,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -2029,12 +2042,13 @@ class _SftpServerPickerSheetState
                     height: 42,
                     child: TextField(
                       controller: _searchCtrl,
-                      cursorColor: _SftpPalette.primary,
-                      style: const TextStyle(
-                        color: _SftpPalette.text,
+                      cursorColor: c.primary,
+                      style: TextStyle(
+                        color: c.text,
                         fontSize: 14,
                       ),
                       decoration: _sftpSearchDecoration(
+                        context,
                         hintText: l.tr('sftp.searchHint'),
                       ),
                       onChanged: (value) =>
@@ -2044,9 +2058,9 @@ class _SftpServerPickerSheetState
                 ),
                 Expanded(
                   child: hostsAsync.when(
-                    loading: () => const Center(
+                    loading: () => Center(
                       child: CircularProgressIndicator(
-                        color: _SftpPalette.primary,
+                        color: c.primary,
                       ),
                     ),
                     error: (error, _) => ListView(
@@ -2056,7 +2070,7 @@ class _SftpServerPickerSheetState
                         Text(
                           error.toString(),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: _SftpPalette.muted),
+                          style: TextStyle(color: c.muted),
                         ),
                         const SizedBox(height: 8),
                         Center(
@@ -2096,7 +2110,7 @@ class _SftpServerPickerSheetState
           Text(
             l.tr('servers.emptyFiltered'),
             textAlign: TextAlign.center,
-            style: const TextStyle(color: _SftpPalette.muted),
+            style: TextStyle(color: context.colors.muted),
           ),
         ],
       );
@@ -2164,8 +2178,8 @@ class _SftpSectionLabel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
       child: Text(
         label,
-        style: const TextStyle(
-          color: _SftpPalette.softMuted,
+        style: TextStyle(
+          color: context.colors.softMuted,
           fontSize: 12,
           fontWeight: FontWeight.w800,
         ),
@@ -2190,13 +2204,14 @@ class _SftpServerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final c = context.colors;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Material(
-        color: active || connected ? _SftpPalette.banner : _SftpPalette.card,
+        color: active || connected ? c.banner : c.card,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: _SftpPalette.border),
+          side: BorderSide(color: c.border),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -2211,15 +2226,15 @@ class _SftpServerRow extends StatelessWidget {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: connected ? _SftpPalette.card : _SftpPalette.chip,
+                      color: connected ? c.card : c.chip,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       Icons.dns_outlined,
                       size: 21,
                       color: connected
-                          ? _SftpPalette.primary
-                          : _SftpPalette.muted,
+                          ? c.primary
+                          : c.muted,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -2232,8 +2247,8 @@ class _SftpServerRow extends StatelessWidget {
                           server.displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: _SftpPalette.text,
+                          style: TextStyle(
+                            color: c.text,
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                           ),
@@ -2243,8 +2258,8 @@ class _SftpServerRow extends StatelessWidget {
                           server.connectionLabel,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: _SftpPalette.softMuted,
+                          style: TextStyle(
+                            color: c.softMuted,
                             fontSize: 12,
                             fontFamily: 'monospace',
                           ),
@@ -2254,9 +2269,9 @@ class _SftpServerRow extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   if (active)
-                    const Icon(
+                    Icon(
                       Icons.check_rounded,
-                      color: _SftpPalette.success,
+                      color: c.success,
                       size: 20,
                     )
                   else if (!connected)
@@ -2282,11 +2297,12 @@ class _SftpStatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = connected ? _SftpPalette.success : _SftpPalette.muted;
+    final c = context.colors;
+    final foreground = connected ? c.success : c.muted;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: connected ? const Color(0xFFEAF3E4) : _SftpPalette.chip,
+        color: connected ? c.success.withValues(alpha: 0.15) : c.chip,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -2314,10 +2330,11 @@ class _SftpSheetIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: _SftpPalette.chip,
+        color: c.chip,
         borderRadius: BorderRadius.circular(999),
         child: InkWell(
           borderRadius: BorderRadius.circular(999),
@@ -2325,7 +2342,7 @@ class _SftpSheetIconButton extends StatelessWidget {
           child: SizedBox(
             width: 32,
             height: 32,
-            child: Icon(icon, color: _SftpPalette.muted, size: 18),
+            child: Icon(icon, color: c.muted, size: 18),
           ),
         ),
       ),
@@ -2350,7 +2367,7 @@ class _SftpMessageList extends StatelessWidget {
           child: Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: _SftpPalette.muted),
+            style: TextStyle(color: context.colors.muted),
           ),
         ),
         if (action != null) ...[
@@ -2362,50 +2379,38 @@ class _SftpMessageList extends StatelessWidget {
   }
 }
 
-InputDecoration _sftpSearchDecoration({required String hintText}) {
+InputDecoration _sftpSearchDecoration(
+  BuildContext context, {
+  required String hintText,
+}) {
+  final c = context.colors;
   return InputDecoration(
     hintText: hintText,
     isDense: true,
     filled: true,
-    fillColor: _SftpPalette.chip,
-    prefixIcon: const Icon(
+    fillColor: c.chip,
+    prefixIcon: Icon(
       Icons.search_rounded,
       size: 18,
-      color: _SftpPalette.softMuted,
+      color: c.softMuted,
     ),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    hintStyle: const TextStyle(color: _SftpPalette.softMuted, fontSize: 13),
+    hintStyle: TextStyle(color: c.softMuted, fontSize: 13),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _SftpPalette.border),
+      borderSide: BorderSide(color: c.border),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _SftpPalette.primary, width: 1.2),
+      borderSide: BorderSide(color: c.primary, width: 1.2),
     ),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _SftpPalette.border),
+      borderSide: BorderSide(color: c.border),
     ),
   );
 }
 
 String _safeFileName(String name) {
   return name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-}
-
-abstract final class _SftpPalette {
-  static const canvas = Color(0xFFF7EFE0);
-  static const card = Color(0xFFFBF5E6);
-  static const chip = Color(0xFFF4ECD7);
-  static const banner = Color(0xFFF7E4B0);
-  static const gold = Color(0xFFE5B33A);
-  static const primary = Color(0xFF5C4520);
-  static const text = Color(0xFF2A2418);
-  static const muted = Color(0xFF6B5E3F);
-  static const softMuted = Color(0xFF9A8B68);
-  static const border = Color(0xFFE2D5B3);
-  static const strongBorder = Color(0xFFC9B98D);
-  static const success = Color(0xFF5A8E3A);
-  static const danger = Color(0xFFC0392B);
 }

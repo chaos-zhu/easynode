@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
@@ -145,25 +146,26 @@ class _ScriptFormPageState extends ConsumerState<ScriptFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final l = AppLocalizations.of(context);
     final groups =
         ref.watch(scriptGroupListProvider).valueOrNull ??
         const <ScriptGroupModel>[];
     final editing = _form.isEdit;
     return Scaffold(
-      backgroundColor: _ScriptPalette.canvas,
+      backgroundColor: c.canvas,
       appBar: AppBar(
-        backgroundColor: _ScriptPalette.canvas,
+        backgroundColor: c.canvas,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(
           editing ? l.tr('scripts.editScript') : l.tr('scripts.addScript'),
-          style: const TextStyle(
-            color: _ScriptPalette.text,
+          style: TextStyle(
+            color: c.text,
             fontWeight: FontWeight.w700,
           ),
         ),
-        iconTheme: const IconThemeData(color: _ScriptPalette.text),
+        iconTheme: IconThemeData(color: c.text),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -293,11 +295,12 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       decoration: BoxDecoration(
-        color: _ScriptPalette.card,
+        color: c.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _ScriptPalette.border),
+        border: Border.all(color: c.border),
       ),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(
@@ -309,15 +312,15 @@ class _SectionCard extends StatelessWidget {
                 width: 3,
                 height: 14,
                 decoration: BoxDecoration(
-                  color: _ScriptPalette.primary,
+                  color: c.primary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 title,
-                style: const TextStyle(
-                  color: _ScriptPalette.muted,
+                style: TextStyle(
+                  color: c.muted,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,
@@ -343,6 +346,7 @@ class _LabeledField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -352,8 +356,8 @@ class _LabeledField extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 6),
             child: Text(
               label,
-              style: const TextStyle(
-                color: _ScriptPalette.softMuted,
+              style: TextStyle(
+                color: c.softMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -383,41 +387,42 @@ class _SoftTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return TextFormField(
       controller: controller,
       validator: validator,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       textAlign: textAlign,
-      cursorColor: _ScriptPalette.primary,
-      style: const TextStyle(color: _ScriptPalette.text, fontSize: 14),
+      cursorColor: c.primary,
+      style: TextStyle(color: c.text, fontSize: 14),
       decoration: InputDecoration(
         isDense: true,
         filled: true,
-        fillColor: _ScriptPalette.chip,
+        fillColor: c.chip,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _ScriptPalette.border),
+          borderSide: BorderSide(color: c.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: _ScriptPalette.primary,
+          borderSide: BorderSide(
+            color: c.primary,
             width: 1.2,
           ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _ScriptPalette.danger),
+          borderSide: BorderSide(color: c.danger),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: _ScriptPalette.danger,
+          borderSide: BorderSide(
+            color: c.danger,
             width: 1.4,
           ),
         ),
@@ -439,6 +444,7 @@ class _GroupSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final l = AppLocalizations.of(context);
     final selectable = groups
         .where((g) => !g.isBuiltin)
@@ -454,7 +460,7 @@ class _GroupSelector extends StatelessWidget {
           : () async {
               final picked = await showModalBottomSheet<String>(
                 context: context,
-                backgroundColor: _ScriptPalette.card,
+                backgroundColor: c.card,
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
                 ),
@@ -470,23 +476,23 @@ class _GroupSelector extends StatelessWidget {
                         title: Text(
                           g.displayName,
                           style: TextStyle(
-                            color: _ScriptPalette.text,
+                            color: c.text,
                             fontWeight: picked
                                 ? FontWeight.w700
                                 : FontWeight.w500,
                           ),
                         ),
                         trailing: picked
-                            ? const Icon(
+                            ? Icon(
                                 Icons.check,
-                                color: _ScriptPalette.primary,
+                                color: c.primary,
                               )
                             : null,
                         onTap: () => Navigator.of(sheetContext).pop(g.id),
                       );
                     },
                     separatorBuilder: (_, _) =>
-                        const Divider(height: 1, color: _ScriptPalette.border),
+                        Divider(height: 1, color: c.border),
                     itemCount: selectable.length,
                   ),
                 ),
@@ -497,9 +503,9 @@ class _GroupSelector extends StatelessWidget {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: _ScriptPalette.chip,
+          color: c.chip,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _ScriptPalette.border),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           children: [
@@ -512,16 +518,16 @@ class _GroupSelector extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: current.displayName.isEmpty
-                      ? _ScriptPalette.softMuted
-                      : _ScriptPalette.text,
+                      ? c.softMuted
+                      : c.text,
                   fontSize: 14,
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               Icons.keyboard_arrow_down,
               size: 18,
-              color: _ScriptPalette.softMuted,
+              color: c.softMuted,
             ),
           ],
         ),
@@ -535,15 +541,16 @@ class _ShellTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: const [
-        Icon(Icons.terminal, size: 13, color: _ScriptPalette.softMuted),
-        SizedBox(width: 4),
+      children: [
+        Icon(Icons.terminal, size: 13, color: c.softMuted),
+        const SizedBox(width: 4),
         Text(
           'shell',
           style: TextStyle(
-            color: _ScriptPalette.softMuted,
+            color: c.softMuted,
             fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
@@ -561,6 +568,7 @@ class _CommandEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: TextFormField(
@@ -568,9 +576,9 @@ class _CommandEditor extends StatelessWidget {
         validator: validator,
         maxLines: 8,
         minLines: 6,
-        cursorColor: _ScriptPalette.primary,
-        style: const TextStyle(
-          color: _ScriptPalette.text,
+        cursorColor: c.primary,
+        style: TextStyle(
+          color: c.text,
           fontSize: 13,
           fontFamily: 'monospace',
           height: 1.5,
@@ -578,25 +586,25 @@ class _CommandEditor extends StatelessWidget {
         decoration: InputDecoration(
           isDense: true,
           filled: true,
-          fillColor: _ScriptPalette.chip,
+          fillColor: c.chip,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 12,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: _ScriptPalette.border),
+            borderSide: BorderSide(color: c.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(
-              color: _ScriptPalette.primary,
+            borderSide: BorderSide(
+              color: c.primary,
               width: 1.2,
             ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: _ScriptPalette.danger),
+            borderSide: BorderSide(color: c.danger),
           ),
         ),
       ),
@@ -619,8 +627,9 @@ class _EncodingOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Material(
-      color: selected ? _ScriptPalette.banner : _ScriptPalette.chip,
+      color: selected ? c.banner : c.chip,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -630,7 +639,7 @@ class _EncodingOption extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: selected ? _ScriptPalette.primary : _ScriptPalette.border,
+              color: selected ? c.primary : c.border,
               width: selected ? 1.4 : 1,
             ),
           ),
@@ -646,8 +655,8 @@ class _EncodingOption extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: selected
-                            ? _ScriptPalette.primary
-                            : _ScriptPalette.text,
+                            ? c.primary
+                            : c.text,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -657,8 +666,8 @@ class _EncodingOption extends StatelessWidget {
                     Icons.info_outline,
                     size: 14,
                     color: selected
-                        ? _ScriptPalette.primary
-                        : _ScriptPalette.softMuted,
+                        ? c.primary
+                        : c.softMuted,
                   ),
                 ],
               ),
@@ -667,8 +676,8 @@ class _EncodingOption extends StatelessWidget {
                 hint,
                 style: TextStyle(
                   color: selected
-                      ? _ScriptPalette.muted
-                      : _ScriptPalette.softMuted,
+                      ? c.muted
+                      : c.softMuted,
                   fontSize: 11,
                   height: 1.4,
                 ),
@@ -694,8 +703,9 @@ class _AppBarSaveChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Material(
-      color: _ScriptPalette.banner,
+      color: c.banner,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -706,25 +716,25 @@ class _AppBarSaveChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (loading)
-                const SizedBox(
+                SizedBox(
                   width: 14,
                   height: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: _ScriptPalette.primary,
+                    color: c.primary,
                   ),
                 )
               else
-                const Icon(
+                Icon(
                   Icons.check,
                   size: 16,
-                  color: _ScriptPalette.primary,
+                  color: c.primary,
                 ),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: const TextStyle(
-                  color: _ScriptPalette.primary,
+                style: TextStyle(
+                  color: c.primary,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -752,11 +762,12 @@ class _BottomActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final l = AppLocalizations.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: _ScriptPalette.card,
-        border: Border(top: BorderSide(color: _ScriptPalette.border)),
+      decoration: BoxDecoration(
+        color: c.card,
+        border: Border(top: BorderSide(color: c.border)),
       ),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Row(
@@ -765,19 +776,19 @@ class _BottomActionBar extends StatelessWidget {
             color: Colors.transparent,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: const BorderSide(color: _ScriptPalette.strongBorder),
+              side: BorderSide(color: c.strongBorder),
             ),
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: onCancel,
-              child: const SizedBox(
+              child: SizedBox(
                 width: 110,
                 height: 48,
                 child: Center(
                   child: Text(
                     '取消',
                     style: TextStyle(
-                      color: _ScriptPalette.muted,
+                      color: c.muted,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
@@ -790,8 +801,8 @@ class _BottomActionBar extends StatelessWidget {
           Expanded(
             child: Material(
               color: onSave == null
-                  ? _ScriptPalette.softMuted
-                  : _ScriptPalette.primary,
+                  ? c.softMuted
+                  : c.primary,
               borderRadius: BorderRadius.circular(10),
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
@@ -800,29 +811,29 @@ class _BottomActionBar extends StatelessWidget {
                   height: 48,
                   child: Center(
                     child: saving
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: c.fontOnPrimary,
                             ),
                           )
                         : Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.check,
                                 size: 18,
-                                color: Colors.white,
+                                color: c.fontOnPrimary,
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 editing
                                     ? l.tr('common.save')
                                     : l.tr('scripts.addScript'),
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: c.fontOnPrimary,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -838,18 +849,4 @@ class _BottomActionBar extends StatelessWidget {
       ),
     );
   }
-}
-
-abstract final class _ScriptPalette {
-  static const canvas = Color(0xFFF7EFE0);
-  static const card = Color(0xFFFBF5E6);
-  static const chip = Color(0xFFF4ECD7);
-  static const banner = Color(0xFFF7E4B0);
-  static const primary = Color(0xFF5C4520);
-  static const text = Color(0xFF2A2418);
-  static const muted = Color(0xFF6B5E3F);
-  static const softMuted = Color(0xFF9A8B68);
-  static const border = Color(0xFFE2D5B3);
-  static const strongBorder = Color(0xFFC9B98D);
-  static const danger = Color(0xFFB9473D);
 }

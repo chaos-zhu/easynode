@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../core/ui/refresh_feedback.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
@@ -139,8 +139,8 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppPalette.danger,
-              foregroundColor: AppPalette.fontOnPrimary,
+              backgroundColor: ctx.colors.danger,
+              foregroundColor: ctx.colors.fontOnPrimary,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l.tr('sessions.revoke')),
@@ -185,9 +185,9 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
     final logAsync = ref.watch(loginLogProvider);
 
     return Scaffold(
-      backgroundColor: AppPalette.canvas,
+      backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        backgroundColor: AppPalette.canvas,
+        backgroundColor: context.colors.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(l.tr('settings.sessions.title')),
@@ -196,17 +196,17 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
             tooltip: l.tr('sessions.purgeTooltip'),
             onPressed: _purging || logAsync.isLoading ? null : _purgeOld,
             icon: _purging
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppPalette.danger,
+                      color: context.colors.danger,
                     ),
                   )
-                : const Icon(
+                : Icon(
                     Icons.delete_outline,
-                    color: AppPalette.danger,
+                    color: context.colors.danger,
                   ),
           ),
           const SizedBox(width: 6),
@@ -303,9 +303,9 @@ class _IpWhitelistCard extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppPalette.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.border),
+        border: Border.all(color: context.colors.border),
       ),
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -315,28 +315,28 @@ class _IpWhitelistCard extends StatelessWidget {
             children: [
               Text(
                 l.tr('sessions.ipWhitelistTitle'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
-                  color: AppPalette.muted,
+                  color: context.colors.muted,
                 ),
               ),
               const SizedBox(width: 6),
-              const Icon(
+              Icon(
                 Icons.info_outline,
                 size: 12,
-                color: AppPalette.softMuted,
+                color: context.colors.softMuted,
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             l.tr('sessions.ipWhitelistHint'),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontStyle: FontStyle.italic,
-              color: AppPalette.muted,
+              color: context.colors.muted,
             ),
           ),
           const SizedBox(height: 10),
@@ -345,9 +345,9 @@ class _IpWhitelistCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Text(
                 l.tr('sessions.ipEmpty'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppPalette.softMuted,
+                  color: context.colors.softMuted,
                 ),
               ),
             )
@@ -365,24 +365,24 @@ class _IpWhitelistCard extends StatelessWidget {
             controller: controller,
             onSubmitted: (_) => onAdd(),
             textInputAction: TextInputAction.done,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontFamily: 'monospace',
-              color: AppPalette.text,
+              color: context.colors.text,
             ),
             decoration: InputDecoration(
               hintText: l.tr('sessions.ipAddHint'),
-              hintStyle: const TextStyle(
+              hintStyle: TextStyle(
                 fontSize: 12,
-                color: AppPalette.softMuted,
+                color: context.colors.softMuted,
               ),
               isDense: true,
               filled: true,
-              fillColor: AppPalette.canvas,
-              prefixIcon: const Icon(
+              fillColor: context.colors.canvas,
+              prefixIcon: Icon(
                 Icons.add_rounded,
                 size: 18,
-                color: AppPalette.softMuted,
+                color: context.colors.softMuted,
               ),
               prefixIconConstraints: const BoxConstraints(
                 minWidth: 36,
@@ -394,15 +394,15 @@ class _IpWhitelistCard extends StatelessWidget {
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppPalette.border),
+                borderSide: BorderSide(color: context.colors.border),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppPalette.border),
+                borderSide: BorderSide(color: context.colors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppPalette.accent),
+                borderSide: BorderSide(color: context.colors.accent),
               ),
             ),
           ),
@@ -412,19 +412,19 @@ class _IpWhitelistCard extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onSave,
               style: FilledButton.styleFrom(
-                backgroundColor: AppPalette.primary,
-                foregroundColor: AppPalette.fontOnPrimary,
-                disabledBackgroundColor: AppPalette.chip,
-                disabledForegroundColor: AppPalette.softMuted,
+                backgroundColor: context.colors.primary,
+                foregroundColor: context.colors.fontOnPrimary,
+                disabledBackgroundColor: context.colors.chip,
+                disabledForegroundColor: context.colors.softMuted,
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               icon: saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 14,
                       height: 14,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppPalette.fontOnPrimary,
+                        color: context.colors.fontOnPrimary,
                       ),
                     )
                   : const Icon(Icons.verified_user_outlined, size: 16),
@@ -454,28 +454,28 @@ class _IpChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: AppPalette.accentSoft,
+        color: context.colors.accentSoft,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppPalette.strongBorder),
+        border: Border.all(color: context.colors.strongBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppPalette.primary,
+              color: context.colors.primary,
             ),
           ),
           const SizedBox(width: 6),
           InkWell(
             onTap: onRemove,
-            child: const Icon(
+            child: Icon(
               Icons.close_rounded,
               size: 14,
-              color: AppPalette.primary,
+              color: context.colors.primary,
             ),
           ),
         ],
@@ -498,20 +498,20 @@ class _SectionHeader extends StatelessWidget {
         children: [
           Text(
             label.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.5,
-              color: AppPalette.muted,
+              color: context.colors.muted,
             ),
           ),
           const SizedBox(width: 6),
           Text(
             '· $count',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: AppPalette.muted,
+              color: context.colors.muted,
             ),
           ),
         ],
@@ -546,8 +546,8 @@ class _SessionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final nativeClient = session.isNativeClient;
-    final bg = isCurrent ? AppPalette.accentSoft : AppPalette.card;
-    final borderColor = isCurrent ? AppPalette.primary : AppPalette.border;
+    final bg = isCurrent ? context.colors.accentSoft : context.colors.card;
+    final borderColor = isCurrent ? context.colors.primary : context.colors.border;
     final borderWidth = isCurrent ? 2.0 : 1.0;
 
     final ipLabel =
@@ -572,7 +572,7 @@ class _SessionCard extends StatelessWidget {
                     ? Icons.smartphone_rounded
                     : Icons.monitor_rounded,
                 size: 18,
-                color: AppPalette.primary,
+                color: context.colors.primary,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -581,19 +581,19 @@ class _SessionCard extends StatelessWidget {
                   children: [
                     Text(
                       ipLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppPalette.text,
+                        color: context.colors.text,
                       ),
                     ),
                     if (location.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         location,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: AppPalette.muted,
+                          color: context.colors.muted,
                         ),
                       ),
                     ],
@@ -607,7 +607,7 @@ class _SessionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Container(height: 1, color: AppPalette.border),
+          Container(height: 1, color: context.colors.border),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -616,16 +616,16 @@ class _SessionCard extends StatelessWidget {
                     ? Icons.smartphone_outlined
                     : Icons.monitor_outlined,
                 size: 14,
-                color: AppPalette.muted,
+                color: context.colors.muted,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _agentLabel(l),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppPalette.muted,
+                    color: context.colors.muted,
                   ),
                 ),
               ),
@@ -696,9 +696,9 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = switch (tone) {
-      _StatusTone.success => (AppPalette.success, AppPalette.fontOnPrimary),
-      _StatusTone.primary => (AppPalette.accentSoft, AppPalette.primary),
-      _StatusTone.muted => (AppPalette.chip, AppPalette.muted),
+      _StatusTone.success => (context.colors.success, context.colors.fontOnPrimary),
+      _StatusTone.primary => (context.colors.accentSoft, context.colors.primary),
+      _StatusTone.muted => (context.colors.chip, context.colors.muted),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -733,9 +733,9 @@ class _MetaLine extends StatelessWidget {
       children: [
         Text(
           '$label  ',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: AppPalette.softMuted,
+            color: context.colors.softMuted,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -743,9 +743,9 @@ class _MetaLine extends StatelessWidget {
           child: Text(
             value,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppPalette.muted,
+              color: context.colors.muted,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -777,23 +777,23 @@ class _RevokeButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppPalette.warning),
+            border: Border.all(color: context.colors.warning),
           ),
           child: loading
-              ? const SizedBox(
+              ? SizedBox(
                   width: 12,
                   height: 12,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppPalette.warning,
+                    color: context.colors.warning,
                   ),
                 )
               : Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: AppPalette.warning,
+                    color: context.colors.warning,
                   ),
                 ),
         ),
@@ -814,7 +814,7 @@ class _EmptyState extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         label,
-        style: const TextStyle(fontSize: 13, color: AppPalette.softMuted),
+        style: TextStyle(fontSize: 13, color: context.colors.softMuted),
       ),
     );
   }
@@ -837,16 +837,16 @@ class _ErrorBody extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Column(
               children: [
-                const Icon(
+                Icon(
                   Icons.error_outline,
                   size: 36,
-                  color: AppPalette.danger,
+                  color: context.colors.danger,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 13, color: AppPalette.text),
+                  style: TextStyle(fontSize: 13, color: context.colors.text),
                 ),
                 const SizedBox(height: 16),
                 FilledButton.tonal(

@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:xterm/src/ui/render.dart';
 import 'package:xterm/xterm.dart';
 
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/terminal_providers.dart';
 import '../../state/terminal_settings_notifier.dart';
@@ -563,7 +563,7 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                                   AppLocalizations.of(
                                     context,
                                   ).tr('terminal.noActive'),
-                                  style: const TextStyle(color: AppPalette.softMuted),
+                                  style: TextStyle(color: context.colors.softMuted),
                                 ),
                               )
                             : FocusScope(

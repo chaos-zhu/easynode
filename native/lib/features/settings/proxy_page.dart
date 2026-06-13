@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../core/ui/refresh_feedback.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
@@ -70,8 +70,8 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppPalette.danger,
-              foregroundColor: AppPalette.fontOnPrimary,
+              backgroundColor: context.colors.danger,
+              foregroundColor: context.colors.fontOnPrimary,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l.tr('common.delete')),
@@ -158,9 +158,9 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
     final plusActive = ref.watch(plusInfoProvider).valueOrNull?.isActive ?? false;
 
     return Scaffold(
-      backgroundColor: AppPalette.canvas,
+      backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        backgroundColor: AppPalette.canvas,
+        backgroundColor: context.colors.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(l.tr('settings.proxy.title')),
@@ -171,7 +171,7 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
                 : l.tr('common.search'),
             onPressed: _toggleSearch,
             icon: Icon(_searchOpen ? Icons.close_rounded : Icons.search_rounded),
-            color: AppPalette.primary,
+            color: context.colors.primary,
           ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -206,16 +206,16 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
                           decoration: InputDecoration(
                             isDense: true,
                             filled: true,
-                            fillColor: AppPalette.card,
+                            fillColor: context.colors.card,
                             hintText: l.tr('credentials.searchHint'),
-                            hintStyle: const TextStyle(
+                            hintStyle: TextStyle(
                               fontSize: 13,
-                              color: AppPalette.softMuted,
+                              color: context.colors.softMuted,
                             ),
-                            prefixIcon: const Icon(
+                            prefixIcon: Icon(
                               Icons.search_rounded,
                               size: 18,
-                              color: AppPalette.softMuted,
+                              color: context.colors.softMuted,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -224,17 +224,17 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide:
-                                  const BorderSide(color: AppPalette.border),
+                                  BorderSide(color: context.colors.border),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide:
-                                  const BorderSide(color: AppPalette.border),
+                                  BorderSide(color: context.colors.border),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide:
-                                  const BorderSide(color: AppPalette.accent),
+                                  BorderSide(color: context.colors.accent),
                             ),
                           ),
                         ),
@@ -278,8 +278,8 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
                           child: Center(
                             child: Text(
                               l.tr('proxy.empty'),
-                              style: const TextStyle(
-                                color: AppPalette.softMuted,
+                              style: TextStyle(
+                                color: context.colors.softMuted,
                                 fontSize: 13,
                               ),
                             ),
@@ -323,18 +323,18 @@ class _PlusTip extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppPalette.accent.withValues(alpha: 0.08),
+        color: context.colors.accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppPalette.accent),
+        border: Border.all(color: context.colors.accent),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.auto_awesome_outlined,
             size: 16,
-            color: AppPalette.accent,
+            color: context.colors.accent,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -343,18 +343,18 @@ class _PlusTip extends StatelessWidget {
               children: [
                 Text(
                   l.tr('proxy.plusTipTitle'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppPalette.text,
+                    color: context.colors.text,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   l.tr('proxy.plusTipBody'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppPalette.muted,
+                    color: context.colors.muted,
                     height: 1.4,
                   ),
                 ),
@@ -380,19 +380,19 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.5,
-            color: AppPalette.muted,
+            color: context.colors.muted,
           ),
         ),
         Text(
           '· $count',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            color: AppPalette.muted,
+            color: context.colors.muted,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -409,8 +409,8 @@ class _AddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = enabled ? AppPalette.primary : AppPalette.chip;
-    final fg = enabled ? AppPalette.fontOnPrimary : AppPalette.softMuted;
+    final bg = enabled ? context.colors.primary : context.colors.chip;
+    final fg = enabled ? context.colors.fontOnPrimary : context.colors.softMuted;
     return Material(
       color: bg,
       borderRadius: BorderRadius.circular(10),
@@ -451,7 +451,7 @@ class _ProxyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppPalette.card,
+      color: context.colors.card,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -459,7 +459,7 @@ class _ProxyCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppPalette.border),
+            border: Border.all(color: context.colors.border),
           ),
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -476,10 +476,10 @@ class _ProxyCard extends StatelessWidget {
                           child: Text(
                             proxy.displayName,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: AppPalette.text,
+                              color: context.colors.text,
                             ),
                           ),
                         ),
@@ -489,9 +489,9 @@ class _ProxyCard extends StatelessWidget {
                   if (dateLabel.isNotEmpty)
                     Text(
                       dateLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
-                        color: AppPalette.softMuted,
+                        color: context.colors.softMuted,
                       ),
                     ),
                 ],
@@ -503,26 +503,26 @@ class _ProxyCard extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: AppPalette.chip,
+                  color: context.colors.chip,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppPalette.border),
+                  border: Border.all(color: context.colors.border),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.lan_outlined,
                       size: 14,
-                      color: AppPalette.muted,
+                      color: context.colors.muted,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         proxy.endpoint.isEmpty ? '-' : proxy.endpoint,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.w700,
-                          color: AppPalette.text,
+                          color: context.colors.text,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -537,19 +537,19 @@ class _ProxyCard extends StatelessWidget {
                     child: Row(
                       children: [
                         if (proxy.username.isNotEmpty) ...[
-                          const Icon(
+                          Icon(
                             Icons.person_outline,
                             size: 13,
-                            color: AppPalette.softMuted,
+                            color: context.colors.softMuted,
                           ),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               proxy.username,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: AppPalette.muted,
+                                color: context.colors.muted,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -560,22 +560,22 @@ class _ProxyCard extends StatelessWidget {
                   ),
                   _ActionButton(
                     icon: Icons.edit_outlined,
-                    bg: AppPalette.accentSoft,
-                    fg: AppPalette.primary,
+                    bg: context.colors.accentSoft,
+                    fg: context.colors.primary,
                     onTap: onEdit,
                   ),
                   const SizedBox(width: 6),
                   _ActionButton(
                     icon: Icons.copy_all_outlined,
-                    bg: AppPalette.success.withValues(alpha: 0.16),
-                    fg: AppPalette.success,
+                    bg: context.colors.success.withValues(alpha: 0.16),
+                    fg: context.colors.success,
                     onTap: onClone,
                   ),
                   const SizedBox(width: 6),
                   _ActionButton(
                     icon: Icons.delete_outline,
-                    bg: AppPalette.dangerSoft,
-                    fg: AppPalette.danger,
+                    bg: context.colors.dangerSoft,
+                    fg: context.colors.danger,
                     loading: deleting,
                     onTap: onDelete,
                   ),
@@ -597,8 +597,8 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = primary ? AppPalette.accentSoft : const Color(0xFFCFFAFE);
-    final fg = primary ? AppPalette.primary : const Color(0xFF0E7490);
+    final bg = primary ? context.colors.accentSoft : context.colors.chip;
+    final fg = primary ? context.colors.primary : context.colors.muted;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -679,16 +679,16 @@ class _ErrorBody extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Column(
               children: [
-                const Icon(
+                Icon(
                   Icons.error_outline,
                   size: 36,
-                  color: AppPalette.danger,
+                  color: context.colors.danger,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 13, color: AppPalette.text),
+                  style: TextStyle(fontSize: 13, color: context.colors.text),
                 ),
                 const SizedBox(height: 16),
                 FilledButton.tonal(

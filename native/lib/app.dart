@@ -18,8 +18,10 @@ import 'features/shell/main_shell_page.dart';
 import 'l10n/app_localizations.dart';
 import 'state/auth_notifier.dart';
 import 'state/auth_state.dart';
+import 'core/ui/app_color_theme.dart';
 import 'state/locale_notifier.dart';
 import 'state/storage_providers.dart';
+import 'state/theme_mode_notifier.dart';
 
 /// Bootstrap result. Wraps the values [EasyNodeApp] needs to install on the
 /// root [ProviderScope]. Building these synchronously up front keeps the
@@ -248,12 +250,17 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     return MaterialApp(
       title: 'EasyNode',
       scaffoldMessengerKey: _messengerKey,
-      themeMode: ThemeMode.system,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.amber),
+      themeMode: ref.watch(themeModeProvider),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: Colors.amber,
+        extensions: const [AppColorTheme.light],
+      ),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         colorSchemeSeed: Colors.amber,
+        extensions: const [AppColorTheme.dark],
       ),
       locale: ref.watch(localeProvider),
       localizationsDelegates: const [

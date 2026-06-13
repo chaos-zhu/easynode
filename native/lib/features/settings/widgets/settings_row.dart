@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/ui/palette.dart';
+import '../../../core/ui/app_color_theme.dart';
 
 /// A single row inside a [SettingsSection]: 36×36 icon box on the left,
 /// title (+ optional subtitle) in the middle, optional trailing chip, and a
@@ -25,9 +25,9 @@ class SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleColor = danger ? AppPalette.danger : AppPalette.text;
-    final iconColor = danger ? AppPalette.danger : AppPalette.primary;
-    final iconBg = danger ? AppPalette.dangerSoft : AppPalette.chip;
+    final titleColor = danger ? context.colors.danger : context.colors.text;
+    final iconColor = danger ? context.colors.danger : context.colors.primary;
+    final iconBg = danger ? context.colors.dangerSoft : context.colors.chip;
 
     return InkWell(
       onTap: onTap,
@@ -62,10 +62,10 @@ class SettingsRow extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       subtitle!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: AppPalette.softMuted,
+                        color: context.colors.softMuted,
                       ),
                     ),
                   ],
@@ -75,10 +75,10 @@ class SettingsRow extends StatelessWidget {
             if (trailing != null) ...[const SizedBox(width: 8), trailing!],
             if (onTap != null) ...[
               const SizedBox(width: 6),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 size: 20,
-                color: AppPalette.softMuted,
+                color: context.colors.softMuted,
               ),
             ],
           ],

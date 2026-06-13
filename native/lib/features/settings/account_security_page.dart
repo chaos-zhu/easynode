@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
-import '../../core/ui/palette.dart';
+import '../../core/ui/app_color_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
@@ -251,9 +251,9 @@ class _AccountSecurityPageState extends ConsumerState<AccountSecurityPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppPalette.canvas,
+      backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        backgroundColor: AppPalette.canvas,
+        backgroundColor: context.colors.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(l.tr('settings.account.title')),
@@ -314,11 +314,11 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.5,
-          color: AppPalette.muted,
+          color: context.colors.muted,
         ),
       ),
     );
@@ -363,9 +363,9 @@ class _CredentialsCard extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppPalette.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.border),
+        border: Border.all(color: context.colors.border),
       ),
       padding: const EdgeInsets.all(16),
       child: Form(
@@ -454,19 +454,19 @@ class _CredentialsCard extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: saving ? null : onSubmit,
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppPalette.primary,
-                  foregroundColor: AppPalette.fontOnPrimary,
+                  backgroundColor: context.colors.primary,
+                  foregroundColor: context.colors.fontOnPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  disabledBackgroundColor: AppPalette.chip,
-                  disabledForegroundColor: AppPalette.softMuted,
+                  disabledBackgroundColor: context.colors.chip,
+                  disabledForegroundColor: context.colors.softMuted,
                 ),
                 icon: saving
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppPalette.fontOnPrimary,
+                          color: context.colors.fontOnPrimary,
                         ),
                       )
                     : const Icon(Icons.save_outlined, size: 16),
@@ -483,10 +483,10 @@ class _CredentialsCard extends StatelessWidget {
             Text(
               l.tr('account.confirmBody'),
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontStyle: FontStyle.italic,
-                color: AppPalette.muted,
+                color: context.colors.muted,
               ),
             ),
           ],
@@ -509,10 +509,10 @@ class _FieldGroup extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: AppPalette.muted,
+            color: context.colors.muted,
           ),
         ),
         const SizedBox(height: 6),
@@ -543,41 +543,41 @@ class _TextInput extends StatelessWidget {
       controller: controller,
       obscureText: obscure,
       validator: validator,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
-        color: AppPalette.text,
+        color: context.colors.text,
       ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontSize: 13,
-          color: AppPalette.softMuted,
+          color: context.colors.softMuted,
         ),
         isDense: true,
         filled: true,
-        fillColor: AppPalette.canvas,
+        fillColor: context.colors.canvas,
         suffixIcon: suffix,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.border),
+          borderSide: BorderSide(color: context.colors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.border),
+          borderSide: BorderSide(color: context.colors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.accent),
+          borderSide: BorderSide(color: context.colors.accent),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.danger),
+          borderSide: BorderSide(color: context.colors.danger),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppPalette.danger),
+          borderSide: BorderSide(color: context.colors.danger),
         ),
       ),
     );
@@ -597,7 +597,7 @@ class _EyeButton extends StatelessWidget {
       icon: Icon(
         visible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
         size: 18,
-        color: AppPalette.muted,
+        color: context.colors.muted,
       ),
     );
   }
@@ -646,9 +646,9 @@ class _MfaCardState extends State<_MfaCard> {
     final l = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppPalette.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.border),
+        border: Border.all(color: context.colors.border),
       ),
       padding: const EdgeInsets.all(16),
       child: widget.loading
@@ -666,10 +666,10 @@ class _MfaCardState extends State<_MfaCard> {
                         widget.enabled
                             ? l.tr('account.mfa.statusOn')
                             : l.tr('account.mfa.statusOff'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: AppPalette.text,
+                          color: context.colors.text,
                         ),
                       ),
                     ),
@@ -680,9 +680,9 @@ class _MfaCardState extends State<_MfaCard> {
                 if (widget.enabled) ...[
                   Text(
                     l.tr('account.mfa.scanHint'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppPalette.muted,
+                      color: context.colors.muted,
                       height: 1.5,
                     ),
                   ),
@@ -692,17 +692,17 @@ class _MfaCardState extends State<_MfaCard> {
                     child: OutlinedButton.icon(
                       onPressed: widget.onDisable,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppPalette.danger,
-                        side: const BorderSide(color: AppPalette.danger),
+                        foregroundColor: context.colors.danger,
+                        side: BorderSide(color: context.colors.danger),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       icon: widget.disableLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 14,
                               height: 14,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: AppPalette.danger,
+                                color: context.colors.danger,
                               ),
                             )
                           : const Icon(Icons.lock_open_outlined, size: 16),
@@ -712,9 +712,9 @@ class _MfaCardState extends State<_MfaCard> {
                 ] else if (widget.setup != null) ...[
                   Text(
                     l.tr('account.mfa.scanHint'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppPalette.muted,
+                      color: context.colors.muted,
                       height: 1.5,
                     ),
                   ),
@@ -728,10 +728,10 @@ class _MfaCardState extends State<_MfaCard> {
                   const SizedBox(height: 14),
                   Text(
                     l.tr('account.mfa.codeLabel'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppPalette.muted,
+                      color: context.colors.muted,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -742,38 +742,38 @@ class _MfaCardState extends State<_MfaCard> {
                       FilteringTextInputFormatter.digitsOnly,
                       LengthLimitingTextInputFormatter(6),
                     ],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontFamily: 'monospace',
                       letterSpacing: 6,
-                      color: AppPalette.text,
+                      color: context.colors.text,
                     ),
                     textAlign: TextAlign.center,
                     decoration: InputDecoration(
                       hintText: '------',
-                      hintStyle: const TextStyle(
+                      hintStyle: TextStyle(
                         fontSize: 18,
                         letterSpacing: 6,
-                        color: AppPalette.softMuted,
+                        color: context.colors.softMuted,
                       ),
                       isDense: true,
                       filled: true,
-                      fillColor: AppPalette.canvas,
+                      fillColor: context.colors.canvas,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 14,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppPalette.border),
+                        borderSide: BorderSide(color: context.colors.border),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppPalette.border),
+                        borderSide: BorderSide(color: context.colors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppPalette.accent),
+                        borderSide: BorderSide(color: context.colors.accent),
                       ),
                     ),
                   ),
@@ -786,8 +786,8 @@ class _MfaCardState extends State<_MfaCard> {
                               ? null
                               : widget.onCancelEnable,
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppPalette.muted,
-                            side: const BorderSide(color: AppPalette.border),
+                            foregroundColor: context.colors.muted,
+                            side: BorderSide(color: context.colors.border),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           child: Text(l.tr('common.cancel')),
@@ -802,17 +802,17 @@ class _MfaCardState extends State<_MfaCard> {
                                     _codeCtrl.text.trim(),
                                   ),
                           style: FilledButton.styleFrom(
-                            backgroundColor: AppPalette.primary,
-                            foregroundColor: AppPalette.fontOnPrimary,
+                            backgroundColor: context.colors.primary,
+                            foregroundColor: context.colors.fontOnPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           child: widget.enableLoading
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 14,
                                   height: 14,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: AppPalette.fontOnPrimary,
+                                    color: context.colors.fontOnPrimary,
                                   ),
                                 )
                               : Text(l.tr('account.mfa.enableConfirm')),
@@ -823,9 +823,9 @@ class _MfaCardState extends State<_MfaCard> {
                 ] else ...[
                   Text(
                     l.tr('account.mfa.scanHint'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppPalette.muted,
+                      color: context.colors.muted,
                       height: 1.5,
                     ),
                   ),
@@ -835,17 +835,17 @@ class _MfaCardState extends State<_MfaCard> {
                     child: FilledButton.icon(
                       onPressed: widget.onStartEnable,
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppPalette.primary,
-                        foregroundColor: AppPalette.fontOnPrimary,
+                        backgroundColor: context.colors.primary,
+                        foregroundColor: context.colors.fontOnPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       icon: widget.enableLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 14,
                               height: 14,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: AppPalette.fontOnPrimary,
+                                color: context.colors.fontOnPrimary,
                               ),
                             )
                           : const Icon(Icons.shield_outlined, size: 16),
@@ -868,9 +868,9 @@ class _MfaStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final bg = enabled
-        ? AppPalette.success.withValues(alpha: 0.16)
-        : AppPalette.chip;
-    final fg = enabled ? AppPalette.success : AppPalette.muted;
+        ? context.colors.success.withValues(alpha: 0.16)
+        : context.colors.chip;
+    final fg = enabled ? context.colors.success : context.colors.muted;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -903,9 +903,9 @@ class _QrPreview extends StatelessWidget {
       width: 160,
       height: 160,
       decoration: BoxDecoration(
-        color: AppPalette.canvas,
+        color: context.colors.canvas,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppPalette.strongBorder),
+        border: Border.all(color: context.colors.strongBorder),
       ),
       alignment: Alignment.center,
       child: bytes != null
@@ -913,10 +913,10 @@ class _QrPreview extends StatelessWidget {
               padding: const EdgeInsets.all(8),
               child: Image.memory(bytes, fit: BoxFit.contain),
             )
-          : const Icon(
+          : Icon(
               Icons.qr_code_2_rounded,
               size: 96,
-              color: AppPalette.softMuted,
+              color: context.colors.softMuted,
             ),
     );
   }
@@ -933,9 +933,9 @@ class _SecretRow extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppPalette.canvas,
+        color: context.colors.canvas,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppPalette.border),
+        border: Border.all(color: context.colors.border),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
@@ -943,12 +943,12 @@ class _SecretRow extends StatelessWidget {
           Expanded(
             child: Text(
               secret,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontFamily: 'monospace',
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.5,
-                color: AppPalette.text,
+                color: context.colors.text,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -956,10 +956,10 @@ class _SecretRow extends StatelessWidget {
           IconButton(
             tooltip: l.tr('account.mfa.copySecret'),
             onPressed: onCopy,
-            icon: const Icon(
+            icon: Icon(
               Icons.copy_outlined,
               size: 18,
-              color: AppPalette.muted,
+              color: context.colors.muted,
             ),
           ),
         ],
