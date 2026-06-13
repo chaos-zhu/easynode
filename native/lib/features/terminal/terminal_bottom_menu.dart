@@ -240,6 +240,7 @@ class _ShortcutKeyPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final ctrlNotifier = controller?.ctrlPending;
+    final l = AppLocalizations.of(context);
     return Container(
       color: colors.surfaceContainerHighest,
       padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
@@ -269,6 +270,35 @@ class _ShortcutKeyPanel extends StatelessWidget {
             _KeyBtn('→', () => onInput('\x1b[C')),
             _KeyBtn('PgUp', () => onInput('\x1b[5~')),
             _KeyBtn('PgDn', () => onInput('\x1b[6~')),
+          ]),
+          const SizedBox(height: _kSectionGap),
+          // Common Ctrl combinations
+          _buildRow([
+            _HintKeyBtn('^C', () => onInput('\x03'), l.tr('terminal.hint.ctrlC')),
+            _HintKeyBtn('^Z', () => onInput('\x1a'), l.tr('terminal.hint.ctrlZ')),
+            _HintKeyBtn('^D', () => onInput('\x04'), l.tr('terminal.hint.ctrlD')),
+            _HintKeyBtn('^L', () => onInput('\x0c'), l.tr('terminal.hint.ctrlL')),
+            _HintKeyBtn('^U', () => onInput('\x15'), l.tr('terminal.hint.ctrlU')),
+            _HintKeyBtn('^K', () => onInput('\x0b'), l.tr('terminal.hint.ctrlK')),
+          ]),
+          const SizedBox(height: _kRowGap),
+          _buildRow([
+            _HintKeyBtn('^A', () => onInput('\x01'), l.tr('terminal.hint.ctrlA')),
+            _HintKeyBtn('^E', () => onInput('\x05'), l.tr('terminal.hint.ctrlE')),
+            _HintKeyBtn('^W', () => onInput('\x17'), l.tr('terminal.hint.ctrlW')),
+            _HintKeyBtn('^Y', () => onInput('\x19'), l.tr('terminal.hint.ctrlY')),
+            _HintKeyBtn('^X', () => onInput('\x18'), l.tr('terminal.hint.ctrlX')),
+            _HintKeyBtn('^R', () => onInput('\x12'), l.tr('terminal.hint.ctrlR')),
+          ]),
+          const SizedBox(height: _kRowGap),
+          // Vim shortcuts
+          _buildRow([
+            _HintKeyBtn(':w', () => onInput(':w\n'), l.tr('terminal.hint.vimW')),
+            _HintKeyBtn(':q', () => onInput(':q\n'), l.tr('terminal.hint.vimQ')),
+            _HintKeyBtn(':wq', () => onInput(':wq\n'), l.tr('terminal.hint.vimWQ')),
+            _HintKeyBtn(':q!', () => onInput(':q!\n'), l.tr('terminal.hint.vimQF')),
+            _HintKeyBtn('dd', () => onInput('dd'), l.tr('terminal.hint.vimDD')),
+            _HintKeyBtn('yy', () => onInput('yy'), l.tr('terminal.hint.vimYY')),
           ]),
           const SizedBox(height: _kSectionGap),
           // F1–F6
@@ -342,6 +372,47 @@ class _KeyBtn extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: onTap,
+        child: SizedBox(
+          height: _kKeyHeight,
+          child: Center(
+            child: Text(
+              label,
+              style: _kKeyStyle.copyWith(color: colors.onSurface),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HintKeyBtn extends StatelessWidget {
+  const _HintKeyBtn(this.label, this.onTap, this.hint);
+
+  final String label;
+  final VoidCallback onTap;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: colors.surfaceContainer,
+      borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: onTap,
+        onLongPress: () {
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                content: Text('$label  $hint'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+        },
         child: SizedBox(
           height: _kKeyHeight,
           child: Center(
