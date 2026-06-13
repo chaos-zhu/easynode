@@ -165,20 +165,18 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
         scrolledUnderElevation: 0,
         title: Text(l.tr('settings.proxy.title')),
         actions: [
-          IconButton(
+          _HeaderIconButton(
             tooltip: _searchOpen
                 ? l.tr('common.closeSearch')
                 : l.tr('common.search'),
+            icon: _searchOpen ? Icons.close : Icons.search,
             onPressed: _toggleSearch,
-            icon: Icon(_searchOpen ? Icons.close_rounded : Icons.search_rounded),
-            color: context.colors.primary,
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: _AddButton(
-              onTap: () => _openEdit(plus: plusActive),
-              enabled: plusActive,
-            ),
+          const SizedBox(width: 4),
+          _HeaderIconButton(
+            tooltip: l.tr('settings.proxy.add'),
+            icon: Icons.add,
+            onPressed: plusActive ? () => _openEdit(plus: plusActive) : null,
           ),
         ],
       ),
@@ -401,26 +399,31 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _AddButton extends StatelessWidget {
-  const _AddButton({required this.onTap, required this.enabled});
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
 
-  final VoidCallback onTap;
-  final bool enabled;
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final bg = enabled ? context.colors.primary : context.colors.chip;
-    final fg = enabled ? context.colors.fontOnPrimary : context.colors.softMuted;
-    return Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
+    final color = onPressed != null
+        ? context.colors.muted
+        : context.colors.softMuted;
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        radius: 22,
+        onTap: onPressed,
         child: SizedBox(
           width: 36,
           height: 36,
-          child: Icon(Icons.add_rounded, size: 20, color: fg),
+          child: Icon(icon, color: color, size: 22),
         ),
       ),
     );

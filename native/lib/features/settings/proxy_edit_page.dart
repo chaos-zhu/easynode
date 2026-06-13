@@ -155,25 +155,16 @@ class _ProxyEditPageState extends ConsumerState<ProxyEditPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(_isEdit ? l.tr('proxy.edit') : l.tr('proxy.add')),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _AppBarSaveButton(
-              loading: _saving,
-              label: l.tr('common.save'),
-              onTap: _saving ? null : _save,
-            ),
-          ),
-        ],
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      bottomNavigationBar: _BottomBar(
+        saving: _saving,
+        label: l.tr('common.save'),
+        onPressed: _saving ? null : _save,
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                   children: [
                     _FieldLabel(label: l.tr('proxy.field.type')),
                     const SizedBox(height: 8),
@@ -279,19 +270,6 @@ class _ProxyEditPageState extends ConsumerState<ProxyEditPage> {
                   ],
                 ),
               ),
-            ),
-            _BottomBar(
-              isEdit: _isEdit,
-              saving: _saving,
-              deleting: _deleting,
-              saveLabel: l.tr('common.save'),
-              deleteLabel: l.tr('common.delete'),
-              onSave: _saving || _deleting ? null : _save,
-              onDelete: _saving || _deleting ? null : _delete,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -578,99 +556,51 @@ class _TypeOption extends StatelessWidget {
 
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
-    required this.isEdit,
     required this.saving,
-    required this.deleting,
-    required this.saveLabel,
-    required this.deleteLabel,
-    required this.onSave,
-    required this.onDelete,
+    required this.label,
+    required this.onPressed,
   });
 
-  final bool isEdit;
   final bool saving;
-  final bool deleting;
-  final String saveLabel;
-  final String deleteLabel;
-  final VoidCallback? onSave;
-  final VoidCallback? onDelete;
+  final String label;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.canvas,
-        border: Border(
-          top: BorderSide(color: context.colors.strongBorder, width: 1),
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+        decoration: BoxDecoration(
+          color: context.colors.card,
+          border: Border(top: BorderSide(color: context.colors.border)),
         ),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isEdit)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: onDelete,
-                style: TextButton.styleFrom(
-                  foregroundColor: context.colors.danger,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                ),
-                icon: deleting
-                    ? SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: context.colors.danger,
-                        ),
-                      )
-                    : const Icon(Icons.delete_outline, size: 16),
-                label: Text(
-                  deleteLabel,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+        child: SizedBox(
+          height: 52,
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: context.colors.primary,
+              foregroundColor: context.colors.fontOnPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
-          if (isEdit) const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onSave,
-              style: FilledButton.styleFrom(
-                backgroundColor: context.colors.primary,
-                foregroundColor: context.colors.fontOnPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                disabledBackgroundColor: context.colors.chip,
-                disabledForegroundColor: context.colors.softMuted,
-              ),
-              icon: saving
-                  ? SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: context.colors.fontOnPrimary,
-                      ),
-                    )
-                  : const Icon(Icons.check_rounded, size: 18),
-              label: Text(
-                saveLabel,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+            onPressed: onPressed,
+            child: saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -113,16 +113,11 @@ class _CredentialEditPageState extends ConsumerState<CredentialEditPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(_isEdit ? l.tr('credentials.edit') : l.tr('credentials.add')),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _AppBarSaveButton(
-              label: l.tr('common.save'),
-              loading: _saving,
-              onTap: _save,
-            ),
-          ),
-        ],
+      ),
+      bottomNavigationBar: _BottomSaveBar(
+        saving: _saving,
+        label: l.tr('common.save'),
+        onPressed: _saving ? null : _save,
       ),
       body: Form(
         key: _formKey,
@@ -224,34 +219,6 @@ class _CredentialEditPageState extends ConsumerState<CredentialEditPage> {
                 ),
               ),
             ],
-            const SizedBox(height: 28),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: context.colors.primary,
-                foregroundColor: context.colors.fontOnPrimary,
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: _saving ? null : _save,
-              child: _saving
-                  ? SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: context.colors.fontOnPrimary,
-                      ),
-                    )
-                  : Text(
-                      l.tr('common.save'),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-            ),
           ],
         ),
       ),
@@ -259,51 +226,51 @@ class _CredentialEditPageState extends ConsumerState<CredentialEditPage> {
   }
 }
 
-class _AppBarSaveButton extends StatelessWidget {
-  const _AppBarSaveButton({
+class _BottomSaveBar extends StatelessWidget {
+  const _BottomSaveBar({
+    required this.saving,
     required this.label,
-    required this.loading,
-    required this.onTap,
+    required this.onPressed,
   });
 
+  final bool saving;
   final String label;
-  final bool loading;
-  final VoidCallback onTap;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: context.colors.primary,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: loading ? null : onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (loading)
-                SizedBox(
-                  height: 14,
-                  width: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: context.colors.fontOnPrimary,
-                  ),
-                )
-              else
-                Icon(Icons.check, size: 14, color: context.colors.fontOnPrimary),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: context.colors.fontOnPrimary,
-                ),
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+        decoration: BoxDecoration(
+          color: context.colors.card,
+          border: Border(top: BorderSide(color: context.colors.border)),
+        ),
+        child: SizedBox(
+          height: 52,
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: context.colors.primary,
+              foregroundColor: context.colors.fontOnPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
-            ],
+            ),
+            onPressed: onPressed,
+            child: saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
           ),
         ),
       ),

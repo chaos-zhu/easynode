@@ -219,18 +219,10 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
                   onPressed: _openGroups,
                 ),
                 const SizedBox(width: 4),
-                Material(
-                  color: context.colors.primary,
-                  borderRadius: BorderRadius.circular(10),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: () => _openForm(),
-                    child: SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: Icon(Icons.add, size: 20, color: context.colors.fontOnPrimary),
-                    ),
-                  ),
+                _HeaderIconButton(
+                  tooltip: l.tr('scripts.addScript'),
+                  icon: Icons.add,
+                  onPressed: () => _openForm(),
                 ),
               ],
             ),

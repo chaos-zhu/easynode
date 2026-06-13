@@ -127,18 +127,20 @@ class _CredentialsPageState extends ConsumerState<CredentialsPage> {
         scrolledUnderElevation: 0,
         title: Text(l.tr('settings.credentials.title')),
         actions: [
-          IconButton(
+          _HeaderIconButton(
             tooltip: _searchOpen
                 ? l.tr('common.closeSearch')
                 : l.tr('common.search'),
+            icon: _searchOpen ? Icons.close : Icons.search,
             onPressed: _toggleSearch,
-            icon: Icon(_searchOpen ? Icons.close_rounded : Icons.search_rounded),
-            color: context.colors.primary,
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: _AddButton(onTap: () => _openEdit()),
+          const SizedBox(width: 4),
+          _HeaderIconButton(
+            tooltip: l.tr('settings.credentials.add'),
+            icon: Icons.add,
+            onPressed: () => _openEdit(),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -304,27 +306,28 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _AddButton extends StatelessWidget {
-  const _AddButton({required this.onTap});
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
 
-  final VoidCallback onTap;
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: context.colors.primary,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        radius: 22,
+        onTap: onPressed,
         child: SizedBox(
           width: 36,
           height: 36,
-          child: Icon(
-            Icons.add_rounded,
-            size: 20,
-            color: context.colors.fontOnPrimary,
-          ),
+          child: Icon(icon, color: context.colors.muted, size: 22),
         ),
       ),
     );

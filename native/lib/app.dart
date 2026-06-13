@@ -255,12 +255,30 @@ class _AppRootState extends ConsumerState<_AppRoot> {
         useMaterial3: true,
         colorSchemeSeed: Colors.amber,
         extensions: const [AppColorTheme.light],
+        appBarTheme: const AppBarTheme(
+          centerTitle: false,
+          titleSpacing: 4,
+          titleTextStyle: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF2A2418),
+          ),
+        ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         colorSchemeSeed: Colors.amber,
         extensions: const [AppColorTheme.dark],
+        appBarTheme: const AppBarTheme(
+          centerTitle: false,
+          titleSpacing: 4,
+          titleTextStyle: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFFE8E0D4),
+          ),
+        ),
       ),
       locale: ref.watch(localeProvider),
       localizationsDelegates: const [
