@@ -391,16 +391,16 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
     _showTerminalSnack(l.tr('terminal.cleared'));
   }
 
-  void _toggleSearchBar() {
-    if (_showSearchBar) {
-      _closeSearchBar();
-    } else {
-      setState(() => _showSearchBar = true);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _searchFocusNode.requestFocus();
-      });
-    }
-  }
+  // void _toggleSearchBar() {
+  //   if (_showSearchBar) {
+  //     _closeSearchBar();
+  //   } else {
+  //     setState(() => _showSearchBar = true);
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       if (mounted) _searchFocusNode.requestFocus();
+  //     });
+  //   }
+  // }
 
   void _closeSearchBar() {
     _searchDebounce?.cancel();
@@ -568,9 +568,7 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                   children: [
                     _TerminalTopBar(
                       active: active,
-                      showSearchBar: _showSearchBar,
                       onClose: _closeActive,
-                      onSearchToggle: active == null ? null : _toggleSearchBar,
                     ),
                     Expanded(
                       child: ColoredBox(
@@ -743,15 +741,11 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
 class _TerminalTopBar extends StatelessWidget {
   const _TerminalTopBar({
     required this.active,
-    required this.showSearchBar,
     required this.onClose,
-    required this.onSearchToggle,
   });
 
   final TerminalSession? active;
-  final bool showSearchBar;
   final VoidCallback onClose;
-  final VoidCallback? onSearchToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -797,16 +791,16 @@ class _TerminalTopBar extends StatelessWidget {
                     ],
                   ),
           ),
-          IconButton(
-            tooltip: l.tr('common.search'),
-            onPressed: onSearchToggle,
-            icon: Icon(
-              Icons.search,
-              color: showSearchBar
-                  ? Theme.of(context).colorScheme.primary
-                  : null,
-            ),
-          ),
+          // IconButton(
+          //   tooltip: l.tr('common.search'),
+          //   onPressed: onSearchToggle,
+          //   icon: Icon(
+          //     Icons.search,
+          //     color: showSearchBar
+          //         ? Theme.of(context).colorScheme.primary
+          //         : null,
+          //   ),
+          // ),
           IconButton(
             tooltip: l.tr('terminal.closeTerminal'),
             onPressed: activeSession == null ? null : onClose,
