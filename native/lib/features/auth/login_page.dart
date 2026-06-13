@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/ui/palette.dart';
 import '../../core/utils/jwt_expiry.dart';
@@ -489,13 +490,31 @@ class _LoginHero extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          versionLabel,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppPalette.softMuted,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              versionLabel,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppPalette.softMuted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (versionLabel.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => launchUrl(
+                  Uri.parse('https://github.com/chaos-zhu/easynode'),
+                  mode: LaunchMode.externalApplication,
+                ),
+                child: const Icon(
+                  Icons.open_in_new,
+                  size: 14,
+                  color: AppPalette.softMuted,
+                ),
+              ),
+            ],
+          ],
         ),
       ],
     );
