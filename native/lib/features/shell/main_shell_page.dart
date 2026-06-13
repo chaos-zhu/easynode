@@ -80,8 +80,10 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
         );
       },
       child: Scaffold(
+        extendBody: true,
         backgroundColor: AppPalette.canvas,
         body: SafeArea(
+          bottom: false,
           child: IndexedStack(index: _index, children: _tabs),
         ),
         bottomNavigationBar: _WarmBottomBar(
@@ -157,11 +159,22 @@ class _WarmBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        color: AppPalette.canvas,
-        padding: const EdgeInsets.fromLTRB(21, 12, 21, 21),
+    final bottomPadding = MediaQuery.viewPaddingOf(context).bottom;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppPalette.canvas.withValues(alpha: 0),
+            AppPalette.canvas.withValues(alpha: 0.55),
+            AppPalette.canvas.withValues(alpha: 0.85),
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(21, 12, 21, 8 + bottomPadding),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(36),
           child: BackdropFilter(
@@ -172,7 +185,9 @@ class _WarmBottomBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppPalette.card.withValues(alpha: 0.68),
                 borderRadius: BorderRadius.circular(36),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.52)),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.52),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: AppPalette.primary.withValues(alpha: 0.08),
