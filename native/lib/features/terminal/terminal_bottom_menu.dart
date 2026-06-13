@@ -27,6 +27,7 @@ class TerminalBottomBar extends ConsumerStatefulWidget {
     required this.onToggleInput,
     required this.panelHeight,
     required this.keyboardVisible,
+    this.onFocusTerminal,
   });
 
   final TerminalSessionManager manager;
@@ -37,6 +38,7 @@ class TerminalBottomBar extends ConsumerStatefulWidget {
   final VoidCallback onToggleInput;
   final double panelHeight;
   final bool keyboardVisible;
+  final VoidCallback? onFocusTerminal;
 
   @override
   ConsumerState<TerminalBottomBar> createState() => _TerminalBottomBarState();
@@ -231,9 +233,9 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
     return true;
   }
 
-  Future<void> _showConnections(BuildContext context) {
+  Future<void> _showConnections(BuildContext context) async {
     final l = AppLocalizations.of(context);
-    return showModalBottomSheet<void>(
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -247,6 +249,7 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
         ),
       ),
     );
+    widget.onFocusTerminal?.call();
   }
 
   Future<void> _showSftp(BuildContext context) {
@@ -675,12 +678,8 @@ class _ConnectionsSheetState extends ConsumerState<_ConnectionsSheet> {
     AppLocalizations l,
   ) {
     final sessions = widget.manager.sessions.toList(growable: false);
-    final connectedHostIds = <String>{
-      for (final s in sessions) s.config.hostId,
-    };
 
     final disconnectedServers = servers.where((server) {
-      if (connectedHostIds.contains(server.id)) return false;
       if (_query.isEmpty) return true;
       final haystack = [
         server.displayName,
@@ -709,7 +708,11 @@ class _ConnectionsSheetState extends ConsumerState<_ConnectionsSheet> {
                 widget.manager.setActive(session.id);
                 Navigator.of(context).pop();
               },
-              onReconnect: () => widget.manager.reconnect(session.id),
+              onReconnect: () async {
+                widget.manager.reconnect(session.id);
+                widget.manager.setActive(session.id);
+                Navigator.of(context).pop();
+              },
               onClose: () => widget.manager.closeSession(session.id),
             ),
             const SizedBox(height: 8),

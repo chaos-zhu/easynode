@@ -694,6 +694,13 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                       onToggleInput: _onToggleInput,
                       panelHeight: panelHeight,
                       keyboardVisible: keyboardVisible,
+                      onFocusTerminal: () {
+                        if (_allowTerminalFocus) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) _terminalFocusNode.requestFocus();
+                          });
+                        }
+                      },
                     ),
                     SizedBox(height: bottomSpace),
                   ],
