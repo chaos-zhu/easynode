@@ -715,7 +715,14 @@ class _ConnectionsSheetState extends ConsumerState<_ConnectionsSheet> {
                 widget.manager.setActive(session.id);
                 Navigator.of(context).pop();
               },
-              onClose: () => widget.manager.closeSession(session.id),
+              onClose: () async {
+                await widget.manager.closeSession(session.id);
+                if (!context.mounted) return;
+                if (widget.manager.sessions.isEmpty) {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).maybePop();
+                }
+              },
             ),
             const SizedBox(height: 8),
           ],
