@@ -1,6 +1,18 @@
 [
   {
     "version": "v3.7.0",
+    "date": "2026-06-13",
+    "nativeVersion": "native-v1.0.1",
+    "nativeReleaseUrl": "https://github.com/chaos-zhu/easynode/releases",
+    "iosReleaseUrl": "",
+    "features": [
+      "原生Android、IOS移动端正式版发布",
+      "按实例鉴权，移除IP统计",
+      "其他功能优化与bug修复"
+    ]
+  },
+  {
+    "version": "v3.7.0",
     "date": "2026-05-30",
     "nativeVersion": "native-v0.1.1",
     "nativeReleaseUrl": "https://github.com/chaos-zhu/easynode/releases",

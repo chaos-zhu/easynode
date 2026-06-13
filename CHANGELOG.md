@@ -6,6 +6,13 @@
 * 探针接入
 * 支持csv模板特定格式导入
 
+## [native-v1.0.1](https://github.com/chaos-zhu/easynode/releases) (2026-06-13)
+* 终端页功能增强：布局调整、长命令输入、脚本库联动、终端连接管理、SFTP联动、功能键支持，终端设置支持
+* 移动端风格统一化
+* 新增暗黑主题切换
+* 其他功能优化与bug修复
+
+
 ## [3.7.0](https://github.com/chaos-zhu/easynode/releases) (2026-05-30)
 * 原生Android移动端内测版发布，IOS稍后发布，欢迎Android用户加入内测反馈使用体验
 * 鉴权优化，移除IP统计
