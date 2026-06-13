@@ -28,7 +28,6 @@ class _ProxyEditPageState extends ConsumerState<ProxyEditPage> {
 
   String _type = 'socks5';
   bool _saving = false;
-  bool _deleting = false;
   bool _showPassword = false;
 
   bool get _isEdit => widget.proxy != null;
@@ -91,51 +90,6 @@ class _ProxyEditPageState extends ConsumerState<ProxyEditPage> {
       _showSnack(l.trf('proxy.saveFailed', [err.toString()]));
     } finally {
       if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _delete() async {
-    final p = widget.proxy;
-    if (p == null) return;
-    final l = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.tr('proxy.deleteConfirmTitle')),
-        content: Text(l.trf('proxy.deleteConfirmBody', [p.displayName])),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l.tr('common.cancel')),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: context.colors.danger,
-              foregroundColor: context.colors.fontOnPrimary,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l.tr('common.delete')),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    setState(() => _deleting = true);
-    try {
-      await ref.read(settingsRepositoryProvider).deleteProxy(p.id);
-      if (!mounted) return;
-      _showSnack(l.tr('proxy.deleted'));
-      await ref.read(proxyListProvider.notifier).refresh();
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
-    } on ApiFailure catch (err) {
-      if (!mounted) return;
-      _showSnack(l.trf('proxy.deleteFailed', [err.message]));
-    } catch (err) {
-      if (!mounted) return;
-      _showSnack(l.trf('proxy.deleteFailed', [err.toString()]));
-    } finally {
-      if (mounted) setState(() => _deleting = false);
     }
   }
 
@@ -270,62 +224,6 @@ class _ProxyEditPageState extends ConsumerState<ProxyEditPage> {
                   ],
                 ),
               ),
-    );
-  }
-}
-
-class _AppBarSaveButton extends StatelessWidget {
-  const _AppBarSaveButton({
-    required this.loading,
-    required this.label,
-    required this.onTap,
-  });
-
-  final bool loading;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: context.colors.primary,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (loading)
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: context.colors.fontOnPrimary,
-                  ),
-                )
-              else
-                Icon(
-                  Icons.check_rounded,
-                  size: 16,
-                  color: context.colors.fontOnPrimary,
-                ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: context.colors.fontOnPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

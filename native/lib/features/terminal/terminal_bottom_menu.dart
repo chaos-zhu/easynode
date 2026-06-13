@@ -284,12 +284,10 @@ class _BarIcon extends StatelessWidget {
   const _BarIcon({
     required this.icon,
     required this.onTap,
-    this.active = false,
   });
 
   final IconData icon;
   final VoidCallback onTap;
-  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -298,18 +296,12 @@ class _BarIcon extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: onTap,
-        child: Container(
+        child: SizedBox(
           height: 40,
-          decoration: active
-              ? BoxDecoration(
-                  color: colors.primaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                )
-              : null,
           child: Icon(
             icon,
             size: 21,
-            color: active ? colors.primary : colors.onSurfaceVariant,
+            color: colors.onSurfaceVariant,
           ),
         ),
       ),

@@ -183,7 +183,7 @@ class SettingsTab extends ConsumerWidget {
   void _showThemePicker(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final current = ref.read(themeModeProvider);
-    showDialog<ThemeMode>(
+    showDialog<void>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: Text(l.tr('settings.theme.title')),
@@ -193,15 +193,14 @@ class SettingsTab extends ConsumerWidget {
             (ThemeMode.light, l.tr('settings.theme.light'), Icons.light_mode),
             (ThemeMode.dark, l.tr('settings.theme.dark'), Icons.dark_mode),
           ])
-            RadioListTile<ThemeMode>(
-              value: entry.$1,
-              groupValue: current,
+            ListTile(
+              leading: Icon(entry.$3),
               title: Text(entry.$2),
-              secondary: Icon(entry.$3),
-              onChanged: (mode) {
-                if (mode != null) {
-                  ref.read(themeModeProvider.notifier).setThemeMode(mode);
-                }
+              trailing: entry.$1 == current
+                  ? Icon(Icons.check, color: context.colors.primary)
+                  : null,
+              onTap: () {
+                ref.read(themeModeProvider.notifier).setThemeMode(entry.$1);
                 Navigator.of(ctx).pop();
               },
             ),
@@ -644,7 +643,6 @@ class _StatDivider extends StatelessWidget {
   }
 }
 
-enum _ChipTone { muted, accent, success }
 
 class _PlusBadge extends StatelessWidget {
   const _PlusBadge({required this.active, required this.onTap});
@@ -708,42 +706,6 @@ class _PlusBadge extends StatelessWidget {
               ),
             ],
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label, required this.tone});
-
-  final String label;
-  final _ChipTone tone;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final (bg, fg) = switch (tone) {
-      _ChipTone.muted => (c.chip, c.muted),
-      _ChipTone.accent => (c.accentSoft, c.primary),
-      _ChipTone.success => (
-        c.success.withValues(alpha: 0.16),
-        c.success,
-      ),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: fg,
-          letterSpacing: 0.3,
         ),
       ),
     );

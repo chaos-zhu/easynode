@@ -6,8 +6,14 @@
     "nativeReleaseUrl": "https://github.com/chaos-zhu/easynode/releases",
     "iosReleaseUrl": "",
     "features": [
-      "原生Android、IOS移动端正式版发布",
+      "原生Android、IOS移动端正式版发布，多功能更新",
       "按实例鉴权，移除IP统计",
+      "其他功能优化与bug修复"
+    ],
+    "nativeFeatures": [
+      "终端页功能增强",
+      "移动端风格统一化",
+      "新增暗黑主题切换",
       "其他功能优化与bug修复"
     ]
   },
