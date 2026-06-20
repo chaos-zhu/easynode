@@ -34,7 +34,7 @@
     "fs-extra": "^11.2.0",
     "global": "^4.4.0",
     "guacamole-lite": "^1.2.0",
-    "http-proxy-middleware": "^3.0.5",
+    "http-proxy-middleware": "^3.0.7",
     "iconv-lite": "^0.6.3",
     "jsonwebtoken": "9.0.2",
     "koa": "2.16.2",
