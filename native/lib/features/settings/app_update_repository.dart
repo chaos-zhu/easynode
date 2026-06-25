@@ -12,6 +12,7 @@ const nativeVersionFeedFallbackUrl =
     'https://raw.githubusercontent.com/chaos-zhu/easynode/refs/heads/main/server/version.json';
 const nativeGitHubReleaseUrl = 'https://github.com/chaos-zhu/easynode/releases';
 const nativeIosReleaseUrl = '';
+const nativeOhosReleaseUrl = '';
 
 class AppUpdateInfo {
   const AppUpdateInfo({
@@ -65,6 +66,13 @@ class AppUpdateInfo {
   static String _releaseUrlForPlatform(Map latest) {
     if (isIosAppStoreCompliance) {
       return (latest['iosReleaseUrl'] ?? nativeIosReleaseUrl).toString().trim();
+    }
+    if (isOhosPlatform) {
+      final ohosUrl = (latest['ohosReleaseUrl'] ?? '').toString().trim();
+      if (ohosUrl.isNotEmpty) return ohosUrl;
+      return (latest['nativeReleaseUrl'] ?? nativeGitHubReleaseUrl)
+          .toString()
+          .trim();
     }
     return (latest['nativeReleaseUrl'] ?? nativeGitHubReleaseUrl)
         .toString()

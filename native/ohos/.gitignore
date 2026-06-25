@@ -1,0 +1,23 @@
+/node_modules
+/oh_modules
+/local.properties
+/.idea
+**/build
+/.hvigor
+.cxx
+/.clangd
+/.clang-format
+/.clang-tidy
+**/.test
+**/BuildProfile.ets
+**/oh-package-lock.json5
+/package.json
+/package-lock.json
+
+# 签名配置包含本地证书路径和密钥，不应提交
+/build-profile.json5
+
+**/src/main/resources/rawfile/flutter_assets/
+**/libs/**/libapp.so
+**/libs/**/libflutter.so
+**/libs/**/libvmservice_snapshot.so

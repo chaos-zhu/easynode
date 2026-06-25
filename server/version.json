@@ -5,6 +5,7 @@
     "nativeVersion": "native-v1.0.1",
     "nativeReleaseUrl": "https://github.com/chaos-zhu/easynode/releases",
     "iosReleaseUrl": "",
+    "ohosReleaseUrl": "",
     "features": [
       "原生Android、IOS移动端正式版发布，多功能更新",
       "按实例鉴权，移除IP统计",
@@ -23,6 +24,7 @@
     "nativeVersion": "native-v0.1.1",
     "nativeReleaseUrl": "https://github.com/chaos-zhu/easynode/releases",
     "iosReleaseUrl": "",
+    "ohosReleaseUrl": "",
     "features": [
       "原生Android、IOS移动端内测版发布",
       "按实例鉴权，移除IP统计",

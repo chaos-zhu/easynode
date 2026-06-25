@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 1.0.1+1
 
 environment:
-  sdk: ^3.11.5
+  sdk: ^3.11.0
 
 dependencies:
   flutter:
@@ -16,6 +16,15 @@ dependencies:
   cookie_jar: ^4.0.8
   dio_cookie_manager: ^3.1.1
   flutter_secure_storage: ^9.2.2
+  flutter_secure_storage_ohos:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/fluttertpc_flutter_secure_storage.git"
+      ref: "br_v9.2.4_ohos"
+      path: "flutter_secure_storage_ohos"
+  file_picker_ohos:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/fluttertpc_file_picker.git"
+      ref: "br_v10.3.8_ohos"
   shared_preferences: ^2.3.2
   pointycastle: ^3.9.1
   basic_utils: ^5.7.0
@@ -58,6 +67,40 @@ flutter_launcher_icons:
   macos:
     generate: true
     image_path: "assets/logo_v2_03.png"
+
+dependency_overrides:
+  shared_preferences:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/flutter_packages.git"
+      path: "packages/shared_preferences/shared_preferences"
+  path_provider:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/flutter_packages.git"
+      path: "packages/path_provider/path_provider"
+  url_launcher:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/flutter_packages.git"
+      path: "packages/url_launcher/url_launcher"
+  flutter_secure_storage:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/fluttertpc_flutter_secure_storage.git"
+      ref: "br_v9.2.4_ohos"
+      path: "flutter_secure_storage"
+  flutter_secure_storage_ohos:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/fluttertpc_flutter_secure_storage.git"
+      ref: "br_v9.2.4_ohos"
+      path: "flutter_secure_storage_ohos"
+  package_info_plus:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git"
+      ref: "br_package_info_plus-v8.1.0_ohos"
+      path: "packages/package_info_plus/package_info_plus"
+  share_plus:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git"
+      ref: "br_share_plus-v12.0.1_ohos"
+      path: "packages/share_plus/share_plus"
 
 flutter:
   uses-material-design: true
