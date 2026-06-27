@@ -14,7 +14,7 @@ const useStore = defineStore('global', {
     localScriptList: [],
     suspendedSessions: [], // 挂起的会话列表
     user: localStorage.getItem('user') || null,
-    token: localStorage.getItem('token') || sessionStorage.getItem('token') || null,
+    token: localStorage.getItem('token') || null,
     deviceId: localStorage.getItem('deviceId') || null,
     title: '',
     isDark: false,
@@ -82,9 +82,8 @@ const useStore = defineStore('global', {
     chatHistory: []
   }),
   actions: {
-    async setJwtToken(token, isSession = true) {
-      if (isSession) sessionStorage.setItem('token', token)
-      else localStorage.setItem('token', token)
+    async setJwtToken(token) {
+      localStorage.setItem('token', token)
       this.$patch({ token })
     },
     async setUser(username, deviceId) {
@@ -104,8 +103,6 @@ const useStore = defineStore('global', {
         console.error('注销登录凭证失败: ', err.message)
       } finally {
         localStorage.removeItem('token')
-        sessionStorage.removeItem('token')
-        sessionStorage.removeItem('uid')
         localStorage.removeItem('uid')
         localStorage.removeItem('user')
         localStorage.removeItem('deviceId')

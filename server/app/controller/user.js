@@ -17,6 +17,13 @@ const sessionDB = new SessionDB().getInstance()
 const plusDB = new PlusDB().getInstance()
 const runtimeState = new RuntimeState().getInstance()
 
+// 仅允许三种登录有效期：3天 / 7天 / 30天
+const ALLOWED_JWT_EXPIRES = {
+  '3d': 3 * 24 * 60 * 60 * 1000,
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000
+}
+
 const getpublicKey = async ({ res }) => {
   let { publicKey: data } = await keyDB.findOneAsync({})
   if (!data) return res.fail({ msg: 'publicKey not found, Try to restart the server', status: 500 })
@@ -46,8 +53,11 @@ let forbidLogin = false
 
 const login = async (ctx) => {
   const { res, request } = ctx
-  let { body: { loginName, ciphertext, jwtExpires, jwtExpireAt, mfa2Token }, ip: clientIp, header } = request
-  if (!loginName || !ciphertext || !jwtExpires || !jwtExpireAt || !header) return res.fail({ msg: '请求非法!' })
+  let { body: { loginName, ciphertext, jwtExpires, mfa2Token }, ip: clientIp, header } = request
+  if (!loginName || !ciphertext || !jwtExpires || !header) return res.fail({ msg: '请求非法!' })
+  const jwtExpiresDuration = ALLOWED_JWT_EXPIRES[jwtExpires]
+  if (typeof jwtExpiresDuration !== 'number') return res.fail({ msg: '请求非法!' })
+  const jwtExpireAt = Date.now() + jwtExpiresDuration
   if (forbidLogin) return res.fail({ msg: `禁止登录! 倒计时[${ loginCountDown }s]后尝试登录或重启面板服务` })
   loginErrCount++
   loginErrTotal++

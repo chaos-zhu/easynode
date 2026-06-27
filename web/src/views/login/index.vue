@@ -58,10 +58,9 @@
           </el-form-item>
           <el-form-item prop="jwtExpires" label="登录有效期">
             <el-radio-group v-model="expireTime" class="login-indate">
-              <el-radio :value="expireEnum.ONE_SESSION">临时</el-radio>
-              <el-radio :value="expireEnum.CURRENT_DAY">当天</el-radio>
-              <el-radio :value="expireEnum.THREE_DAY">三天</el-radio>
-              <el-radio :value="expireEnum.SEVEN_DAY">七天</el-radio>
+              <el-radio :value="expireEnum.THREE_DAY">3天</el-radio>
+              <el-radio :value="expireEnum.SEVEN_DAY">7天</el-radio>
+              <el-radio :value="expireEnum.THIRTY_DAY">30天</el-radio>
             </el-radio-group>
           </el-form-item>
         </el-form>
@@ -83,19 +82,18 @@
 
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
-import { RSAEncrypt, jwtExpireToTimestamp } from '@utils/index.js'
+import { RSAEncrypt } from '@utils/index.js'
 import Warn from './warn.vue'
 import { version } from '../../../package.json'
 
 const { proxy: { $store, $api, $message, $router, $messageBox } } = getCurrentInstance()
 
 const expireEnum = reactive({
-  ONE_SESSION: 'one_session',
-  CURRENT_DAY: 'current_day',
   THREE_DAY: 'three_day',
-  SEVEN_DAY: 'seven_day'
+  SEVEN_DAY: 'seven_day',
+  THIRTY_DAY: 'thirty_day'
 })
-const expireTime = ref(expireEnum.CURRENT_DAY)
+const expireTime = ref(expireEnum.THREE_DAY)
 const loginFormRefs = ref(null)
 const notKey = ref(false)
 const loading = ref(false)
@@ -104,7 +102,6 @@ const notHttpsTips = localStorage.getItem('notHttpsTips') === 'true'
 const loginForm = reactive({
   loginName: '',
   pwd: '',
-  jwtExpires: 1,
   mfa2Token: ''
 })
 const rules = reactive({
@@ -115,29 +112,26 @@ const rules = reactive({
 
 const handleLogin = () => {
   loginFormRefs.value.validate().then(async () => {
-    let { jwtExpires, loginName, pwd, mfa2Token } = loginForm
+    const { loginName, pwd, mfa2Token } = loginForm
+    let jwtExpires = '3d'
     switch (expireTime.value) {
-      case expireEnum.ONE_SESSION:
-        jwtExpires = '1h' // 会话登录token1小时有效期，浏览器窗口关闭则立即失效
-        break
-      case expireEnum.CURRENT_DAY:
-        jwtExpires = `${ Math.floor((new Date().setHours(24,0,0,0) - Date.now()) / 1000) }s`
-        break
       case expireEnum.THREE_DAY:
         jwtExpires = '3d'
         break
       case expireEnum.SEVEN_DAY:
         jwtExpires = '7d'
         break
+      case expireEnum.THIRTY_DAY:
+        jwtExpires = '30d'
+        break
     }
-    const jwtExpireAt = jwtExpireToTimestamp(jwtExpires)
     const ciphertext = RSAEncrypt(pwd)
     if (ciphertext === -1) return $message.error({ message: '公钥加载失败', center: true })
     loading.value = true
     try {
-      let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, jwtExpireAt, mfa2Token })
+      let { data, msg } = await $api.login({ loginName, ciphertext, jwtExpires, mfa2Token })
       const { token, deviceId } = data
-      $store.setJwtToken(token, expireEnum.ONE_SESSION === expireTime.value)
+      $store.setJwtToken(token)
       $store.setUser(loginName, deviceId)
       $message.success({ message: msg || 'success', center: true })
       if (isHttps) return $router.push('/')

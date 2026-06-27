@@ -63,8 +63,7 @@ class LoginController {
     required String mfa2Token,
     required bool httpRiskAccepted,
     required bool savePassword,
-    LoginExpiry expiry = LoginExpiry.temporary,
-    DateTime? now,
+    LoginExpiry expiry = LoginExpiry.threeDays,
   }) async {
     final String normalized;
     try {
@@ -99,8 +98,7 @@ class LoginController {
       final response = await api.postJson('/login', {
         'loginName': username,
         'ciphertext': ciphertext,
-        'jwtExpires': jwtExpiresFor(expiry, now: now),
-        'jwtExpireAt': jwtExpireAtFor(expiry, now: now),
+        'jwtExpires': jwtExpiresFor(expiry),
         if (mfa2Token.isNotEmpty) 'mfa2Token': mfa2Token,
       });
 

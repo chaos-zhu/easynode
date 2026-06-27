@@ -41,7 +41,7 @@ class _LoginPageState extends State<LoginPage> {
   final FocusNode _userFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
 
-  LoginExpiry _expiry = LoginExpiry.currentDay;
+  LoginExpiry _expiry = LoginExpiry.threeDays;
   bool _savePassword = false;
   bool _httpRiskAccepted = false;
   bool _submitting = false;
@@ -564,9 +564,9 @@ class _ExpiryPicker extends StatelessWidget {
   final ValueChanged<LoginExpiry> onChanged;
 
   static const _optionKeys = <LoginExpiry, String>{
-    LoginExpiry.currentDay: 'login.expiry.currentDay',
     LoginExpiry.threeDays: 'login.expiry.threeDays',
     LoginExpiry.sevenDays: 'login.expiry.sevenDays',
+    LoginExpiry.thirtyDays: 'login.expiry.thirtyDays',
   };
 
   @override

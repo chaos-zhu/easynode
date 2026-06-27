@@ -49,10 +49,9 @@ const Map<String, String> stringsEn = {
   'login.errMissingFields': 'Server login response is missing required fields',
 
   // Login expiry options
-  'login.expiry.temporary': 'Temporary, 1 hour',
-  'login.expiry.currentDay': 'Today',
   'login.expiry.threeDays': '3 days',
   'login.expiry.sevenDays': '7 days',
+  'login.expiry.thirtyDays': '30 days',
 
   // Main shell tabs
   'tabs.servers': 'Servers',
