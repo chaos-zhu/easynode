@@ -6,12 +6,24 @@ import 'package:xterm/ui.dart';
 
 import 'ssh_connection_config.dart';
 import 'ssh_terminal_controller.dart';
+import 'server_status_monitor_manager.dart';
 import 'terminal_session.dart';
 
+typedef ShouldAutoStartStatusMonitor = bool Function();
+
 class TerminalSessionManager extends ChangeNotifier {
-  TerminalSessionManager({Uuid? uuid}) : _uuid = uuid ?? const Uuid();
+  TerminalSessionManager({
+    Uuid? uuid,
+    ServerStatusMonitorManager? statusMonitorManager,
+    ShouldAutoStartStatusMonitor? shouldAutoStartStatusMonitor,
+  }) : _uuid = uuid ?? const Uuid(),
+       _statusMonitorManager = statusMonitorManager,
+       _shouldAutoStartStatusMonitor =
+           shouldAutoStartStatusMonitor ?? (() => false);
 
   final Uuid _uuid;
+  final ServerStatusMonitorManager? _statusMonitorManager;
+  final ShouldAutoStartStatusMonitor _shouldAutoStartStatusMonitor;
   final List<TerminalSession> _sessions = [];
   String? _activeId;
 
@@ -75,6 +87,7 @@ class TerminalSessionManager extends ChangeNotifier {
     final index = _sessions.indexWhere((session) => session.id == id);
     if (index == -1) return;
     final session = _sessions.removeAt(index);
+    await _detachStatusMonitor(session);
     await session.controller.disconnect();
     session.viewController.dispose();
     session.scrollController.dispose();
@@ -90,6 +103,7 @@ class TerminalSessionManager extends ChangeNotifier {
     _sessions.clear();
     _activeId = null;
     for (final session in copy) {
+      await _detachStatusMonitor(session);
       await session.controller.disconnect();
       session.viewController.dispose();
       session.scrollController.dispose();
@@ -106,6 +120,14 @@ class TerminalSessionManager extends ChangeNotifier {
       if (!_sessions.contains(session)) return;
       session.status = TerminalSessionStatus.connected;
       notifyListeners();
+      if (_shouldAutoStartStatusMonitor()) {
+        unawaited(
+          _statusMonitorManager?.attach(
+            sessionId: session.id,
+            config: session.config,
+          ),
+        );
+      }
     } catch (error) {
       if (!_sessions.contains(session)) return;
       session.status = TerminalSessionStatus.error;
@@ -113,6 +135,13 @@ class TerminalSessionManager extends ChangeNotifier {
       session.controller.terminal.write('\r\n[Error] ${session.lastError}\r\n');
       notifyListeners();
     }
+  }
+
+  Future<void> _detachStatusMonitor(TerminalSession session) async {
+    await _statusMonitorManager?.detach(
+      sessionId: session.id,
+      hostId: session.config.hostId,
+    );
   }
 
   TerminalSession? _findOrNull(String id) {

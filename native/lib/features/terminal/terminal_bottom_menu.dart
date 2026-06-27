@@ -11,6 +11,7 @@ import '../../state/auth_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/terminal_providers.dart';
 import 'ssh_terminal_controller.dart';
+import 'terminal_server_status_sheet.dart';
 import 'terminal_script_command.dart';
 import 'terminal_script_library_sheet.dart';
 import 'terminal_session.dart';
@@ -55,7 +56,9 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
           decoration: BoxDecoration(
             color: colors.surface,
             border: Border(
-              top: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
+              top: BorderSide(
+                color: colors.outlineVariant.withValues(alpha: 0.5),
+              ),
             ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
@@ -72,6 +75,10 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
               _BarIcon(
                 icon: Icons.layers_outlined,
                 onTap: () => _showConnections(context),
+              ),
+              _BarIcon(
+                icon: Icons.monitor_heart_outlined,
+                onTap: () => _showServerStatus(context),
               ),
               _BarIcon(
                 icon: Icons.folder_outlined,
@@ -122,8 +129,7 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.edit_note_outlined,
-                      color: c.primary, size: 20),
+                  Icon(Icons.edit_note_outlined, color: c.primary, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     l.tr('terminal.menu.commandInput'),
@@ -177,9 +183,7 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(ctx).pop(),
-                    style: TextButton.styleFrom(
-                      foregroundColor: c.muted,
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: c.muted),
                     child: Text(l.tr('common.cancel')),
                   ),
                   const SizedBox(width: 8),
@@ -278,13 +282,37 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
       ),
     );
   }
+
+  Future<void> _showServerStatus(BuildContext context) async {
+    final session = ref.read(terminalSessionManagerProvider).activeSession;
+    if (session == null) {
+      final l = AppLocalizations.of(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.tr('terminal.noActive'))));
+      return;
+    }
+    final l = AppLocalizations.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.34),
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.78,
+        child: _TerminalSheetFrame(
+          title: l.tr('terminal.menu.serverStatus'),
+          icon: Icons.monitor_heart_outlined,
+          child: TerminalServerStatusSheet(session: session),
+        ),
+      ),
+    );
+    widget.onFocusTerminal?.call();
+  }
 }
 
 class _BarIcon extends StatelessWidget {
-  const _BarIcon({
-    required this.icon,
-    required this.onTap,
-  });
+  const _BarIcon({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -298,11 +326,7 @@ class _BarIcon extends StatelessWidget {
         onTap: onTap,
         child: SizedBox(
           height: 40,
-          child: Icon(
-            icon,
-            size: 21,
-            color: colors.onSurfaceVariant,
-          ),
+          child: Icon(icon, size: 21, color: colors.onSurfaceVariant),
         ),
       ),
     );
@@ -315,10 +339,7 @@ const _kRowGap = 4.0;
 const _kSectionGap = 10.0;
 
 class _ShortcutKeyPanel extends StatelessWidget {
-  const _ShortcutKeyPanel({
-    required this.controller,
-    required this.onInput,
-  });
+  const _ShortcutKeyPanel({required this.controller, required this.onInput});
 
   final SshTerminalController? controller;
   final ValueChanged<String> onInput;
@@ -361,29 +382,93 @@ class _ShortcutKeyPanel extends StatelessWidget {
           const SizedBox(height: _kSectionGap),
           // Common Ctrl combinations
           _buildRow([
-            _HintKeyBtn('^C', () => onInput('\x03'), l.tr('terminal.hint.ctrlC')),
-            _HintKeyBtn('^Z', () => onInput('\x1a'), l.tr('terminal.hint.ctrlZ')),
-            _HintKeyBtn('^D', () => onInput('\x04'), l.tr('terminal.hint.ctrlD')),
-            _HintKeyBtn('^L', () => onInput('\x0c'), l.tr('terminal.hint.ctrlL')),
-            _HintKeyBtn('^U', () => onInput('\x15'), l.tr('terminal.hint.ctrlU')),
-            _HintKeyBtn('^K', () => onInput('\x0b'), l.tr('terminal.hint.ctrlK')),
+            _HintKeyBtn(
+              '^C',
+              () => onInput('\x03'),
+              l.tr('terminal.hint.ctrlC'),
+            ),
+            _HintKeyBtn(
+              '^Z',
+              () => onInput('\x1a'),
+              l.tr('terminal.hint.ctrlZ'),
+            ),
+            _HintKeyBtn(
+              '^D',
+              () => onInput('\x04'),
+              l.tr('terminal.hint.ctrlD'),
+            ),
+            _HintKeyBtn(
+              '^L',
+              () => onInput('\x0c'),
+              l.tr('terminal.hint.ctrlL'),
+            ),
+            _HintKeyBtn(
+              '^U',
+              () => onInput('\x15'),
+              l.tr('terminal.hint.ctrlU'),
+            ),
+            _HintKeyBtn(
+              '^K',
+              () => onInput('\x0b'),
+              l.tr('terminal.hint.ctrlK'),
+            ),
           ]),
           const SizedBox(height: _kRowGap),
           _buildRow([
-            _HintKeyBtn('^A', () => onInput('\x01'), l.tr('terminal.hint.ctrlA')),
-            _HintKeyBtn('^E', () => onInput('\x05'), l.tr('terminal.hint.ctrlE')),
-            _HintKeyBtn('^W', () => onInput('\x17'), l.tr('terminal.hint.ctrlW')),
-            _HintKeyBtn('^Y', () => onInput('\x19'), l.tr('terminal.hint.ctrlY')),
-            _HintKeyBtn('^X', () => onInput('\x18'), l.tr('terminal.hint.ctrlX')),
-            _HintKeyBtn('^R', () => onInput('\x12'), l.tr('terminal.hint.ctrlR')),
+            _HintKeyBtn(
+              '^A',
+              () => onInput('\x01'),
+              l.tr('terminal.hint.ctrlA'),
+            ),
+            _HintKeyBtn(
+              '^E',
+              () => onInput('\x05'),
+              l.tr('terminal.hint.ctrlE'),
+            ),
+            _HintKeyBtn(
+              '^W',
+              () => onInput('\x17'),
+              l.tr('terminal.hint.ctrlW'),
+            ),
+            _HintKeyBtn(
+              '^Y',
+              () => onInput('\x19'),
+              l.tr('terminal.hint.ctrlY'),
+            ),
+            _HintKeyBtn(
+              '^X',
+              () => onInput('\x18'),
+              l.tr('terminal.hint.ctrlX'),
+            ),
+            _HintKeyBtn(
+              '^R',
+              () => onInput('\x12'),
+              l.tr('terminal.hint.ctrlR'),
+            ),
           ]),
           const SizedBox(height: _kRowGap),
           // Vim shortcuts
           _buildRow([
-            _HintKeyBtn(':w', () => onInput(':w\n'), l.tr('terminal.hint.vimW')),
-            _HintKeyBtn(':q', () => onInput(':q\n'), l.tr('terminal.hint.vimQ')),
-            _HintKeyBtn(':wq', () => onInput(':wq\n'), l.tr('terminal.hint.vimWQ')),
-            _HintKeyBtn(':q!', () => onInput(':q!\n'), l.tr('terminal.hint.vimQF')),
+            _HintKeyBtn(
+              ':w',
+              () => onInput(':w\n'),
+              l.tr('terminal.hint.vimW'),
+            ),
+            _HintKeyBtn(
+              ':q',
+              () => onInput(':q\n'),
+              l.tr('terminal.hint.vimQ'),
+            ),
+            _HintKeyBtn(
+              ':wq',
+              () => onInput(':wq\n'),
+              l.tr('terminal.hint.vimWQ'),
+            ),
+            _HintKeyBtn(
+              ':q!',
+              () => onInput(':q!\n'),
+              l.tr('terminal.hint.vimQF'),
+            ),
             _HintKeyBtn('dd', () => onInput('dd'), l.tr('terminal.hint.vimDD')),
             _HintKeyBtn('yy', () => onInput('yy'), l.tr('terminal.hint.vimYY')),
           ]),
@@ -409,21 +494,33 @@ class _ShortcutKeyPanel extends StatelessWidget {
           ]),
           const SizedBox(height: _kSectionGap),
           // Symbols
-          _buildRow('! @ # \$ % ^ & *'.split(' ').map(
-            (c) => _KeyBtn(c, () => onInput(c)) as Widget,
-          ).toList()),
+          _buildRow(
+            '! @ # \$ % ^ & *'
+                .split(' ')
+                .map((c) => _KeyBtn(c, () => onInput(c)) as Widget)
+                .toList(),
+          ),
           const SizedBox(height: _kRowGap),
-          _buildRow('~ ` ( ) _ - + ='.split(' ').map(
-            (c) => _KeyBtn(c, () => onInput(c)) as Widget,
-          ).toList()),
+          _buildRow(
+            '~ ` ( ) _ - + ='
+                .split(' ')
+                .map((c) => _KeyBtn(c, () => onInput(c)) as Widget)
+                .toList(),
+          ),
           const SizedBox(height: _kRowGap),
-          _buildRow('[ ] { } \\ | ; :'.split(' ').map(
-            (c) => _KeyBtn(c, () => onInput(c)) as Widget,
-          ).toList()),
+          _buildRow(
+            '[ ] { } \\ | ; :'
+                .split(' ')
+                .map((c) => _KeyBtn(c, () => onInput(c)) as Widget)
+                .toList(),
+          ),
           const SizedBox(height: _kRowGap),
-          _buildRow('\' " , . < > / ?'.split(' ').map(
-            (c) => _KeyBtn(c, () => onInput(c)) as Widget,
-          ).toList()),
+          _buildRow(
+            '\' " , . < > / ?'
+                .split(' ')
+                .map((c) => _KeyBtn(c, () => onInput(c)) as Widget)
+                .toList(),
+          ),
         ],
       ),
     );
@@ -642,21 +739,18 @@ class _ConnectionsSheetState extends ConsumerState<_ConnectionsSheet> {
             ),
             Expanded(
               child: hostsAsync.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => _MessageList(
-                  message: l.trf(
-                    'terminal.loadServersFailed',
-                    [error.toString()],
-                  ),
+                  message: l.trf('terminal.loadServersFailed', [
+                    error.toString(),
+                  ]),
                   action: TextButton(
                     onPressed: () =>
                         ref.read(hostListProvider.notifier).refresh(),
                     child: Text(l.tr('common.retry')),
                   ),
                 ),
-                data: (servers) =>
-                    _buildList(context, servers, colors, l),
+                data: (servers) => _buildList(context, servers, colors, l),
               ),
             ),
           ],
@@ -673,17 +767,19 @@ class _ConnectionsSheetState extends ConsumerState<_ConnectionsSheet> {
   ) {
     final sessions = widget.manager.sessions.toList(growable: false);
 
-    final disconnectedServers = servers.where((server) {
-      if (_query.isEmpty) return true;
-      final haystack = [
-        server.displayName,
-        server.host,
-        server.username,
-        server.group,
-        ...server.tag,
-      ].join(' ').toLowerCase();
-      return haystack.contains(_query);
-    }).toList(growable: false);
+    final disconnectedServers = servers
+        .where((server) {
+          if (_query.isEmpty) return true;
+          final haystack = [
+            server.displayName,
+            server.host,
+            server.username,
+            server.group,
+            ...server.tag,
+          ].join(' ').toLowerCase();
+          return haystack.contains(_query);
+        })
+        .toList(growable: false);
 
     if (sessions.isEmpty && disconnectedServers.isEmpty) {
       return _MessageList(message: l.tr('servers.emptyFiltered'));
@@ -725,9 +821,7 @@ class _ConnectionsSheetState extends ConsumerState<_ConnectionsSheet> {
             _DisconnectedRow(
               server: server,
               connecting: _connectingId == server.id,
-              onTap: _connectingId == null
-                  ? () => _connect(server)
-                  : null,
+              onTap: _connectingId == null ? () => _connect(server) : null,
             ),
             const SizedBox(height: 8),
           ],
@@ -806,8 +900,7 @@ class _ConnectedRow extends StatelessWidget {
                   ],
                 ),
               ),
-              if (active)
-                const Icon(Icons.check_rounded),
+              if (active) const Icon(Icons.check_rounded),
               IconButton(
                 tooltip: l.tr('terminal.reconnect'),
                 onPressed: () => onReconnect(),

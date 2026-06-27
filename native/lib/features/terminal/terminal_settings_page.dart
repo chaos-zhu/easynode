@@ -10,7 +10,13 @@ import 'terminal_theme_presets.dart';
 class TerminalSettingsPage extends ConsumerWidget {
   const TerminalSettingsPage({super.key});
 
-  static const _fonts = ['monospace', 'Courier', 'Menlo', 'SF Mono', 'Consolas'];
+  static const _fonts = [
+    'monospace',
+    'Courier',
+    'Menlo',
+    'SF Mono',
+    'Consolas',
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,6 +53,14 @@ class TerminalSettingsPage extends ConsumerWidget {
             selected: settings.fontFamily,
             onSelected: notifier.setFontFamily,
           ),
+          const SizedBox(height: 24),
+          _SectionTitle(l.tr('terminal.settings.serverStatus')),
+          _SwitchSettingCard(
+            title: l.tr('terminal.settings.autoServerStatus'),
+            subtitle: l.tr('terminal.settings.autoServerStatusHint'),
+            value: settings.autoServerStatus,
+            onChanged: notifier.setAutoServerStatus,
+          ),
         ],
       ),
     );
@@ -74,10 +88,7 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _ThemePresetGrid extends StatelessWidget {
-  const _ThemePresetGrid({
-    required this.selectedId,
-    required this.onSelected,
-  });
+  const _ThemePresetGrid({required this.selectedId, required this.onSelected});
 
   final String selectedId;
   final Future<void> Function(String) onSelected;
@@ -167,9 +178,7 @@ class _ThemePresetCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 5),
               decoration: BoxDecoration(
-                color: selected
-                    ? c.accent.withValues(alpha: 0.12)
-                    : c.card,
+                color: selected ? c.accent.withValues(alpha: 0.12) : c.card,
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(9),
                 ),
@@ -210,10 +219,7 @@ class _ThemePresetCard extends StatelessWidget {
 }
 
 class _FontSizeSlider extends StatelessWidget {
-  const _FontSizeSlider({
-    required this.value,
-    required this.onChanged,
-  });
+  const _FontSizeSlider({required this.value, required this.onChanged});
 
   final double value;
   final Future<void> Function(double) onChanged;
@@ -264,10 +270,7 @@ class _FontSizeSlider extends StatelessWidget {
 }
 
 class _FontFamilyPicker extends StatelessWidget {
-  const _FontFamilyPicker({
-    required this.selected,
-    required this.onSelected,
-  });
+  const _FontFamilyPicker({required this.selected, required this.onSelected});
 
   final String selected;
   final Future<void> Function(String) onSelected;
@@ -288,9 +291,7 @@ class _FontFamilyPicker extends StatelessWidget {
                 color: font == selected ? c.primary : c.card,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: font == selected
-                      ? c.primary
-                      : c.border,
+                  color: font == selected ? c.primary : c.border,
                 ),
               ),
               child: Text(
@@ -299,14 +300,49 @@ class _FontFamilyPicker extends StatelessWidget {
                   fontFamily: font,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: font == selected
-                      ? c.fontOnPrimary
-                      : c.text,
+                  color: font == selected ? c.fontOnPrimary : c.text,
                 ),
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+class _SwitchSettingCard extends StatelessWidget {
+  const _SwitchSettingCard({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool value;
+  final Future<void> Function(bool) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.border),
+      ),
+      child: SwitchListTile(
+        value: value,
+        onChanged: (v) => onChanged(v),
+        title: Text(
+          title,
+          style: TextStyle(color: c.text, fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(subtitle, style: TextStyle(color: c.muted)),
+        activeThumbColor: c.accent,
+        contentPadding: const EdgeInsets.fromLTRB(14, 4, 10, 4),
+      ),
     );
   }
 }

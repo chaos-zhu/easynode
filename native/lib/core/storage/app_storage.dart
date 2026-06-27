@@ -18,13 +18,16 @@ class AppStorage {
   static const _keyEditorTheme = 'editor.theme';
 
   String get serverAddress => _prefs.getString(_keyServerAddress) ?? '';
-  Future<void> setServerAddress(String value) => _prefs.setString(_keyServerAddress, value);
+  Future<void> setServerAddress(String value) =>
+      _prefs.setString(_keyServerAddress, value);
 
   String get username => _prefs.getString(_keyUsername) ?? '';
-  Future<void> setUsername(String value) => _prefs.setString(_keyUsername, value);
+  Future<void> setUsername(String value) =>
+      _prefs.setString(_keyUsername, value);
 
   bool get savePassword => _prefs.getBool(_keySavePassword) ?? false;
-  Future<void> setSavePassword(bool value) => _prefs.setBool(_keySavePassword, value);
+  Future<void> setSavePassword(bool value) =>
+      _prefs.setBool(_keySavePassword, value);
 
   /// `null` means "follow system locale". Otherwise a BCP-47-ish language code
   /// like `en` or `zh`.
@@ -70,9 +73,9 @@ class AppStorage {
   static const _keyTermFontSize = 'terminal.fontSize';
   static const _keyTermFontFamily = 'terminal.fontFamily';
   static const _keyTermTheme = 'terminal.themePreset';
+  static const _keyTermAutoServerStatus = 'terminal.autoServerStatus';
 
-  double get terminalFontSize =>
-      _prefs.getDouble(_keyTermFontSize) ?? 12.0;
+  double get terminalFontSize => _prefs.getDouble(_keyTermFontSize) ?? 12.0;
   Future<void> setTerminalFontSize(double v) =>
       _prefs.setDouble(_keyTermFontSize, v);
 
@@ -81,16 +84,19 @@ class AppStorage {
   Future<void> setTerminalFontFamily(String v) =>
       _prefs.setString(_keyTermFontFamily, v);
 
-  String get terminalThemePreset =>
-      _prefs.getString(_keyTermTheme) ?? 'warm';
+  String get terminalThemePreset => _prefs.getString(_keyTermTheme) ?? 'warm';
   Future<void> setTerminalThemePreset(String v) =>
       _prefs.setString(_keyTermTheme, v);
+
+  bool get terminalAutoServerStatus =>
+      _prefs.getBool(_keyTermAutoServerStatus) ?? true;
+  Future<void> setTerminalAutoServerStatus(bool v) =>
+      _prefs.setBool(_keyTermAutoServerStatus, v);
 
   // ── App theme ──
 
   static const _keyThemeMode = 'app.themeMode';
 
   String get themeMode => _prefs.getString(_keyThemeMode) ?? 'system';
-  Future<void> setThemeMode(String v) =>
-      _prefs.setString(_keyThemeMode, v);
+  Future<void> setThemeMode(String v) => _prefs.setString(_keyThemeMode, v);
 }
