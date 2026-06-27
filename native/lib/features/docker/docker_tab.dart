@@ -137,12 +137,13 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
     return AnimatedBuilder(
       animation: manager,
       builder: (context, _) {
-        final lockedHostId = widget.lockToHost ? widget.initialHostId : null;
-        final session = lockedHostId == null
-            ? manager.activeSession
-            : manager.sessionFor(lockedHostId);
+        final lockToHost = widget.lockToHost;
+        final lockedHostId = lockToHost ? widget.initialHostId : null;
+        final session = lockToHost
+            ? manager.sessionFor(lockedHostId)
+            : manager.activeSession;
         final showSelector =
-            !widget.lockToHost &&
+            !lockToHost &&
             !_connecting &&
             session != null &&
             session.status != DockerConnectionStatus.connecting;
@@ -170,9 +171,9 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
                 onRefresh: () async {
                   if (session == null) {
                     await _refreshHosts();
-                  } else if (lockedHostId == null) {
+                  } else if (!lockToHost) {
                     manager.reconnectActive();
-                  } else {
+                  } else if (lockedHostId != null) {
                     manager.reconnect(lockedHostId);
                   }
                 },
@@ -220,7 +221,7 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
                             height: MediaQuery.sizeOf(context).height * 0.58,
                             child: Center(
                               child: _DockerEmptyCard(
-                                onChooseServer: widget.lockToHost
+                                onChooseServer: lockToHost
                                     ? null
                                     : _openServerPicker,
                               ),
@@ -232,7 +233,10 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
                     return _DockerContainerList(
                       session: session,
                       manager: manager,
-                      onRefresh: () => manager.reconnect(session.server.id),
+                      lockedHostId: lockToHost ? lockedHostId : null,
+                      onRefresh: !lockToHost
+                          ? manager.reconnectActive
+                          : () => manager.reconnect(session.server.id),
                       onOpenPort: _openPort,
                       onShowLogs: _showLogs,
                     );
@@ -267,15 +271,19 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
     await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _showLogs(String hostId, DockerContainer container) async {
+  Future<void> _showLogs(
+    String? lockedHostId,
+    DockerContainer container,
+  ) async {
     final manager = ref.read(dockerSessionManagerProvider);
-    manager.getLogs(container, hostId: hostId);
+    manager.getLogs(container, hostId: lockedHostId);
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.34),
-      builder: (_) => _DockerLogsSheet(hostId: hostId, container: container),
+      builder: (_) =>
+          _DockerLogsSheet(hostId: lockedHostId, container: container),
     );
   }
 }
@@ -287,13 +295,15 @@ class _DockerContainerList extends StatefulWidget {
     required this.onRefresh,
     required this.onOpenPort,
     required this.onShowLogs,
+    this.lockedHostId,
   });
 
   final DockerSessionState session;
   final DockerSessionManager manager;
+  final String? lockedHostId;
   final VoidCallback onRefresh;
   final Future<void> Function(ServerModel server, String port) onOpenPort;
-  final Future<void> Function(String hostId, DockerContainer container)
+  final Future<void> Function(String? lockedHostId, DockerContainer container)
   onShowLogs;
 
   @override
@@ -350,21 +360,21 @@ class _DockerContainerListState extends State<_DockerContainerList> {
       .toList(growable: false);
 
   void _batchStart() {
-    final hostId = widget.session.server.id;
+    final hostId = widget.lockedHostId;
     for (final c in _selectedContainers) {
       if (!c.isRunning) widget.manager.start(c, hostId: hostId);
     }
   }
 
   void _batchRestart() {
-    final hostId = widget.session.server.id;
+    final hostId = widget.lockedHostId;
     for (final c in _selectedContainers) {
       if (c.isRunning) widget.manager.restart(c, hostId: hostId);
     }
   }
 
   void _batchStop() {
-    final hostId = widget.session.server.id;
+    final hostId = widget.lockedHostId;
     for (final c in _selectedContainers) {
       if (c.isRunning) widget.manager.stop(c, hostId: hostId);
     }
@@ -395,7 +405,7 @@ class _DockerContainerListState extends State<_DockerContainerList> {
       ),
     );
     if (confirmed != true) return;
-    final hostId = widget.session.server.id;
+    final hostId = widget.lockedHostId;
     for (final c in _selectedContainers) {
       widget.manager.delete(c, hostId: hostId);
     }
@@ -471,16 +481,18 @@ class _DockerContainerListState extends State<_DockerContainerList> {
                 operating: session.operatingIds.contains(container.id),
                 selected: _selected.contains(container.id),
                 onSelect: () => _toggle(container.id),
-                onStart: () =>
-                    widget.manager.start(container, hostId: session.server.id),
+                onStart: () => widget.manager.start(
+                  container,
+                  hostId: widget.lockedHostId,
+                ),
                 onStop: () =>
-                    widget.manager.stop(container, hostId: session.server.id),
+                    widget.manager.stop(container, hostId: widget.lockedHostId),
                 onRestart: () => widget.manager.restart(
                   container,
-                  hostId: session.server.id,
+                  hostId: widget.lockedHostId,
                 ),
                 onDelete: () => _confirmDelete(context, container),
-                onLogs: () => widget.onShowLogs(session.server.id, container),
+                onLogs: () => widget.onShowLogs(widget.lockedHostId, container),
                 onOpenPort: (port) => widget.onOpenPort(session.server, port),
               );
             },
@@ -519,7 +531,7 @@ class _DockerContainerListState extends State<_DockerContainerList> {
       ),
     );
     if (confirmed == true) {
-      widget.manager.delete(container, hostId: widget.session.server.id);
+      widget.manager.delete(container, hostId: widget.lockedHostId);
     }
   }
 }
@@ -1369,7 +1381,7 @@ class _DockerCircleAction extends StatelessWidget {
 class _DockerLogsSheet extends ConsumerStatefulWidget {
   const _DockerLogsSheet({required this.hostId, required this.container});
 
-  final String hostId;
+  final String? hostId;
   final DockerContainer container;
 
   @override
@@ -1388,7 +1400,9 @@ class _DockerLogsSheetState extends ConsumerState<_DockerLogsSheet> {
     _manager = ref.read(dockerSessionManagerProvider);
     _manager.addListener(_onLogsChanged);
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      final session = _manager.sessionFor(widget.hostId);
+      final session = widget.hostId == null
+          ? _manager.activeSession
+          : _manager.sessionFor(widget.hostId);
       if (session?.status != DockerConnectionStatus.connected) {
         return;
       }
@@ -1405,7 +1419,12 @@ class _DockerLogsSheetState extends ConsumerState<_DockerLogsSheet> {
 
   void _onLogsChanged() {
     if (_initialScrollDone) return;
-    final logs = _manager.sessionFor(widget.hostId)?.logs ?? '';
+    final logs =
+        (widget.hostId == null
+                ? _manager.activeSession
+                : _manager.sessionFor(widget.hostId))
+            ?.logs ??
+        '';
     if (logs.trim().isEmpty) return;
     _initialScrollDone = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1482,7 +1501,11 @@ class _DockerLogsSheetState extends ConsumerState<_DockerLogsSheet> {
                     animation: _manager,
                     builder: (context, _) {
                       final logs =
-                          _manager.sessionFor(widget.hostId)?.logs ?? '';
+                          (widget.hostId == null
+                                  ? _manager.activeSession
+                                  : _manager.sessionFor(widget.hostId))
+                              ?.logs ??
+                          '';
                       return Container(
                         width: double.infinity,
                         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -1819,16 +1842,17 @@ class _DockerServerRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                Text(
-                  connected
-                      ? l.tr('docker.statusConnected')
-                      : l.tr('docker.statusDisconnected'),
-                  style: TextStyle(
-                    color: connected ? c.success : c.softMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
+                if (active)
+                  Icon(Icons.check_rounded, color: c.success, size: 20)
+                else if (!connected)
+                  Text(
+                    l.tr('docker.statusDisconnected'),
+                    style: TextStyle(
+                      color: c.softMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
               ],
             ),
           ),

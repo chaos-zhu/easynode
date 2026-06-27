@@ -67,10 +67,7 @@ class DockerSessionManager extends ChangeNotifier {
       _activeHostId = server.id;
       if (existing.status == DockerConnectionStatus.disconnected ||
           existing.status == DockerConnectionStatus.error) {
-        existing.status = DockerConnectionStatus.connecting;
-        existing.loading = true;
-        existing.errorMessage = null;
-        notifyListeners();
+        _markConnecting(existing);
         await existing.client.connect();
       } else {
         notifyListeners();
@@ -137,6 +134,17 @@ class DockerSessionManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _markConnecting(DockerSessionState session) {
+    session.status = DockerConnectionStatus.connecting;
+    session.loading = true;
+    session.refreshing = false;
+    session.containers = const [];
+    session.logs = '';
+    session.errorMessage = null;
+    session.operatingIds.clear();
+    notifyListeners();
+  }
+
   void refreshActive() {
     final session = activeSession;
     _refreshSession(session);
@@ -165,10 +173,7 @@ class DockerSessionManager extends ChangeNotifier {
 
   void _reconnectSession(DockerSessionState? session) {
     if (session == null) return;
-    session.status = DockerConnectionStatus.connecting;
-    session.loading = true;
-    session.errorMessage = null;
-    notifyListeners();
+    _markConnecting(session);
     unawaited(session.client.connect());
   }
 

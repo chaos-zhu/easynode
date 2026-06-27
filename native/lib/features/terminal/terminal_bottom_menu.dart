@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/api/api_result.dart';
 import '../../core/ui/app_color_theme.dart';
@@ -290,6 +291,9 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
   }
 
   Future<void> _showDocker(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    if (!context.mounted) return;
     final l = AppLocalizations.of(context);
     await showModalBottomSheet<void>(
       context: context,

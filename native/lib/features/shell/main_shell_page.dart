@@ -187,7 +187,7 @@ class _WarmBottomBar extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: Container(
-              height: 62,
+              height: 52,
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: context.colors.card,

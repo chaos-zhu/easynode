@@ -64,17 +64,22 @@ class DockerSocketClient {
     if (_disposed || _candidateIndex >= _serverCandidates.length) return;
     final serverAddress = _serverCandidates[_candidateIndex];
 
-    final socket = sio.io(
-      serverAddress,
-      sio.OptionBuilder()
-          .setTransports(['websocket'])
-          .setPath('/docker/')
-          .setAuth({'token': _authSession.token})
-          .setExtraHeaders({'Cookie': cookie, 'Origin': _authSession.serverAddress})
-          .disableAutoConnect()
-          .disableReconnection()
-          .build(),
-    );
+    final options = sio.OptionBuilder()
+        .setTransports(['websocket'])
+        .setPath('/docker/')
+        .setAuth({'token': _authSession.token})
+        .setExtraHeaders({
+          'Cookie': cookie,
+          'Origin': _authSession.serverAddress,
+        })
+        .disableAutoConnect()
+        .disableReconnection()
+        .build();
+    options['forceNew'] = true;
+    options['multiplex'] = false;
+    options['query'] = {'hostId': hostId};
+
+    final socket = sio.io(serverAddress, options);
 
     socket.onConnect((_) {
       _connectedController.add(true);
