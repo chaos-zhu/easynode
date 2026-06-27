@@ -52,6 +52,18 @@ for f in ~/.pub-cache/hosted/*/xterm-*/lib/src/ui/shortcut/shortcuts.dart ~/PUB/
   ((count++))
 done
 
+# patch file_picker_ohos plugin platforms: keep only OHOS native registration.
+# The fork declares Android/iOS/macOS/etc. too, which conflicts with the
+# official file_picker plugin on Android and lacks an iOS podspec.
+for f in ~/.pub-cache/git/fluttertpc_file_picker-*/pubspec.yaml ~/PUB/git/fluttertpc_file_picker-*/pubspec.yaml; do
+  [ -f "$f" ] || continue
+  grep -q "name: file_picker_ohos" "$f" || continue
+  grep -q "^[[:space:]]\{6\}android:" "$f" || continue
+  perl -0pi -e 's/    platforms:\n(?:      (?!ohos:)[^\n]+:\n(?:        [^\n]+\n)*?)+      ohos:/    platforms:\n      ohos:/s' "$f"
+  echo "patched: $f"
+  ((count++))
+done
+
 if [ $count -eq 0 ]; then
   echo "all files already patched."
 else
