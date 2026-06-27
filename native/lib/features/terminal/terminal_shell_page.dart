@@ -563,7 +563,9 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                                   AppLocalizations.of(
                                     context,
                                   ).tr('terminal.noActive'),
-                                  style: TextStyle(color: context.colors.softMuted),
+                                  style: TextStyle(
+                                    color: context.colors.softMuted,
+                                  ),
                                 ),
                               )
                             : FocusScope(
@@ -582,7 +584,8 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                                             scrollController:
                                                 session.scrollController,
                                             theme: termSettings.terminalTheme,
-                                            textStyle: termSettings.terminalStyle,
+                                            textStyle:
+                                                termSettings.terminalStyle,
                                             focusNode: session.id == active?.id
                                                 ? _terminalFocusNode
                                                 : null,
@@ -704,8 +707,7 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                               '${activeSearchState.index + 1}',
                               '${activeSearchState.matches.length}',
                             ]),
-                      onChanged: (text) =>
-                          _onSearchTextChanged(active, text),
+                      onChanged: (text) => _onSearchTextChanged(active, text),
                       onPrevious: activeSearchState == null
                           ? null
                           : () => _jumpSearch(active, false),
@@ -791,12 +793,12 @@ class _TerminalTopBar extends StatelessWidget {
           IconButton(
             tooltip: l.tr('terminal.settings'),
             onPressed: onSettings,
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.settings_outlined, size: 21),
           ),
           IconButton(
             tooltip: l.tr('terminal.closeTerminal'),
             onPressed: activeSession == null ? null : onClose,
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, size: 21),
           ),
         ],
       ),
@@ -1053,10 +1055,7 @@ class _TerminalSearchBar extends StatelessWidget {
                   resultText!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
                 ),
               ),
             ],
@@ -1086,9 +1085,7 @@ class _SearchNavButton extends StatelessWidget {
         padding: EdgeInsets.zero,
         splashRadius: 16,
         style: IconButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
       ),
     );

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_result.dart';
 import '../../core/ui/app_color_theme.dart';
+import '../../features/docker/docker_icon.dart';
+import '../../features/docker/docker_tab.dart';
 import '../../features/servers/server_model.dart';
 import '../../features/shell/sftp_tab.dart';
 import '../../l10n/app_localizations.dart';
@@ -65,24 +67,28 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
           child: Row(
             children: [
               _BarIcon(
-                icon: Icons.edit_note_outlined,
-                onTap: () => _showCommandInput(context),
+                icon: Icons.monitor_heart_outlined,
+                onTap: () => _showServerStatus(context),
               ),
               _BarIcon(
-                icon: Icons.code_outlined,
-                onTap: () => _showScripts(context),
+                iconWidget: const DockerIcon(),
+                onTap: () => _showDocker(context),
+              ),
+              _BarIcon(
+                icon: Icons.folder_outlined,
+                onTap: () => _showSftp(context),
               ),
               _BarIcon(
                 icon: Icons.layers_outlined,
                 onTap: () => _showConnections(context),
               ),
               _BarIcon(
-                icon: Icons.monitor_heart_outlined,
-                onTap: () => _showServerStatus(context),
+                icon: Icons.code_outlined,
+                onTap: () => _showScripts(context),
               ),
               _BarIcon(
-                icon: Icons.folder_outlined,
-                onTap: () => _showSftp(context),
+                icon: Icons.edit_note_outlined,
+                onTap: () => _showCommandInput(context),
               ),
               _BarIcon(
                 icon: widget.keyboardVisible
@@ -283,6 +289,33 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
     );
   }
 
+  Future<void> _showDocker(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.34),
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.90,
+        child: _TerminalSheetFrame(
+          title: l.tr('terminal.menu.docker'),
+          iconWidget: const DockerIcon(),
+          child: DockerPanel(
+            initialHostId: ref
+                .read(terminalSessionManagerProvider)
+                .activeSession
+                ?.config
+                .hostId,
+            allowDisconnect: false,
+            lockToHost: true,
+          ),
+        ),
+      ),
+    );
+    widget.onFocusTerminal?.call();
+  }
+
   Future<void> _showServerStatus(BuildContext context) async {
     final session = ref.read(terminalSessionManagerProvider).activeSession;
     if (session == null) {
@@ -312,9 +345,11 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
 }
 
 class _BarIcon extends StatelessWidget {
-  const _BarIcon({required this.icon, required this.onTap});
+  const _BarIcon({this.icon, this.iconWidget, required this.onTap})
+    : assert(icon != null || iconWidget != null);
 
-  final IconData icon;
+  final IconData? icon;
+  final Widget? iconWidget;
   final VoidCallback onTap;
 
   @override
@@ -326,7 +361,10 @@ class _BarIcon extends StatelessWidget {
         onTap: onTap,
         child: SizedBox(
           height: 40,
-          child: Icon(icon, size: 21, color: colors.onSurfaceVariant),
+          child: IconTheme(
+            data: IconThemeData(size: 21, color: colors.onSurfaceVariant),
+            child: iconWidget ?? Icon(icon),
+          ),
         ),
       ),
     );
@@ -1001,12 +1039,14 @@ class _DisconnectedRow extends StatelessWidget {
 class _TerminalSheetFrame extends StatelessWidget {
   const _TerminalSheetFrame({
     required this.title,
-    required this.icon,
     required this.child,
-  });
+    this.icon,
+    this.iconWidget,
+  }) : assert(icon != null || iconWidget != null);
 
   final String title;
-  final IconData icon;
+  final IconData? icon;
+  final Widget? iconWidget;
   final Widget child;
 
   @override
@@ -1034,7 +1074,13 @@ class _TerminalSheetFrame extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
               child: Row(
                 children: [
-                  Icon(icon, size: 21),
+                  IconTheme(
+                    data: IconThemeData(
+                      size: 21,
+                      color: colors.onSurfaceVariant,
+                    ),
+                    child: iconWidget ?? Icon(icon),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

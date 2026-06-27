@@ -47,6 +47,11 @@ class DockerSessionManager extends ChangeNotifier {
     return _sessions[id];
   }
 
+  DockerSessionState? sessionFor(String? hostId) {
+    if (hostId == null || hostId.isEmpty) return null;
+    return _sessions[hostId];
+  }
+
   String? get activeHostId => _activeHostId;
 
   bool isConnected(String hostId) =>
@@ -134,6 +139,14 @@ class DockerSessionManager extends ChangeNotifier {
 
   void refreshActive() {
     final session = activeSession;
+    _refreshSession(session);
+  }
+
+  void refresh(String hostId) {
+    _refreshSession(sessionFor(hostId));
+  }
+
+  void _refreshSession(DockerSessionState? session) {
     if (session == null) return;
     session.refreshing = true;
     session.errorMessage = null;
@@ -143,6 +156,14 @@ class DockerSessionManager extends ChangeNotifier {
 
   void reconnectActive() {
     final session = activeSession;
+    _reconnectSession(session);
+  }
+
+  void reconnect(String hostId) {
+    _reconnectSession(sessionFor(hostId));
+  }
+
+  void _reconnectSession(DockerSessionState? session) {
     if (session == null) return;
     session.status = DockerConnectionStatus.connecting;
     session.loading = true;
@@ -151,39 +172,45 @@ class DockerSessionManager extends ChangeNotifier {
     unawaited(session.client.connect());
   }
 
-  void getLogs(DockerContainer container) {
-    final session = activeSession;
+  void getLogs(DockerContainer container, {String? hostId}) {
+    final session = hostId == null ? activeSession : sessionFor(hostId);
     if (session == null) return;
     session.logs = '';
     notifyListeners();
     session.client.getLogs(container.id);
   }
 
-  void refreshLogs(DockerContainer container) {
-    activeSession?.client.getLogs(container.id);
+  void refreshLogs(DockerContainer container, {String? hostId}) {
+    final session = hostId == null ? activeSession : sessionFor(hostId);
+    session?.client.getLogs(container.id);
   }
 
-  void start(DockerContainer container) => _operate(container, (client) {
-    client.start(container.id);
-  });
+  void start(DockerContainer container, {String? hostId}) =>
+      _operate(container, (client) {
+        client.start(container.id);
+      }, hostId: hostId);
 
-  void stop(DockerContainer container) => _operate(container, (client) {
-    client.stop(container.id);
-  });
+  void stop(DockerContainer container, {String? hostId}) =>
+      _operate(container, (client) {
+        client.stop(container.id);
+      }, hostId: hostId);
 
-  void restart(DockerContainer container) => _operate(container, (client) {
-    client.restart(container.id);
-  });
+  void restart(DockerContainer container, {String? hostId}) =>
+      _operate(container, (client) {
+        client.restart(container.id);
+      }, hostId: hostId);
 
-  void delete(DockerContainer container) => _operate(container, (client) {
-    client.delete(container.id);
-  });
+  void delete(DockerContainer container, {String? hostId}) =>
+      _operate(container, (client) {
+        client.delete(container.id);
+      }, hostId: hostId);
 
   void _operate(
     DockerContainer container,
-    void Function(DockerSocketClient client) send,
-  ) {
-    final session = activeSession;
+    void Function(DockerSocketClient client) send, {
+    String? hostId,
+  }) {
+    final session = hostId == null ? activeSession : sessionFor(hostId);
     if (session == null) return;
     session.operatingIds.add(container.id);
     session.errorMessage = null;
@@ -194,8 +221,15 @@ class DockerSessionManager extends ChangeNotifier {
   void disconnectActive() {
     final id = _activeHostId;
     if (id == null) return;
-    _disconnect(id);
-    _activeHostId = _sessions.keys.isEmpty ? null : _sessions.keys.first;
+    disconnect(id);
+  }
+
+  void disconnect(String hostId) {
+    final wasActive = _activeHostId == hostId;
+    _disconnect(hostId);
+    if (wasActive) {
+      _activeHostId = _sessions.keys.isEmpty ? null : _sessions.keys.first;
+    }
     notifyListeners();
   }
 
@@ -208,11 +242,16 @@ class DockerSessionManager extends ChangeNotifier {
     session.client.disconnect();
   }
 
-  @override
-  void dispose() {
+  void _disconnectAll() {
     for (final hostId in _sessions.keys.toList(growable: false)) {
       _disconnect(hostId);
     }
+    _activeHostId = null;
+  }
+
+  @override
+  void dispose() {
+    _disconnectAll();
     super.dispose();
   }
 }

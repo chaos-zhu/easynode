@@ -513,6 +513,7 @@ const Map<String, String> stringsEn = {
   'terminal.menu.scripts': 'Scripts',
   'terminal.menu.current': 'Current',
   'terminal.menu.newConnection': 'New',
+  'terminal.menu.docker': 'Docker',
   'terminal.menu.sftp': 'SFTP',
   'terminal.menu.serverStatus': 'Server Status',
   'terminal.menu.commandInput': 'Command Input',

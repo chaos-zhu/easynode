@@ -485,6 +485,7 @@ const Map<String, String> stringsZh = {
   'terminal.menu.scripts': '脚本库',
   'terminal.menu.current': '当前连接',
   'terminal.menu.newConnection': '新建连接',
+  'terminal.menu.docker': 'Docker',
   'terminal.menu.sftp': 'SFTP',
   'terminal.menu.serverStatus': '服务器状态',
   'terminal.menu.commandInput': '长命令输入',
