@@ -1332,11 +1332,7 @@ class _SftpDirectoryPickerSheetState extends State<_SftpDirectoryPickerSheet> {
               ),
               Expanded(
                 child: _loading
-                    ? Center(
-                        child: CircularProgressIndicator(
-                          color: c.primary,
-                        ),
-                      )
+                    ? Center(child: CircularProgressIndicator(color: c.primary))
                     : _error != null
                     ? Center(
                         child: Padding(
@@ -1643,9 +1639,7 @@ class _SftpFileRow extends StatelessWidget {
                     ? Icons.link_rounded
                     : Icons.insert_drive_file_outlined,
                 size: 20,
-                color: entry.isDirectory
-                    ? c.accent
-                    : c.muted,
+                color: entry.isDirectory ? c.accent : c.muted,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1667,10 +1661,7 @@ class _SftpFileRow extends StatelessWidget {
                   maxLines: 1,
                   textAlign: TextAlign.right,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: c.softMuted,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: c.softMuted, fontSize: 12),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1681,10 +1672,7 @@ class _SftpFileRow extends StatelessWidget {
                   maxLines: 1,
                   textAlign: TextAlign.right,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: c.softMuted,
-                    fontSize: 10,
-                  ),
+                  style: TextStyle(color: c.softMuted, fontSize: 10),
                 ),
               ),
             ],
@@ -1791,29 +1779,35 @@ class _SftpEmptyCard extends StatelessWidget {
         children: [
           const _SftpOrbitIcon(),
           const SizedBox(height: 18),
-          Text(
-            l.tr('sftp.emptyTitle'),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: c.text,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
+          SizedBox(
+            height: 24,
+            child: Text(
+              l.tr('sftp.emptyTitle'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: c.text,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            l.tr('sftp.emptyBody'),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: c.softMuted,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              height: 1.5,
+          SizedBox(
+            height: 40,
+            child: Text(
+              l.tr('sftp.emptyBody'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: c.softMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.5,
+              ),
             ),
           ),
           const SizedBox(height: 18),
           _SftpPrimaryButton(
-            icon: Icons.dns_outlined,
+            icon: Icons.folder_outlined,
             label: l.tr('sftp.chooseServer'),
             trailing: Icons.keyboard_arrow_down_rounded,
             onTap: onChooseServer,
@@ -1864,11 +1858,7 @@ class _SftpOrbitIcon extends StatelessWidget {
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(color: const Color(0x66E5B33A)),
               ),
-              child: Icon(
-                Icons.folder_rounded,
-                color: c.primary,
-                size: 42,
-              ),
+              child: Icon(Icons.folder_rounded, color: c.primary, size: 42),
             ),
           ),
         ],
@@ -1986,7 +1976,9 @@ class _SftpServerPickerSheetState
           return Container(
             decoration: BoxDecoration(
               color: c.canvas,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
               border: Border(top: BorderSide(color: c.border)),
             ),
             child: Column(
@@ -2043,10 +2035,7 @@ class _SftpServerPickerSheetState
                     child: TextField(
                       controller: _searchCtrl,
                       cursorColor: c.primary,
-                      style: TextStyle(
-                        color: c.text,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: c.text, fontSize: 14),
                       decoration: _sftpSearchDecoration(
                         context,
                         hintText: l.tr('sftp.searchHint'),
@@ -2059,9 +2048,7 @@ class _SftpServerPickerSheetState
                 Expanded(
                   child: hostsAsync.when(
                     loading: () => Center(
-                      child: CircularProgressIndicator(
-                        color: c.primary,
-                      ),
+                      child: CircularProgressIndicator(color: c.primary),
                     ),
                     error: (error, _) => ListView(
                       controller: scrollController,
@@ -2230,11 +2217,9 @@ class _SftpServerRow extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
-                      Icons.dns_outlined,
+                      Icons.folder_outlined,
                       size: 21,
-                      color: connected
-                          ? c.primary
-                          : c.muted,
+                      color: connected ? c.primary : c.muted,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -2269,11 +2254,7 @@ class _SftpServerRow extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   if (active)
-                    Icon(
-                      Icons.check_rounded,
-                      color: c.success,
-                      size: 20,
-                    )
+                    Icon(Icons.check_rounded, color: c.success, size: 20)
                   else if (!connected)
                     _SftpStatusPill(
                       label: l.tr('sftp.statusDisconnected'),
@@ -2389,11 +2370,7 @@ InputDecoration _sftpSearchDecoration(
     isDense: true,
     filled: true,
     fillColor: c.chip,
-    prefixIcon: Icon(
-      Icons.search_rounded,
-      size: 18,
-      color: c.softMuted,
-    ),
+    prefixIcon: Icon(Icons.search_rounded, size: 18, color: c.softMuted),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     hintStyle: TextStyle(color: c.softMuted, fontSize: 13),
     enabledBorder: OutlineInputBorder(

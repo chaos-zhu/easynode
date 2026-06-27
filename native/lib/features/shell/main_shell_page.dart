@@ -11,6 +11,8 @@ import '../../state/app_update_notifier.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/plus_info_notifier.dart';
 import '../../state/terminal_providers.dart';
+import '../docker/docker_icon.dart';
+import '../docker/docker_tab.dart';
 import '../servers/servers_tab.dart';
 import 'scripts_tab.dart';
 import 'settings_tab.dart';
@@ -34,6 +36,7 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
   static const _tabs = <Widget>[
     ServersTab(),
     SftpTab(),
+    DockerTab(),
     ScriptsTab(),
     SettingsTab(),
   ];
@@ -91,19 +94,23 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
           onSelected: (i) => setState(() => _index = i),
           items: [
             _WarmBottomBarItem(
-              icon: Icons.monitor_outlined,
+              icon: const Icon(Icons.monitor_outlined),
               label: l.tr('tabs.servers'),
             ),
             _WarmBottomBarItem(
-              icon: Icons.folder_outlined,
+              icon: const Icon(Icons.folder_outlined),
               label: l.tr('tabs.sftp'),
             ),
             _WarmBottomBarItem(
-              icon: Icons.article_outlined,
+              icon: const DockerIcon(),
+              label: l.tr('tabs.docker'),
+            ),
+            _WarmBottomBarItem(
+              icon: const Icon(Icons.article_outlined),
               label: l.tr('tabs.scripts'),
             ),
             _WarmBottomBarItem(
-              icon: Icons.settings_outlined,
+              icon: const Icon(Icons.settings_outlined),
               label: l.tr('tabs.settings'),
             ),
           ],
@@ -276,7 +283,9 @@ class _WarmBottomBarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? context.colors.fontOnPrimary : context.colors.softMuted;
+    final color = selected
+        ? context.colors.fontOnPrimary
+        : context.colors.softMuted;
     return Tooltip(
       message: item.label,
       child: Material(
@@ -287,7 +296,7 @@ class _WarmBottomBarButton extends StatelessWidget {
           onTap: onTap,
           child: IconTheme(
             data: IconThemeData(size: 22, color: color),
-            child: Center(child: Icon(item.icon)),
+            child: Center(child: item.icon),
           ),
         ),
       ),
@@ -298,6 +307,6 @@ class _WarmBottomBarButton extends StatelessWidget {
 class _WarmBottomBarItem {
   const _WarmBottomBarItem({required this.icon, required this.label});
 
-  final IconData icon;
+  final Widget icon;
   final String label;
 }
