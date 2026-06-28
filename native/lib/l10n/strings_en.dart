@@ -327,6 +327,11 @@ const Map<String, String> stringsEn = {
   'settings.theme.light': 'Light',
   'settings.theme.dark': 'Dark',
 
+  'settings.tabOrder.title': 'Menu Order',
+  'settings.tabOrder.subtitle': 'Customize menu order and home page',
+  'settings.tabOrder.reset': 'Reset to Default',
+  'settings.tabOrder.homeHint': 'Drag to reorder, tap to set as home page',
+
   'settings.update.title': 'Check for updates',
   'settings.update.subtitle': 'Compare with the latest native release',
   'settings.update.availableSubtitle': 'New version available: {0}',

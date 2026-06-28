@@ -114,4 +114,32 @@ class AppStorage {
       _prefs.getStringList(_keySftpFolderCache) ?? const [];
   Future<void> setSftpFolderCache(List<String> v) =>
       _prefs.setStringList(_keySftpFolderCache, v);
+
+  // ── Tab order ──
+
+  static const _keyTabOrder = 'app.tabOrder';
+  static const defaultTabOrder = ['servers', 'sftp', 'docker', 'scripts', 'settings'];
+
+  List<String> get tabOrder {
+    final stored = _prefs.getStringList(_keyTabOrder);
+    if (stored == null || stored.length != defaultTabOrder.length) {
+      return defaultTabOrder;
+    }
+    if (!defaultTabOrder.every(stored.contains)) return defaultTabOrder;
+    return stored;
+  }
+
+  Future<void> setTabOrder(List<String> v) =>
+      _prefs.setStringList(_keyTabOrder, v);
+
+  static const _keyDefaultTab = 'app.defaultTab';
+  static const defaultTab = 'servers';
+
+  String get homeTab {
+    final stored = _prefs.getString(_keyDefaultTab);
+    if (stored == null || !defaultTabOrder.contains(stored)) return defaultTab;
+    return stored;
+  }
+
+  Future<void> setHomeTab(String v) => _prefs.setString(_keyDefaultTab, v);
 }

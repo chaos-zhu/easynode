@@ -7,6 +7,7 @@ import '../../core/utils/app_store_compliance.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/app_update_notifier.dart';
+import '../../state/tab_order_notifier.dart';
 import '../../state/credential_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/locale_notifier.dart';
@@ -217,6 +218,24 @@ class SettingsTab extends ConsumerWidget {
     };
   }
 
+  void _showTabOrderDialog(BuildContext context, WidgetRef ref) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _TabOrderDialog(
+        initialOrder: ref.read(tabOrderProvider),
+        initialHomeTab: ref.read(homeTabProvider),
+        onSave: (order, homeTab) {
+          ref.read(tabOrderProvider.notifier).setOrder(order);
+          ref.read(homeTabProvider.notifier).setHomeTab(homeTab);
+        },
+        onReset: () {
+          ref.read(tabOrderProvider.notifier).resetToDefault();
+          ref.read(homeTabProvider.notifier).resetToDefault();
+        },
+      ),
+    );
+  }
+
   Future<void> _checkForUpdates(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
     final result = await ref.read(appUpdateProvider.notifier).check();
@@ -382,6 +401,18 @@ class SettingsTab extends ConsumerWidget {
                       onTap: () => _pickLanguage(context, ref),
                     ),
                     SettingsRow(
+                      icon: Icons.swap_vert_outlined,
+                      title: l.tr('settings.tabOrder.title'),
+                      subtitle: l.tr('settings.tabOrder.subtitle'),
+                      onTap: () => _showTabOrderDialog(context, ref),
+                    ),
+                    SettingsRow(
+                      icon: Icons.palette_outlined,
+                      title: l.tr('settings.theme.title'),
+                      subtitle: _themeModeLabel(l, ref.watch(themeModeProvider)),
+                      onTap: () => _showThemePicker(context, ref),
+                    ),
+                    SettingsRow(
                       key: const Key('settings-check-update'),
                       icon: Icons.system_update_alt_outlined,
                       title: l.tr('settings.update.title'),
@@ -400,12 +431,6 @@ class SettingsTab extends ConsumerWidget {
                       onTap: updateState.isChecking
                           ? null
                           : () => _checkForUpdates(context, ref),
-                    ),
-                    SettingsRow(
-                      icon: Icons.palette_outlined,
-                      title: l.tr('settings.theme.title'),
-                      subtitle: _themeModeLabel(l, ref.watch(themeModeProvider)),
-                      onTap: () => _showThemePicker(context, ref),
                     ),
                   ],
                 ),
@@ -821,6 +846,191 @@ class _DiscountNotificationCard extends StatelessWidget {
               Icons.chevron_right_rounded,
               size: 18,
               color: colors.danger,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TabOrderDialog extends StatefulWidget {
+  const _TabOrderDialog({
+    required this.initialOrder,
+    required this.initialHomeTab,
+    required this.onSave,
+    required this.onReset,
+  });
+
+  final List<String> initialOrder;
+  final String initialHomeTab;
+  final void Function(List<String> order, String homeTab) onSave;
+  final VoidCallback onReset;
+
+  static const _tabMeta = <String, (IconData, String)>{
+    'settings': (Icons.settings_outlined, 'tabs.settings'),
+    'scripts': (Icons.article_outlined, 'tabs.scripts'),
+    'servers': (Icons.monitor_outlined, 'tabs.servers'),
+    'sftp': (Icons.folder_outlined, 'tabs.sftp'),
+    'docker': (Icons.view_in_ar_outlined, 'tabs.docker'),
+  };
+
+  @override
+  State<_TabOrderDialog> createState() => _TabOrderDialogState();
+}
+
+class _TabOrderDialogState extends State<_TabOrderDialog> {
+  late List<String> _order;
+  late String _homeTab;
+
+  @override
+  void initState() {
+    super.initState();
+    _order = List.of(widget.initialOrder);
+    _homeTab = widget.initialHomeTab;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = context.colors;
+    return Dialog(
+      backgroundColor: c.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: c.border),
+      ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 18, 0, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Row(
+                children: [
+                  Icon(Icons.swap_vert_outlined, color: c.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    l.tr('settings.tabOrder.title'),
+                    style: TextStyle(
+                      color: c.text,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      widget.onReset();
+                      Navigator.of(context).pop();
+                    },
+                    style: TextButton.styleFrom(foregroundColor: c.muted),
+                    child: Text(
+                      l.tr('settings.tabOrder.reset'),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+              child: Text(
+                l.tr('settings.tabOrder.homeHint'),
+                style: TextStyle(color: c.softMuted, fontSize: 12),
+              ),
+            ),
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              buildDefaultDragHandles: false,
+              proxyDecorator: (child, index, animation) {
+                return AnimatedBuilder(
+                  animation: animation,
+                  builder: (context, child) => Material(
+                    elevation: 4,
+                    color: c.card,
+                    borderRadius: BorderRadius.circular(10),
+                    child: child,
+                  ),
+                  child: child,
+                );
+              },
+              itemCount: _order.length,
+              onReorderItem: (oldIndex, newIndex) {
+                setState(() {
+                  final item = _order.removeAt(oldIndex);
+                  _order.insert(newIndex, item);
+                });
+              },
+              itemBuilder: (context, index) {
+                final key = _order[index];
+                final meta = _TabOrderDialog._tabMeta[key]!;
+                final isHome = key == _homeTab;
+                return ListTile(
+                  key: ValueKey(key),
+                  onTap: () => setState(() => _homeTab = key),
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: c.chip,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(meta.$1, size: 18, color: c.primary),
+                  ),
+                  title: Row(
+                    children: [
+                      Text(
+                        l.tr(meta.$2),
+                        style: TextStyle(
+                          color: c.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (isHome) ...[
+                        const SizedBox(width: 6),
+                        Icon(Icons.home_rounded, size: 15, color: c.primary),
+                      ],
+                    ],
+                  ),
+                  trailing: ReorderableDragStartListener(
+                    index: index,
+                    child: Icon(
+                      Icons.drag_handle,
+                      color: c.softMuted,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: c.primary,
+                  foregroundColor: c.fontOnPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  minimumSize: const Size.fromHeight(46),
+                ),
+                onPressed: () {
+                  widget.onSave(_order, _homeTab);
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  l.tr('common.save'),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
           ],
         ),

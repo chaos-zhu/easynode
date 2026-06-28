@@ -310,6 +310,11 @@ const Map<String, String> stringsZh = {
   'settings.theme.light': '亮色',
   'settings.theme.dark': '暗黑',
 
+  'settings.tabOrder.title': '菜单排序',
+  'settings.tabOrder.subtitle': '自定义菜单顺序和默认页面',
+  'settings.tabOrder.reset': '恢复默认',
+  'settings.tabOrder.homeHint': '拖动排序，点击设为默认页面',
+
   'settings.update.title': '检查更新',
   'settings.update.subtitle': '对比最新原生端版本',
   'settings.update.availableSubtitle': '发现新版本：{0}',

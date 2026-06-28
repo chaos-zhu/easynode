@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_update_notifier.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/plus_info_notifier.dart';
+import '../../state/tab_order_notifier.dart';
 import '../../state/terminal_providers.dart';
 import '../docker/docker_icon.dart';
 import '../docker/docker_tab.dart';
@@ -31,19 +32,51 @@ class MainShellPage extends ConsumerStatefulWidget {
 }
 
 class _MainShellPageState extends ConsumerState<MainShellPage> {
-  int _index = 0;
+  late int _index;
 
-  static const _tabs = <Widget>[
-    ServersTab(),
-    SftpTab(),
-    DockerTab(),
-    ScriptsTab(),
-    SettingsTab(),
-  ];
+  static const _allTabs = <String, Widget>{
+    'settings': SettingsTab(),
+    'scripts': ScriptsTab(),
+    'servers': ServersTab(),
+    'sftp': SftpTab(),
+    'docker': DockerTab(),
+  };
+
+  static _WarmBottomBarItem _barItem(String key, AppLocalizations l) {
+    return switch (key) {
+      'settings' => _WarmBottomBarItem(
+          icon: const Icon(Icons.settings_outlined),
+          label: l.tr('tabs.settings'),
+        ),
+      'scripts' => _WarmBottomBarItem(
+          icon: const Icon(Icons.article_outlined),
+          label: l.tr('tabs.scripts'),
+        ),
+      'servers' => _WarmBottomBarItem(
+          icon: const Icon(Icons.monitor_outlined),
+          label: l.tr('tabs.servers'),
+        ),
+      'sftp' => _WarmBottomBarItem(
+          icon: const Icon(Icons.folder_outlined),
+          label: l.tr('tabs.sftp'),
+        ),
+      'docker' => _WarmBottomBarItem(
+          icon: const DockerIcon(),
+          label: l.tr('tabs.docker'),
+        ),
+      _ => _WarmBottomBarItem(
+          icon: const Icon(Icons.help_outline),
+          label: key,
+        ),
+    };
+  }
 
   @override
   void initState() {
     super.initState();
+    final order = ref.read(tabOrderProvider);
+    final homeTab = ref.read(homeTabProvider);
+    _index = order.indexOf(homeTab).clamp(0, order.length - 1);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _checkUpdatesSilently(),
     );
@@ -57,15 +90,15 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
 
   @override
   Widget build(BuildContext context) {
-    // signOut wipes auth state; AppRoot re-renders to LoginPage automatically.
-    // We don't need to handle that here.
     ref.listen(authProvider, (_, _) {});
-    // Eager-load Plus status so gating UI in Scripts / Server form can read
-    // it synchronously without each page firing its own request.
     ref.watch(plusInfoProvider);
 
     final l = AppLocalizations.of(context);
     final sftpManager = ref.watch(sftpSessionManagerProvider);
+    final tabOrder = ref.watch(tabOrderProvider);
+    final tabs = tabOrder.map((k) => _allTabs[k]!).toList();
+    final items = tabOrder.map((k) => _barItem(k, l)).toList();
+
     return AnimatedBuilder(
       animation: sftpManager,
       builder: (context, child) {
@@ -73,7 +106,7 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            if (_canGoUpInSftp(sftpManager)) {
+            if (_canGoUpInSftp(sftpManager, tabOrder)) {
               sftpManager.goParent();
             } else {
               _confirmExit(context);
@@ -87,40 +120,19 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
         backgroundColor: context.colors.canvas,
         body: SafeArea(
           bottom: false,
-          child: IndexedStack(index: _index, children: _tabs),
+          child: IndexedStack(index: _index, children: tabs),
         ),
         bottomNavigationBar: _WarmBottomBar(
           selectedIndex: _index,
           onSelected: (i) => setState(() => _index = i),
-          items: [
-            _WarmBottomBarItem(
-              icon: const Icon(Icons.monitor_outlined),
-              label: l.tr('tabs.servers'),
-            ),
-            _WarmBottomBarItem(
-              icon: const Icon(Icons.folder_outlined),
-              label: l.tr('tabs.sftp'),
-            ),
-            _WarmBottomBarItem(
-              icon: const DockerIcon(),
-              label: l.tr('tabs.docker'),
-            ),
-            _WarmBottomBarItem(
-              icon: const Icon(Icons.article_outlined),
-              label: l.tr('tabs.scripts'),
-            ),
-            _WarmBottomBarItem(
-              icon: const Icon(Icons.settings_outlined),
-              label: l.tr('tabs.settings'),
-            ),
-          ],
+          items: items,
         ),
       ),
     );
   }
 
-  bool _canGoUpInSftp(SftpSessionManager manager) {
-    if (_index != 1) return false;
+  bool _canGoUpInSftp(SftpSessionManager manager, List<String> order) {
+    if (order[_index] != 'sftp') return false;
     final session = manager.activeSession;
     if (session == null) return false;
     if (session.status != SftpConnectionStatus.connected) return false;
