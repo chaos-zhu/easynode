@@ -51,8 +51,22 @@ function executeDockerLogsCommand(targetSSHClient, command) {
   })
 }
 
+const VALID_CONTAINER_ID = /^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,127}$/
+
+function validateContainerId(containerId) {
+  if (typeof containerId !== 'string' || !VALID_CONTAINER_ID.test(containerId)) {
+    throw new Error('invalid container id')
+  }
+}
+
+function sanitizeTail(tail) {
+  return Math.min(Math.max(parseInt(tail, 10) || 3000, 1), 100000)
+}
+
 async function getDockerLogs(targetSSHClient, containerId, tail = 3000) {
   try {
+    validateContainerId(containerId)
+    tail = sanitizeTail(tail)
     // 使用专门的日志获取函数，确保能获取到所有日志
     const logsData = await executeDockerLogsCommand(
       targetSSHClient,
@@ -73,6 +87,7 @@ async function getDockerLogs(targetSSHClient, containerId, tail = 3000) {
 
 async function startDockerContainer(targetSSHClient, containerId) {
   try {
+    validateContainerId(containerId)
     await executeCommand(targetSSHClient, `docker start ${ containerId }`)
     return { success: true, message: '容器启动成功' }
   } catch (error) {
@@ -83,6 +98,7 @@ async function startDockerContainer(targetSSHClient, containerId) {
 
 async function stopDockerContainer(targetSSHClient, containerId) {
   try {
+    validateContainerId(containerId)
     await executeCommand(targetSSHClient, `docker stop ${ containerId }`)
     return { success: true, message: '容器停止成功' }
   } catch (error) {
@@ -93,6 +109,7 @@ async function stopDockerContainer(targetSSHClient, containerId) {
 
 async function restartDockerContainer(targetSSHClient, containerId) {
   try {
+    validateContainerId(containerId)
     await executeCommand(targetSSHClient, `docker restart ${ containerId }`)
     return { success: true, message: '容器重启成功' }
   } catch (error) {
@@ -103,6 +120,7 @@ async function restartDockerContainer(targetSSHClient, containerId) {
 
 async function deleteDockerContainer(targetSSHClient, containerId) {
   try {
+    validateContainerId(containerId)
     await executeCommand(targetSSHClient, `docker rm -f ${ containerId }`)
     return { success: true, message: '容器删除成功' }
   } catch (error) {

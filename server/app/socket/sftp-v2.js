@@ -12,6 +12,11 @@ const hostListDB = new HostListDB().getInstance()
 const favoriteSftpDB = new FavoriteSftpDB().getInstance()
 const { Client: SSHClient } = require('ssh2')
 
+function shellEscape(s) {
+  // eslint-disable-next-line quotes
+  return "'" + s.replace(/'/g, "'\\''") + "'"
+}
+
 /**
  * 将 Buffer 解码为字符串
  * @param {Buffer} buffer - 要解码的 Buffer
@@ -377,7 +382,7 @@ const listenAction = (sftpClient, socket) => {
       for (const { name } of targets) {
         const src = rawPath.posix.join(dirPath, name)
         // cp -r preserves dir/file, will overwrite if exists
-        const cmd = `cp -r -- "${ src }" "${ destDir }/"`
+        const cmd = `cp -r -- ${ shellEscape(src) } ${ shellEscape(destDir + '/') }`
         await execCommand(cmd)
       }
 
@@ -421,7 +426,7 @@ const listenAction = (sftpClient, socket) => {
       } else if (type === 'file') {
         logger.info(`创建文件: ${ targetPath }`)
         // 创建空文件，使用 touch 命令
-        const cmd = `touch "${ targetPath }"`
+        const cmd = `touch ${ shellEscape(targetPath) }`
         await execCommand(cmd)
         socket.emit('create_success', `文件 "${ trimmedName }" 创建成功`)
       } else {
@@ -466,10 +471,10 @@ const listenAction = (sftpClient, socket) => {
       }
 
       // 构建要压缩的文件列表
-      const fileNames = targets.map(t => `"${ t.name }"`).join(' ')
+      const fileNames = targets.map(t => shellEscape(t.name)).join(' ')
 
       // 使用 tar 命令压缩
-      const tarCmd = `cd "${ dirPath }" && tar -czf "${ trimmedArchiveName }" ${ fileNames }`
+      const tarCmd = `cd ${ shellEscape(dirPath) } && tar -czf ${ shellEscape(trimmedArchiveName) } ${ fileNames }`
 
       logger.info(`开始压缩文件: ${ targets.map(t => t.name).join(', ') } -> ${ trimmedArchiveName }`)
       await execCommand(tarCmd)
@@ -531,26 +536,30 @@ const listenAction = (sftpClient, socket) => {
 
       // 根据文件扩展名选择解压命令
       let decompressCmd = ''
+      const escapedDir = shellEscape(dirPath)
+      const escapedFile = shellEscape(trimmedFileName)
+      const escapedFolder = folderName ? shellEscape(folderName) : ''
+
       if (/\.tar\.gz$|\.tgz$/i.test(trimmedFileName)) {
         // tar.gz 或 tgz 格式
         if (mode === 'folder') {
-          decompressCmd = `cd "${ dirPath }" && tar -xzf "${ trimmedFileName }" -C "${ folderName }"`
+          decompressCmd = `cd ${ escapedDir } && tar -xzf ${ escapedFile } -C ${ escapedFolder }`
         } else {
-          decompressCmd = `cd "${ dirPath }" && tar -xzf "${ trimmedFileName }"`
+          decompressCmd = `cd ${ escapedDir } && tar -xzf ${ escapedFile }`
         }
       } else if (/\.tar$/i.test(trimmedFileName)) {
         // tar 格式
         if (mode === 'folder') {
-          decompressCmd = `cd "${ dirPath }" && tar -xf "${ trimmedFileName }" -C "${ folderName }"`
+          decompressCmd = `cd ${ escapedDir } && tar -xf ${ escapedFile } -C ${ escapedFolder }`
         } else {
-          decompressCmd = `cd "${ dirPath }" && tar -xf "${ trimmedFileName }"`
+          decompressCmd = `cd ${ escapedDir } && tar -xf ${ escapedFile }`
         }
       } else if (/\.zip$/i.test(trimmedFileName)) {
         // zip 格式
         if (mode === 'folder') {
-          decompressCmd = `cd "${ dirPath }" && unzip -o "${ trimmedFileName }" -d "${ folderName }"`
+          decompressCmd = `cd ${ escapedDir } && unzip -o ${ escapedFile } -d ${ escapedFolder }`
         } else {
-          decompressCmd = `cd "${ dirPath }" && unzip -o "${ trimmedFileName }"`
+          decompressCmd = `cd ${ escapedDir } && unzip -o ${ escapedFile }`
         }
       }
 
@@ -615,7 +624,7 @@ const listenAction = (sftpClient, socket) => {
 
           // 在远端打包
           logger.info(`开始打包文件夹: ${ srcPath }`)
-          const tarCmd = `cd "${ dirPath }" && tar -czf "${ remoteTarPath }" "${ target.name }"`
+          const tarCmd = `cd ${ shellEscape(dirPath) } && tar -czf ${ shellEscape(remoteTarPath) } ${ shellEscape(target.name) }`
           try {
             await execCommand(tarCmd)
             logger.info(`打包文件夹: ${ srcPath } 成功`)
@@ -666,8 +675,8 @@ const listenAction = (sftpClient, socket) => {
         }
 
         // 构建tar命令，打包所有选中的文件/文件夹
-        const fileNames = targets.map(t => `"${ t.name }"`).join(' ')
-        const tarCmd = `cd "${ dirPath }" && tar -czf "${ remoteTarPath }" ${ fileNames }`
+        const fileNames = targets.map(t => shellEscape(t.name)).join(' ')
+        const tarCmd = `cd ${ shellEscape(dirPath) } && tar -czf ${ shellEscape(remoteTarPath) } ${ fileNames }`
 
         logger.info(`开始打包多个文件: ${ targets.map(t => t.name).join(', ') }`)
         try {
@@ -713,7 +722,7 @@ const listenAction = (sftpClient, socket) => {
   async function cleanupRemoteTarFile(remoteTarPath) {
     if (!remoteTarPath) return
     try {
-      await execCommand(`rm -f "${ remoteTarPath }"`)
+      await execCommand(`rm -f ${ shellEscape(remoteTarPath) }`)
       logger.info(`已清理远程临时文件: ${ remoteTarPath }`)
     } catch (cleanupErr) {
       logger.warn('清理远程临时文件失败:', remoteTarPath, cleanupErr.message)

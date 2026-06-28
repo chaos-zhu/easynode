@@ -328,8 +328,22 @@ const isAllowedIp = (requestIP) => {
   return flag
 }
 
+const VALID_HOSTNAME = /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/
+
+function isValidPingTarget(ip) {
+  if (typeof ip !== 'string') return false
+  const trimmed = ip.trim()
+  if (!trimmed || trimmed.length > 253) return false
+  if (net.isIP(trimmed)) return true
+  return VALID_HOSTNAME.test(trimmed)
+}
+
 const ping = (ip, timeout = 5000) => {
   return new Promise((resolve) => {
+    if (!isValidPingTarget(ip)) {
+      return resolve({ success: false, msg: 'invalid host' })
+    }
+    ip = ip.trim()
     setTimeout(() => {
       resolve({ success: false, msg: 'ping timeout!' })
     }, timeout)
