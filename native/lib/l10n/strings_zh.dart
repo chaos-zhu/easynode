@@ -180,6 +180,15 @@ const Map<String, String> stringsZh = {
   'sftp.folderUploadUnsupported': '系统选择器没有返回可读取的文件夹路径。',
   'sftp.chooseTargetFolder': '选择目标文件夹',
   'sftp.selectThisFolder': '选择此文件夹',
+  'sftp.compose.title': 'Docker Compose',
+  'sftp.compose.up': '启动(up)',
+  'sftp.compose.restart': '重启(restart)',
+  'sftp.compose.down': '移除(down)',
+  'sftp.compose.pull': '拉取(pull)',
+  'sftp.compose.rebuild': '重建(rebuild)',
+  'sftp.compose.upgrade': '升级(upgrade)',
+  'sftp.compose.logs': '日志(logs)',
+  'sftp.compose.plusRequired': '当前能力未由服务端启用。',
 
   // Docker
   'docker.emptyTitle': '还没有选择服务器',

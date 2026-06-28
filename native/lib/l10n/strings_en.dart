@@ -192,6 +192,16 @@ const Map<String, String> stringsEn = {
       'This system picker did not provide a readable folder path.',
   'sftp.chooseTargetFolder': 'Choose target folder',
   'sftp.selectThisFolder': 'Select this folder',
+  'sftp.compose.title': 'Docker Compose',
+  'sftp.compose.up': 'Up',
+  'sftp.compose.restart': 'Restart',
+  'sftp.compose.down': 'Down',
+  'sftp.compose.pull': 'Pull',
+  'sftp.compose.rebuild': 'Rebuild',
+  'sftp.compose.upgrade': 'Upgrade',
+  'sftp.compose.logs': 'Logs',
+  'sftp.compose.plusRequired':
+      'This capability is not enabled by the connected server.',
 
   // Docker
   'docker.emptyTitle': 'No server selected',

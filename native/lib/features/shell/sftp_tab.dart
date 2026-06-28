@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api/api_result.dart';
 import '../../core/ui/app_color_theme.dart';
@@ -15,6 +16,7 @@ import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/host_list_notifier.dart';
+import '../../state/plus_info_notifier.dart';
 import '../../state/terminal_providers.dart';
 import 'editor/text_editor_page.dart';
 import 'media/image_preview_page.dart';
@@ -41,12 +43,14 @@ class SftpPanel extends ConsumerStatefulWidget {
     this.initialHostId,
     this.allowDisconnect = true,
     this.lockToHost = false,
+    this.onExecCommand,
   });
 
   final bool showHeader;
   final String? initialHostId;
   final bool allowDisconnect;
   final bool lockToHost;
+  final void Function(String command)? onExecCommand;
 
   @override
   ConsumerState<SftpPanel> createState() => _SftpPanelState();
@@ -240,6 +244,8 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
                     return _SftpConnectedView(
                       session: session,
                       manager: manager,
+                      onExecCommand: widget.onExecCommand,
+                      isPlusActive: ref.watch(isPlusActiveProvider),
                     );
                   },
                 ),
@@ -278,10 +284,17 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
 }
 
 class _SftpConnectedView extends StatelessWidget {
-  const _SftpConnectedView({required this.session, required this.manager});
+  const _SftpConnectedView({
+    required this.session,
+    required this.manager,
+    this.onExecCommand,
+    this.isPlusActive = false,
+  });
 
   final SftpSessionState session;
   final SftpSessionManager manager;
+  final void Function(String command)? onExecCommand;
+  final bool isPlusActive;
 
   @override
   Widget build(BuildContext context) {
@@ -395,6 +408,11 @@ class _SftpConnectedView extends StatelessWidget {
     }
   }
 
+  static bool _isDockerComposeFile(String filename) {
+    return RegExp(r'^docker-compose\.(yml|yaml)$', caseSensitive: false)
+        .hasMatch(filename);
+  }
+
   void _showFileActionSheet(
     BuildContext context,
     SftpSessionState session,
@@ -410,6 +428,11 @@ class _SftpConnectedView extends StatelessWidget {
         selectedEntries.length == 1 &&
         !selectedEntries.first.isDirectory &&
         SftpSessionManager.isCompressedFile(selectedEntries.first.name);
+    final showCompose =
+        !multi &&
+        onExecCommand != null &&
+        !anchor.isDirectory &&
+        _isDockerComposeFile(anchor.name);
     final actions = <_SftpMenuAction>[
       _SftpMenuAction(
         Icons.download_outlined,
@@ -472,6 +495,37 @@ class _SftpConnectedView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (showCompose)
+                ListTile(
+                  dense: true,
+                  leading: Icon(
+                    Icons.play_circle_outline,
+                    color: context.colors.primary,
+                  ),
+                  title: Text(
+                    l.tr('sftp.compose.title'),
+                    style: TextStyle(
+                      color: context.colors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: context.colors.muted,
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _showDockerComposeSheet(context, session, anchor);
+                  },
+                ),
+              if (showCompose)
+                Divider(
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: context.colors.border,
+                ),
               for (final action in actions)
                 ListTile(
                   dense: true,
@@ -499,6 +553,101 @@ class _SftpConnectedView extends StatelessWidget {
                       selectedEntries,
                       anchor,
                     );
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDockerComposeSheet(
+    BuildContext context,
+    SftpSessionState session,
+    SftpFileEntry anchor,
+  ) {
+    final l = AppLocalizations.of(context);
+    final fullPath = SftpSessionManager.joinPath(
+      session.currentPath,
+      anchor.name,
+    );
+    final composeActions = <(IconData, String, String)>[
+      (Icons.play_arrow_rounded, l.tr('sftp.compose.up'),
+          'docker compose -f $fullPath up -d\n'),
+      (Icons.restart_alt_rounded, l.tr('sftp.compose.restart'),
+          'docker compose -f $fullPath restart\n'),
+      (Icons.stop_rounded, l.tr('sftp.compose.down'),
+          'docker compose -f $fullPath down\n'),
+      (Icons.cloud_download_outlined, l.tr('sftp.compose.pull'),
+          'docker compose -f $fullPath pull\n'),
+      (Icons.build_outlined, l.tr('sftp.compose.rebuild'),
+          'docker compose -f $fullPath up -d --force-recreate\n'),
+      (Icons.upgrade_rounded, l.tr('sftp.compose.upgrade'),
+          'docker compose -f $fullPath pull && docker compose -f $fullPath down && docker compose -f $fullPath up -d\n'),
+      (Icons.article_outlined, l.tr('sftp.compose.logs'),
+          'docker compose -f $fullPath logs --tail=500 -f\n'),
+    ];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: context.colors.card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: context.colors.strongBorder),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.play_circle_outline,
+                      size: 16,
+                      color: context.colors.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      l.tr('sftp.compose.title'),
+                      style: TextStyle(
+                        color: context.colors.primary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              for (final (icon, label, command) in composeActions)
+                ListTile(
+                  dense: true,
+                  leading: Icon(icon, color: context.colors.muted),
+                  title: Text(
+                    label,
+                    style: TextStyle(
+                      color: context.colors.text,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    if (!isPlusActive) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l.tr('sftp.compose.plusRequired')),
+                        ),
+                      );
+                      return;
+                    }
+                    onExecCommand!(command);
+                    Navigator.of(context).pop();
                   },
                 ),
             ],
@@ -1016,9 +1165,10 @@ class _SftpToolbar extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final name = await showDialog<String>(
       context: context,
-      builder: (_) => _SftpNameDialog(
+      builder: (_) => _SftpCreateDialog(
         title: type == 'folder' ? l.tr('sftp.newFolder') : l.tr('sftp.newFile'),
         hint: l.tr('sftp.nameHint'),
+        createType: type,
       ),
     );
     final trimmed = name?.trim();
@@ -1029,6 +1179,7 @@ class _SftpToolbar extends StatelessWidget {
       } else {
         await manager.createFile(trimmed);
       }
+      _SftpCreateDialog.cacheCreatedName(type, trimmed);
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -1178,24 +1329,337 @@ class _SftpNameDialogState extends State<_SftpNameDialog> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        decoration: InputDecoration(hintText: widget.hint),
-        onSubmitted: (value) => Navigator.of(context).pop(value),
+    final c = context.colors;
+    return Dialog(
+      backgroundColor: c.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: c.border),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l.tr('common.cancel')),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 48),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              widget.title,
+              style: TextStyle(
+                color: c.text,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              style: TextStyle(fontSize: 14, color: c.text),
+              cursorColor: c.accent,
+              decoration: InputDecoration(
+                hintText: widget.hint,
+                hintStyle: TextStyle(color: c.softMuted),
+                filled: true,
+                fillColor: c.canvas,
+                contentPadding: const EdgeInsets.all(12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: c.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: c.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: c.accent),
+                ),
+              ),
+              onSubmitted: (value) => Navigator.of(context).pop(value),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(foregroundColor: c.muted),
+                  child: Text(l.tr('common.cancel')),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () =>
+                      Navigator.of(context).pop(_controller.text),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: c.primary,
+                    foregroundColor: c.fontOnPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(l.tr('common.save')),
+                ),
+              ],
+            ),
+          ],
         ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: Text(l.tr('common.save')),
+      ),
+    );
+  }
+}
+
+class _SftpCreateDialog extends StatefulWidget {
+  const _SftpCreateDialog({
+    required this.title,
+    required this.hint,
+    required this.createType,
+  });
+
+  final String title;
+  final String hint;
+  final String createType;
+
+  static const _defaultFiles = [
+    'docker-compose.yml',
+    'Dockerfile',
+    '.env',
+    'k8s-deployment.yaml',
+    'config.json',
+    'config.yaml',
+    'authorized_keys',
+    'access.log',
+    'error.log',
+    'shell.sh',
+    'README.md',
+    'LICENSE',
+    'notes.txt',
+  ];
+
+  static const _defaultFolders = [
+    'easynode',
+    'docker',
+    'k8s',
+    'nginx',
+    'mysql',
+    'redis',
+    'kafka',
+  ];
+
+  static const _fileCacheKey = 'sftp.createFileCache';
+  static const _folderCacheKey = 'sftp.createFolderCache';
+
+  static Future<void> cacheCreatedName(String type, String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = type == 'folder' ? _folderCacheKey : _fileCacheKey;
+    final cached = prefs.getStringList(key) ?? [];
+    cached.remove(name);
+    cached.insert(0, name);
+    await prefs.setStringList(key, cached);
+  }
+
+  @override
+  State<_SftpCreateDialog> createState() => _SftpCreateDialogState();
+}
+
+class _SftpCreateDialogState extends State<_SftpCreateDialog> {
+  late final TextEditingController _controller;
+  List<String> _allSuggestions = [];
+  List<String> _filtered = [];
+  bool _showSuggestions = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _loadSuggestions();
+  }
+
+  Future<void> _loadSuggestions() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isFolder = widget.createType == 'folder';
+    final cacheKey = isFolder
+        ? _SftpCreateDialog._folderCacheKey
+        : _SftpCreateDialog._fileCacheKey;
+    final defaults = isFolder
+        ? _SftpCreateDialog._defaultFolders
+        : _SftpCreateDialog._defaultFiles;
+    final cached = prefs.getStringList(cacheKey) ?? [];
+    final merged = <String>[...cached];
+    for (final d in defaults) {
+      if (!merged.contains(d)) merged.add(d);
+    }
+    if (!mounted) return;
+    setState(() {
+      _allSuggestions = merged;
+      _filtered = merged;
+      _showSuggestions = true;
+    });
+  }
+
+  void _onChanged(String value) {
+    if (value.isEmpty) {
+      setState(() {
+        _filtered = _allSuggestions;
+        _showSuggestions = true;
+      });
+      return;
+    }
+    final lower = value.toLowerCase();
+    setState(() {
+      _filtered = _allSuggestions
+          .where((s) => s.toLowerCase().contains(lower))
+          .toList();
+      _showSuggestions = _filtered.isNotEmpty;
+    });
+  }
+
+  void _selectSuggestion(String item) {
+    _controller.text = item;
+    _controller.selection = TextSelection.collapsed(offset: item.length);
+    setState(() => _showSuggestions = false);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = context.colors;
+    return Dialog(
+      backgroundColor: c.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: c.border),
+      ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 48),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  widget.createType == 'folder'
+                      ? Icons.create_new_folder_outlined
+                      : Icons.insert_drive_file_outlined,
+                  color: c.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  widget.title,
+                  style: TextStyle(
+                    color: c.text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              style: TextStyle(fontSize: 14, color: c.text),
+              cursorColor: c.accent,
+              decoration: InputDecoration(
+                hintText: widget.hint,
+                hintStyle: TextStyle(color: c.softMuted),
+                filled: true,
+                fillColor: c.canvas,
+                contentPadding: const EdgeInsets.all(12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: c.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: c.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: c.accent),
+                ),
+              ),
+              onChanged: _onChanged,
+              onSubmitted: (value) => Navigator.of(context).pop(value),
+            ),
+            if (_showSuggestions && _filtered.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                constraints: const BoxConstraints(maxHeight: 200),
+                decoration: BoxDecoration(
+                  color: c.canvas,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: c.border),
+                ),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: _filtered.length,
+                  itemBuilder: (context, index) {
+                    final item = _filtered[index];
+                    return InkWell(
+                      onTap: () => _selectSuggestion(item),
+                      borderRadius: index == 0
+                          ? const BorderRadius.vertical(
+                              top: Radius.circular(10))
+                          : index == _filtered.length - 1
+                              ? const BorderRadius.vertical(
+                                  bottom: Radius.circular(10))
+                              : BorderRadius.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Text(
+                          item,
+                          style: TextStyle(color: c.text, fontSize: 14),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(foregroundColor: c.muted),
+                  child: Text(l.tr('common.cancel')),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () =>
+                      Navigator.of(context).pop(_controller.text),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: c.primary,
+                    foregroundColor: c.fontOnPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(l.tr('common.save')),
+                ),
+              ],
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

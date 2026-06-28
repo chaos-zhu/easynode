@@ -166,25 +166,11 @@ class _ScriptFormPageState extends ConsumerState<ScriptFormPage> {
           ),
         ),
         iconTheme: IconThemeData(color: c.text),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _AppBarSaveChip(
-              loading: _saving,
-              onTap: _saving ? null : _save,
-              label: l.tr('common.save'),
-            ),
-          ),
-        ],
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: _BottomActionBar(
-          saving: _saving,
-          editing: editing,
-          onCancel: _saving ? null : () => Navigator.of(context).maybePop(),
-          onSave: _saving ? null : _save,
-        ),
+      bottomNavigationBar: _BottomSaveBar(
+        saving: _saving,
+        label: editing ? l.tr('common.save') : l.tr('scripts.addScript'),
+        onPressed: _saving ? null : _save,
       ),
       body: Form(
         key: _formKey,
@@ -690,162 +676,53 @@ class _EncodingOption extends StatelessWidget {
   }
 }
 
-class _AppBarSaveChip extends StatelessWidget {
-  const _AppBarSaveChip({
-    required this.loading,
-    required this.label,
-    required this.onTap,
-  });
-
-  final bool loading;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Material(
-      color: c.banner,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (loading)
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: c.primary,
-                  ),
-                )
-              else
-                Icon(
-                  Icons.check,
-                  size: 16,
-                  color: c.primary,
-                ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: c.primary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BottomActionBar extends StatelessWidget {
-  const _BottomActionBar({
+class _BottomSaveBar extends StatelessWidget {
+  const _BottomSaveBar({
     required this.saving,
-    required this.editing,
-    required this.onCancel,
-    required this.onSave,
+    required this.label,
+    required this.onPressed,
   });
 
   final bool saving;
-  final bool editing;
-  final VoidCallback? onCancel;
-  final VoidCallback? onSave;
+  final String label;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final l = AppLocalizations.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: c.card,
-        border: Border(top: BorderSide(color: c.border)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
-        children: [
-          Material(
-            color: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: c.strongBorder),
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+        decoration: BoxDecoration(
+          color: context.colors.card,
+          border: Border(top: BorderSide(color: context.colors.border)),
+        ),
+        child: SizedBox(
+          height: 52,
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: context.colors.primary,
+              foregroundColor: context.colors.fontOnPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: onCancel,
-              child: SizedBox(
-                width: 110,
-                height: 48,
-                child: Center(
-                  child: Text(
-                    '取消',
-                    style: TextStyle(
-                      color: c.muted,
-                      fontSize: 15,
+            onPressed: onPressed,
+            child: saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-              ),
-            ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Material(
-              color: onSave == null
-                  ? c.softMuted
-                  : c.primary,
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: onSave,
-                child: SizedBox(
-                  height: 48,
-                  child: Center(
-                    child: saving
-                        ? SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: c.fontOnPrimary,
-                            ),
-                          )
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.check,
-                                size: 18,
-                                color: c.fontOnPrimary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                editing
-                                    ? l.tr('common.save')
-                                    : l.tr('scripts.addScript'),
-                                style: TextStyle(
-                                  color: c.fontOnPrimary,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

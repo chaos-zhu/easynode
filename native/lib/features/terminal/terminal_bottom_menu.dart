@@ -284,6 +284,13 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
                 .hostId,
             allowDisconnect: false,
             lockToHost: true,
+            onExecCommand: (command) {
+              ref
+                  .read(terminalSessionManagerProvider)
+                  .activeSession
+                  ?.controller
+                  .writeInput(command);
+            },
           ),
         ),
       ),

@@ -99,4 +99,19 @@ class AppStorage {
 
   String get themeMode => _prefs.getString(_keyThemeMode) ?? 'system';
   Future<void> setThemeMode(String v) => _prefs.setString(_keyThemeMode, v);
+
+  // ── SFTP create suggestions cache ──
+
+  static const _keySftpFileCache = 'sftp.createFileCache';
+  static const _keySftpFolderCache = 'sftp.createFolderCache';
+
+  List<String> get sftpFileCache =>
+      _prefs.getStringList(_keySftpFileCache) ?? const [];
+  Future<void> setSftpFileCache(List<String> v) =>
+      _prefs.setStringList(_keySftpFileCache, v);
+
+  List<String> get sftpFolderCache =>
+      _prefs.getStringList(_keySftpFolderCache) ?? const [];
+  Future<void> setSftpFolderCache(List<String> v) =>
+      _prefs.setStringList(_keySftpFolderCache, v);
 }
