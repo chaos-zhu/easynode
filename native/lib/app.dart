@@ -18,7 +18,7 @@ import 'features/shell/main_shell_page.dart';
 import 'l10n/app_localizations.dart';
 import 'state/auth_notifier.dart';
 import 'state/auth_state.dart';
-import 'core/ui/app_color_theme.dart';
+import 'state/color_theme_notifier.dart';
 import 'state/locale_notifier.dart';
 import 'state/storage_providers.dart';
 import 'state/theme_mode_notifier.dart';
@@ -257,6 +257,10 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       );
     }
 
+    final palette = ref.watch(colorThemeProvider);
+    final lightColors = palette.colorsFor(Brightness.light);
+    final darkColors = palette.colorsFor(Brightness.dark);
+
     return MaterialApp(
       title: 'EasyNode',
       debugShowCheckedModeBanner: false,
@@ -265,30 +269,33 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       themeMode: ref.watch(themeModeProvider),
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: Colors.amber,
-        extensions: const [AppColorTheme.light],
-        appBarTheme: const AppBarTheme(
+        colorScheme: ColorScheme.fromSeed(seedColor: palette.seed),
+        extensions: [lightColors],
+        appBarTheme: AppBarTheme(
           centerTitle: false,
           titleSpacing: 4,
           titleTextStyle: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF2A2418),
+            color: lightColors.text,
           ),
         ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorSchemeSeed: Colors.amber,
-        extensions: const [AppColorTheme.dark],
-        appBarTheme: const AppBarTheme(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: palette.seed,
+          brightness: Brightness.dark,
+        ),
+        extensions: [darkColors],
+        appBarTheme: AppBarTheme(
           centerTitle: false,
           titleSpacing: 4,
           titleTextStyle: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: Color(0xFFE8E0D4),
+            color: darkColors.text,
           ),
         ),
       ),

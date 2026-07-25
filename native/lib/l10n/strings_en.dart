@@ -311,6 +311,11 @@ const Map<String, String> stringsEn = {
   'settings.proxy.subtitle': 'HTTP / SOCKS5 outbound proxies',
 
   'settings.theme.title': 'Appearance',
+  'settings.theme.colorTheme': 'Color theme',
+  'settings.theme.mode': 'Display mode',
+  'settings.theme.lightTheme': 'Default theme',
+  'settings.theme.amberTheme': 'Amber theme',
+  'settings.theme.summary': '{0} · {1}',
   'settings.theme.system': 'Follow System',
   'settings.theme.light': 'Light',
   'settings.theme.dark': 'Dark',

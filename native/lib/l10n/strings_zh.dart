@@ -297,6 +297,11 @@ const Map<String, String> stringsZh = {
   'settings.proxy.subtitle': 'HTTP / SOCKS5 出站代理',
 
   'settings.theme.title': '主题外观',
+  'settings.theme.colorTheme': '配色主题',
+  'settings.theme.mode': '显示模式',
+  'settings.theme.lightTheme': '默认主题',
+  'settings.theme.amberTheme': '琥珀色主题',
+  'settings.theme.summary': '{0} · {1}',
   'settings.theme.system': '跟随系统',
   'settings.theme.light': '亮色',
   'settings.theme.dark': '暗黑',

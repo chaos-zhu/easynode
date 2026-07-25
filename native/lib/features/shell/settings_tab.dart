@@ -12,6 +12,7 @@ import '../../state/tab_order_notifier.dart';
 import '../../state/credential_list_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/locale_notifier.dart';
+import '../../state/color_theme_notifier.dart';
 import '../../state/theme_mode_notifier.dart';
 import '../../state/package_info_provider.dart';
 import '../../state/plus_discount_notifier.dart';
@@ -186,11 +187,50 @@ class SettingsTab extends ConsumerWidget {
   void _showThemePicker(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final current = ref.read(themeModeProvider);
+    final currentPalette = ref.read(colorThemeProvider);
     showDialog<void>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: Text(l.tr('settings.theme.title')),
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+            child: Text(
+              l.tr('settings.theme.colorTheme'),
+              style: Theme.of(ctx).textTheme.labelLarge,
+            ),
+          ),
+          for (final entry in [
+            (
+              AppThemePalette.light,
+              l.tr('settings.theme.lightTheme'),
+              Icons.light_mode,
+            ),
+            (
+              AppThemePalette.amber,
+              l.tr('settings.theme.amberTheme'),
+              Icons.wb_sunny_outlined,
+            ),
+          ])
+            ListTile(
+              leading: Icon(entry.$3),
+              title: Text(entry.$2),
+              trailing: entry.$1 == currentPalette
+                  ? Icon(Icons.check, color: context.colors.primary)
+                  : null,
+              onTap: () {
+                ref.read(colorThemeProvider.notifier).setPalette(entry.$1);
+                Navigator.of(ctx).pop();
+              },
+            ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+            child: Text(
+              l.tr('settings.theme.mode'),
+              style: Theme.of(ctx).textTheme.labelLarge,
+            ),
+          ),
           for (final entry in [
             (
               ThemeMode.system,
@@ -222,6 +262,21 @@ class SettingsTab extends ConsumerWidget {
       ThemeMode.light => l.tr('settings.theme.light'),
       ThemeMode.dark => l.tr('settings.theme.dark'),
     };
+  }
+
+  static String _themeSubtitle(
+    AppLocalizations l,
+    AppThemePalette palette,
+    ThemeMode mode,
+  ) {
+    final paletteLabel = switch (palette) {
+      AppThemePalette.light => l.tr('settings.theme.lightTheme'),
+      AppThemePalette.amber => l.tr('settings.theme.amberTheme'),
+    };
+    return l.trf('settings.theme.summary', [
+      paletteLabel,
+      _themeModeLabel(l, mode),
+    ]);
   }
 
   void _showTabOrderDialog(BuildContext context, WidgetRef ref) {
@@ -415,8 +470,9 @@ class SettingsTab extends ConsumerWidget {
                     SettingsRow(
                       icon: Icons.palette_outlined,
                       title: l.tr('settings.theme.title'),
-                      subtitle: _themeModeLabel(
+                      subtitle: _themeSubtitle(
                         l,
+                        ref.watch(colorThemeProvider),
                         ref.watch(themeModeProvider),
                       ),
                       onTap: () => _showThemePicker(context, ref),

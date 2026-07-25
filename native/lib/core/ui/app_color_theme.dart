@@ -41,7 +41,51 @@ class AppColorTheme extends ThemeExtension<AppColorTheme> {
   final Color dangerBorder;
   final Color fontOnPrimary;
 
-  static const light = AppColorTheme(
+  /// The default neutral light palette.
+  static const defaultLight = AppColorTheme(
+    canvas: Color(0xFFF7F9FC),
+    card: Color(0xFFFFFFFF),
+    chip: Color(0xFFF0F4F9),
+    banner: Color(0xFFEAF2FD),
+    primary: Color(0xFF2B6FCB),
+    text: Color(0xFF182235),
+    muted: Color(0xFF596A82),
+    softMuted: Color(0xFF73849B),
+    border: Color(0xFFDDE6F0),
+    strongBorder: Color(0xFFBFCEE0),
+    accent: Color(0xFF3B82F6),
+    accentSoft: Color(0xFFEAF2FD),
+    success: Color(0xFF1E825A),
+    warning: Color(0xFFA96208),
+    danger: Color(0xFFC23F42),
+    dangerSoft: Color(0xFFFFF0F0),
+    dangerBorder: Color(0xFFF2C7C8),
+    fontOnPrimary: Color(0xFFFFFFFF),
+  );
+
+  static const defaultDark = AppColorTheme(
+    canvas: Color(0xFF111A29),
+    card: Color(0xFF192538),
+    chip: Color(0xFF223149),
+    banner: Color(0xFF1B3961),
+    primary: Color(0xFF91C2FF),
+    text: Color(0xFFF2F6FC),
+    muted: Color(0xFFB4C2D6),
+    softMuted: Color(0xFF8B9AB0),
+    border: Color(0xFF33455F),
+    strongBorder: Color(0xFF4A5F7C),
+    accent: Color(0xFF68A6FF),
+    accentSoft: Color(0xFF1B3961),
+    success: Color(0xFF49C58D),
+    warning: Color(0xFFF2BD4A),
+    danger: Color(0xFFF27A7C),
+    dangerSoft: Color(0xFF40242D),
+    dangerBorder: Color(0xFF6E3B47),
+    fontOnPrimary: Color(0xFF0E1726),
+  );
+
+  /// The original warm amber palette.
+  static const amberLight = AppColorTheme(
     canvas: Color(0xFFF7EFE0),
     card: Color(0xFFFBF5E6),
     chip: Color(0xFFF4ECD7),
@@ -62,7 +106,7 @@ class AppColorTheme extends ThemeExtension<AppColorTheme> {
     fontOnPrimary: Color(0xFFF7EFE0),
   );
 
-  static const dark = AppColorTheme(
+  static const amberDark = AppColorTheme(
     canvas: Color(0xFF121212),
     card: Color(0xFF1E1E1E),
     chip: Color(0xFF2A2A2A),

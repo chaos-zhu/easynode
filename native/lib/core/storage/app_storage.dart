@@ -97,9 +97,14 @@ class AppStorage {
   // ── App theme ──
 
   static const _keyThemeMode = 'app.themeMode';
+  static const _keyColorTheme = 'app.colorTheme';
 
   String get themeMode => _prefs.getString(_keyThemeMode) ?? 'system';
   Future<void> setThemeMode(String v) => _prefs.setString(_keyThemeMode, v);
+
+  /// The default is the neutral Light theme; `amber` keeps the original palette.
+  String get colorTheme => _prefs.getString(_keyColorTheme) ?? 'light';
+  Future<void> setColorTheme(String v) => _prefs.setString(_keyColorTheme, v);
 
   // ── SFTP create suggestions cache ──
 
@@ -119,7 +124,13 @@ class AppStorage {
   // ── Tab order ──
 
   static const _keyTabOrder = 'app.tabOrder';
-  static const defaultTabOrder = ['servers', 'sftp', 'docker', 'scripts', 'settings'];
+  static const defaultTabOrder = [
+    'servers',
+    'sftp',
+    'docker',
+    'scripts',
+    'settings',
+  ];
 
   List<String> get tabOrder {
     final stored = _prefs.getStringList(_keyTabOrder);
