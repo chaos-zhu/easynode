@@ -238,6 +238,11 @@ class DockerSessionManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  void disconnectAll() {
+    _disconnectAll();
+    notifyListeners();
+  }
+
   void _disconnect(String hostId) {
     final session = _sessions.remove(hostId);
     if (session == null) return;

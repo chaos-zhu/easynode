@@ -39,12 +39,14 @@ class DockerPanel extends ConsumerStatefulWidget {
     this.initialHostId,
     this.lockToHost = false,
     this.allowDisconnect = true,
+    this.sessionManager,
   });
 
   final bool showHeader;
   final String? initialHostId;
   final bool lockToHost;
   final bool allowDisconnect;
+  final DockerSessionManager? sessionManager;
 
   @override
   ConsumerState<DockerPanel> createState() => _DockerPanelState();
@@ -54,13 +56,16 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
   bool _connecting = false;
   String? _autoConnectAttemptedHostId;
 
+  DockerSessionManager get _manager =>
+      widget.sessionManager ?? ref.read(dockerSessionManagerProvider);
+
   Future<void> _refreshHosts() => runRefreshWithFeedback(
     context,
     () => ref.read(hostListProvider.notifier).refresh(throwOnError: true),
   );
 
   Future<void> _openServerPicker() async {
-    final manager = ref.read(dockerSessionManagerProvider);
+    final manager = _manager;
     final selected = await showModalBottomSheet<ServerModel>(
       context: context,
       isScrollControlled: true,
@@ -83,7 +88,7 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
 
   Future<void> _connectOrActivate(ServerModel server) async {
     final l = AppLocalizations.of(context);
-    final manager = ref.read(dockerSessionManagerProvider);
+    final manager = _manager;
     if (manager.isConnected(server.id)) {
       manager.activate(server.id);
       return;
@@ -132,7 +137,8 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final hostsAsync = ref.watch(hostListProvider);
-    final manager = ref.watch(dockerSessionManagerProvider);
+    final DockerSessionManager manager =
+        widget.sessionManager ?? ref.watch(dockerSessionManagerProvider);
     final isPlusActive = ref.watch(isPlusActiveProvider);
 
     return AnimatedBuilder(
@@ -276,15 +282,18 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
     String? lockedHostId,
     DockerContainer container,
   ) async {
-    final manager = ref.read(dockerSessionManagerProvider);
+    final manager = _manager;
     manager.getLogs(container, hostId: lockedHostId);
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.34),
-      builder: (_) =>
-          _DockerLogsSheet(hostId: lockedHostId, container: container),
+      builder: (_) => _DockerLogsSheet(
+        hostId: lockedHostId,
+        container: container,
+        manager: manager,
+      ),
     );
   }
 }
@@ -1380,10 +1389,15 @@ class _DockerCircleAction extends StatelessWidget {
 }
 
 class _DockerLogsSheet extends ConsumerStatefulWidget {
-  const _DockerLogsSheet({required this.hostId, required this.container});
+  const _DockerLogsSheet({
+    required this.hostId,
+    required this.container,
+    required this.manager,
+  });
 
   final String? hostId;
   final DockerContainer container;
+  final DockerSessionManager manager;
 
   @override
   ConsumerState<_DockerLogsSheet> createState() => _DockerLogsSheetState();
@@ -1398,7 +1412,7 @@ class _DockerLogsSheetState extends ConsumerState<_DockerLogsSheet> {
   @override
   void initState() {
     super.initState();
-    _manager = ref.read(dockerSessionManagerProvider);
+    _manager = widget.manager;
     _manager.addListener(_onLogsChanged);
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       final session = widget.hostId == null

@@ -302,11 +302,32 @@ class SftpSessionManager extends ChangeNotifier {
   Future<void> disconnectActive() async {
     final hostId = _activeHostId;
     if (hostId == null) return;
+    await disconnect(hostId);
+  }
+
+  Future<void> disconnect(String hostId) async {
     final connection = _connections.remove(hostId);
     final state = _states.remove(hostId);
     await connection?.close();
     state?.dispose();
-    _activeHostId = _states.isEmpty ? null : _states.keys.first;
+    if (_activeHostId == hostId) {
+      _activeHostId = _states.isEmpty ? null : _states.keys.first;
+    }
+    notifyListeners();
+  }
+
+  Future<void> disconnectAll() async {
+    final connections = _connections.values.toList(growable: false);
+    final states = _states.values.toList(growable: false);
+    _connections.clear();
+    _states.clear();
+    _activeHostId = null;
+    for (final state in states) {
+      state.dispose();
+    }
+    for (final connection in connections) {
+      await connection.close();
+    }
     notifyListeners();
   }
 
@@ -795,10 +816,10 @@ class SftpSessionManager extends ChangeNotifier {
 
   @override
   void dispose() {
-    for (final connection in _connections.values) {
+    for (final connection in _connections.values.toList(growable: false)) {
       unawaited(connection.close());
     }
-    for (final state in _states.values) {
+    for (final state in _states.values.toList(growable: false)) {
       state.dispose();
     }
     _connections.clear();

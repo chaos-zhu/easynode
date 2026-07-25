@@ -266,6 +266,12 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
 
   Future<void> _showSftp(BuildContext context) async {
     final l = AppLocalizations.of(context);
+    final hostId = ref
+        .read(terminalSessionManagerProvider)
+        .activeSession
+        ?.config
+        .hostId;
+    if (hostId == null) return;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -277,11 +283,10 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
           title: l.tr('terminal.menu.sftp'),
           icon: Icons.folder_outlined,
           child: SftpPanel(
-            initialHostId: ref
-                .read(terminalSessionManagerProvider)
-                .activeSession
-                ?.config
-                .hostId,
+            initialHostId: hostId,
+            sessionManager: ref
+                .read(terminalSessionResourcesProvider)
+                .sftpForHost(hostId),
             allowDisconnect: false,
             lockToHost: true,
             onExecCommand: (command) {
@@ -304,6 +309,12 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
     await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
     if (!context.mounted) return;
     final l = AppLocalizations.of(context);
+    final hostId = ref
+        .read(terminalSessionManagerProvider)
+        .activeSession
+        ?.config
+        .hostId;
+    if (hostId == null) return;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -315,11 +326,10 @@ class _TerminalBottomBarState extends ConsumerState<TerminalBottomBar> {
           title: l.tr('terminal.menu.docker'),
           iconWidget: const DockerIcon(),
           child: DockerPanel(
-            initialHostId: ref
-                .read(terminalSessionManagerProvider)
-                .activeSession
-                ?.config
-                .hostId,
+            initialHostId: hostId,
+            sessionManager: ref
+                .read(terminalSessionResourcesProvider)
+                .dockerForHost(hostId),
             allowDisconnect: false,
             lockToHost: true,
           ),

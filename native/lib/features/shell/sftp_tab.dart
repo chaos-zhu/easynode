@@ -46,6 +46,7 @@ class SftpPanel extends ConsumerStatefulWidget {
     this.lockToHost = false,
     this.onExecCommand,
     this.onCommandPanelClose,
+    this.sessionManager,
   });
 
   final bool showHeader;
@@ -54,6 +55,7 @@ class SftpPanel extends ConsumerStatefulWidget {
   final bool lockToHost;
   final void Function(String command)? onExecCommand;
   final VoidCallback? onCommandPanelClose;
+  final SftpSessionManager? sessionManager;
 
   @override
   ConsumerState<SftpPanel> createState() => _SftpPanelState();
@@ -63,13 +65,16 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
   bool _connecting = false;
   String? _autoConnectAttemptedHostId;
 
+  SftpSessionManager get _manager =>
+      widget.sessionManager ?? ref.read(sftpSessionManagerProvider);
+
   Future<void> _refresh() => runRefreshWithFeedback(
     context,
     () => ref.read(hostListProvider.notifier).refresh(throwOnError: true),
   );
 
   Future<void> _openServerPicker() async {
-    final manager = ref.read(sftpSessionManagerProvider);
+    final manager = _manager;
     final selected = await showModalBottomSheet<ServerModel>(
       context: context,
       isScrollControlled: true,
@@ -92,7 +97,7 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
 
   Future<void> _connectOrActivate(ServerModel server) async {
     final l = AppLocalizations.of(context);
-    final manager = ref.read(sftpSessionManagerProvider);
+    final manager = _manager;
     if (manager.isConnected(server.id)) {
       manager.activate(server.id);
       return;
@@ -143,7 +148,8 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final hostsAsync = ref.watch(hostListProvider);
-    final manager = ref.watch(sftpSessionManagerProvider);
+    final SftpSessionManager manager =
+        widget.sessionManager ?? ref.watch(sftpSessionManagerProvider);
 
     return AnimatedBuilder(
       animation: manager,
@@ -265,7 +271,7 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
     final hostId = widget.initialHostId;
     if (hostId == null || hostId.isEmpty) return;
     if (_autoConnectAttemptedHostId == hostId) return;
-    final manager = ref.read(sftpSessionManagerProvider);
+    final manager = _manager;
     if (manager.activeHostId == hostId && manager.activeSession != null) {
       _autoConnectAttemptedHostId = hostId;
       return;

@@ -3,19 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/shell/sftp_session_manager.dart';
 import '../features/terminal/server_status_monitor_manager.dart';
 import '../features/terminal/terminal_session_manager.dart';
+import '../features/terminal/terminal_session_resources.dart';
 import 'terminal_settings_notifier.dart';
 
 /// Single TerminalSessionManager for the whole app. Used to be passed
 /// through constructors; now lives here so any page can reach it. Disposed
 /// alongside the ProviderScope at app teardown.
 final terminalSessionManagerProvider = Provider<TerminalSessionManager>((ref) {
+  final resources = ref.watch(terminalSessionResourcesProvider);
   final manager = TerminalSessionManager(
     statusMonitorManager: ref.watch(serverStatusMonitorManagerProvider),
     shouldAutoStartStatusMonitor: () =>
         ref.read(terminalSettingsProvider).autoServerStatus,
+    onLastSessionForHostClosed: resources.disposeHost,
   );
   ref.onDispose(manager.dispose);
   return manager;
+});
+
+final terminalSessionResourcesProvider = Provider<TerminalSessionResources>((
+  ref,
+) {
+  final resources = TerminalSessionResources();
+  ref.onDispose(resources.dispose);
+  return resources;
 });
 
 final serverStatusMonitorManagerProvider = Provider<ServerStatusMonitorManager>(

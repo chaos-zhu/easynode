@@ -10,20 +10,24 @@ import 'server_status_monitor_manager.dart';
 import 'terminal_session.dart';
 
 typedef ShouldAutoStartStatusMonitor = bool Function();
+typedef OnLastSessionForHostClosed = Future<void> Function(String hostId);
 
 class TerminalSessionManager extends ChangeNotifier {
   TerminalSessionManager({
     Uuid? uuid,
     ServerStatusMonitorManager? statusMonitorManager,
     ShouldAutoStartStatusMonitor? shouldAutoStartStatusMonitor,
+    OnLastSessionForHostClosed? onLastSessionForHostClosed,
   }) : _uuid = uuid ?? const Uuid(),
        _statusMonitorManager = statusMonitorManager,
        _shouldAutoStartStatusMonitor =
-           shouldAutoStartStatusMonitor ?? (() => false);
+           shouldAutoStartStatusMonitor ?? (() => false),
+       _onLastSessionForHostClosed = onLastSessionForHostClosed;
 
   final Uuid _uuid;
   final ServerStatusMonitorManager? _statusMonitorManager;
   final ShouldAutoStartStatusMonitor _shouldAutoStartStatusMonitor;
+  final OnLastSessionForHostClosed? _onLastSessionForHostClosed;
   final List<TerminalSession> _sessions = [];
   String? _activeId;
 
@@ -101,6 +105,7 @@ class TerminalSessionManager extends ChangeNotifier {
     if (_activeId == id) {
       _activeId = _sessions.isEmpty ? null : _sessions.first.id;
     }
+    await _closeDependentSessionsIfLastForHost(session.config.hostId);
     notifyListeners();
   }
 
@@ -108,13 +113,23 @@ class TerminalSessionManager extends ChangeNotifier {
     final copy = List<TerminalSession>.from(_sessions);
     _sessions.clear();
     _activeId = null;
+    final hostIds = <String>{};
     for (final session in copy) {
+      hostIds.add(session.config.hostId);
       await _detachStatusMonitor(session);
       await session.controller.disconnect();
       session.viewController.dispose();
       session.scrollController.dispose();
     }
+    for (final hostId in hostIds) {
+      await _onLastSessionForHostClosed?.call(hostId);
+    }
     notifyListeners();
+  }
+
+  Future<void> _closeDependentSessionsIfLastForHost(String hostId) async {
+    if (_sessions.any((session) => session.config.hostId == hostId)) return;
+    await _onLastSessionForHostClosed?.call(hostId);
   }
 
   Future<void> _connect(TerminalSession session) async {
@@ -126,8 +141,7 @@ class TerminalSessionManager extends ChangeNotifier {
       await controller.connect();
       // After await, verify this controller is still the active one — a
       // concurrent reconnect may have replaced it.
-      if (!_sessions.contains(session) ||
-          session.controller != controller) {
+      if (!_sessions.contains(session) || session.controller != controller) {
         return;
       }
       session.status = TerminalSessionStatus.connected;
@@ -141,8 +155,7 @@ class TerminalSessionManager extends ChangeNotifier {
         );
       }
     } catch (error) {
-      if (!_sessions.contains(session) ||
-          session.controller != controller) {
+      if (!_sessions.contains(session) || session.controller != controller) {
         return;
       }
       session.status = TerminalSessionStatus.error;

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api/api_client.dart';
 import '../features/auth/auth_session.dart';
+import 'docker_providers.dart';
 import 'auth_state.dart';
 import 'plus_info_notifier.dart';
 import 'storage_providers.dart';
@@ -62,6 +63,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState.empty;
     try {
       await _ref.read(terminalSessionManagerProvider).closeAll();
+    } catch (_) {}
+    try {
+      await _ref.read(sftpSessionManagerProvider).disconnectAll();
+    } catch (_) {}
+    try {
+      _ref.read(dockerSessionManagerProvider).disconnectAll();
     } catch (_) {}
     try {
       final secureStorage = _ref.read(secureStorageProvider);
