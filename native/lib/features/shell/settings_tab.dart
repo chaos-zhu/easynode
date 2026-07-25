@@ -211,6 +211,11 @@ class SettingsTab extends ConsumerWidget {
               l.tr('settings.theme.amberTheme'),
               Icons.wb_sunny_outlined,
             ),
+            (
+              AppThemePalette.skyCyan,
+              l.tr('settings.theme.skyCyanTheme'),
+              Icons.water_drop_outlined,
+            ),
           ])
             ListTile(
               leading: Icon(entry.$3),
@@ -272,6 +277,7 @@ class SettingsTab extends ConsumerWidget {
     final paletteLabel = switch (palette) {
       AppThemePalette.light => l.tr('settings.theme.lightTheme'),
       AppThemePalette.amber => l.tr('settings.theme.amberTheme'),
+      AppThemePalette.skyCyan => l.tr('settings.theme.skyCyanTheme'),
     };
     return l.trf('settings.theme.summary', [
       paletteLabel,

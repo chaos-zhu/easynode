@@ -7,7 +7,8 @@ import 'storage_providers.dart';
 
 enum AppThemePalette {
   light,
-  amber;
+  amber,
+  skyCyan;
 
   AppColorTheme colorsFor(Brightness brightness) {
     return switch ((this, brightness)) {
@@ -15,12 +16,15 @@ enum AppThemePalette {
       (AppThemePalette.light, Brightness.dark) => AppColorTheme.defaultDark,
       (AppThemePalette.amber, Brightness.light) => AppColorTheme.amberLight,
       (AppThemePalette.amber, Brightness.dark) => AppColorTheme.amberDark,
+      (AppThemePalette.skyCyan, Brightness.light) => AppColorTheme.skyCyanLight,
+      (AppThemePalette.skyCyan, Brightness.dark) => AppColorTheme.skyCyanDark,
     };
   }
 
   Color get seed => switch (this) {
     AppThemePalette.light => const Color(0xFF2B6FCB),
     AppThemePalette.amber => Colors.amber,
+    AppThemePalette.skyCyan => const Color(0xFF00A6D6),
   };
 }
 
@@ -32,6 +36,8 @@ class ColorThemeNotifier extends StateNotifier<AppThemePalette> {
   static AppThemePalette _fromString(String value) {
     return switch (value) {
       'amber' => AppThemePalette.amber,
+      // Retain compatibility with the short-lived original identifier.
+      'celadon' || 'skyCyan' => AppThemePalette.skyCyan,
       _ => AppThemePalette.light,
     };
   }

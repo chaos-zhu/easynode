@@ -127,6 +127,49 @@ class AppColorTheme extends ThemeExtension<AppColorTheme> {
     fontOnPrimary: Color(0xFF121212),
   );
 
+  /// An airy sky-blue palette built around a bright cyan horizon.
+  static const skyCyanLight = AppColorTheme(
+    canvas: Color(0xFFF2FAFD),
+    card: Color(0xFFFFFFFF),
+    chip: Color(0xFFE5F4F9),
+    banner: Color(0xFFD8F1FA),
+    primary: Color(0xFF087EA4),
+    text: Color(0xFF14333F),
+    muted: Color(0xFF517481),
+    softMuted: Color(0xFF7696A2),
+    border: Color(0xFFCBE4ED),
+    strongBorder: Color(0xFF9BCBDB),
+    accent: Color(0xFF00A6D6),
+    accentSoft: Color(0xFFD8F5FC),
+    success: Color(0xFF168164),
+    warning: Color(0xFF9A650C),
+    danger: Color(0xFFBF474D),
+    dangerSoft: Color(0xFFFFF0F0),
+    dangerBorder: Color(0xFFF0C8CA),
+    fontOnPrimary: Color(0xFFFFFFFF),
+  );
+
+  static const skyCyanDark = AppColorTheme(
+    canvas: Color(0xFF0B1A21),
+    card: Color(0xFF102831),
+    chip: Color(0xFF183943),
+    banner: Color(0xFF124958),
+    primary: Color(0xFF78D8F5),
+    text: Color(0xFFE6F7FC),
+    muted: Color(0xFFB1D0DA),
+    softMuted: Color(0xFF84A7B3),
+    border: Color(0xFF315564),
+    strongBorder: Color(0xFF497786),
+    accent: Color(0xFF45C9F0),
+    accentSoft: Color(0xFF124958),
+    success: Color(0xFF55CAA3),
+    warning: Color(0xFFE6BA5B),
+    danger: Color(0xFFF1848A),
+    dangerSoft: Color(0xFF41292F),
+    dangerBorder: Color(0xFF70444D),
+    fontOnPrimary: Color(0xFF08222C),
+  );
+
   @override
   AppColorTheme copyWith({
     Color? canvas,
