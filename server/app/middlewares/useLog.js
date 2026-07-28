@@ -1,5 +1,7 @@
-const { DEBUG } = require('../config').logConfig
-const { getClientIP } = require('../utils/tools')
+import { logConfig } from '../config/index.js'
+import { getClientIP } from '../utils/tools.js'
+
+const { DEBUG } = logConfig
 
 // ------------------ 脱敏 ------------------
 // 可能包含敏感信息的 header key（小写比较）
@@ -109,7 +111,7 @@ const useLog = () => {
       origin,
       query,
       body,
-      headers,
+      headers
     } = ctx.request
 
     const ip = getClientIP(ctx.socket.remoteAddress, ctx.get('x-forwarded-for'))
@@ -169,4 +171,4 @@ const useLog = () => {
   }
 }
 
-module.exports = useLog()
+export default useLog()

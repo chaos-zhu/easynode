@@ -1,4 +1,4 @@
-module.exports = (content) => {
+export default (content) => {
   return `<!DOCTYPE html>
     <html>
     <head>

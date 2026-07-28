@@ -1,6 +1,6 @@
-const path = require('path')
+import path from 'node:path'
 
-module.exports = {
+const config = {
   httpPort: process.env.HTTP_PORT ? parseInt(process.env.HTTP_PORT) : 8082,
   httpsPort: process.env.HTTPS_PORT ? parseInt(process.env.HTTPS_PORT) : 8092,
   enableHttps: process.env.ENABLE_HTTPS ? parseInt(process.env.ENABLE_HTTPS) : 0, // 0:关闭 1:自签证书 2:传入证书路径
@@ -34,3 +34,37 @@ module.exports = {
     DEBUG: process.env.DEBUG !== 'false'
   }
 }
+
+export const {
+  httpPort,
+  httpsPort,
+  enableHttps,
+  sslCertPath,
+  sslKeyPath,
+  uploadDir,
+  staticDir,
+  sftpCacheDir,
+  credentialsDBPath,
+  keyDBPath,
+  hostListDBPath,
+  groupConfDBPath,
+  scriptsDBPath,
+  scriptGroupDBPath,
+  notifyDBPath,
+  notifyConfigDBPath,
+  onekeyDBPath,
+  plusDBPath,
+  aiConfigDBPath,
+  chatHistoryDBPath,
+  favoriteSftpDBPath,
+  proxyDBPath,
+  fileTransferDBPath,
+  terminalConfigDBPath,
+  serverListDBPath,
+  sessionDBPath,
+  terminalSessionDBPath,
+  apiPrefix,
+  logConfig
+} = config
+
+export default config

@@ -1,5 +1,7 @@
-const { koaBody } = require('koa-body')
+import koaBodyModule from 'koa-body'
 
-module.exports = koaBody({
+const { koaBody } = koaBodyModule
+
+export default koaBody({
   multipart: false
 })

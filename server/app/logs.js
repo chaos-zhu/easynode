@@ -1,5 +1,7 @@
-const log4js = require('log4js')
-const { outDir } = require('./config').logConfig
+import log4js from 'log4js'
+import { logConfig } from './config/index.js'
+
+const { outDir } = logConfig
 log4js.configure({
   appenders: {
     console: {

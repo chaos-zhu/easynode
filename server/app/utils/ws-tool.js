@@ -1,5 +1,5 @@
-const { Server } = require('socket.io')
-const { verifyWsAuthSync } = require('./verify-auth')
+import { Server } from 'socket.io'
+import { verifyWsAuthSync } from './verify-auth.js'
 
 const createSecureWs = (httpServer, path, otherConfig = {}) => {
   const serverIo = new Server(httpServer, {
@@ -16,6 +16,6 @@ const createSecureWs = (httpServer, path, otherConfig = {}) => {
   return serverIo
 }
 
-module.exports = {
+export {
   createSecureWs
 }

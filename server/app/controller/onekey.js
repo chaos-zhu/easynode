@@ -1,4 +1,4 @@
-const { OnekeyDB } = require('../utils/db-class')
+import { OnekeyDB } from '../utils/db-class.js'
 const onekeyDB = new OnekeyDB().getInstance()
 
 async function getOnekeyRecord({ res }) {
@@ -21,7 +21,7 @@ const removeOnekeyRecord = async ({ res, request }) => {
   }
 }
 
-module.exports = {
+export {
   getOnekeyRecord,
   removeOnekeyRecord
 }

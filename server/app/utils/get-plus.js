@@ -1,20 +1,23 @@
-const crypto = require('crypto')
-const path = require('path')
-const { requestWithFailover } = require('./tools')
-const { AESEncryptAsync } = require('./encrypt')
-const decryptAndExecuteAsync = require('./decrypt-file')
-const version = require('../../package.json').version
-const { PlusDB } = require('./db-class')
-const { RuntimeState } = require('./runtime-state')
+import crypto from 'node:crypto'
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { requestWithFailover } from './tools.js'
+import { AESEncryptAsync } from './encrypt.js'
+import decryptAndExecuteAsync from './decrypt-file.js'
+import PackageJsonModule from '../../package.json' with { type: 'json' }
+const version = PackageJsonModule.version
+import { PlusDB } from './db-class.js'
+import { RuntimeState } from './runtime-state.js'
 const plusDB = new PlusDB().getInstance()
 const runtimeState = new RuntimeState().getInstance()
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 const RETRY_INTERVAL_MS = 30 * 1000
 let maxRetryCount = 3
 let retryTimer = null
 
 async function startHeartbeatIfAvailable() {
-  const plusModule = await decryptAndExecuteAsync(path.join(__dirname, '../controller/plus.js'))
+  const plusModule = await decryptAndExecuteAsync(path.join(currentDir, '../controller/plus.js'))
   if (typeof plusModule?.startHeartbeat === 'function') {
     plusModule.startHeartbeat()
   } else {
@@ -102,5 +105,5 @@ function scheduleNextActivation() {
   if (retryTimer.unref) retryTimer.unref()
 }
 
-module.exports = getLicenseInfo
-module.exports.startActivation = activateOrRetry
+export default getLicenseInfo
+export { activateOrRetry as startActivation }

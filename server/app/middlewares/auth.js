@@ -1,5 +1,5 @@
-const { apiPrefix } = require('../config')
-const { verifyAuthSync, enumLoginCode } = require('../utils/verify-auth')
+import { apiPrefix } from '../config/index.js'
+import { verifyAuthSync, enumLoginCode } from '../utils/verify-auth.js'
 
 let whitePath = [
   '/login',
@@ -48,4 +48,4 @@ const useAuth = async (ctx, next) => {
   return res.fail({ msg: failMsg || '身份验证失败(未知错误!)', status: 403 })
 }
 
-module.exports = useAuth
+export default useAuth

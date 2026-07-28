@@ -1,8 +1,10 @@
-const path = require('path')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
-const { RSADecryptAsync, AESEncryptAsync, AESDecryptAsync } = require('../utils/encrypt')
-const { HostListDB } = require('../utils/db-class')
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import decryptAndExecuteAsync from '../utils/decrypt-file.js'
+import { RSADecryptAsync, AESEncryptAsync, AESDecryptAsync } from '../utils/encrypt.js'
+import { HostListDB } from '../utils/db-class.js'
 const hostListDB = new HostListDB().getInstance()
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 async function getHostList({ res }) {
   let data = await hostListDB.findAsync({})
@@ -58,7 +60,7 @@ async function updateHost({ res, request }) {
 }
 
 async function batchUpdateHost({ res, request }) {
-  let { updateHosts } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  let { updateHosts } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
   if (updateHosts) {
     await updateHosts({ res, request })
   } else {
@@ -121,7 +123,7 @@ async function updateLastConnectTime({ res, request }) {
   }
 }
 
-module.exports = {
+export {
   getHostList,
   addHost,
   updateHost,

@@ -1,4 +1,4 @@
-const { TerminalConfigDB } = require('../utils/db-class')
+import { TerminalConfigDB } from '../utils/db-class.js'
 
 // 终端默认配置
 const DEFAULT_TERMINAL_CONFIG = {
@@ -74,7 +74,7 @@ async function saveTerminalConfig({ res, request }) {
   }
 }
 
-module.exports = {
+export {
   getTerminalConfig,
   saveTerminalConfig
 }

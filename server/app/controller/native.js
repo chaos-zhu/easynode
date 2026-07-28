@@ -1,7 +1,10 @@
-const crypto = require('crypto')
-const path = require('path')
-const { RSADecryptAsync } = require('../utils/encrypt')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
+import crypto from 'node:crypto'
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { RSADecryptAsync } from '../utils/encrypt.js'
+import decryptAndExecuteAsync from '../utils/decrypt-file.js'
+
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 function encryptJsonForNative(payload, key) {
   if (!Buffer.isBuffer(key) || key.length !== 32) {
@@ -46,13 +49,12 @@ async function buildNativeTopology(hostInfo = {}) {
     return { proxyType: '', proxy: null, jumpHosts: [] }
   }
 
-  let { getConnectionHelper } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  let { getConnectionHelper } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
   if (getConnectionHelper) {
     const config = await getConnectionHelper(proxyType, hostInfo, normalizeNativeAuthPayload)
     return config
-  } else {
-    throw new Error('跳板机&代理服务为Plus功能')
   }
+  throw new Error('跳板机&代理服务为Plus功能')
 }
 
 async function getNativeSshConnection({ request, res }) {
@@ -64,7 +66,7 @@ async function getNativeSshConnection({ request, res }) {
 
     const tempKeyText = await RSADecryptAsync(encryptedKey)
     const tempKey = Buffer.from(tempKeyText, 'base64')
-    const { getConnectionOptions } = require('../socket/terminal')
+    const { getConnectionOptions } = await import('../socket/terminal.js')
     const { authInfo, name, hostInfo } = await getConnectionOptions(hostId)
     const payload = {
       ...normalizeNativeAuthPayload(hostId, name, authInfo),
@@ -79,6 +81,6 @@ async function getNativeSshConnection({ request, res }) {
   }
 }
 
-module.exports = {
+export {
   getNativeSshConnection
 }

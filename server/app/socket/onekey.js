@@ -1,10 +1,11 @@
-const { Server } = require('socket.io')
-const { Client: SSHClient } = require('ssh2')
-const { sendNoticeAsync } = require('../utils/notify')
-const { shellThrottle } = require('../utils/tools')
-const { createSecureWs } = require('../utils/ws-tool')
-const { HostListDB, OnekeyDB } = require('../utils/db-class')
-const { getConnectionOptions, handleProxyAndJumpHostConnection } = require('./terminal')
+import { Server } from 'socket.io'
+import ssh2Module from 'ssh2'
+const { Client: SSHClient } = ssh2Module
+import { sendNoticeAsync } from '../utils/notify.js'
+import { shellThrottle } from '../utils/tools.js'
+import { createSecureWs } from '../utils/ws-tool.js'
+import { HostListDB, OnekeyDB } from '../utils/db-class.js'
+import { getConnectionOptions, handleProxyAndJumpHostConnection } from './terminal.js'
 const hostListDB = new HostListDB().getInstance()
 const onekeyDB = new OnekeyDB().getInstance()
 
@@ -88,7 +89,7 @@ function execShell(socket, sshClient, curRes, resolve) {
   })
 }
 
-module.exports = (httpServer) => {
+export default (httpServer) => {
   const serverIo = createSecureWs(httpServer, '/onekey')
 
   serverIo.on('connection', async (socket) => {

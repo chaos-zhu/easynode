@@ -1,8 +1,8 @@
-const jwt = require('jsonwebtoken')
-const { AESDecryptAsync } = require('./encrypt')
-const { isAllowedIp, getClientIP } = require('../utils/tools')
-const { SHA256Encrypt } = require('../utils/encrypt')
-const { KeyDB, SessionDB } = require('./db-class')
+import jwt from 'jsonwebtoken'
+import { AESDecryptAsync } from './encrypt.js'
+import { isAllowedIp, getClientIP } from '../utils/tools.js'
+import { SHA256Encrypt } from '../utils/encrypt.js'
+import { KeyDB, SessionDB } from './db-class.js'
 const keyDB = new KeyDB().getInstance()
 const sessionDB = new SessionDB().getInstance()
 
@@ -95,7 +95,7 @@ const verifyWsAuthSync = async (socket, next) => {
   next()
 }
 
-module.exports = {
+export {
   enumLoginCode,
   verifyAuthSync,
   verifyWsAuthSync,

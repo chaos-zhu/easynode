@@ -1,4 +1,4 @@
-const { HostListDB, CredentialsDB, FavoriteSftpDB } = require('../utils/db-class')
+import { HostListDB, CredentialsDB, FavoriteSftpDB } from '../utils/db-class.js'
 
 const favoriteSftpDB = new FavoriteSftpDB().getInstance()
 
@@ -19,6 +19,6 @@ async function getSftpFavorites({ params, request, res }) {
   }
 }
 
-module.exports = {
+export {
   getSftpFavorites
 }

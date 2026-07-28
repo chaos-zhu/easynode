@@ -1,4 +1,4 @@
-const cors = require('@koa/cors')
+import cors from '@koa/cors'
 
 // 跨域处理
 const useCors = cors({
@@ -9,4 +9,4 @@ const useCors = cors({
   allowMethods: [ 'GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'PATCH' ]
 })
 
-module.exports = useCors
+export default useCors

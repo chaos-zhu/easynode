@@ -31,4 +31,4 @@ const responseHandler = async (ctx, next) => {
   }
 }
 
-module.exports = responseHandler
+export default responseHandler

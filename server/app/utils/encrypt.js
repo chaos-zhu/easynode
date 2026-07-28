@@ -1,7 +1,7 @@
-const CryptoJS = require('crypto-js')
-const rawCrypto = require('crypto')
-const NodeRSA = require('node-rsa')
-const { KeyDB } = require('./db-class')
+import CryptoJS from 'crypto-js'
+import rawCrypto from 'node:crypto'
+import NodeRSA from 'node-rsa'
+import { KeyDB } from './db-class.js'
 const keyDB = new KeyDB().getInstance()
 
 // rsa非对称 私钥解密
@@ -41,7 +41,7 @@ const SHA256Encrypt = (clearText) => {
   return rawCrypto.createHash('sha256').update(clearText).digest('hex')
 }
 
-module.exports = {
+export {
   RSADecryptAsync,
   AESEncryptAsync,
   AESDecryptAsync,

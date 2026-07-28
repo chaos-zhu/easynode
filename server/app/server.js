@@ -1,22 +1,22 @@
-const Koa = require('koa')
-const compose = require('koa-compose') // 组合中间件,简化写法
-const http = require('http')
-const https = require('https')
-const fs = require('fs')
-const { httpPort, httpsPort, enableHttps, sslCertPath, sslKeyPath } = require('./config')
-const middlewares = require('./middlewares')
-const { startRdpServer } = require('./rdp-server')
-const wsTerminal = require('./socket/terminal')
-const wsSftpV2 = require('./socket/sftp-v2')
-const wsDocker = require('./socket/docker')
-const wsOnekey = require('./socket/onekey')
-const wsServerStatus = require('./socket/server-status')
-const wsFileTransfer = require('./socket/file-transfer')
-const { throwError, isAllowedIp, getClientIP } = require('./utils/tools')
-const { SessionDB } = require('./utils/db-class')
-const { parseCookies } = require('./utils/verify-auth')
-const { generateSelfSignedCert } = require('./utils/ssl-cert')
-const createRdpProxyMiddleware = require('./middlewares/rdp-proxy')
+import Koa from 'koa'
+import compose from 'koa-compose' // 组合中间件,简化写法
+import http from 'node:http'
+import https from 'node:https'
+import fs from 'node:fs'
+import { httpPort, httpsPort, enableHttps, sslCertPath, sslKeyPath } from './config/index.js'
+import middlewares from './middlewares/index.js'
+import { startRdpServer } from './rdp-server.js'
+import wsTerminal from './socket/terminal.js'
+import wsSftpV2 from './socket/sftp-v2.js'
+import wsDocker from './socket/docker.js'
+import wsOnekey from './socket/onekey.js'
+import wsServerStatus from './socket/server-status.js'
+import wsFileTransfer from './socket/file-transfer.js'
+import { throwError, isAllowedIp, getClientIP } from './utils/tools.js'
+import { SessionDB } from './utils/db-class.js'
+import { parseCookies } from './utils/verify-auth.js'
+import { generateSelfSignedCert } from './utils/ssl-cert.js'
+import createRdpProxyMiddleware from './middlewares/rdp-proxy.js'
 
 const sessionDB = new SessionDB().getInstance()
 
@@ -177,6 +177,6 @@ function serverHandler(app, server, httpsServer) {
   })
 }
 
-module.exports = {
+export {
   createServer
 }

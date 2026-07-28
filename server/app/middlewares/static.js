@@ -1,5 +1,5 @@
-const koaStatic = require('koa-static')
-const { staticDir } = require('../config')
+import koaStatic from 'koa-static'
+import { staticDir } from '../config/index.js'
 
 const useStatic = koaStatic(staticDir, {
   maxage: 1000 * 60 * 60 * 24 * 30,
@@ -11,4 +11,4 @@ const useStatic = koaStatic(staticDir, {
   }
 })
 
-module.exports = useStatic
+export default useStatic

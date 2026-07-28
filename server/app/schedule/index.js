@@ -1,7 +1,7 @@
-const schedule = require('node-schedule')
-const { sendNoticeAsync } = require('../utils/notify')
-const { formatTimestamp } = require('../utils/tools')
-const { HostListDB } = require('../utils/db-class')
+import schedule from 'node-schedule'
+import { sendNoticeAsync } from '../utils/notify.js'
+import { formatTimestamp } from '../utils/tools.js'
+import { HostListDB } from '../utils/db-class.js'
 const hostListDB = new HostListDB().getInstance()
 
 const expiredNotifyJob = async () => {
@@ -27,6 +27,6 @@ const expiredNotifyJob = async () => {
   }
 }
 
-module.exports = () => {
+export default () => {
   schedule.scheduleJob('0 0 12 1/1 * ?', expiredNotifyJob)
 }

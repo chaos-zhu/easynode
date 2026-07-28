@@ -1,7 +1,7 @@
-const NodeRSA = require('node-rsa')
-const { randomStr } = require('./utils/tools')
-const { AESEncryptAsync, SHA1Encrypt } = require('./utils/encrypt')
-const { KeyDB, GroupDB, NotifyDB, NotifyConfigDB, ScriptGroupDB } = require('./utils/db-class')
+import NodeRSA from 'node-rsa'
+import { randomStr } from './utils/tools.js'
+import { AESEncryptAsync, SHA1Encrypt } from './utils/encrypt.js'
+import { KeyDB, GroupDB, NotifyDB, NotifyConfigDB, ScriptGroupDB } from './utils/db-class.js'
 
 async function initKeyDB() {
   const keyDB = new KeyDB().getInstance()
@@ -153,7 +153,7 @@ async function initScriptGroupDB() {
   return Promise.resolve()
 }
 
-module.exports = async () => {
+export default async () => {
   await initKeyDB()
   await initNotifyDB()
   await initGroupDB()

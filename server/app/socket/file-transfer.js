@@ -1,13 +1,16 @@
-const path = require('path')
-const { Client: SSHClient } = require('ssh2')
-const { fileTransferThrottle } = require('../utils/tools')
-const { createSecureWs } = require('../utils/ws-tool')
-const { getConnectionOptions } = require('./terminal')
-const { FileTransferDB, HostListDB } = require('../utils/db-class')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import ssh2Module from 'ssh2'
+const { Client: SSHClient } = ssh2Module
+import { fileTransferThrottle } from '../utils/tools.js'
+import { createSecureWs } from '../utils/ws-tool.js'
+import { getConnectionOptions } from './terminal.js'
+import { FileTransferDB, HostListDB } from '../utils/db-class.js'
+import decryptAndExecuteAsync from '../utils/decrypt-file.js'
 
 const fileTransferDB = new FileTransferDB().getInstance()
 const hostListDB = new HostListDB().getInstance()
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 // 全局传输任务管理
 const activeTasks = new Map() // taskId -> { process, sshClient, status, ... }
@@ -53,7 +56,7 @@ async function getSortedTasksList() {
   return sortTasks(tasksWithStatus)
 }
 
-module.exports = (httpServer) => {
+export default (httpServer) => {
   const serverIo = createSecureWs(httpServer, '/file-transfer')
 
   let connectionCount = 0
@@ -83,7 +86,7 @@ module.exports = (httpServer) => {
     // 启动传输任务
     socket.on('start_transfer', async (transferConfig) => {
       try {
-        const { createTransferTask = null } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+        const { createTransferTask = null } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
         if (!createTransferTask) throw new Error('Plus功能解锁失败: createTransferTask')
         const task = await createTransferTask(transferConfig, socket, hostListDB, fileTransferDB, executeTransfer)
         socket.emit('task_started', { taskId: task.taskId, message: '传输任务已启动' })
@@ -926,4 +929,3 @@ function stopProgressBroadcast(socket) {
     logger.info('已停止进度广播定时器')
   }
 }
-

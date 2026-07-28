@@ -1,4 +1,5 @@
-const { createProxyMiddleware } = require('http-proxy-middleware')
+import httpProxyMiddlewareModule from 'http-proxy-middleware'
+const { createProxyMiddleware } = httpProxyMiddlewareModule
 
 /**
  * RDP代理中间件
@@ -25,4 +26,4 @@ const createRdpProxyMiddleware = () => {
   return wsProxy
 }
 
-module.exports = createRdpProxyMiddleware
+export default createRdpProxyMiddleware

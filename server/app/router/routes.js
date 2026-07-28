@@ -1,19 +1,19 @@
-const { getSSHList, addSSH, updateSSH, removeSSH, getCommand, decryptPrivateKey, getRdpToken } = require('../controller/ssh')
-const { getSftpFavorites } = require('../controller/sftp')
-const { getHostList, addHost, updateHost, batchUpdateHost, removeHost, importHost, updateLastConnectTime } = require('../controller/host')
-const { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2, getPlusInfo, getPlusDiscount, getPlusConf, updatePlusKey, getPlusDevices, releasePlusDevice } = require('../controller/user')
-const { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } = require('../controller/notify')
-const { getGroupList, addGroupList, updateGroupList, removeGroup } = require('../controller/group')
-const { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript, batchRemoveScript, importScript } = require('../controller/scripts')
-const { getScriptGroupList, addScriptGroup, removeScriptGroup, updateScriptGroup } = require('../controller/script-group')
-const { getOnekeyRecord, removeOnekeyRecord } = require('../controller/onekey')
-const { getLog, saveIpWhiteList, removeSomeLoginRecords, revokeLoginSid } = require('../controller/sessionLog')
-const { getAIConfig, saveAIConfig, getAIModels, getChatHistory, saveChatHistory, removeChatHistory } = require('../controller/chat')
-const { getProxyList, addProxy, updateProxy, removeProxy } = require('../controller/proxy')
-const { getTerminalConfig, saveTerminalConfig } = require('../controller/terminal-config')
-const { getServerListConfig, saveServerListConfig } = require('../controller/server-list-config')
-const { getSuspendedSessions, getTerminalSessionConfig, updateTerminalSessionConfig } = require('../controller/terminal')
-const { getNativeSshConnection } = require('../controller/native')
+import { getSSHList, addSSH, updateSSH, removeSSH, getCommand, decryptPrivateKey, getRdpToken } from '../controller/ssh.js'
+import { getSftpFavorites } from '../controller/sftp.js'
+import { getHostList, addHost, updateHost, batchUpdateHost, removeHost, importHost, updateLastConnectTime } from '../controller/host.js'
+import { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2, getPlusInfo, getPlusDiscount, getPlusConf, updatePlusKey, getPlusDevices, releasePlusDevice } from '../controller/user.js'
+import { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } from '../controller/notify.js'
+import { getGroupList, addGroupList, updateGroupList, removeGroup } from '../controller/group.js'
+import { getScriptList, getLocalScriptList, addScript, updateScriptList, removeScript, batchRemoveScript, importScript } from '../controller/scripts.js'
+import { getScriptGroupList, addScriptGroup, removeScriptGroup, updateScriptGroup } from '../controller/script-group.js'
+import { getOnekeyRecord, removeOnekeyRecord } from '../controller/onekey.js'
+import { getLog, saveIpWhiteList, removeSomeLoginRecords, revokeLoginSid } from '../controller/sessionLog.js'
+import { getAIConfig, saveAIConfig, getAIModels, getChatHistory, saveChatHistory, removeChatHistory } from '../controller/chat.js'
+import { getProxyList, addProxy, updateProxy, removeProxy } from '../controller/proxy.js'
+import { getTerminalConfig, saveTerminalConfig } from '../controller/terminal-config.js'
+import { getServerListConfig, saveServerListConfig } from '../controller/server-list-config.js'
+import { getSuspendedSessions, getTerminalSessionConfig, updateTerminalSessionConfig } from '../controller/terminal.js'
+import { getNativeSshConnection } from '../controller/native.js'
 
 const ssh = [
   {
@@ -420,7 +420,7 @@ const sftp = [
   }
 ]
 
-module.exports = [].concat(
+export default [].concat(
   ssh,
   host,
   user,

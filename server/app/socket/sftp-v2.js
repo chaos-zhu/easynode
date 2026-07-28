@@ -1,16 +1,17 @@
-const rawPath = require('path')
-const fs = require('fs-extra')
-const SFTPClient = require('ssh2-sftp-client')
-const iconv = require('iconv-lite')
-const chardet = require('chardet')
-const { v4: uuidv4 } = require('uuid')
-const { sftpCacheDir } = require('../config')
-const { createSecureWs } = require('../utils/ws-tool')
-const { HostListDB, FavoriteSftpDB } = require('../utils/db-class')
-const { getConnectionOptions, handleProxyAndJumpHostConnection } = require('./terminal')
+import rawPath from 'node:path'
+import fs from 'fs-extra'
+import SFTPClient from 'ssh2-sftp-client'
+import iconv from 'iconv-lite'
+import chardet from 'chardet'
+import { v4 as uuidv4 } from 'uuid'
+import { sftpCacheDir } from '../config/index.js'
+import { createSecureWs } from '../utils/ws-tool.js'
+import { HostListDB, FavoriteSftpDB } from '../utils/db-class.js'
+import { getConnectionOptions, handleProxyAndJumpHostConnection } from './terminal.js'
 const hostListDB = new HostListDB().getInstance()
 const favoriteSftpDB = new FavoriteSftpDB().getInstance()
-const { Client: SSHClient } = require('ssh2')
+import ssh2Module from 'ssh2'
+const { Client: SSHClient } = ssh2Module
 
 function shellEscape(s) {
   // eslint-disable-next-line quotes
@@ -1559,7 +1560,7 @@ const listenAction = (sftpClient, socket) => {
   }
 }
 
-module.exports = (httpServer) => {
+export default (httpServer) => {
   const serverIo = createSecureWs(httpServer, '/sftp-v2', {
     // 增加消息大小限制，支持大文件上传（默认1MB）
     maxHttpBufferSize: 10 * 1024 * 1024, // 10MB

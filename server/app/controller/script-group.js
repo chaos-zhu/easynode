@@ -1,6 +1,9 @@
-const path = require('path')
-const { ScriptGroupDB } = require('../utils/db-class')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { ScriptGroupDB } from '../utils/db-class.js'
+import decryptAndExecuteAsync from '../utils/decrypt-file.js'
+
+const currentDir = dirname(fileURLToPath(import.meta.url))
 const scriptGroupDB = new ScriptGroupDB().getInstance()
 
 async function getScriptGroupList({ res }) {
@@ -11,7 +14,7 @@ async function getScriptGroupList({ res }) {
 }
 
 const addScriptGroup = async ({ res, request }) => {
-  let { addScriptGroup } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  let { addScriptGroup } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
   if (addScriptGroup) {
     await addScriptGroup({ res, request })
   } else {
@@ -20,7 +23,7 @@ const addScriptGroup = async ({ res, request }) => {
 }
 
 const updateScriptGroup = async ({ res, request }) => {
-  let { updateScriptGroup } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  let { updateScriptGroup } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
   if (updateScriptGroup) {
     await updateScriptGroup({ res, request })
   } else {
@@ -29,7 +32,7 @@ const updateScriptGroup = async ({ res, request }) => {
 }
 
 const removeScriptGroup = async ({ res, request }) => {
-  let { removeScriptGroup } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  let { removeScriptGroup } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
   if (removeScriptGroup) {
     await removeScriptGroup({ res, request })
   } else {
@@ -37,7 +40,7 @@ const removeScriptGroup = async ({ res, request }) => {
   }
 }
 
-module.exports = {
+export {
   addScriptGroup,
   getScriptGroupList,
   updateScriptGroup,

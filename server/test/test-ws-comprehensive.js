@@ -1,4 +1,4 @@
-const io = require('socket.io-client')
+import io from 'socket.io-client'
 
 const SERVER_URL = 'http://localhost:8082'
 const VALID_TOKEN = 'U2FsdGVkX1+26QCTo4JlGxKnQFcDjOxHyZthx/zucoUMh4CVGc3d4DdBPG2LK52gLuO5RRtmnclYoZESSyQrP7RDoJxh4PLkF6Dm7m3PiO112i1DWxp/xANsRQBzotJ1soPa1ym82BNQRNoziZHbG2RmC/wM953x1zEBgK0wD6LW0I9cQMNIaiO+TV8f/qYt9m4QEoG3UBnLWCN5+oHU0DTOMJQgXBl7zFVwj/9YENt0rN5tBLZSSZv6krM94lmTO7V/mXycUqa/fWJuz7+B0ThlxFNFwzHdizGB+iqTHLoFrDL9Nw0d4oHnBOEkzSmwjIzNysVttfESpjAjNZ6gfmpV7+qERGxt9VHTogWP2cIaT5Dqjkc1ldG63yfYzXCx'

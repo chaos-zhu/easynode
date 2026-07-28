@@ -1,6 +1,6 @@
-const koaStatic = require('koa-static')
-const path = require('path')
-const { sftpCacheDir } = require('../config')
+import koaStatic from 'koa-static'
+import path from 'node:path'
+import { sftpCacheDir } from '../config/index.js'
 
 const useSftpCacheStatic = async (ctx, next) => {
   // 只处理 /sftp-cache 路径
@@ -29,4 +29,4 @@ const useSftpCacheStatic = async (ctx, next) => {
   }
 }
 
-module.exports = useSftpCacheStatic
+export default useSftpCacheStatic

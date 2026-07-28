@@ -1,17 +1,20 @@
-const path = require('path')
-const { Client: SSHClient } = require('ssh2')
-const { sendNoticeAsync } = require('../utils/notify')
-const { ping } = require('../utils/tools')
-const { AESDecryptAsync } = require('../utils/encrypt')
-const { KeyDB, HostListDB, CredentialsDB, ProxyDB } = require('../utils/db-class')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
-const { sessionManager, SessionStatus } = require('../utils/terminal-session')
-const { createSecureWs } = require('../utils/ws-tool')
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import ssh2Module from 'ssh2'
+const { Client: SSHClient } = ssh2Module
+import { sendNoticeAsync } from '../utils/notify.js'
+import { ping } from '../utils/tools.js'
+import { AESDecryptAsync } from '../utils/encrypt.js'
+import { KeyDB, HostListDB, CredentialsDB, ProxyDB } from '../utils/db-class.js'
+import decryptAndExecuteAsync from '../utils/decrypt-file.js'
+import { sessionManager, SessionStatus } from '../utils/terminal-session.js'
+import { createSecureWs } from '../utils/ws-tool.js'
 
 const hostListDB = new HostListDB().getInstance()
 const credentialsDB = new CredentialsDB().getInstance()
 const proxyDB = new ProxyDB().getInstance()
 const keyDB = new KeyDB().getInstance()
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 async function getConnectionOptions(hostId) {
   const hostInfo = await hostListDB.findOneAsync({ _id: hostId })
@@ -137,11 +140,11 @@ async function handleProxyAndJumpHostConnection(options) {
 
         let proxySocket
         if (proxyConfig.type === 'socks5') {
-          const { createSocks5Connection = null } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+          const { createSocks5Connection = null } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
           if (!createSocks5Connection) throw new Error('Plus功能解锁失败: createSocks5Connection')
           proxySocket = await createSocks5Connection(proxyConfig, targetConnectionOptions.host, targetConnectionOptions.port)
         } else if (proxyConfig.type === 'http') {
-          const { createHttpConnection = null } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+          const { createHttpConnection = null } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
           if (!createHttpConnection) throw new Error('Plus功能解锁失败: createHttpConnection')
           proxySocket = await createHttpConnection(proxyConfig, targetConnectionOptions.host, targetConnectionOptions.port)
         } else {
@@ -163,7 +166,7 @@ async function handleProxyAndJumpHostConnection(options) {
     }
     // 跳板机连接
     else if (proxyType === 'jumpHosts' && Array.isArray(jumpHosts) && jumpHosts.length > 0) {
-      const { connectByJumpHosts = null } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+      const { connectByJumpHosts = null } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
       if (!connectByJumpHosts) throw new Error('Plus功能解锁失败: connectByJumpHosts')
       const jumpHostResult = await connectByJumpHosts(jumpHosts, targetConnectionOptions.host, targetConnectionOptions.port, socket)
       if (jumpHostResult) {
@@ -538,13 +541,15 @@ function createServerIo(serverIo) {
   })
 }
 
-module.exports = (httpServer) => {
+export default (httpServer) => {
   const serverIo = createSecureWs(httpServer, '/terminal')
   createServerIo(serverIo)
 }
 
-module.exports.getConnectionOptions = getConnectionOptions
-module.exports.createTerminal = createTerminal
-module.exports.createServerIo = createServerIo
-module.exports.getProxyConfig = getProxyConfig
-module.exports.handleProxyAndJumpHostConnection = handleProxyAndJumpHostConnection
+export {
+  getConnectionOptions,
+  createTerminal,
+  createServerIo,
+  getProxyConfig,
+  handleProxyAndJumpHostConnection
+}

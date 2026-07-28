@@ -1,4 +1,4 @@
-const { ServerListDB } = require('../utils/db-class')
+import { ServerListDB } from '../utils/db-class.js'
 const serverListDB = new ServerListDB().getInstance()
 
 // 获取服务器列表配置
@@ -63,7 +63,7 @@ async function saveServerListConfig({ res, request }) {
   }
 }
 
-module.exports = {
+export {
   getServerListConfig,
   saveServerListConfig
 }

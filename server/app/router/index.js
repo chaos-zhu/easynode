@@ -1,8 +1,8 @@
-const { apiPrefix } = require('../config')
-const koaRouter = require('koa-router')
+import { apiPrefix } from '../config/index.js'
+import koaRouter from 'koa-router'
 const router = new koaRouter({ prefix: apiPrefix })
 
-const routeList = require('./routes')
+import routeList from './routes.js'
 
 // 统一注册路由
 routeList.forEach(item => {
@@ -10,4 +10,4 @@ routeList.forEach(item => {
   router[method](path, controller)
 })
 
-module.exports = router
+export default router

@@ -70,4 +70,4 @@ class RuntimeState {
   }
 }
 
-module.exports = { RuntimeState }
+export { RuntimeState }

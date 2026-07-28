@@ -1,16 +1,17 @@
-const jwt = require('jsonwebtoken')
-const axios = require('axios')
-const speakeasy = require('speakeasy')
-const QRCode = require('qrcode')
-const uap = require('ua-parser-js')
-const { v4: uuidv4 } = require('uuid')
-const version = require('../../package.json').version
-const getLicenseInfo = require('../utils/get-plus')
-const { sendNoticeAsync } = require('../utils/notify')
-const { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt, SHA256Encrypt } = require('../utils/encrypt')
-const { getNetIPInfo, requestWithFailover, timingSafeEqual } = require('../utils/tools')
-const { KeyDB, PlusDB, SessionDB } = require('../utils/db-class')
-const { RuntimeState } = require('../utils/runtime-state')
+import jwt from 'jsonwebtoken'
+import axios from 'axios'
+import speakeasy from 'speakeasy'
+import QRCode from 'qrcode'
+import { UAParser as uap } from 'ua-parser-js'
+import { v4 as uuidv4 } from 'uuid'
+import PackageJsonModule from '../../package.json' with { type: 'json' }
+const version = PackageJsonModule.version
+import getLicenseInfo from '../utils/get-plus.js'
+import { sendNoticeAsync } from '../utils/notify.js'
+import { RSADecryptAsync, AESEncryptAsync, SHA1Encrypt, SHA256Encrypt } from '../utils/encrypt.js'
+import { getNetIPInfo, requestWithFailover, timingSafeEqual } from '../utils/tools.js'
+import { KeyDB, PlusDB, SessionDB } from '../utils/db-class.js'
+import { RuntimeState } from '../utils/runtime-state.js'
 
 const keyDB = new KeyDB().getInstance()
 const sessionDB = new SessionDB().getInstance()
@@ -320,7 +321,7 @@ const releasePlusDevice = async ({ res, request }) => {
   }
 }
 
-module.exports = {
+export {
   login,
   getpublicKey,
   updatePwd,

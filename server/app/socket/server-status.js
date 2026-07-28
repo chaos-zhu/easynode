@@ -1,12 +1,12 @@
-const { Client: SSHClient } = require('ssh2')
-const { createTerminal } = require('./terminal')
-const { createSecureWs } = require('../utils/ws-tool')
+import ssh2Module from 'ssh2'
+const { Client: SSHClient } = ssh2Module
+import { createTerminal } from './terminal.js'
+import { createSecureWs } from '../utils/ws-tool.js'
 const monitorMap = new Map() // key -> { sockets: Set, statusData, stop }
 const pendingConnections = new Map() // key -> Promise，跟踪正在创建的连接
-const { HostListDB } = require('../utils/db-class')
+import { HostListDB } from '../utils/db-class.js'
 const hostListDB = new HostListDB().getInstance()
 
-/* eslint-disable no-control-regex */
 function stripAnsi(s = '') {
   return s
     .replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '') // CSI
@@ -16,7 +16,7 @@ function stripAnsi(s = '') {
 
 const safeDelta = (curr, prev) => (curr >= prev ? curr - prev : 0)
 
-module.exports = (httpServer) => {
+export default (httpServer) => {
   const serverIo = createSecureWs(httpServer, '/server-status')
 
   let connectionCount = 0
@@ -593,7 +593,7 @@ module.exports = (httpServer) => {
         try {
           const cgroupMem = await getCgroupMemoryInfo()
           if (cgroupMem) {
-            if (cgroupMem.memTotalBytes != null) {
+            if (cgroupMem.memTotalBytes !== null) {
               const cgroupTotalMb = Math.round(cgroupMem.memTotalBytes / 1024 / 1024)
               if (cgroupTotalMb > 0 && cgroupTotalMb < memInfo.totalMemMb) {
                 const cgroupUsedMb = Math.max(0, Math.min(Math.round(cgroupMem.memUsedBytes / 1024 / 1024), cgroupTotalMb))
@@ -607,7 +607,7 @@ module.exports = (httpServer) => {
                 }
               }
             }
-            if (cgroupMem.swapTotalBytes != null) {
+            if (cgroupMem.swapTotalBytes !== null) {
               const cgroupSwapTotalMb = Math.round(cgroupMem.swapTotalBytes / 1024 / 1024)
               if (cgroupSwapTotalMb > 0 && (swapInfo.swapTotal === 0 || cgroupSwapTotalMb < swapInfo.swapTotal)) {
                 const cgroupSwapUsedMb = Math.max(0, Math.min(Math.round(cgroupMem.swapUsedBytes / 1024 / 1024), cgroupSwapTotalMb))

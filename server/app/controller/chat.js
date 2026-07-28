@@ -1,9 +1,11 @@
-const path = require('path')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
-const { AIConfigDB, ChatHistoryDB } = require('../utils/db-class')
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import decryptAndExecuteAsync from '../utils/decrypt-file.js'
+import { AIConfigDB, ChatHistoryDB } from '../utils/db-class.js'
 
 const aiConfigDB = new AIConfigDB().getInstance()
 const chatHistoryDB = new ChatHistoryDB().getInstance()
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 async function getAIConfig({ res }) {
   try {
@@ -18,7 +20,7 @@ async function getAIConfig({ res }) {
 }
 
 async function getAIModels({ res, request }) {
-  let { getAIModels } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  let { getAIModels } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
   if (getAIModels) {
     await getAIModels({ res, request })
   } else {
@@ -27,7 +29,7 @@ async function getAIModels({ res, request }) {
 }
 
 async function saveAIConfig({ res, request }) {
-  let { saveAIConfig } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  let { saveAIConfig } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
   if (saveAIConfig) {
     await saveAIConfig({ res, request })
   } else {
@@ -71,7 +73,7 @@ async function removeChatHistory({ res, request }) {
   res.success({ data: true })
 }
 
-module.exports = {
+export {
   getAIConfig,
   saveAIConfig,
   getAIModels,

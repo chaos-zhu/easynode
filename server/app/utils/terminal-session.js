@@ -200,7 +200,7 @@ class TerminalSession {
       }
 
       // 创建新的SSH连接
-      const { Client: SSHClient } = require('ssh2')
+      const { Client: SSHClient } = (await import('ssh2')).default
       const newClient = new SSHClient()
 
       await new Promise((resolve, reject) => {
@@ -299,7 +299,7 @@ class SessionManager {
    */
   async loadConfigFromDB() {
     try {
-      const { TerminalSessionDB } = require('./db-class')
+      const { TerminalSessionDB } = await import('./db-class.js')
       const terminalSessionDB = new TerminalSessionDB().getInstance()
       const config = await terminalSessionDB.findOneAsync({})
 
@@ -327,7 +327,7 @@ class SessionManager {
           // 数据库中存储的是KB，需要转换为字节
           this.maxBufferSize = config.maxBufferSize * 1024
         }
-        logger.info(`已从数据库加载终端会话配置: maxSuspendedPerUser=${this.maxSuspendedPerUser}, maxSuspendTime=${this.maxSuspendTime / 1000 / 60 / 60}小时`)
+        logger.info(`已从数据库加载终端会话配置: maxSuspendedPerUser=${ this.maxSuspendedPerUser }, maxSuspendTime=${ this.maxSuspendTime / 1000 / 60 / 60 }小时`)
       } else {
         logger.info('数据库中无终端会话配置，使用默认配置')
       }
@@ -644,7 +644,7 @@ class SessionManager {
 // 导出单例
 const sessionManager = new SessionManager()
 
-module.exports = {
+export {
   SessionStatus,
   TerminalSession,
   sessionManager,

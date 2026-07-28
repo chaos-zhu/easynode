@@ -1,7 +1,11 @@
-const { spawn } = require('child_process')
-const treeKill = require('tree-kill')
+import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import treeKill from 'tree-kill'
 
-const serverRoot = __dirname
+const serverRoot = dirname(fileURLToPath(import.meta.url))
+const require = createRequire(import.meta.url)
 const nodemonBin = require.resolve('nodemon/bin/nodemon.js')
 const child = spawn(process.execPath, [nodemonBin, 'index.js'], {
   cwd: serverRoot,

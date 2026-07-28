@@ -1,4 +1,4 @@
-const { ProxyDB, HostListDB } = require('../utils/db-class')
+import { ProxyDB, HostListDB } from '../utils/db-class.js'
 
 const proxyDB = new ProxyDB().getInstance()
 const hostListDB = new HostListDB().getInstance()
@@ -109,7 +109,7 @@ const removeProxy = async ({ res, request }) => {
   }
 }
 
-module.exports = {
+export {
   getProxyList,
   addProxy,
   updateProxy,

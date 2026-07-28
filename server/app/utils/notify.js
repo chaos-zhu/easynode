@@ -1,9 +1,9 @@
-const nodemailer = require('nodemailer')
-const TelegramBot = require('node-telegram-bot-api')
-const axios = require('axios')
-const FormData = require('form-data')
-const commonTemp = require('../template/commonTemp')
-const { NotifyDB, NotifyConfigDB } = require('./db-class')
+import nodemailer from 'nodemailer'
+import TelegramBot from 'node-telegram-bot-api'
+import axios from 'axios'
+import FormData from 'form-data'
+import commonTemp from '../template/commonTemp.js'
+import { NotifyDB, NotifyConfigDB } from './db-class.js'
 const notifyConfigDB = new NotifyConfigDB().getInstance()
 const notifyDB = new NotifyDB().getInstance()
 
@@ -251,7 +251,7 @@ async function sendNoticeAsync(noticeAction, title, content) {
   }
 }
 
-module.exports = {
+export {
   sendNoticeAsync,
   sendServerChan,
   sendEmail,

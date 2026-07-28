@@ -1,11 +1,11 @@
-const { exec } = require('child_process')
-const crypto = require('crypto')
-const os = require('os')
-const net = require('net')
-const iconv = require('iconv-lite')
-const axios = require('axios')
+import { exec } from 'node:child_process'
+import crypto from 'node:crypto'
+import os from 'node:os'
+import net from 'node:net'
+import iconv from 'iconv-lite'
+import axios from 'axios'
 const request = axios.create({ timeout: 3000 })
-const { plusServers } = require('./plus-server')
+import { plusServers } from './plus-server.js'
 
 // 为空时请求本地IP
 const getNetIPInfo = async (searchIp = '') => {
@@ -438,7 +438,7 @@ const timingSafeEqual = (a, b) => {
   return crypto.timingSafeEqual(bufA, bufB)
 }
 
-module.exports = {
+export {
   getNetIPInfo,
   getLocalNetIP,
   throwError,

@@ -1,8 +1,8 @@
-require('./logs')
-const { createServer } = require('./server')
-const initDB = require('./db')
-const scheduleJob = require('./schedule')
-const { startActivation } = require('./utils/get-plus')
+import './logs.js'
+import { createServer } from './server.js'
+import initDB from './db.js'
+import scheduleJob from './schedule/index.js'
+import { startActivation } from './utils/get-plus.js'
 
 async function main() {
   await initDB()

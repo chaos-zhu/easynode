@@ -1,4 +1,4 @@
-const router = require('../router')
+import router from '../router/index.js'
 
 // 路由中间件
 const useRoutes = router.routes()
@@ -7,7 +7,7 @@ const useRoutes = router.routes()
 // 使用该中间件后请求方法错误会提示405 Method Not Allowed【get list ✔200 post /list ❌405】
 const useAllowedMethods = router.allowedMethods()
 
-module.exports = {
+export {
   useRoutes,
   useAllowedMethods
 }

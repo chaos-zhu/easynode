@@ -1,5 +1,5 @@
-const { sendServerChan, sendEmail, sendTg, sendWebhook } = require('../utils/notify')
-const { NotifyConfigDB, NotifyDB } = require('../utils/db-class')
+import { sendServerChan, sendEmail, sendTg, sendWebhook } from '../utils/notify.js'
+import { NotifyConfigDB, NotifyDB } from '../utils/db-class.js'
 const notifyDB = new NotifyDB().getInstance()
 const notifyConfigDB = new NotifyConfigDB().getInstance()
 
@@ -46,7 +46,7 @@ async function updateNotifyList({ res, request }) {
   res.success()
 }
 
-module.exports = {
+export {
   getNotifyConfig,
   updateNotifyConfig,
   getNotifyList,

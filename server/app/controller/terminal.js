@@ -1,5 +1,5 @@
-const { sessionManager, getDefaultSessionConfig } = require('../utils/terminal-session')
-const { KeyDB, HostListDB, TerminalSessionDB } = require('../utils/db-class')
+import { sessionManager, getDefaultSessionConfig } from '../utils/terminal-session.js'
+import { KeyDB, HostListDB, TerminalSessionDB } from '../utils/db-class.js'
 
 const keyDB = new KeyDB().getInstance()
 const hostListDB = new HostListDB().getInstance()
@@ -101,7 +101,7 @@ async function updateTerminalSessionConfig({ request, res }) {
   }
 }
 
-module.exports = {
+export {
   getSuspendedSessions,
   getTerminalSessionConfig,
   updateTerminalSessionConfig

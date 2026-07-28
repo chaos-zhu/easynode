@@ -1,4 +1,4 @@
-const selfsigned = require('selfsigned')
+import selfsigned from 'selfsigned'
 
 /**
  * 生成自签名证书
@@ -53,6 +53,6 @@ function generateSelfSignedCert() {
   }
 }
 
-module.exports = {
+export {
   generateSelfSignedCert
 }

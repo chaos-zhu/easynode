@@ -1,10 +1,12 @@
-const path = require('path')
-const crypto = require('crypto')
-const { RSADecryptAsync, AESEncryptAsync, AESDecryptAsync } = require('../utils/encrypt')
-const { HostListDB, CredentialsDB } = require('../utils/db-class')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import crypto from 'node:crypto'
+import { RSADecryptAsync, AESEncryptAsync, AESDecryptAsync } from '../utils/encrypt.js'
+import { HostListDB, CredentialsDB } from '../utils/db-class.js'
+import decryptAndExecuteAsync from '../utils/decrypt-file.js'
 const hostListDB = new HostListDB().getInstance()
 const credentialsDB = new CredentialsDB().getInstance()
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 async function getSSHList({ res }) {
   let data = await credentialsDB.findAsync({})
@@ -118,7 +120,7 @@ const decryptPrivateKey = async ({ res, request }) => {
 }
 
 const getRdpToken = async ({ res, request }) => {
-  let { genRdpToken } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  let { genRdpToken } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
   if (genRdpToken) {
     await genRdpToken({ res, request })
   } else {
@@ -126,7 +128,7 @@ const getRdpToken = async ({ res, request }) => {
   }
 }
 
-module.exports = {
+export {
   getSSHList,
   addSSH,
   updateSSH,

@@ -1,4 +1,4 @@
-const { KeyDB, SessionDB } = require('../utils/db-class')
+import { KeyDB, SessionDB } from '../utils/db-class.js'
 const keyDB = new KeyDB().getInstance()
 const sessionDB = new SessionDB().getInstance()
 
@@ -50,7 +50,7 @@ const revokeLoginSid = async (ctx) => {
   res.success({ msg: '注销凭证成功' })
 }
 
-module.exports = {
+export {
   getLog,
   saveIpWhiteList,
   removeSomeLoginRecords,

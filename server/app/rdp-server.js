@@ -1,5 +1,5 @@
-const http = require('http')
-const GuacamoleLite = require('guacamole-lite')
+import http from 'node:http'
+import GuacamoleLite from 'guacamole-lite'
 
 const RDP_PORT = process.env.RDP_PORT || 8083 // 使用独立端口
 const GUACD_HOST = process.env.GUACD_HOST || 'guacd'
@@ -45,4 +45,4 @@ const startRdpServer = () => {
   }
 }
 
-module.exports = { startRdpServer }
+export { startRdpServer }

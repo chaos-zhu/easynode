@@ -1,4 +1,4 @@
-const { HostListDB, GroupDB } = require('../utils/db-class')
+import { HostListDB, GroupDB } from '../utils/db-class.js'
 
 const hostListDB = new HostListDB().getInstance()
 const groupDB = new GroupDB().getInstance()
@@ -45,7 +45,7 @@ const removeGroup = async ({ res, request }) => {
   res.success({ data: '移除成功' })
 }
 
-module.exports = {
+export {
   addGroupList,
   getGroupList,
   updateGroupList,

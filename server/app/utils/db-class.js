@@ -1,5 +1,5 @@
-const Datastore = require('@seald-io/nedb')
-const {
+import Datastore from '@seald-io/nedb'
+import {
   credentialsDBPath,
   hostListDBPath,
   keyDBPath,
@@ -19,9 +19,9 @@ const {
   serverListDBPath,
   sessionDBPath,
   terminalSessionDBPath
-} = require('../config')
+} from '../config/index.js'
 
-module.exports.KeyDB = class KeyDB {
+export class KeyDB {
   constructor() {
     if (!KeyDB.instance) {
       KeyDB.instance = new Datastore({ filename: keyDBPath, autoload: true })
@@ -33,7 +33,7 @@ module.exports.KeyDB = class KeyDB {
   }
 }
 
-module.exports.HostListDB = class HostListDB {
+export class HostListDB {
   constructor() {
     if (!HostListDB.instance) {
       HostListDB.instance = new Datastore({ filename: hostListDBPath, autoload: true })
@@ -45,7 +45,7 @@ module.exports.HostListDB = class HostListDB {
   }
 }
 
-module.exports.CredentialsDB = class CredentialsDB {
+export class CredentialsDB {
   constructor() {
     if (!CredentialsDB.instance) {
       CredentialsDB.instance = new Datastore({ filename: credentialsDBPath, autoload: true })
@@ -57,7 +57,7 @@ module.exports.CredentialsDB = class CredentialsDB {
   }
 }
 
-module.exports.NotifyDB = class NotifyDB {
+export class NotifyDB {
   constructor() {
     if (!NotifyDB.instance) {
       NotifyDB.instance = new Datastore({ filename: notifyDBPath, autoload: true })
@@ -69,7 +69,7 @@ module.exports.NotifyDB = class NotifyDB {
   }
 }
 
-module.exports.NotifyConfigDB = class NotifyConfigDB {
+export class NotifyConfigDB {
   constructor() {
     if (!NotifyConfigDB.instance) {
       NotifyConfigDB.instance = new Datastore({ filename: notifyConfigDBPath, autoload: true })
@@ -81,7 +81,7 @@ module.exports.NotifyConfigDB = class NotifyConfigDB {
   }
 }
 
-module.exports.GroupDB = class GroupDB {
+export class GroupDB {
   constructor() {
     if (!GroupDB.instance) {
       GroupDB.instance = new Datastore({ filename: groupConfDBPath, autoload: true })
@@ -93,7 +93,7 @@ module.exports.GroupDB = class GroupDB {
   }
 }
 
-module.exports.ScriptsDB = class ScriptsDB {
+export class ScriptsDB {
   constructor() {
     if (!ScriptsDB.instance) {
       ScriptsDB.instance = new Datastore({ filename: scriptsDBPath, autoload: true })
@@ -105,7 +105,7 @@ module.exports.ScriptsDB = class ScriptsDB {
   }
 }
 
-module.exports.ScriptGroupDB = class ScriptGroupDB {
+export class ScriptGroupDB {
   constructor() {
     if (!ScriptGroupDB.instance) {
       ScriptGroupDB.instance = new Datastore({ filename: scriptGroupDBPath, autoload: true })
@@ -116,7 +116,7 @@ module.exports.ScriptGroupDB = class ScriptGroupDB {
   }
 }
 
-module.exports.OnekeyDB = class OnekeyDB {
+export class OnekeyDB {
   constructor() {
     if (!OnekeyDB.instance) {
       OnekeyDB.instance = new Datastore({ filename: onekeyDBPath, autoload: true })
@@ -128,7 +128,7 @@ module.exports.OnekeyDB = class OnekeyDB {
   }
 }
 
-module.exports.PlusDB = class PlusDB {
+export class PlusDB {
   constructor() {
     if (!PlusDB.instance) {
       PlusDB.instance = new Datastore({ filename: plusDBPath, autoload: true })
@@ -139,7 +139,7 @@ module.exports.PlusDB = class PlusDB {
   }
 }
 
-module.exports.AIConfigDB = class AIConfigDB {
+export class AIConfigDB {
   constructor() {
     if (!AIConfigDB.instance) {
       AIConfigDB.instance = new Datastore({ filename: aiConfigDBPath, autoload: true })
@@ -150,7 +150,7 @@ module.exports.AIConfigDB = class AIConfigDB {
   }
 }
 
-module.exports.ChatHistoryDB = class ChatHistoryDB {
+export class ChatHistoryDB {
   constructor() {
     if (!ChatHistoryDB.instance) {
       ChatHistoryDB.instance = new Datastore({ filename: chatHistoryDBPath, autoload: true })
@@ -161,7 +161,7 @@ module.exports.ChatHistoryDB = class ChatHistoryDB {
   }
 }
 
-module.exports.FavoriteSftpDB = class FavoriteSftpDB {
+export class FavoriteSftpDB {
   constructor() {
     if (!FavoriteSftpDB.instance) {
       FavoriteSftpDB.instance = new Datastore({ filename: favoriteSftpDBPath, autoload: true })
@@ -172,7 +172,7 @@ module.exports.FavoriteSftpDB = class FavoriteSftpDB {
   }
 }
 
-module.exports.ProxyDB = class ProxyDB {
+export class ProxyDB {
   constructor() {
     if (!ProxyDB.instance) {
       ProxyDB.instance = new Datastore({ filename: proxyDBPath, autoload: true })
@@ -183,7 +183,7 @@ module.exports.ProxyDB = class ProxyDB {
   }
 }
 
-module.exports.FileTransferDB = class FileTransferDB {
+export class FileTransferDB {
   constructor() {
     if (!FileTransferDB.instance) {
       FileTransferDB.instance = new Datastore({ filename: fileTransferDBPath, autoload: true })
@@ -194,7 +194,7 @@ module.exports.FileTransferDB = class FileTransferDB {
   }
 }
 
-module.exports.TerminalConfigDB = class TerminalConfigDB {
+export class TerminalConfigDB {
   constructor() {
     if (!TerminalConfigDB.instance) {
       TerminalConfigDB.instance = new Datastore({ filename: terminalConfigDBPath, autoload: true })
@@ -205,7 +205,7 @@ module.exports.TerminalConfigDB = class TerminalConfigDB {
   }
 }
 
-module.exports.ServerListDB = class ServerListDB {
+export class ServerListDB {
   constructor() {
     if (!ServerListDB.instance) {
       ServerListDB.instance = new Datastore({ filename: serverListDBPath, autoload: true })
@@ -216,7 +216,7 @@ module.exports.ServerListDB = class ServerListDB {
   }
 }
 
-module.exports.SessionDB = class SessionDB {
+export class SessionDB {
   constructor() {
     if (!SessionDB.instance) {
       SessionDB.instance = new Datastore({ filename: sessionDBPath, autoload: true })
@@ -227,7 +227,7 @@ module.exports.SessionDB = class SessionDB {
   }
 }
 
-module.exports.TerminalSessionDB = class TerminalSessionDB {
+export class TerminalSessionDB {
   constructor() {
     if (!TerminalSessionDB.instance) {
       TerminalSessionDB.instance = new Datastore({ filename: terminalSessionDBPath, autoload: true })

@@ -1,9 +1,11 @@
-const path = require('path')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
-const { randomStr } = require('../utils/tools')
-const { ScriptsDB } = require('../utils/db-class')
-const localShellJson = require('../config/shell.json')
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import decryptAndExecuteAsync from '../utils/decrypt-file.js'
+import { randomStr } from '../utils/tools.js'
+import { ScriptsDB } from '../utils/db-class.js'
+import localShellJson from '../config/shell.json' with { type: 'json' }
 const scriptsDB = new ScriptsDB().getInstance()
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 let localShell = JSON.parse(JSON.stringify(localShellJson)).map((item) => {
   return { ...item, id: randomStr(10), index: '--', description: item.description, group: 'builtin' }
@@ -56,7 +58,7 @@ const batchRemoveScript = async ({ res, request }) => {
 }
 
 const importScript = async ({ res, request }) => {
-  let { impScript } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+  let { impScript } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
   if (impScript) {
     await impScript({ res, request })
   } else {
@@ -64,7 +66,7 @@ const importScript = async ({ res, request }) => {
   }
 }
 
-module.exports = {
+export {
   addScript,
   getScriptList,
   getLocalScriptList,

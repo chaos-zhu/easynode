@@ -1,8 +1,12 @@
-const path = require('path')
-const { Client: SSHClient } = require('ssh2')
-const { createTerminal } = require('./terminal')
-const decryptAndExecuteAsync = require('../utils/decrypt-file')
-const { createSecureWs } = require('../utils/ws-tool')
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import ssh2Module from 'ssh2'
+const { Client: SSHClient } = ssh2Module
+import { createTerminal } from './terminal.js'
+import decryptAndExecuteAsync from '../utils/decrypt-file.js'
+import { createSecureWs } from '../utils/ws-tool.js'
+
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 let executeCommand = () => {
   return new Promise((resolve) => {
@@ -129,7 +133,7 @@ async function deleteDockerContainer(targetSSHClient, containerId) {
   }
 }
 
-module.exports = (httpServer) => {
+export default (httpServer) => {
   const serverIo = createSecureWs(httpServer, '/docker')
 
   let connectionCount = 0
@@ -144,7 +148,7 @@ module.exports = (httpServer) => {
       targetSSHClient = new SSHClient()
       let { jumpSshClients: dockerJumpSshClients } = await createTerminal(hostId, socket, targetSSHClient, false)
       jumpSshClients.push(...dockerJumpSshClients)
-      let { getDockerContainers = null, executeCommand: dockerExecuteCommand } = (await decryptAndExecuteAsync(path.join(__dirname, 'plus.js'))) || {}
+      let { getDockerContainers = null, executeCommand: dockerExecuteCommand } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
       executeCommand = dockerExecuteCommand
       if (!getDockerContainers) {
         socket.emit('docker_not_plus')
