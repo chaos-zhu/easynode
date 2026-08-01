@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 6px 18px rgba(73, 62, 185, 0.3);
   color: #fff;
   font-size: 14px;
-  cursor: grab;
+  cursor: default;
   touch-action: none;
   user-select: none;
   transition: filter 0.2s, box-shadow 0.2s;

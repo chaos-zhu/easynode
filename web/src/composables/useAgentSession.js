@@ -106,7 +106,7 @@ export function useAgentSession(config = {}) {
     state.plusRequired = {
       tool: event.tool,
       effect: event.effect,
-      message: event.message || '修改远端状态，需要激活 Plus 后使用',
+      message: event.message || '非读取操作需激活 [Plus] 使用(解锁完整AI能力)',
       activationPath: event.activationPath || '/setting?tabKey=plus'
     }
     plusRequiredRemainingMs = 10 * 1000
