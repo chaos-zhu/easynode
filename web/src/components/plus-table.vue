@@ -85,6 +85,7 @@ const plusTipsShow = ref(false)
 
 // 基础版功能列表
 const basicFeatures = [
+  'AI 助手对话与只读运维',
   '服务器管理',
   '服务器导入导出',
   '服务器分组',
@@ -92,7 +93,6 @@ const basicFeatures = [
   '脚本库',
   '批量连接',
   '批量指令',
-  'AI 助手对话与只读运维',
   '通知方式(有限制)',
 ]
 
