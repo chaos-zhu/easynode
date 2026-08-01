@@ -16,14 +16,25 @@
         class="provider_form"
       >
         <el-form-item label="Provider" prop="providerType">
-          <el-select v-model="providerForm.providerType" style="width: 260px">
-            <el-option
-              v-for="item in PROVIDERS"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
+          <div class="provider_row">
+            <el-select v-model="providerForm.providerType" style="width: 260px">
+              <el-option
+                v-for="item in PROVIDERS"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+            <el-link
+              href="https://en.221022.xyz/buy-ai-token"
+              target="_blank"
+              rel="noopener noreferrer"
+              type="primary"
+              :underline="false"
+            >
+              没有 API Key？
+            </el-link>
+          </div>
         </el-form-item>
         <el-form-item label="Base URL" prop="apiUrl">
           <div class="api_url_wrap">
@@ -425,6 +436,7 @@ onMounted(async () => {
 .provider_form { max-width: 760px; }
 
 .api_url_wrap { width: min(620px, 100%); }
+.provider_row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 
 .models_input_wrap {
   display: flex;
