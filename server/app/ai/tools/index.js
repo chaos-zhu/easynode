@@ -36,7 +36,7 @@ export function buildTools(ctx) {
     }).filter(Boolean))
   }
 
-  // 运维助手未选择主机时是纯聊天模式。不能仅在 executor 里拒绝：
+  // AI 助手未选择主机时是纯聊天模式。不能仅在 executor 里拒绝：
   // 那样模型仍可通过 host_list 枚举资产，并反复尝试越权工具调用。
   if (!hasSelectedHosts(ctx)) return {}
 

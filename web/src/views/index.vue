@@ -22,10 +22,6 @@
       class="mobile_menu_drawer global_mobile_menu"
     >
       <div class="mobile_menu_content">
-        <div class="mobile_logo_wrap">
-          <img src="/logo_v2_01.png" alt="logo">
-          <h1>EasyNode</h1>
-        </div>
         <MenuList force-expanded @select="mobileMenuVisible = false" />
         <div class="mobile_account">
           <AccountMenu
@@ -52,7 +48,7 @@
       </router-view>
     </main>
 
-    <AiEntry />
+    <AiEntry :enabled="$store.aiConfigLoaded && $store.aiConfig.ui?.petEnabled !== false" />
     <VersionUpdateDialog
       v-model="versionUpdate.visible.value"
       :current-version="versionUpdate.currentVersion.value"
@@ -152,6 +148,7 @@ onMounted(() => {
     width: 100%;
     min-height: 0;
     flex: 1;
+    padding-top: 8px;
     overflow-y: auto;
     border-right: none;
   }
@@ -198,12 +195,6 @@ onMounted(() => {
       flex-direction: column;
       padding: 0;
       overflow: hidden;
-    }
-
-    .mobile_logo_wrap {
-      flex-shrink: 0;
-      justify-content: flex-start;
-      padding: 0 20px;
     }
   }
 }

@@ -49,6 +49,16 @@
             <el-icon><Sunny v-if="isDark" /><Moon v-else /></el-icon>
           </div>
         </el-dropdown-item>
+        <el-dropdown-item :disabled="savingAIPreferences || !$store.aiConfigLoaded" @click="toggleAIEntry">
+          <div class="account_menu_item">
+            <span>{{ aiEntryEnabled ? '隐藏 AI 助手' : '显示 AI 助手' }}</span>
+            <el-icon>
+              <Loading v-if="savingAIPreferences" class="is-loading" />
+              <Hide v-else-if="aiEntryEnabled" />
+              <View v-else />
+            </el-icon>
+          </div>
+        </el-dropdown-item>
         <el-dropdown-item v-if="showCollapse" @click="$store.setMenuCollapse()">
           <div class="account_menu_item">
             <span>{{ collapsed ? '展开侧栏' : '收起侧栏' }}</span>
@@ -67,8 +77,8 @@
 </template>
 
 <script setup>
-import { computed, getCurrentInstance } from 'vue'
-import { Expand, Fold, Moon, Refresh, Sunny, SwitchButton, User } from '@element-plus/icons-vue'
+import { computed, getCurrentInstance, ref } from 'vue'
+import { Expand, Fold, Hide, Loading, Moon, Refresh, Sunny, SwitchButton, User, View } from '@element-plus/icons-vue'
 
 defineProps({
   collapsed: { type: Boolean, default: false },
@@ -84,6 +94,8 @@ const { proxy: { $router, $store, $message } } = getCurrentInstance()
 const user = computed(() => $store.user)
 const isDark = computed(() => $store.isDark)
 const isPlusActive = computed(() => $store.isPlusActive)
+const aiEntryEnabled = computed(() => $store.aiConfig.ui?.petEnabled !== false)
+const savingAIPreferences = ref(false)
 
 function toggleTheme() {
   $store.setTheme(!isDark.value)
@@ -91,6 +103,18 @@ function toggleTheme() {
 
 function gotoPlusPage() {
   $router.push('/setting?tabKey=plus')
+}
+
+async function toggleAIEntry() {
+  if (savingAIPreferences.value) return
+  savingAIPreferences.value = true
+  try {
+    await $store.setAIPreferences({ petEnabled: !aiEntryEnabled.value })
+  } catch (error) {
+    $message.error(error.message || '保存 AI 助手显示设置失败')
+  } finally {
+    savingAIPreferences.value = false
+  }
 }
 
 async function handleLogout() {

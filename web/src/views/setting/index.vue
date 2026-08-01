@@ -13,7 +13,7 @@
       <el-tab-pane label="代理服务" name="proxy">
         <Proxy />
       </el-tab-pane>
-      <el-tab-pane label="AI助手设置" name="ai-agent" lazy>
+      <el-tab-pane label="AI 助手设置" name="ai-agent" lazy>
         <AiAgent />
       </el-tab-pane>
       <el-tab-pane label="Plus激活" name="plus">

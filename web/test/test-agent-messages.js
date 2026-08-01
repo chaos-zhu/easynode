@@ -59,7 +59,8 @@ function newState() {
     aborted: false,
     error: null,
     streamWarning: null,
-    finishReason: ''
+    finishReason: '',
+    completionId: 0
   }
 }
 
@@ -235,6 +236,7 @@ expect(
     { type: 'aborted' },
   ])
   expect('中断后不再运行', state.running, false)
+  expect('中断不递增正常完成标记', state.completionId, 0)
   expect('未完成的工具收尾为失败', state.messages[0].parts[0].status, ToolStatus.ERROR)
   assert('失败原因说明是中断', /中断/.test(state.messages[0].parts[0].error))
 }
@@ -269,6 +271,7 @@ expect(
     reasoningTokens: 0
   })
   expect('finish 不覆盖会话累计量', state.usage.totalTokens, 500)
+  expect('finish 递增正常完成标记', state.completionId, 1)
 
   feed(state, [{ type: 'turn_start' },])
   expect('新一轮开始时本轮用量归零', state.turnUsage.totalTokens, 0)

@@ -1,227 +1,248 @@
 <template>
-  <el-drawer
-    v-model="visible"
-    :size="drawerSize"
-    :with-header="false"
-    :close-on-press-escape="false"
-    :modal="false"
-    :resizable="!isMobileScreen"
-    append-to-body
-    modal-class="agent_drawer_overlay"
-    direction="rtl"
-    class="agent_drawer"
-    @open="handleOpen"
-    @opened="handleOpened"
-    @mousedown="handleDrawerMouseDown"
-  >
-    <div class="agent_layout" :class="{ 'is_dark': isDark }">
-      <transition name="session_panel">
-        <SessionList
-          v-if="showSessions"
-          class="layout_side"
-          :sessions="sessions"
-          :active-id="state.sessionId"
-          clear-scope-label="运维助手"
-          @select="handleSelectSession"
-          @create="handleNewSession"
-          @remove="handleRemoveSession"
-          @clear="handleClearSessions"
-          @rename="renameSession"
+  <Teleport to="body">
+    <section
+      v-show="visible"
+      ref="windowRef"
+      class="agent_window"
+      :class="{
+        'is_dark': isDark,
+        'is_mobile': isMobileScreen,
+        'is_maximized': maximized,
+        'is_interacting': Boolean(windowInteraction)
+      }"
+      :style="windowStyle"
+      role="dialog"
+      aria-label="AI 助手"
+    >
+      <template v-if="!isMobileScreen && !maximized">
+        <i
+          v-for="direction in RESIZE_DIRECTIONS"
+          :key="direction"
+          :class="['resize_handle', `resize_${ direction }`]"
+          @pointerdown.stop.prevent="startWindowResize($event, direction)"
         />
-      </transition>
+      </template>
 
-      <div class="layout_main">
-        <header class="agent_header">
-          <el-button link :title="showSessions ? '收起历史' : '展开历史'" @click="showSessions = !showSessions">
-            <el-icon><Expand v-if="!showSessions" /><Fold v-else /></el-icon>
-          </el-button>
-
-          <span class="header_title" :title="state.title">{{ state.title || 'AI 运维助手' }}</span>
-
-          <span class="header_spacer" />
-
-          <el-tag
-            v-if="!connected"
-            type="danger"
-            size="small"
-            effect="plain"
-          >
-            未连接
-          </el-tag>
-
-          <AssistantInfoPopover
-            scope="ops"
-            :tools="options.tools"
-            :preset="settings.preset"
-            :selected-host-count="settings.hostIds.length"
-            :plus-available="options.plusAvailable"
-            :connected="connected"
+      <div class="agent_layout" :class="{ 'is_dark': isDark }">
+        <transition name="session_panel">
+          <SessionList
+            v-if="showSessions"
+            class="layout_side"
+            :sessions="sessions"
+            :active-id="state.sessionId"
+            clear-scope-label="AI 助手"
+            @select="handleSelectSession"
+            @create="handleNewSession"
+            @remove="handleRemoveSession"
+            @clear="handleClearSessions"
+            @rename="renameSession"
           />
-          <el-button
-            class="header_icon_button"
-            link
-            title="新会话"
-            @click="handleNewSession"
-          >
-            <el-icon><Plus /></el-icon>
-          </el-button>
-          <el-button
-            class="header_icon_button"
-            link
-            title="AI助手设置"
-            @click="openAgentSettings"
-          >
-            <el-icon><Setting /></el-icon>
-          </el-button>
-          <el-button
-            class="header_icon_button"
-            link
-            title="关闭"
-            @click="visible = false"
-          >
-            <el-icon><Close /></el-icon>
-          </el-button>
-        </header>
+        </transition>
 
-        <el-alert
-          v-if="connectError"
-          class="agent_alert"
-          type="error"
-          :title="connectError"
-          :closable="false"
-          show-icon
-        />
-        <el-alert
-          v-else-if="state.plusRequired"
-          class="agent_alert plus_required_alert"
-          type="warning"
-          show-icon
-          center
-          @close="dismissPlusRequired"
-          @mouseenter="pausePlusRequiredTimer"
-          @mouseleave="resumePlusRequiredTimer"
-        >
-          <template #title>
-            <span class="plus_alert_message">{{ state.plusRequired.message }}</span>
-            <el-button
-              class="plus_activation_button"
-              type="primary"
-              link
-              @click="openPlusSettings"
-            >
-              去激活
+        <div class="layout_main">
+          <header class="agent_header" @pointerdown="startWindowDrag" @dblclick="handleHeaderDoubleClick">
+            <el-button link :title="showSessions ? '收起历史' : '展开历史'" @click="showSessions = !showSessions">
+              <el-icon><Expand v-if="!showSessions" /><Fold v-else /></el-icon>
             </el-button>
-          </template>
-        </el-alert>
-        <el-alert
-          v-else-if="notice"
-          class="agent_alert"
-          type="warning"
-          :title="notice"
-          show-icon
-          @close="dismissNotice"
-        />
-        <el-alert
-          v-else-if="clampedTip"
-          class="agent_alert"
-          type="info"
-          :title="clampedTip"
-          :closable="false"
-          show-icon
-        />
 
-        <el-scrollbar ref="scrollRef" class="agent_body" @scroll="handleScroll">
-          <div ref="bodyRef" class="body_inner">
-            <div v-if="!state.messages.length" class="empty_state">
-              <el-icon class="empty_icon"><ChatDotRound /></el-icon>
-              <p class="empty_title">我可以帮你排查问题、查看状态、执行运维操作</p>
-            </div>
+            <span class="header_title" :title="state.title">
+              EasyNode · 助手<span v-if="state.title"> · {{ state.title }}</span>
+            </span>
 
-            <MessageItem
-              v-for="(message, index) in state.messages"
-              :key="message.id"
-              :message="message"
-              :running="state.running"
-              :waiting-for-model="state.waitingForModel && index === state.messages.length - 1"
-              :editable="message.role === 'user' && !state.running"
-              :editing="editingMessageId === message.id"
-              :regeneratable="message.role === 'assistant' && !state.running"
-              @start-edit="editingMessageId = message.id"
-              @cancel-edit="editingMessageId = ''"
-              @confirm-edit="handleConfirmEdit"
-              @regenerate="handleRegenerate"
-              @fork="handleFork"
+            <span class="header_spacer" />
+
+            <el-tag
+              v-if="!connected"
+              type="danger"
+              size="small"
+              effect="plain"
+            >
+              未连接
+            </el-tag>
+
+            <AssistantInfoPopover
+              scope="ops"
+              :tools="options.tools"
+              :preset="settings.preset"
+              :selected-host-count="settings.hostIds.length"
+              :plus-available="options.plusAvailable"
+              :connected="connected"
             />
+            <el-button
+              class="header_icon_button"
+              link
+              title="新会话"
+              @click="handleNewSession"
+            >
+              <el-icon><Plus /></el-icon>
+            </el-button>
+            <el-button
+              class="header_icon_button"
+              link
+              title="AI 助手设置"
+              @click="openAgentSettings"
+            >
+              <el-icon><Setting /></el-icon>
+            </el-button>
+            <el-button
+              v-if="!isMobileScreen"
+              class="header_icon_button"
+              link
+              :title="maximized ? '还原窗口' : '最大化窗口'"
+              @click="toggleMaximize"
+            >
+              <el-icon><CopyDocument v-if="maximized" /><FullScreen v-else /></el-icon>
+            </el-button>
+            <el-button
+              class="header_icon_button"
+              link
+              title="关闭"
+              @click="visible = false"
+            >
+              <el-icon><Close /></el-icon>
+            </el-button>
+          </header>
 
-            <ApprovalPrompt
-              v-for="item in state.pendingApprovals"
-              :key="item.requestId"
-              :item="item"
-              @respond="respondApproval"
-            />
-
-            <p v-if="state.error" class="turn_error">{{ state.error }}</p>
-            <p v-else-if="state.aborted" class="turn_aborted">已停止生成</p>
-          </div>
-        </el-scrollbar>
-
-        <el-button
-          v-if="!isAtBottom"
-          class="to_bottom"
-          circle
-          size="small"
-          @click="scrollToBottom"
-        >
-          <el-icon><Bottom /></el-icon>
-        </el-button>
-
-        <footer class="agent_footer">
-          <ChatSender
-            ref="senderRef"
-            v-model:value="draft"
-            :loading="state.running"
-            :placeholder="senderPlaceholder"
-            @submit="handleSend"
-            @cancel="stop"
+          <el-alert
+            v-if="connectError"
+            class="agent_alert"
+            type="error"
+            :title="connectError"
+            :closable="false"
+            show-icon
+          />
+          <el-alert
+            v-else-if="state.plusRequired"
+            class="agent_alert plus_required_alert"
+            type="warning"
+            show-icon
+            center
+            @close="dismissPlusRequired"
+            @mouseenter="pausePlusRequiredTimer"
+            @mouseleave="resumePlusRequiredTimer"
+          >
+            <template #title>
+              <span class="plus_alert_message">{{ state.plusRequired.message }}</span>
+              <el-button
+                class="plus_activation_button"
+                type="primary"
+                link
+                @click="openPlusSettings"
+              >
+                去激活
+              </el-button>
+            </template>
+          </el-alert>
+          <el-alert
+            v-else-if="notice"
+            class="agent_alert"
+            type="warning"
+            :title="notice"
+            show-icon
+            @close="dismissNotice"
+          />
+          <el-alert
+            v-else-if="clampedTip"
+            class="agent_alert"
+            type="info"
+            :title="clampedTip"
+            :closable="false"
+            show-icon
           />
 
-          <div class="footer_controls">
-            <div class="mode_control">
-              <ModeSwitcher :model-value="settings.preset" :presets="presets" @change="setPreset" />
-            </div>
+          <el-scrollbar ref="scrollRef" class="agent_body" @scroll="handleScroll">
+            <div ref="bodyRef" class="body_inner">
+              <div v-if="!state.messages.length" class="empty_state">
+                <el-icon class="empty_icon"><ChatDotRound /></el-icon>
+                <p class="empty_title">选择一台或多台主机，我可以帮你排查问题、查看状态和执行运维操作</p>
+              </div>
 
-            <el-select
-              :model-value="settings.modelId"
-              size="small"
-              class="model_select"
-              placeholder="选择模型"
-              @update:model-value="setModel"
-            >
-              <el-option
-                v-for="model in options.models"
-                :key="model"
-                :label="model"
-                :value="model"
+              <MessageItem
+                v-for="(message, index) in state.messages"
+                :key="message.id"
+                :message="message"
+                :running="state.running"
+                :waiting-for-model="state.waitingForModel && index === state.messages.length - 1"
+                :editable="message.role === 'user' && !state.running"
+                :editing="editingMessageId === message.id"
+                :regeneratable="message.role === 'assistant' && !state.running"
+                @start-edit="editingMessageId = message.id"
+                @cancel-edit="editingMessageId = ''"
+                @confirm-edit="handleConfirmEdit"
+                @regenerate="handleRegenerate"
+                @fork="handleFork"
               />
-            </el-select>
 
-            <HostSelector v-model="settings.hostIds" class="host_select" />
+              <ApprovalPrompt
+                v-for="item in state.pendingApprovals"
+                :key="item.requestId"
+                :item="item"
+                @respond="respondApproval"
+              />
 
-            <span class="footer_spacer" />
-          </div>
-        </footer>
+              <p v-if="state.error" class="turn_error">{{ state.error }}</p>
+              <p v-else-if="state.aborted" class="turn_aborted">已停止生成</p>
+            </div>
+          </el-scrollbar>
+
+          <el-button
+            v-if="!isAtBottom"
+            class="to_bottom"
+            circle
+            size="small"
+            @click="scrollToBottom"
+          >
+            <el-icon><Bottom /></el-icon>
+          </el-button>
+
+          <footer class="agent_footer">
+            <ChatSender
+              ref="senderRef"
+              v-model:value="draft"
+              :loading="state.running"
+              :placeholder="senderPlaceholder"
+              @submit="handleSend"
+              @cancel="stop"
+            />
+
+            <div class="footer_controls">
+              <div class="mode_control">
+                <ModeSwitcher :model-value="settings.preset" :presets="presets" @change="setPreset" />
+              </div>
+
+              <el-select
+                :model-value="settings.modelId"
+                size="small"
+                class="model_select"
+                placeholder="选择模型"
+                @update:model-value="setModel"
+              >
+                <el-option
+                  v-for="model in options.models"
+                  :key="model"
+                  :label="model"
+                  :value="model"
+                />
+              </el-select>
+
+              <HostSelector v-model="settings.hostIds" class="host_select" />
+
+              <span class="footer_spacer" />
+            </div>
+          </footer>
+        </div>
       </div>
-    </div>
-  </el-drawer>
+    </section>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, getCurrentInstance, watch } from 'vue'
 import { setCustomComponents } from 'markstream-vue'
 import 'markstream-vue/index.css'
 import 'highlight.js/styles/github-dark.css'
 import {
-  Plus, Close, Setting, Expand, Fold, ChatDotRound, Bottom
+  Plus, Close, Setting, Expand, Fold, ChatDotRound, Bottom, CopyDocument, FullScreen
 } from '@element-plus/icons-vue'
 import CustomCodeBlock from './custom-code-block.vue'
 import { EventBus } from '@/utils'
@@ -240,6 +261,7 @@ import { PRESET_FALLBACK } from './presets'
 const { proxy: { $api, $message, $store, $router } } = getCurrentInstance()
 
 const visible = defineModel('show', { type: Boolean, default: false })
+const emit = defineEmits(['status-change',])
 
 const {
   connected,
@@ -279,15 +301,41 @@ let autoFollow = true
 let bodyResizeObserver = null
 const dismissedNotice = ref('')
 const editingMessageId = ref('')
-const DRAWER_WIDTH_KEY = 'agentDrawerWidth'
-const MIN_DRAWER_WIDTH = 300
-const DEFAULT_DRAWER_WIDTH = 350
-const savedDrawerWidth = ref(readSavedDrawerWidth())
+const windowRef = ref(null)
+const maximized = ref(false)
+const windowInteraction = ref(null)
+const WINDOW_GEOMETRY_KEY = 'agentWindowGeometry'
+const LEGACY_DRAWER_WIDTH_KEY = 'agentDrawerWidth'
+const WINDOW_EDGE_GAP = 12
+const DEFAULT_WINDOW_WIDTH = 420
+const DEFAULT_WINDOW_HEIGHT = 680
+const MIN_WINDOW_WIDTH = 360
+const MIN_WINDOW_HEIGHT = 480
+const RESIZE_DIRECTIONS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw',]
+const windowGeometry = reactive({
+  x: WINDOW_EDGE_GAP,
+  y: WINDOW_EDGE_GAP,
+  width: DEFAULT_WINDOW_WIDTH,
+  height: DEFAULT_WINDOW_HEIGHT
+})
 
 const isDark = computed(() => $store.isDark)
-const drawerSize = computed(() => {
-  if (isMobileScreen.value) return '100%'
-  return `${ savedDrawerWidth.value || DEFAULT_DRAWER_WIDTH }px`
+const windowStyle = computed(() => {
+  if (isMobileScreen.value) return {}
+  if (maximized.value) {
+    return {
+      left: `${ WINDOW_EDGE_GAP }px`,
+      top: `${ WINDOW_EDGE_GAP }px`,
+      width: `calc(100vw - ${ WINDOW_EDGE_GAP * 2 }px)`,
+      height: `calc(100vh - ${ WINDOW_EDGE_GAP * 2 }px)`
+    }
+  }
+  return {
+    left: `${ windowGeometry.x }px`,
+    top: `${ windowGeometry.y }px`,
+    width: `${ windowGeometry.width }px`,
+    height: `${ windowGeometry.height }px`
+  }
 })
 const senderPlaceholder = computed(() => (settings.hostIds.length
   ? '输入任务或者问题，Enter 发送'
@@ -317,7 +365,7 @@ function handleOpen() {
 
 function handleOpened() {
   focusSender()
-  if (!bodyResizeObserver) {
+  if (!bodyResizeObserver && bodyRef.value) {
     bodyResizeObserver = new ResizeObserver(() => {
       if (autoFollow) scrollToBottom()
     })
@@ -326,25 +374,154 @@ function handleOpened() {
   scrollToBottom()
 }
 
-function readSavedDrawerWidth() {
-  const width = Number(localStorage.getItem(DRAWER_WIDTH_KEY))
-  return Number.isFinite(width) && width > 0 ? Math.max(MIN_DRAWER_WIDTH, Math.round(width)) : 0
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
 }
 
-function handleDrawerMouseDown(event) {
-  if (isMobileScreen.value || !event.target?.closest?.('.el-drawer__dragger')) return
-  window.removeEventListener('mouseup', rememberDrawerWidth)
-  window.addEventListener('mouseup', rememberDrawerWidth, { once: true })
+function normalizeWindowGeometry(input = {}) {
+  const maxWidth = Math.max(1, window.innerWidth - WINDOW_EDGE_GAP * 2)
+  const maxHeight = Math.max(1, window.innerHeight - WINDOW_EDGE_GAP * 2)
+  const minWidth = Math.min(MIN_WINDOW_WIDTH, maxWidth)
+  const minHeight = Math.min(MIN_WINDOW_HEIGHT, maxHeight)
+  const width = Math.round(clamp(Number(input.width) || DEFAULT_WINDOW_WIDTH, minWidth, maxWidth))
+  const height = Math.round(clamp(Number(input.height) || DEFAULT_WINDOW_HEIGHT, minHeight, maxHeight))
+  const maxX = Math.max(WINDOW_EDGE_GAP, window.innerWidth - width - WINDOW_EDGE_GAP)
+  const maxY = Math.max(WINDOW_EDGE_GAP, window.innerHeight - height - WINDOW_EDGE_GAP)
+  return {
+    x: Math.round(clamp(Number(input.x) || WINDOW_EDGE_GAP, WINDOW_EDGE_GAP, maxX)),
+    y: Math.round(clamp(Number(input.y) || WINDOW_EDGE_GAP, WINDOW_EDGE_GAP, maxY)),
+    width,
+    height
+  }
 }
 
-function rememberDrawerWidth() {
-  requestAnimationFrame(() => {
-    const drawer = document.querySelector('.agent_drawer.el-drawer')
-    if (!drawer) return
-    const width = Math.max(MIN_DRAWER_WIDTH, Math.round(drawer.getBoundingClientRect().width))
-    savedDrawerWidth.value = width
-    localStorage.setItem(DRAWER_WIDTH_KEY, String(width))
+function applyWindowGeometry(input) {
+  Object.assign(windowGeometry, normalizeWindowGeometry(input))
+}
+
+function saveWindowGeometry() {
+  localStorage.setItem(WINDOW_GEOMETRY_KEY, JSON.stringify({ ...windowGeometry }))
+}
+
+function restoreWindowGeometry() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(WINDOW_GEOMETRY_KEY) || 'null')
+    if (saved && ['x', 'y', 'width', 'height',].every((key) => Number.isFinite(Number(saved[key])))) {
+      applyWindowGeometry(saved)
+      return
+    }
+  } catch (error) {
+    console.warn('读取 AI 助手窗口位置失败:', error.message)
+  }
+
+  const legacyWidth = Number(localStorage.getItem(LEGACY_DRAWER_WIDTH_KEY))
+  const width = Number.isFinite(legacyWidth) && legacyWidth > 0 ? legacyWidth : DEFAULT_WINDOW_WIDTH
+  const initial = normalizeWindowGeometry({ width, height: DEFAULT_WINDOW_HEIGHT })
+  applyWindowGeometry({
+    ...initial,
+    x: window.innerWidth - initial.width - 24,
+    y: 24
   })
+}
+
+function addWindowInteractionListeners() {
+  window.addEventListener('pointermove', handleWindowInteractionMove)
+  window.addEventListener('pointerup', finishWindowInteraction)
+  window.addEventListener('pointercancel', finishWindowInteraction)
+}
+
+function removeWindowInteractionListeners() {
+  window.removeEventListener('pointermove', handleWindowInteractionMove)
+  window.removeEventListener('pointerup', finishWindowInteraction)
+  window.removeEventListener('pointercancel', finishWindowInteraction)
+}
+
+function startWindowDrag(event) {
+  if (event.button !== 0 || isMobileScreen.value || maximized.value) return
+  if (event.target?.closest?.('button, a, input, textarea, select, [role="button"], .el-select')) return
+  windowInteraction.value = {
+    type: 'move',
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    geometry: { ...windowGeometry }
+  }
+  addWindowInteractionListeners()
+  event.preventDefault()
+}
+
+function startWindowResize(event, direction) {
+  if (event.button !== 0 || isMobileScreen.value || maximized.value) return
+  windowInteraction.value = {
+    type: 'resize',
+    direction,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    geometry: { ...windowGeometry }
+  }
+  addWindowInteractionListeners()
+}
+
+function resizeGeometry(interaction, deltaX, deltaY) {
+  const { direction, geometry } = interaction
+  const next = { ...geometry }
+  if (direction.includes('e')) next.width = geometry.width + deltaX
+  if (direction.includes('s')) next.height = geometry.height + deltaY
+  if (direction.includes('w')) {
+    next.width = geometry.width - deltaX
+    next.x = geometry.x + deltaX
+  }
+  if (direction.includes('n')) {
+    next.height = geometry.height - deltaY
+    next.y = geometry.y + deltaY
+  }
+
+  const normalized = normalizeWindowGeometry(next)
+  if (direction.includes('w')) normalized.x = geometry.x + geometry.width - normalized.width
+  if (direction.includes('n')) normalized.y = geometry.y + geometry.height - normalized.height
+  return normalizeWindowGeometry(normalized)
+}
+
+function handleWindowInteractionMove(event) {
+  const interaction = windowInteraction.value
+  if (!interaction || interaction.pointerId !== event.pointerId) return
+  const deltaX = event.clientX - interaction.startX
+  const deltaY = event.clientY - interaction.startY
+  if (interaction.type === 'move') {
+    applyWindowGeometry({
+      ...interaction.geometry,
+      x: interaction.geometry.x + deltaX,
+      y: interaction.geometry.y + deltaY
+    })
+  } else {
+    applyWindowGeometry(resizeGeometry(interaction, deltaX, deltaY))
+  }
+}
+
+function finishWindowInteraction(event) {
+  const interaction = windowInteraction.value
+  if (!interaction || interaction.pointerId !== event.pointerId) return
+  windowInteraction.value = null
+  removeWindowInteractionListeners()
+  saveWindowGeometry()
+}
+
+function toggleMaximize() {
+  if (isMobileScreen.value) return
+  maximized.value = !maximized.value
+  if (!maximized.value) nextTick(() => applyWindowGeometry(windowGeometry))
+}
+
+function handleHeaderDoubleClick(event) {
+  if (event.target?.closest?.('button, a, input, [role="button"]')) return
+  toggleMaximize()
+}
+
+function handleViewportResize() {
+  if (isMobileScreen.value || maximized.value) return
+  applyWindowGeometry(windowGeometry)
+  saveWindowGeometry()
 }
 
 function openAgentSettings() {
@@ -355,7 +532,6 @@ function openPlusSettings() {
   $router.push(state.plusRequired?.activationPath || '/setting?tabKey=plus')
 }
 
-// Drawer 的 focus trap 会在打开期间接管焦点；等 opened 后再聚焦输入框。
 function focusSender() {
   nextTick(() => {
     requestAnimationFrame(() => senderRef.value?.focus())
@@ -372,14 +548,34 @@ function handleExternalInput(text) {
 
 EventBus.$on('sendToAIInput', handleExternalInput)
 
+watch(visible, async (show) => {
+  if (!show) return
+  handleOpen()
+  await nextTick()
+  handleOpened()
+})
+
+watch([() => state.running, connectError, () => state.completionId,], ([running, error, completionId,]) => {
+  emit('status-change', { running, connectError: error || '', completionId })
+}, { immediate: true })
+
+watch(isMobileScreen, (mobile) => {
+  if (mobile) maximized.value = false
+  else nextTick(() => applyWindowGeometry(windowGeometry))
+})
+
 onMounted(() => {
+  restoreWindowGeometry()
+  window.addEventListener('resize', handleViewportResize)
   // 让 markdown 里的代码块带上「复制 / 在终端执行」按钮。
   // custom-id 要与 message-item.vue 里传给 MarkdownRender 的一致。
   setCustomComponents('agent', { code_block: CustomCodeBlock })
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('mouseup', rememberDrawerWidth)
+  EventBus.$off('sendToAIInput', handleExternalInput)
+  window.removeEventListener('resize', handleViewportResize)
+  removeWindowInteractionListeners()
   bodyResizeObserver?.disconnect()
 })
 
@@ -500,7 +696,7 @@ async function handleClearSessions() {
   try {
     await clearSessions()
     showSessions.value = false
-    $message.success('已清空运维助手历史会话')
+    $message.success('已清空 AI 助手历史会话')
   } catch (error) {
     $message.error(`清空失败: ${ error.message }`)
   }
@@ -525,10 +721,94 @@ function handleScroll({ scrollTop }) {
 </script>
 
 <style lang="scss" scoped>
+.agent_window {
+  position: fixed;
+  z-index: 1900;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color);
+  border-radius: 12px;
+  background-color: var(--el-bg-color);
+  box-shadow: 0 18px 48px rgba(16, 24, 40, 0.24);
+
+  &.is_interacting {
+    user-select: none;
+  }
+
+  &.is_dark {
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.55);
+  }
+
+  &.is_mobile {
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    border: 0;
+    border-radius: 0;
+
+    .agent_header {
+      height: calc(44px + env(safe-area-inset-top));
+      padding-top: calc(8px + env(safe-area-inset-top));
+      cursor: default;
+    }
+
+    .agent_footer {
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+
+    .layout_side {
+      top: calc(44px + env(safe-area-inset-top));
+      height: calc(100% - 44px - env(safe-area-inset-top));
+    }
+  }
+}
+
+.resize_handle {
+  position: absolute;
+  z-index: 10;
+  display: block;
+  touch-action: none;
+
+  &.resize_n,
+  &.resize_s {
+    left: 10px;
+    right: 10px;
+    height: 7px;
+    cursor: ns-resize;
+  }
+
+  &.resize_e,
+  &.resize_w {
+    top: 10px;
+    bottom: 10px;
+    width: 7px;
+    cursor: ew-resize;
+  }
+
+  &.resize_n { top: 0; }
+  &.resize_s { bottom: 0; }
+  &.resize_e { right: 0; }
+  &.resize_w { left: 0; }
+
+  &.resize_ne,
+  &.resize_nw,
+  &.resize_se,
+  &.resize_sw {
+    width: 12px;
+    height: 12px;
+  }
+
+  &.resize_ne { top: 0; right: 0; cursor: nesw-resize; }
+  &.resize_nw { top: 0; left: 0; cursor: nwse-resize; }
+  &.resize_se { right: 0; bottom: 0; cursor: nwse-resize; }
+  &.resize_sw { bottom: 0; left: 0; cursor: nesw-resize; }
+}
+
 .agent_layout {
   position: relative;
   height: 100%;
   overflow: hidden;
+  background-color: var(--el-bg-color);
 
   .layout_side {
     position: absolute;
@@ -558,6 +838,7 @@ function handleScroll({ scrollTop }) {
     gap: 6px;
     padding: 8px 10px;
     border-bottom: 1px solid #e4e7ed;
+    cursor: move;
 
     .header_title {
       font-size: 14px;
@@ -752,37 +1033,5 @@ function handleScroll({ scrollTop }) {
 .session_panel-leave-to {
   opacity: 0;
   transform: translateX(-12px);
-}
-</style>
-
-<style lang="scss">
-.agent_drawer {
-  &.el-drawer {
-    // AI 面板挂在 sticky 顶栏中时，Element Plus 的进入过渡会叠加一次布局
-    // 重算，表现为右侧滑入后回弹。移到 body 后禁用这条默认过渡。
-    max-width: 100vw;
-    transition: none !important;
-  }
-
-  .el-drawer__body {
-    padding: 0;
-    overflow: hidden;
-  }
-}
-
-@media (min-width: 968px) {
-  .agent_drawer.el-drawer {
-    min-width: 350px;
-  }
-}
-
-// modal=false 下 Element Plus 仍会渲染一个全屏容器。让其穿透，
-// 仅保留抽屉本身接收点击，背景页面即可继续操作。
-.agent_drawer_overlay {
-  pointer-events: none;
-
-  .agent_drawer {
-    pointer-events: auto;
-  }
 }
 </style>

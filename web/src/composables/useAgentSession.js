@@ -41,6 +41,7 @@ export function useAgentSession(config = {}) {
     availableTools: [],
     waitingForModel: false,
     stopping: false,
+    completionId: 0,
     terminalCancelWarning: '',
     plusRequired: null
   })

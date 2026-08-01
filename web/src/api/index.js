@@ -166,6 +166,9 @@ export default {
   saveAIConfig(data) {
     return axios({ url: '/ai-config', method: 'post', data })
   },
+  updateAIPreferences(data) {
+    return axios({ url: '/ai-config/preferences', method: 'patch', data })
+  },
   getAIModels(data) {
     return axios({ url: '/ai-models', method: 'post', data })
   },

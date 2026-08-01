@@ -11,7 +11,9 @@
       <el-button link title="历史会话" @click="showSessions = !showSessions">
         <el-icon><Expand v-if="!showSessions" /><Fold v-else /></el-icon>
       </el-button>
-      <span class="chat_title" :title="host.name">{{ state.title || `${ host.name } AI 助手` }}</span>
+      <span class="chat_title" :title="state.title">
+        终端助手 · {{ host.name }}<template v-if="state.title"> · {{ state.title }}</template>
+      </span>
       <span class="header_spacer" />
       <el-tag
         v-if="!connected"
@@ -41,7 +43,7 @@
       <el-button
         class="header_icon_button"
         link
-        title="AI助手设置"
+        title="AI 助手设置"
         @click="openAgentSettings"
       >
         <el-icon><Setting /></el-icon>
@@ -89,7 +91,14 @@
     >
       <template #title>
         <span class="plus_alert_message">{{ state.plusRequired.message }}</span>
-        <el-button class="plus_activation_button" type="primary" link @click="openPlusSettings">去激活</el-button>
+        <el-button
+          class="plus_activation_button"
+          type="primary"
+          link
+          @click="openPlusSettings"
+        >
+          去激活
+        </el-button>
       </template>
     </el-alert>
     <el-alert
@@ -104,7 +113,7 @@
       <div ref="bodyRef" class="body_inner">
         <div v-if="!state.messages.length" class="empty_state">
           <el-icon class="empty_icon"><ChatDotRound /></el-icon>
-          <p>{{ host.name }} 的终端 AI 助手</p>
+          <p>终端助手仅绑定 {{ host.name }} 的当前终端和会话环境</p>
           <span>AI 命令会在当前终端执行，并自动读取本次输出</span>
         </div>
 

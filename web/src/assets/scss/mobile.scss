@@ -5,23 +5,6 @@
 
 .mobile_menu_drawer {
   width: 82% !important;
-  .mobile_logo_wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 15px;
-    img {
-      width: 30px;
-    }
-    h1 {
-      font-size: 14px;
-      margin-left: 3px;
-      // color: #ffc021;
-      background: linear-gradient(to right, #ffc021, #e4d1a1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-  }
   .el-drawer__body {
     padding: 0;
   }

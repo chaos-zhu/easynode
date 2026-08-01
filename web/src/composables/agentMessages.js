@@ -225,6 +225,7 @@ export function applyEvent(state, event) {
       state.running = false
       state.waitingForModel = false
       state.finishReason = event.finishReason
+      state.completionId = (state.completionId || 0) + 1
       // 用 totalUsage 校正本轮估算；会话累计量由 session_saved 从库里带回，
       // 那才是权威值
       if (event.usage) {

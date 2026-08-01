@@ -8,7 +8,7 @@ import { getScriptList, getLocalScriptList, addScript, updateScriptList, removeS
 import { getScriptGroupList, addScriptGroup, removeScriptGroup, updateScriptGroup } from '../controller/script-group.js'
 import { getOnekeyRecord, removeOnekeyRecord } from '../controller/onekey.js'
 import { getLog, saveIpWhiteList, removeSomeLoginRecords, revokeLoginSid } from '../controller/sessionLog.js'
-import { getAIConfig, saveAIConfig, getAIModels } from '../controller/chat.js'
+import { getAIConfig, saveAIConfig, getAIModels, updateAIPreferences } from '../controller/chat.js'
 import { getAgentSessions, getAgentSessionDetail, updateAgentSession, forkAgentSession, removeAgentSession, clearAgentSessions, editAgentSessionMessage } from '../controller/agent-session.js'
 import { getProxyList, addProxy, updateProxy, removeProxy } from '../controller/proxy.js'
 import { getTerminalConfig, saveTerminalConfig } from '../controller/terminal-config.js'
@@ -315,6 +315,11 @@ const aiConfig = [
     method: 'post',
     path: '/ai-config',
     controller: saveAIConfig
+  },
+  {
+    method: 'patch',
+    path: '/ai-config/preferences',
+    controller: updateAIPreferences
   },
   {
     method: 'post',

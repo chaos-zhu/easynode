@@ -223,7 +223,7 @@ export async function getSession(id) {
 /** 列表只返回摘要，不带 messages —— 历史可能有几百 KB */
 export async function listSessions(filter = {}) {
   const query = {}
-  // 旧会话创建时尚无 scope 字段，视为运维助手会话，不能因升级被历史列表隐藏。
+  // 旧会话创建时尚无 scope 字段，视为全局 AI 助手会话，不能因升级被历史列表隐藏。
   if (filter.scope === 'terminal') query.scope = 'terminal'
   if (filter.scope === 'ops') query.$or = [{ scope: 'ops' }, { scope: { $exists: false } }]
   if (filter.hostId) query.hostId = filter.hostId
@@ -376,7 +376,7 @@ export async function removeSessions(filter = {}) {
     query.scope = 'terminal'
     query.hostId = filter.hostId
   } else if (filter.scope === 'ops') {
-    // 兼容升级前未写入 scope 的运维助手历史。
+    // 兼容升级前未写入 scope 的全局 AI 助手历史。
     query.$or = [{ scope: 'ops' }, { scope: { $exists: false } }]
   } else {
     throw new Error('无效的会话范围')

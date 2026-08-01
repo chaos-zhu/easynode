@@ -76,7 +76,8 @@ const useStore = defineStore('global', {
     },
     plusInfo: {},
     isPlusActive: false,
-    aiConfig: {}
+    aiConfig: { ui: { petEnabled: true } },
+    aiConfigLoaded: false
   }),
   actions: {
     async setJwtToken(token) {
@@ -104,6 +105,7 @@ const useStore = defineStore('global', {
       }
     },
     async getMainData() {
+      await this.getAIConfig()
       await this.getGroupList()
       await this.getHostList()
       await this.getSSHList()
@@ -113,7 +115,6 @@ const useStore = defineStore('global', {
       await this.getProxyList()
       await this.getTerminalConfig() // 添加终端配置获取
       await this.getServerListConfig() // 添加服务器列表配置获取
-      this.getAIConfig()
     },
     async getHostList() {
       let { data: newHostList } = await $api.getHostList()
@@ -126,8 +127,37 @@ const useStore = defineStore('global', {
       this.$patch({ hostList: newHostList })
     },
     async getAIConfig() {
-      const { data: aiConfig } = await $api.getAIConfig()
-      this.$patch({ aiConfig })
+      try {
+        const { data: aiConfig = {} } = await $api.getAIConfig()
+        this.$patch({
+          aiConfig: {
+            ...aiConfig,
+            ui: {
+              ...(aiConfig.ui || {}),
+              petEnabled: aiConfig.ui?.petEnabled !== false
+            }
+          }
+        })
+      } catch (error) {
+        console.warn('获取 AI 配置失败:', error.message)
+        this.$patch({ aiConfig: { ...this.aiConfig, ui: { ...this.aiConfig.ui, petEnabled: true } } })
+      } finally {
+        this.$patch({ aiConfigLoaded: true })
+      }
+    },
+    async setAIPreferences(preferences = {}) {
+      const nextPreferences = {
+        ...this.aiConfig.ui,
+        ...preferences
+      }
+      const { data = {} } = await $api.updateAIPreferences(nextPreferences)
+      this.$patch({
+        aiConfig: {
+          ...this.aiConfig,
+          ui: { ...nextPreferences, ...data }
+        }
+      })
+      return this.aiConfig.ui
     },
     async getGroupList() {
       const { data: groupList } = await $api.getGroupList()

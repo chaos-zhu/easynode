@@ -113,7 +113,7 @@ export function renderTranscript(messages = []) {
   return lines.join('\n')
 }
 
-const SUMMARY_PROMPT = `你在为一个 Linux 服务器运维助手压缩对话历史。请把下面的笔录浓缩成一段结构化摘要，供助手继续工作时参考。
+const SUMMARY_PROMPT = `你在为一个 Linux 服务器 AI 助手压缩对话历史。请把下面的笔录浓缩成一段结构化摘要，供助手继续工作时参考。
 
 必须保留：
 1. **已执行的操作** —— 在哪台主机上做了什么，结果成功还是失败

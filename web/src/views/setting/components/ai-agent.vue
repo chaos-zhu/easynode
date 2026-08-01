@@ -4,7 +4,7 @@
       <div class="section_head">
         <div>
           <h3>Provider 设置</h3>
-          <p>配置 AI 助手使用的模型服务，保存后运维助手和终端助手共用此配置。</p>
+          <p>配置 AI 助手使用的模型服务，保存后 AI 助手和终端助手共用此配置。</p>
         </div>
       </div>
 
@@ -106,6 +106,23 @@
       </el-form>
     </section>
 
+    <section class="settings_section">
+      <div class="section_head interface_setting_head">
+        <div>
+          <h3>界面设置</h3>
+          <p>控制登录后各页面是否显示 AI 助手宠物入口，不影响终端AI助手。</p>
+        </div>
+        <div class="interface_switch">
+          <el-switch
+            :model-value="petEnabled"
+            :loading="savingPreferences"
+            @change="savePetEnabled"
+          />
+          <span :class="{ 'is_active': petEnabled }">显示 AI 助手</span>
+        </div>
+      </div>
+    </section>
+
     <section class="settings_section host_policy_section">
       <div class="section_head">
         <div>
@@ -202,10 +219,12 @@ const DEFAULT_MAX_STEPS = 25
 const providerFormRef = ref(null)
 const fetchingModels = ref(false)
 const savingProvider = ref(false)
+const savingPreferences = ref(false)
 const savingHostId = ref('')
 const providerForm = ref(createProviderForm())
 const availableModels = ref([])
 const hostPolicies = ref([])
+const petEnabled = computed(() => $store.aiConfig.ui?.petEnabled !== false)
 
 const providerRules = {
   apiUrl: [
@@ -320,6 +339,18 @@ async function saveProvider() {
   }
 }
 
+async function savePetEnabled(value) {
+  savingPreferences.value = true
+  try {
+    await $store.setAIPreferences({ petEnabled: value })
+    $message.success(value ? '已显示 AI 助手' : '已隐藏 AI 助手')
+  } catch (error) {
+    $message.error(error.message || '保存 AI 助手显示设置失败')
+  } finally {
+    savingPreferences.value = false
+  }
+}
+
 async function saveHostPolicy(row) {
   savingHostId.value = row.id
   try {
@@ -366,6 +397,31 @@ onMounted(async () => {
   p { margin: 0; color: var(--el-text-color-secondary); font-size: 13px; line-height: 1.6; }
 }
 
+.interface_setting_head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 0;
+}
+
+.interface_switch {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 10px;
+  line-height: 1;
+
+  span {
+    color: var(--el-text-color-secondary);
+    font-size: 14px;
+
+    &.is_active {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
 .provider_form { max-width: 760px; }
 
 .api_url_wrap { width: min(620px, 100%); }
@@ -394,5 +450,6 @@ onMounted(async () => {
   .host_policy_section { overflow-x: auto; }
   .host_policy_table { min-width: 760px; }
   .models_input_wrap { align-items: flex-start; flex-direction: column; }
+  .interface_setting_head { align-items: flex-start; flex-direction: column; }
 }
 </style>

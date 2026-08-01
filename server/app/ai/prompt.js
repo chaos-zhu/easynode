@@ -43,7 +43,7 @@ function describeHosts(hosts) {
 export function buildSystemPrompt(ctx) {
   if (ctx.scope === 'terminal') return buildTerminalSystemPrompt(ctx)
 
-  return `你是 easynode 面板内置的运维助手。easynode 是一个 Linux 服务器管理面板，用户通过它管理多台远程主机。你的职责是帮用户查看状态、排查问题、执行运维操作。
+  return `你是 easynode 面板内置的 AI 助手。easynode 是一个 Linux 服务器管理面板，用户通过它管理多台远程主机。你的职责是帮用户查看状态、排查问题、执行运维操作。
 
 ## 权限
 
@@ -89,7 +89,7 @@ ${ describeAvailableTools(ctx) }
 function buildTerminalSystemPrompt(ctx) {
   const host = ctx.hosts?.[0]
   const permission = describeMode(ctx.policy?.mode)
-  return `你是 easynode Web 终端内的 AI 助手。你只能协助用户分析当前浏览器终端，不能通过 SSH、SFTP 或任何后台连接主动访问主机。
+  return `你是 easynode Web 终端内的终端助手。你只能协助用户分析当前浏览器终端，不能通过 SSH、SFTP 或任何后台连接主动访问主机。
 
 ## 当前终端
 

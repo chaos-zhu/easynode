@@ -63,7 +63,7 @@ const props = defineProps({
 import useStore from '@/store'
 const $store = useStore()
 const isDark = computed(() => $store.isDark)
-// 运维助手的代码块没有执行入口；只有绑定到某个 Web 终端的 AI 对话才允许。
+// 全局 AI 助手的代码块没有执行入口；只有绑定到某个 Web 终端的 AI 对话才允许。
 const canExecute = computed(() => props.customId.startsWith('terminal-agent-'))
 
 // 获取语言标签

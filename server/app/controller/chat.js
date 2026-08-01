@@ -6,6 +6,7 @@
  */
 
 import { AIConfigDB } from '../utils/db-class.js'
+import { mergeAIProviderConfig, mergeAIPreferences, normalizeAIConfig } from '../ai/config.js'
 import { deriveBaseURL } from '../ai/provider.js'
 
 const aiConfigDB = new AIConfigDB().getInstance()
@@ -14,8 +15,7 @@ const MODEL_DISCOVERY_TIMEOUT_MS = 15 * 1000
 async function getAIConfig({ res }) {
   try {
     const config = await aiConfigDB.findOneAsync({})
-    if (!config) return res.success({ data: {} })
-    res.success({ data: config })
+    res.success({ data: normalizeAIConfig(config) })
   } catch {
     res.fail({ msg: '获取配置失败' })
   }
@@ -60,10 +60,11 @@ async function saveAIConfig({ res, request }) {
   }
   try {
     const existConfig = await aiConfigDB.findOneAsync({})
+    const nextConfig = mergeAIProviderConfig(existConfig, body)
     if (existConfig) {
-      await aiConfigDB.updateAsync({ _id: existConfig._id }, body)
+      await aiConfigDB.updateAsync({ _id: existConfig._id }, nextConfig)
     } else {
-      await aiConfigDB.insertAsync(body)
+      await aiConfigDB.insertAsync(nextConfig)
     }
     res.success({ msg: 'save success', data: { success: true } })
   } catch {
@@ -71,8 +72,27 @@ async function saveAIConfig({ res, request }) {
   }
 }
 
+async function updateAIPreferences({ res, request }) {
+  const { petEnabled } = request.body || {}
+  if (typeof petEnabled !== 'boolean') return res.fail({ msg: 'param error' })
+
+  try {
+    const existConfig = await aiConfigDB.findOneAsync({})
+    const ui = mergeAIPreferences(existConfig, { petEnabled })
+    if (existConfig) {
+      await aiConfigDB.updateAsync({ _id: existConfig._id }, { $set: { ui } })
+    } else {
+      await aiConfigDB.insertAsync({ ui })
+    }
+    res.success({ msg: 'save success', data: { petEnabled } })
+  } catch {
+    res.fail({ msg: 'save AI preferences failed', data: { success: false } })
+  }
+}
+
 export {
   getAIConfig,
   saveAIConfig,
-  getAIModels
+  getAIModels,
+  updateAIPreferences
 }

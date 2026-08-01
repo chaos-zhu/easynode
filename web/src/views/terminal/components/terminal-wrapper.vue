@@ -209,7 +209,7 @@
         <el-tooltip
           v-if="isSingleWindowMode"
           effect="dark"
-          content="终端AI助手"
+          content="终端助手 · 当前终端"
           placement="bottom"
         >
           <el-button link class="single_window_ai_button" @click="changeTerminalAi">
@@ -299,7 +299,7 @@
               </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': showTerminalAi }]">
-              <span title="终端AI助手" @click="changeTerminalAi">
+              <span title="终端助手 · 当前终端" @click="changeTerminalAi">
                 <el-icon class="icon"><ChatDotRound /></el-icon>
               </span>
             </div>

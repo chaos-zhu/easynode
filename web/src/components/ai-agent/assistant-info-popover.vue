@@ -21,11 +21,11 @@
       <h3>助手类型</h3>
       <div class="assistant_comparison">
         <section :class="{ 'is_current': scope === 'ops' }">
-          <strong>运维助手</strong>
+          <strong>EasyNode · 助手</strong>
           <p>面向所选的一台或多台主机，通过独立 SSH / SFTP 查询状态、执行脚本和读写文件，不共享 Web 终端的当前目录与环境。</p>
         </section>
         <section :class="{ 'is_current': scope === 'terminal' }">
-          <strong>终端助手</strong>
+          <strong>终端助手 · 当前终端</strong>
           <p>仅绑定当前终端和单台主机，命令会写入当前 PTY，继承当前目录、环境变量及会话状态。</p>
         </section>
       </div>
