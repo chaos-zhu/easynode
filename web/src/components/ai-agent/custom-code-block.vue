@@ -12,8 +12,9 @@
           复制
         </span>
         <span
+          v-if="canExecute"
           class="code_action_btn code_exec_btn"
-          title="在终端执行"
+          title="发送到当前终端执行"
           @click="handleExec"
         >
           执行
@@ -22,6 +23,7 @@
     </div>
     <!-- 代码内容 -->
     <div class="code_block_content">
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <pre><code :class="languageClass" v-html="highlightedCode" /></pre>
     </div>
   </div>
@@ -29,10 +31,10 @@
 
 <script setup>
 import { computed } from 'vue'
-import { EventBus } from '@/utils'
 import { ElMessage } from 'element-plus'
 import hljs from 'highlight.js'
 import clipboard from '@/utils/clipboard'
+import { EventBus } from '@/utils'
 
 const props = defineProps({
   node: {
@@ -61,6 +63,8 @@ const props = defineProps({
 import useStore from '@/store'
 const $store = useStore()
 const isDark = computed(() => $store.isDark)
+// 运维助手的代码块没有执行入口；只有绑定到某个 Web 终端的 AI 对话才允许。
+const canExecute = computed(() => props.customId.startsWith('terminal-agent-'))
 
 // 获取语言标签
 const languageLabel = computed(() => {
@@ -98,7 +102,7 @@ const highlightedCode = computed(() => {
       return hljs.highlight(code, { language: lang }).value
     }
     return hljs.highlightAuto(code).value
-  } catch (e) {
+  } catch {
     // 如果高亮失败，返回转义后的原始代码
     return escapeHtml(code)
   }
@@ -110,16 +114,13 @@ const handleCopy = () => {
   clipboard.copy(code)
 }
 
-// 处理执行
 const handleExec = () => {
-  const code = (props.node?.code || props.node?.value || '').trim()
-  if (!code) {
-    ElMessage.warning('代码内容为空')
-    return
-  }
-  // 通过 EventBus 发送执行命令
-  EventBus.$emit('exec_external_command', code)
+  const command = String(props.node?.code || props.node?.value || '').trim()
+  if (!command) return ElMessage.warning('代码内容为空')
+  // 通过唯一 channel 回到对应的终端 AI 面板，避免多个终端 tab 同时执行。
+  EventBus.$emit('terminal_ai_execute_code', { channel: props.customId, command })
 }
+
 </script>
 
 <style lang="scss" scoped>

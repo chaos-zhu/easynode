@@ -169,14 +169,30 @@ export default {
   getAIModels(data) {
     return axios({ url: '/ai-models', method: 'post', data })
   },
-  getChatHistory() {
-    return axios({ url: '/chat-history', method: 'get' })
+  getAgentSessions(params) {
+    return axios({ url: '/agent-sessions', method: 'get', params })
   },
-  saveChatHistory(data) {
-    return axios({ url: '/chat-history', method: 'post', data })
+  getAgentSessionDetail(id) {
+    return axios({ url: `/agent-sessions/${ id }`, method: 'get' })
   },
-  removeChatHistory(chatId) {
-    return axios({ url: `/chat-history/${ chatId }`, method: 'delete' })
+  updateAgentSession(id, data) {
+    return axios({ url: `/agent-sessions/${ id }`, method: 'put', data })
+  },
+  forkAgentSession(id, { turnIndex, messageIndex }) {
+    return axios({ url: `/agent-sessions/${ id }/fork`, method: 'post', data: { turnIndex, messageIndex } })
+  },
+  editAgentSessionMessage(id, { turnIndex, content }) {
+    return axios({
+      url: `/agent-sessions/${ id }/messages/${ turnIndex }`,
+      method: 'put',
+      data: { content }
+    })
+  },
+  removeAgentSession(id) {
+    return axios({ url: `/agent-sessions/${ id }`, method: 'delete' })
+  },
+  clearAgentSessions(params) {
+    return axios({ url: '/agent-sessions', method: 'delete', params })
   },
   removeSomeLoginRecords() {
     return axios({ url: '/remove-some-login-records', method: 'delete' })

@@ -8,7 +8,8 @@ import { getScriptList, getLocalScriptList, addScript, updateScriptList, removeS
 import { getScriptGroupList, addScriptGroup, removeScriptGroup, updateScriptGroup } from '../controller/script-group.js'
 import { getOnekeyRecord, removeOnekeyRecord } from '../controller/onekey.js'
 import { getLog, saveIpWhiteList, removeSomeLoginRecords, revokeLoginSid } from '../controller/sessionLog.js'
-import { getAIConfig, saveAIConfig, getAIModels, getChatHistory, saveChatHistory, removeChatHistory } from '../controller/chat.js'
+import { getAIConfig, saveAIConfig, getAIModels } from '../controller/chat.js'
+import { getAgentSessions, getAgentSessionDetail, updateAgentSession, forkAgentSession, removeAgentSession, clearAgentSessions, editAgentSessionMessage } from '../controller/agent-session.js'
 import { getProxyList, addProxy, updateProxy, removeProxy } from '../controller/proxy.js'
 import { getTerminalConfig, saveTerminalConfig } from '../controller/terminal-config.js'
 import { getServerListConfig, saveServerListConfig } from '../controller/server-list-config.js'
@@ -322,18 +323,38 @@ const aiConfig = [
   },
   {
     method: 'get',
-    path: '/chat-history',
-    controller: getChatHistory
-  },
-  {
-    method: 'post',
-    path: '/chat-history',
-    controller: saveChatHistory
+    path: '/agent-sessions',
+    controller: getAgentSessions
   },
   {
     method: 'delete',
-    path: '/chat-history/:id',
-    controller: removeChatHistory
+    path: '/agent-sessions',
+    controller: clearAgentSessions
+  },
+  {
+    method: 'get',
+    path: '/agent-sessions/:id',
+    controller: getAgentSessionDetail
+  },
+  {
+    method: 'put',
+    path: '/agent-sessions/:id',
+    controller: updateAgentSession
+  },
+  {
+    method: 'post',
+    path: '/agent-sessions/:id/fork',
+    controller: forkAgentSession
+  },
+  {
+    method: 'put',
+    path: '/agent-sessions/:id/messages/:turnIndex',
+    controller: editAgentSessionMessage
+  },
+  {
+    method: 'delete',
+    path: '/agent-sessions/:id',
+    controller: removeAgentSession
   }
 ]
 

@@ -12,6 +12,7 @@ import wsDocker from './socket/docker.js'
 import wsOnekey from './socket/onekey.js'
 import wsServerStatus from './socket/server-status.js'
 import wsFileTransfer from './socket/file-transfer.js'
+import wsAiAgent from './socket/ai-agent.js'
 import { throwError, isAllowedIp, getClientIP } from './utils/tools.js'
 import { SessionDB } from './utils/db-class.js'
 import { parseCookies } from './utils/verify-auth.js'
@@ -157,6 +158,7 @@ function registServer(targetServer) {
   wsOnekey(targetServer) // 一键指令
   wsServerStatus(targetServer) // 服务器状态监控
   wsFileTransfer(targetServer) // 文件传输
+  wsAiAgent(targetServer) // AI agent
 }
 // 服务
 function serverHandler(app, server, httpsServer) {

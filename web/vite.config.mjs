@@ -5,7 +5,6 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
-import { AntDesignXVueResolver } from 'ant-design-x-vue/resolver'
 import viteCompression from 'vite-plugin-compression'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 
@@ -57,13 +56,11 @@ export default defineConfig({
     AutoImport({
       resolvers: [
         ElementPlusResolver(),
-        AntDesignXVueResolver(),
       ]
     }),
     Components({
       resolvers: [
         ElementPlusResolver(),
-        AntDesignXVueResolver(),
       ]
     }),
     viteCompression({

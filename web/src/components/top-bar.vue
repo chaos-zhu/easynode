@@ -23,7 +23,7 @@
         @select="() => {}"
       />
 
-      <AiButton />
+      <AiEntry />
 
       <el-button
         type="info"
@@ -131,7 +131,7 @@ import { useRouter } from 'vue-router'
 import { User, Fold, Document } from '@element-plus/icons-vue'
 import packageJson from '../../package.json'
 import MenuList from './menuList.vue'
-import AiButton from './ai-chat/ai-button.vue'
+import AiEntry from './ai-entry.vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 
 const { proxy: { $router, $store, $api, $message } } = getCurrentInstance()
@@ -327,6 +327,7 @@ onBeforeUnmount(() => {
 
     .top_menu_list {
       flex: 1;
+      min-width: 0;
       margin: 0 20px;
       border-bottom: none;
 

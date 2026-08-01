@@ -1,83 +1,78 @@
-import path, { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import decryptAndExecuteAsync from '../utils/decrypt-file.js'
-import { AIConfigDB, ChatHistoryDB } from '../utils/db-class.js'
+/**
+ * AI 接口配置
+ *
+ * 旧的 AI Chat 已下线，会话历史由 agent 的 AgentSessionDB 承担
+ * （见 controller/agent-session.js），这里只保留接口配置相关能力。
+ */
+
+import { AIConfigDB } from '../utils/db-class.js'
+import { deriveBaseURL } from '../ai/provider.js'
 
 const aiConfigDB = new AIConfigDB().getInstance()
-const chatHistoryDB = new ChatHistoryDB().getInstance()
-const currentDir = dirname(fileURLToPath(import.meta.url))
+const MODEL_DISCOVERY_TIMEOUT_MS = 15 * 1000
 
 async function getAIConfig({ res }) {
   try {
     const config = await aiConfigDB.findOneAsync({})
-    if (!config) {
-      return res.success({ data: {} })
-    }
+    if (!config) return res.success({ data: {} })
     res.success({ data: config })
-  } catch (error) {
+  } catch {
     res.fail({ msg: '获取配置失败' })
   }
 }
 
 async function getAIModels({ res, request }) {
-  let { getAIModels } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
-  if (getAIModels) {
-    await getAIModels({ res, request })
-  } else {
-    return res.fail({ data: false, msg: 'Plus专属功能!' })
+  const { apiUrl, apiKey } = request.body
+  if (!apiUrl || !apiKey) return res.fail({ msg: 'param error' })
+
+  const baseURL = deriveBaseURL(apiUrl)
+  if (!baseURL) return res.fail({ msg: 'invalid Base URL' })
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), MODEL_DISCOVERY_TIMEOUT_MS)
+  try {
+    const response = await fetch(`${ baseURL }/models`, {
+      method: 'GET',
+      headers: { authorization: `Bearer ${ apiKey }` },
+      signal: controller.signal
+    })
+    const body = await response.json().catch(() => null)
+    if (!response.ok) {
+      const message = body?.error?.message || body?.message || `HTTP ${ response.status }`
+      return res.fail({ msg: 'get AI models failed', data: { message } })
+    }
+    if (!Array.isArray(body?.data)) {
+      return res.fail({ msg: 'get AI models failed', data: { message: 'invalid models response' } })
+    }
+    res.success({ data: body.data })
+  } catch (error) {
+    const message = error?.name === 'AbortError' ? 'request timeout' : error.message
+    res.fail({ msg: 'get AI models failed', data: { message } })
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
 async function saveAIConfig({ res, request }) {
-  let { saveAIConfig } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
-  if (saveAIConfig) {
-    await saveAIConfig({ res, request })
-  } else {
-    return res.fail({ data: false, msg: 'Plus专属功能!' })
+  const { body } = request
+  if (!body.apiUrl || !body.apiKey || !Array.isArray(body.models) || !body.models.length) {
+    return res.fail({ msg: 'param error' })
   }
-}
-
-async function getChatHistory({ res }) {
-  const chatHistory = await chatHistoryDB.findAsync({})
-  const newChatHistory = chatHistory.map(item => {
-    item.id = item._id
-    delete item._id
-    return item
-  }).sort((a, b) => b.createdAt - a.createdAt)
-  res.success({ data: newChatHistory || [] })
-}
-
-async function saveChatHistory({ res, request }) {
-  const chatRecord = request.body
-  const { id = '', chatList } = chatRecord
-  if (!chatList) return res.fail({ data: false, msg: '参数错误' })
-  let updateChat = chatRecord
-  if (id) {
-    chatRecord.updatedAt = Date.now()
-    await chatHistoryDB.updateAsync({ _id: id }, chatRecord)
-  } else {
-    chatRecord.createdAt = Date.now()
-    delete chatRecord.id
-    const result = await chatHistoryDB.insertAsync(chatRecord)
-    updateChat = result
-    updateChat.id = result._id
-    delete updateChat._id
+  try {
+    const existConfig = await aiConfigDB.findOneAsync({})
+    if (existConfig) {
+      await aiConfigDB.updateAsync({ _id: existConfig._id }, body)
+    } else {
+      await aiConfigDB.insertAsync(body)
+    }
+    res.success({ msg: 'save success', data: { success: true } })
+  } catch {
+    res.fail({ msg: 'save AI config failed', data: { success: false } })
   }
-  res.success({ data: { updateChat } })
-}
-
-async function removeChatHistory({ res, request }) {
-  let { params: { id } } = request
-  if (!id) return res.fail({ data: false, msg: '参数错误' })
-  await chatHistoryDB.removeAsync({ _id: id })
-  res.success({ data: true })
 }
 
 export {
   getAIConfig,
   saveAIConfig,
-  getAIModels,
-  getChatHistory,
-  saveChatHistory,
-  removeChatHistory
+  getAIModels
 }

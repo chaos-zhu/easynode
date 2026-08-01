@@ -206,6 +206,16 @@
             <el-radio-button value="scroll">横向排列</el-radio-button>
           </el-radio-group>
         </div>
+        <el-tooltip
+          v-if="isSingleWindowMode"
+          effect="dark"
+          content="终端AI助手"
+          placement="bottom"
+        >
+          <el-button link class="single_window_ai_button" @click="changeTerminalAi">
+            <el-icon><ChatDotRound /></el-icon>
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
     <!-- 单窗口模式 -->
@@ -218,11 +228,29 @@
         :long-press-ctrl="longPressCtrl"
         :long-press-alt="longPressAlt"
         :layout-mode="layoutMode"
+        :suppress-focus="showTerminalAi"
         @close-terminal="handleCloseTerminalSingle"
         @ping-data="getPingData"
         @reset-long-press="resetLongPress"
         @suspend-terminal="handleSuspendTerminalSingleDone"
+        @terminal-focus="handleSingleWindowTerminalFocus"
+        @terminal-ai-input="handleTerminalAiInput"
       />
+      <div
+        :class="['single_window_ai_side', { 'show_ai': showTerminalAi }]"
+        :style="showTerminalAi ? { width: sftpWidth + 'px', minWidth: sftpWidth + 'px', maxWidth: sftpWidth + 'px' } : {}"
+      >
+        <div v-if="showTerminalAi" class="ai_resize_handle" @mousedown="startResizeTerminalAi"><div class="ai_resize_handle_line" /></div>
+        <TerminalAiChat
+          v-if="terminalAiMounted && singleWindowAiHost"
+          :key="singleWindowAiHost.key"
+          :host="singleWindowAiHost"
+          :terminal="() => singleWindowRef?.getFocusedTerminal?.()?.ref"
+          :prefill="terminalAiPrefills[singleWindowAiHost.key] || ''"
+          @consume-prefill="terminalAiPrefills[singleWindowAiHost.key] = ''"
+          @close="showTerminalAi = false"
+        />
+      </div>
     </div>
 
     <!-- 多窗口模式 -->
@@ -268,6 +296,11 @@
             <div :class="['tab_content_wrap_header_item', { 'active': showSftpSide }]">
               <span title="SFTP文件管理" @click="changeSftp">
                 <svg-icon name="icon-sftp" class="icon" />
+              </span>
+            </div>
+            <div :class="['tab_content_wrap_header_item', { 'active': showTerminalAi }]">
+              <span title="终端AI助手" @click="changeTerminalAi">
+                <el-icon class="icon"><ChatDotRound /></el-icon>
               </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': showDockerDialog }]">
@@ -332,6 +365,7 @@
                     :long-press-ctrl="longPressCtrl"
                     :long-press-alt="longPressAlt"
                     :auto-focus="panelIndex === 1"
+                    :suppress-focus="showTerminalAi"
                     :show-sftp-side="showSftpSide"
                     @input-command="(cmd, uid) => terminalInput(cmd, uid)"
                     @ping-data="getPingData"
@@ -339,9 +373,43 @@
                     @tab-focus="handleTabFocus"
                     @sync-path-to-sftp="(path) => handleSyncPathToSftp(path)"
                     @request-suspend="() => handleSuspendTerminal(item, index)"
+                    @terminal-ai-input="(text) => handleTerminalAiInput(item, text)"
                   />
                 </div>
               </template>
+            </div>
+
+            <el-drawer
+              v-if="isMobileScreen"
+              v-model="showTerminalAi"
+              :with-header="false"
+              direction="rtl"
+              class="mobile_menu_drawer"
+            >
+              <TerminalAiChat
+                :host="item"
+                :terminal="() => getFocusedTerminalRefOfTab(index)"
+                :prefill="terminalAiPrefills[item.key] || ''"
+                @consume-prefill="terminalAiPrefills[item.key] = ''"
+                @close="showTerminalAi = false"
+              />
+            </el-drawer>
+            <div
+              v-else
+              :class="['tab_content_main_ai', { 'show_ai': showTerminalAi }]"
+              :style="showTerminalAi ? { width: sftpWidth + 'px', minWidth: sftpWidth + 'px', maxWidth: sftpWidth + 'px' } : {}"
+            >
+              <div v-if="showTerminalAi" class="ai_resize_handle" @mousedown="startResizeTerminalAi">
+                <div class="ai_resize_handle_line" />
+              </div>
+              <TerminalAiChat
+                v-if="terminalAiMounted"
+                :host="item"
+                :terminal="() => getFocusedTerminalRefOfTab(index)"
+                :prefill="terminalAiPrefills[item.key] || ''"
+                @consume-prefill="terminalAiPrefills[item.key] = ''"
+                @close="showTerminalAi = false"
+              />
             </div>
 
             <el-drawer
@@ -432,7 +500,7 @@ import {
   onMounted,
   onUnmounted
 } from 'vue'
-import { ArrowDown, VideoPause, Setting } from '@element-plus/icons-vue'
+import { ArrowDown, ChatDotRound, VideoPause, Setting } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { terminalStatusList, terminalStatus } from '@/utils/enum'
 import { useContextMenu } from '@/composables/useContextMenu'
@@ -449,6 +517,7 @@ import SftpV2 from './sftp-v2.vue'
 import TerminalSingleWindow from './terminal-single-window.vue'
 import Docker from './docker.vue'
 import TerminalSessionSetting from './terminal-session-setting.vue'
+import TerminalAiChat from './terminal-ai-chat.vue'
 
 const {
   proxy: { $nextTick, $store, $message }
@@ -487,8 +556,14 @@ const showMenuOptions = ref(false)
 const showSessionSetting = ref(false)
 const showInfoSide = ref(isMobileScreen.value ? false : localStorage.getItem('showInfoSide') !== 'false')
 const showSftpSide = ref(isMobileScreen.value ? false : localStorage.getItem('showSftpSide') !== 'false')
+const showTerminalAi = ref(false)
+const terminalAiMounted = ref(false)
+let terminalAiMountTimer = null
+const terminalAiPrefills = reactive({})
+const singleWindowAiHost = ref(null)
 const showFooterBar = ref(localStorage.getItem('showFooterBar') === 'true')
 const footerBarHeight = ref(parseInt(localStorage.getItem('footerBarHeight')) || 250)
+const SFTP_WIDTH_KEY = 'easynode_sftp_width'
 const sftpWidth = ref(parseInt(localStorage.getItem(SFTP_WIDTH_KEY)) || 450)
 const longPressCtrl = ref(false)
 const longPressAlt = ref(false)
@@ -502,7 +577,6 @@ const sftpRefs = ref([])
 const resumeSessionDropdownRef = ref(null)
 const resumeSessionDropdownVisible = ref(false)
 const suspendedSessions = computed(() => $store.suspendedSessions)
-const hasSuspendedSessions = computed(() => suspendedSessions.value.length > 0)
 
 // 当前聚焦终端 uid
 const focusedUid = ref(null)
@@ -565,7 +639,38 @@ const changeInfoSide = () => {
 
 const changeSftp = () => {
   showSftpSide.value = !showSftpSide.value
+  if (showSftpSide.value) showTerminalAi.value = false
   localStorage.setItem('showSftpSide', showSftpSide.value)
+}
+
+const changeTerminalAi = () => {
+  showTerminalAi.value = !showTerminalAi.value
+  if (showTerminalAi.value) showSftpSide.value = false
+  localStorage.setItem('showSftpSide', showSftpSide.value)
+}
+
+watch(showTerminalAi, (visible) => {
+  clearTimeout(terminalAiMountTimer)
+  // 关闭侧栏只隐藏，不销毁会话。否则正在运行的命令会随着 Agent Socket
+  // 断开而失去状态与取消通道，重新打开也无法看到原任务。
+  if (!visible || terminalAiMounted.value) return
+
+  // 先让侧栏完成宽度过渡，再挂载聊天输入框，避免在 0 宽度时初始化。
+  terminalAiMountTimer = setTimeout(() => {
+    terminalAiMounted.value = true
+  }, 200)
+})
+
+const handleTerminalAiInput = (item, text) => {
+  if (isSingleWindowMode.value) singleWindowAiHost.value = item
+  terminalAiPrefills[item.key] = text
+  showTerminalAi.value = true
+  showSftpSide.value = false
+  localStorage.setItem('showSftpSide', 'false')
+}
+
+const handleSingleWindowTerminalFocus = (item) => {
+  singleWindowAiHost.value = item
 }
 
 const changeShowFooterBar = () => {
@@ -607,7 +712,6 @@ const handleFooterBarHeightChange = (height) => {
 }
 
 // SFTP宽度调整相关
-const SFTP_WIDTH_KEY = 'easynode_sftp_width'
 const isResizingSftp = ref(false)
 const startX = ref(0)
 const startWidth = ref(0)
@@ -644,6 +748,37 @@ const stopResizeSftp = () => {
   debouncedResizeTerminal()
 }
 
+const isResizingTerminalAi = ref(false)
+const terminalAiStartX = ref(0)
+const terminalAiStartWidth = ref(0)
+
+const startResizeTerminalAi = (e) => {
+  isResizingTerminalAi.value = true
+  terminalAiStartX.value = e.clientX
+  terminalAiStartWidth.value = sftpWidth.value
+  document.addEventListener('mousemove', handleResizeTerminalAi)
+  document.addEventListener('mouseup', stopResizeTerminalAi)
+  document.body.style.cursor = 'ew-resize'
+  document.body.style.userSelect = 'none'
+  e.preventDefault()
+}
+
+const handleResizeTerminalAi = (e) => {
+  if (!isResizingTerminalAi.value) return
+  const newWidth = Math.max(260, Math.min(900, terminalAiStartWidth.value + terminalAiStartX.value - e.clientX))
+  sftpWidth.value = newWidth
+}
+
+const stopResizeTerminalAi = () => {
+  isResizingTerminalAi.value = false
+  document.removeEventListener('mousemove', handleResizeTerminalAi)
+  document.removeEventListener('mouseup', stopResizeTerminalAi)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  localStorage.setItem(SFTP_WIDTH_KEY, sftpWidth.value.toString())
+  debouncedResizeTerminal()
+}
+
 const getStartIndexByTabIndex = (idx) => {
   let start = 0
   for (let i = 0; i < idx; i++) {
@@ -659,6 +794,14 @@ const getTerminalRefsOfTab = (idx) => {
 }
 
 const getFirstTerminalRefOfTab = (idx) => getTerminalRefsOfTab(idx)[0]
+
+const getFocusedTerminalRefOfTab = (idx) => {
+  const refs = getTerminalRefsOfTab(idx)
+  if (Number(idx) === Number(activeTabIndex.value) && focusedUid.value) {
+    return refs.find((item) => item?.$?.uid === focusedUid.value) || refs[0]
+  }
+  return refs[0]
+}
 
 // ======================= 提供给模板使用的辅助函数 =======================
 const getTerminalCount = (tabKey) => {
@@ -1198,13 +1341,17 @@ watch(isSingleWindowMode, async() => {
 
 onMounted(() => {
   document.addEventListener('fullscreenchange', fullScreenCb)
+  singleWindowAiHost.value = terminalTabs.value[0] || null
   // 初始化时检查是否有挂起的会话
   fetchSuspendedSessions()
 })
 onUnmounted(() => {
+  clearTimeout(terminalAiMountTimer)
   document.removeEventListener('fullscreenchange', fullScreenCb)
   document.removeEventListener('mousemove', handleResizeSftp)
   document.removeEventListener('mouseup', stopResizeSftp)
+  document.removeEventListener('mousemove', handleResizeTerminalAi)
+  document.removeEventListener('mouseup', stopResizeTerminalAi)
 })
 </script>
 
@@ -1385,6 +1532,8 @@ onUnmounted(() => {
           flex: 1;
           min-width: 300px;
           display: flex;
+          position: relative;
+          z-index: 1;
           .terminal_item {
             box-sizing: border-box;
           }
@@ -1445,7 +1594,8 @@ onUnmounted(() => {
           }
         }
 
-        .tab_content_main_sftp {
+        .tab_content_main_sftp,
+        .tab_content_main_ai {
           height: 100%;
           width: 0;
           min-width: 0;
@@ -1453,9 +1603,16 @@ onUnmounted(() => {
           transition: all 0.2s;
           flex-shrink: 0;
           position: relative;
-          &.show_sftp {
+          &.show_sftp,
+          &.show_ai {
             overflow-y: auto;
             overflow-x: hidden;
+          }
+
+          &.show_ai {
+            z-index: 100;
+            isolation: isolate;
+            pointer-events: auto;
           }
 
           .sftp_resize_handle {
@@ -1475,6 +1632,30 @@ onUnmounted(() => {
             }
 
             .sftp_resize_handle_line {
+              width: 2px;
+              height: 40px;
+              background: var(--el-color-primary);
+              border-radius: 1px;
+              opacity: 0;
+              transition: opacity 0.2s;
+            }
+          }
+
+          .ai_resize_handle {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            cursor: ew-resize;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &:hover .ai_resize_handle_line { opacity: 1; }
+
+            .ai_resize_handle_line {
               width: 2px;
               height: 40px;
               background: var(--el-color-primary);
@@ -1511,6 +1692,39 @@ onUnmounted(() => {
   height: calc(100vh - 115px);
   overflow: hidden;
   border: 1px solid var(--el-border-color);
+  display: flex;
+
+  > :first-child { flex: 1; min-width: 0; }
+
+  .single_window_ai_side {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    &.show_ai {
+      overflow: hidden;
+      z-index: 100;
+      isolation: isolate;
+      pointer-events: auto;
+    }
+  }
+
+  .ai_resize_handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: ew-resize;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:hover .ai_resize_handle_line { opacity: 1; }
+    .ai_resize_handle_line { width: 2px; height: 40px; opacity: 0; background: var(--el-color-primary); transition: opacity 0.2s; }
+  }
 }
 
   .visible {

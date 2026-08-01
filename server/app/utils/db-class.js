@@ -11,7 +11,7 @@ import {
   onekeyDBPath,
   plusDBPath,
   aiConfigDBPath,
-  chatHistoryDBPath,
+  agentSessionDBPath,
   favoriteSftpDBPath,
   proxyDBPath,
   fileTransferDBPath,
@@ -150,14 +150,14 @@ export class AIConfigDB {
   }
 }
 
-export class ChatHistoryDB {
+export class AgentSessionDB {
   constructor() {
-    if (!ChatHistoryDB.instance) {
-      ChatHistoryDB.instance = new Datastore({ filename: chatHistoryDBPath, autoload: true })
+    if (!AgentSessionDB.instance) {
+      AgentSessionDB.instance = new Datastore({ filename: agentSessionDBPath, autoload: true })
     }
   }
   getInstance() {
-    return ChatHistoryDB.instance
+    return AgentSessionDB.instance
   }
 }
 

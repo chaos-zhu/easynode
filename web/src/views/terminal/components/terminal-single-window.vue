@@ -59,12 +59,14 @@
             :long-press-ctrl="longPressCtrl"
             :long-press-alt="longPressAlt"
             :auto-focus="focusedTerminalKey === panel.terminal.key"
+            :suppress-focus="props.suppressFocus"
             :is-single-window="true"
             @input-command="(cmd, uid) => handleInputCommand(cmd, uid, panel.terminal.key)"
             @ping-data="getPingData"
             @reset-long-press="resetLongPress"
             @tab-focus="handleTabFocus"
             @request-suspend="() => handleRequestSuspendSingle(panel.terminal)"
+            @terminal-ai-input="(text) => emit('terminal-ai-input', panel.terminal, text)"
           />
         </div>
         <el-dialog
@@ -101,7 +103,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
-import { Close, FullScreen, Aim } from '@element-plus/icons-vue'
+import { Close } from '@element-plus/icons-vue'
 import Terminal from './terminal.vue'
 import { terminalStatusList, terminalStatus } from '@/utils/enum'
 import ScriptInput from './script-input.vue'
@@ -133,6 +135,10 @@ const props = defineProps({
   layoutMode: {
     type: String,
     default: 'grid'
+  },
+  suppressFocus: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -142,7 +148,7 @@ const containerRef = ref(null)
 const { proxy: { $message } } = getCurrentInstance()
 const { showMenu } = useContextMenu()
 
-const emit = defineEmits(['close-terminal', 'terminal-input', 'ping-data', 'reset-long-press', 'suspend-terminal'])
+const emit = defineEmits(['close-terminal', 'terminal-input', 'ping-data', 'reset-long-press', 'suspend-terminal', 'terminal-ai-input', 'terminal-focus',])
 
 // 响应式数据
 const focusedTerminalKey = ref(null)
@@ -568,13 +574,6 @@ const setTerminalRef = (el, key) => {
 }
 
 // 事件处理
-const handlePanelClick = (terminalKey) => {
-  focusedTerminalKey.value = terminalKey
-  nextTick(() => {
-    terminalRefs.value[terminalKey]?.focusTab()
-  })
-}
-
 const handleCloseTerminal = (terminalKey) => {
   // 如果关闭的是当前最大化的终端，重置最大化状态
   if (maximizedTerminalKey.value === terminalKey) {
@@ -619,7 +618,7 @@ const handleSuspendAllSessionsSingle = async () => {
   }
   let successCount = 0
   let failCount = 0
-  for (const tab of [...connectedTabs].reverse()) {
+  for (const tab of [...connectedTabs,].reverse()) {
     const ok = await handleSuspendTerminalSingle(tab, { silent: true })
     if (ok) successCount += 1
     else failCount += 1
@@ -640,7 +639,7 @@ const handleCloseOtherSingle = (keepKey) => {
 
 // 关闭所有终端（单窗口模式下）
 const handleCloseAllSingle = () => {
-  const allKeys = [...props.terminalTabs].map(tab => tab.key)
+  const allKeys = [...props.terminalTabs,].map(tab => tab.key)
   allKeys.forEach(key => handleCloseTerminal(key))
 }
 
@@ -669,6 +668,7 @@ const handleTabFocus = (uid) => {
   )
   if (terminal) {
     focusedTerminalKey.value = terminal.key
+    emit('terminal-focus', terminal)
   }
 }
 
@@ -968,6 +968,11 @@ defineExpose({
         }
       }
     }
+  },
+  getFocusedTerminal: () => {
+    const key = focusedTerminalKey.value || props.terminalTabs[0]?.key
+    const terminal = props.terminalTabs.find((item) => item.key === key)
+    return terminal ? { terminal, ref: terminalRefs.value[key] } : null
   }
 })
 </script>

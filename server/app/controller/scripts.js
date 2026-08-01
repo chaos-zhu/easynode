@@ -1,28 +1,17 @@
 import path, { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import decryptAndExecuteAsync from '../utils/decrypt-file.js'
-import { randomStr } from '../utils/tools.js'
 import { ScriptsDB } from '../utils/db-class.js'
-import localShellJson from '../config/shell.json' with { type: 'json' }
+import { listBuiltinScripts, listScripts } from '../script-library.js'
 const scriptsDB = new ScriptsDB().getInstance()
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
-let localShell = JSON.parse(JSON.stringify(localShellJson)).map((item) => {
-  return { ...item, id: randomStr(10), index: '--', description: item.description, group: 'builtin' }
-})
-
 async function getScriptList({ res }) {
-  let data = await scriptsDB.findAsync({})
-  data = data.map(item => {
-    return { ...item, id: item._id, group: item.group || 'default' }
-  })
-  data?.sort((a, b) => Number(b.index || 0) - Number(a.index || 0))
-  data.push(...localShell)
-  res.success({ data })
+  res.success({ data: await listScripts() })
 }
 
 async function getLocalScriptList({ res }) {
-  res.success({ data: localShell })
+  res.success({ data: listBuiltinScripts() })
 }
 
 const addScript = async ({ res, request }) => {

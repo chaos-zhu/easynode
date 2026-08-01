@@ -36,12 +36,13 @@ import themeList from 'xterm-theme'
 import { terminalStatus } from '@/utils/enum'
 
 import { useContextMenu } from '@/composables/useContextMenu'
-import { EventBus, isDockerId, isDockerComposeYml, generateSocketInstance } from '@/utils'
+import { isDockerId, isDockerComposeYml, generateSocketInstance } from '@/utils'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { TerminalHighlighter } from '@/utils/highlighter'
 import clipboard from '@/utils/clipboard'
+import { resolveTerminalRequestId } from '@/composables/agentTerminal'
 
-const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL, SUSPENDED, RESUMING } = terminalStatus
+const { CONNECTING, CONNECT_SUCCESS, CONNECT_FAIL, SUSPENDED } = terminalStatus
 
 const instance = getCurrentInstance()
 const { uid } = instance
@@ -67,15 +68,19 @@ const props = defineProps({
     default: false
   },
   autoFocus: { type: Boolean, default: true },
+  // 右侧 AI 面板打开时，避免 xterm 的延迟 focus 抢走输入框焦点。
+  suppressFocus: { type: Boolean, default: false },
   showSftpSide: {
     type: Boolean,
     default: false
   }
 })
 
-const emit = defineEmits(['inputCommand', 'ping-data', 'reset-long-press', 'tab-focus', 'sync-path-to-sftp', 'request-suspend'])
+const emit = defineEmits(['inputCommand', 'ping-data', 'reset-long-press', 'tab-focus', 'sync-path-to-sftp', 'request-suspend', 'terminal-ai-input',])
 
 const socket = ref(null)
+const aiCommandRequests = new Map()
+const AI_CANCEL_CONFIRM_TIMEOUT_MS = 10 * 1000
 // const commandHistoryList = ref([])
 const term = ref(null)
 const highlighter = ref(null)
@@ -116,6 +121,12 @@ const autoShowContextMenu = computed(() => $store.terminalConfig.autoShowContext
 const isPlusActive = computed(() => $store.isPlusActive)
 const isLongPressCtrl = computed(() => props.longPressCtrl)
 const isLongPressAlt = computed(() => props.longPressAlt)
+
+watch(() => props.suppressFocus, (suppressed) => {
+  // xterm 使用隐藏 textarea 接收按键；面板展开时先主动释放它，
+  // 再由 AI 输入框接管焦点，避免只显示光标却实际输入到终端。
+  if (suppressed) term.value?.blur()
+})
 
 // 应用终端主题的公共函数
 const applyTerminalTheme = () => {
@@ -304,6 +315,20 @@ const connectIO = () => {
           term.value.write(str)
         }
       })
+      socket.value.on('terminal_ai_command_echo', ({ command }) => {
+        // 服务端执行的是带边界协议的包装命令；这里只展示原始命令。
+        if (command) term.value?.write(`${ command }\r\n`)
+      })
+      socket.value.on('terminal_ai_command_progress', (payload = {}) => {
+        aiCommandRequests.get(payload.requestId)?.onProgress?.(payload)
+      })
+      socket.value.on('terminal_ai_command_result', (payload = {}) => {
+        const request = aiCommandRequests.get(payload.requestId)
+        if (!request) return
+        aiCommandRequests.delete(payload.requestId)
+        clearTimeout(request.timeout)
+        request.resolve(payload)
+      })
       socket.value.on('terminal_connect_shell_success', () => {
         curStatus.value = CONNECT_SUCCESS
         handleResize()
@@ -348,6 +373,11 @@ const connectIO = () => {
   })
 
   socket.value.on('disconnect', (reason) => {
+    for (const [requestId, request,] of aiCommandRequests.entries()) {
+      aiCommandRequests.delete(requestId)
+      clearTimeout(request.timeout)
+      request.resolve({ ok: false, error: '终端连接已断开，无法读取命令输出' })
+    }
     console.warn('terminal websocket 连接断开:', reason)
     switch (reason) {
       case 'io server disconnect':
@@ -441,7 +471,7 @@ const createLocalTerminal = () => {
 
   terminalInstance.writeln('\x1b[1;32mWelcome to EasyNode terminal\x1b[0m.')
   terminalInstance.writeln('\x1b[1;32mAn experimental Web-SSH Terminal\x1b[0m.')
-  if (props.autoFocus) {
+  if (props.autoFocus && !props.suppressFocus) {
     terminalInstance.focus()
     emit('tab-focus', uid)
   }
@@ -506,7 +536,7 @@ const showSearchBar = () => {
 
 // 关闭搜索框，重新聚焦终端
 const handleSearchClose = () => {
-  term.value?.focus()
+  if (!props.suppressFocus) term.value?.focus()
 }
 
 const enterTimer = ref(null)
@@ -600,7 +630,7 @@ const syncPathToSftp = () => {
     outputBuffer += str
 
     // 清理ANSI转义序列
-    // eslint-disable-next-line no-control-regex
+
     const cleanBuffer = outputBuffer.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').replace(/\x1b\][^\x07]*\x07/g, '')
 
     // 查找路径（以/开头的行）
@@ -654,7 +684,7 @@ const handleRightClick = async (e) => {
   const sendToAI = str ? {
     label: '发送到AI会话',
     onClick: () => {
-      EventBus.$emit('sendToAIInput', `\`\`\`shell\n${ str }\n\`\`\`\n`)
+      emit('terminal-ai-input', `\`\`\`shell\n${ str }\n\`\`\`\n`)
       term.value.clearSelection()
     }
   } : null
@@ -884,8 +914,11 @@ const handlePaste = async () => {
 }
 
 const focusTab = () => {
+  if (props.suppressFocus) return
   term.value.blur()
   setTimeout(() => {
+    // 部分 tab 切换会留下延迟 focus；再次判断，不能覆盖已打开的 AI 输入框。
+    if (props.suppressFocus) return
     term.value.focus()
     emit('tab-focus', uid)
   }, 200)
@@ -909,40 +942,20 @@ const inputCommand = (command, type = 'input', useBase64 = false) => {
   socket.value.emit('input', command)
 }
 
-const execExternalCommand = (command, useBase64 = false) => {
-  if (!socket.value || !socket.value.connected || curStatus.value !== CONNECT_SUCCESS) {
-    $message.error('终端连接已断开,无法执行指令')
-    return
-  }
-
-  if (useBase64) {
-    // 使用Base64管道模式执行
-    // 粘贴自 Windows/VSCode 的脚本可能包含 CRLF，先统一为 LF，避免 bash 将 \r 带入 read/case 等逻辑
-    const normalizedCommand = command.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-    // 处理 UTF-8 字符：使用现代浏览器的 TextEncoder API
-    const utf8Bytes = new TextEncoder().encode(normalizedCommand)
-    const encodedScript = btoa(String.fromCharCode(...utf8Bytes))
-    command = `tmp_script=$(mktemp /tmp/easynode-script-XXXXXX.sh) && printf '%s' '${ encodedScript }' | base64 -d > "$tmp_script" && chmod +x "$tmp_script" && bash "$tmp_script"; script_status=$?; [ -n "$tmp_script" ] && rm -f "$tmp_script"; unset tmp_script${ autoExecuteScript.value ? '\n' : '' }`
-  } else {
-    // 直接发送模式：根据脚本执行模式添加换行符
-    command = command + (autoExecuteScript.value ? '\n' : '')
-  }
-
-  socket.value.emit('input', command)
-  term.value?.focus()
-}
-
 onMounted(async () => {
   createLocalTerminal()
   await getCommand()
   connectIO()
   await nextTick()
   onData()
-  EventBus.$on('exec_external_command', execExternalCommand)
 })
 
 onBeforeUnmount(() => {
-  EventBus.$off('exec_external_command', execExternalCommand)
+  for (const [requestId, request,] of aiCommandRequests.entries()) {
+    aiCommandRequests.delete(requestId)
+    clearTimeout(request.timeout)
+    request.resolve({ ok: false, error: '终端已关闭，无法读取命令输出' })
+  }
   socket.value?.close()
   window.removeEventListener('resize', handleResize)
   clearInterval(pingTimer.value)
@@ -977,7 +990,7 @@ const suspendTerminal = () => {
       socket.value?.off('suspend_fail', onFail)
     }
 
-    const onSuspended = ({ sessionId: sid }) => {
+    const onSuspended = () => {
       if (resolved) return
       resolved = true
       cleanup()
@@ -1018,11 +1031,114 @@ const suspendTerminal = () => {
   })
 }
 
+const getTerminalContext = ({ maxLines = 160, maxChars = 12 * 1024 } = {}) => {
+  const buffer = term.value?.buffer?.active
+  if (!buffer) return ''
+
+  const start = Math.max(0, buffer.length - maxLines)
+  const lines = []
+  for (let index = start; index < buffer.length; index++) {
+    lines.push(buffer.getLine(index)?.translateToString(true) || '')
+  }
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop()
+  const output = lines.join('\n')
+  return output.length > maxChars ? output.slice(-maxChars) : output
+}
+
+const executeAiCommand = (command, options = {}) => {
+  if (!socket.value?.connected || curStatus.value !== CONNECT_SUCCESS) {
+    return { ok: false, error: '终端连接已断开，无法执行指令' }
+  }
+  const input = String(command || '').trim()
+  if (!input) return { ok: false, error: '终端命令不能为空' }
+
+  const requestId = resolveTerminalRequestId(options)
+  if (aiCommandRequests.has(requestId)) {
+    return Promise.resolve({ ok: false, error: '终端命令请求标识重复，未执行指令' })
+  }
+
+  let resolveRequest
+  const promise = new Promise((resolve) => {
+    resolveRequest = resolve
+  })
+  const timeout = setTimeout(() => {
+    if (!aiCommandRequests.has(requestId)) return
+    aiCommandRequests.delete(requestId)
+    resolveRequest({ ok: false, error: '等待终端命令结果超时' })
+  }, 61 * 60 * 1000)
+
+  aiCommandRequests.set(requestId, {
+    resolve: resolveRequest,
+    promise,
+    timeout,
+    cancelPromise: null,
+    onProgress: options.onProgress
+  })
+
+  try {
+    socket.value.emit('ai_terminal_command', { requestId, command: input })
+  } catch (error) {
+    aiCommandRequests.delete(requestId)
+    clearTimeout(timeout)
+    resolveRequest({ ok: false, error: `写入终端失败: ${ error.message }` })
+  }
+
+  return promise
+}
+
+const cancelAiCommand = (requestId) => {
+  const request = requestId ? aiCommandRequests.get(requestId) : null
+  if (!request) return Promise.resolve({ ok: false, error: '终端命令请求已结束，无法确认中断状态' })
+  if (!socket.value?.connected) {
+    return Promise.resolve({ ok: false, error: '终端连接已断开，无法确认远端命令已停止' })
+  }
+  if (request.cancelPromise) return request.cancelPromise
+
+  let confirmTimer
+  const timeout = new Promise((resolve) => {
+    confirmTimer = setTimeout(() => resolve({
+      ok: false,
+      error: '在 10 秒内未收到终端结束确认，远端命令可能仍在运行'
+    }), AI_CANCEL_CONFIRM_TIMEOUT_MS)
+  })
+
+  try {
+    socket.value.emit('ai_terminal_command_cancel', { requestId })
+  } catch (error) {
+    return Promise.resolve({ ok: false, error: `发送中断请求失败: ${ error.message }` })
+  }
+
+  request.cancelPromise = Promise.race([
+    request.promise.then((result) => result?.ok
+      ? { ok: true, exitCode: result.exitCode }
+      : { ok: false, error: result?.error || '终端未确认远端命令已停止' }),
+    timeout,
+  ]).finally(() => clearTimeout(confirmTimer))
+  return request.cancelPromise
+}
+
+const executeManualCommand = (command) => {
+  if (!socket.value?.connected || curStatus.value !== CONNECT_SUCCESS) {
+    return { ok: false, error: '终端连接已断开，无法执行指令' }
+  }
+  const input = String(command || '').trim()
+  if (!input) return { ok: false, error: '终端命令不能为空' }
+  socket.value.emit('input', `${ input }\n`)
+  return { ok: true }
+}
+
+const isAiTerminalConnected = () => Boolean(socket.value?.connected && curStatus.value === CONNECT_SUCCESS)
+
 defineExpose({
   focusTab,
   handleResize,
   inputCommand,
   handleClear,
+  getTerminalContext,
+  executeAiCommand,
+  cancelAiCommand,
+  executeManualCommand,
+  isAiTerminalConnected,
   suspendTerminal, // 新增
   sessionId // 新增
 })

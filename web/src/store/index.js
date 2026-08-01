@@ -78,8 +78,7 @@ const useStore = defineStore('global', {
     },
     plusInfo: {},
     isPlusActive: false,
-    aiConfig: {},
-    chatHistory: []
+    aiConfig: {}
   }),
   actions: {
     async setJwtToken(token) {
@@ -120,7 +119,6 @@ const useStore = defineStore('global', {
       await this.getTerminalConfig() // 添加终端配置获取
       await this.getServerListConfig() // 添加服务器列表配置获取
       this.getAIConfig()
-      this.getChatHistory()
     },
     async getHostList() {
       let { data: newHostList } = await $api.getHostList()
@@ -135,10 +133,6 @@ const useStore = defineStore('global', {
     async getAIConfig() {
       const { data: aiConfig } = await $api.getAIConfig()
       this.$patch({ aiConfig })
-    },
-    async getChatHistory() {
-      const { data: chatHistory } = await $api.getChatHistory()
-      this.$patch({ chatHistory })
     },
     async getGroupList() {
       const { data: groupList } = await $api.getGroupList()

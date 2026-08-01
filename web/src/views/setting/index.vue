@@ -13,6 +13,9 @@
       <el-tab-pane label="代理服务" name="proxy">
         <Proxy />
       </el-tab-pane>
+      <el-tab-pane label="AI助手设置" name="ai-agent" lazy>
+        <AiAgent />
+      </el-tab-pane>
       <el-tab-pane label="Plus激活" name="plus">
         <UserPlus />
       </el-tab-pane>
@@ -28,6 +31,7 @@ import User from './components/user.vue'
 import Notify from './components/notify.vue'
 import UserPlus from './components/user-plus.vue'
 import Proxy from './components/proxy.vue'
+import AiAgent from './components/ai-agent.vue'
 
 const route = useRoute()
 const router = useRouter()

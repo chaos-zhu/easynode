@@ -1,5 +1,6 @@
 import path, { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { randomUUID } from 'node:crypto'
 import ssh2Module from 'ssh2'
 const { Client: SSHClient } = ssh2Module
 import { sendNoticeAsync } from '../utils/notify.js'
@@ -15,6 +16,166 @@ const credentialsDB = new CredentialsDB().getInstance()
 const proxyDB = new ProxyDB().getInstance()
 const keyDB = new KeyDB().getInstance()
 const currentDir = dirname(fileURLToPath(import.meta.url))
+
+const AI_COMMAND_TIMEOUT_MS = 60 * 60 * 1000
+const AI_COMMAND_OUTPUT_LIMIT = 256 * 1024
+
+function buildAiCommandEnvelope(command, token) {
+  const encoded = Buffer.from(command, 'utf8').toString('base64')
+  const begin = `${ token }:begin`
+  const end = `${ token }:end`
+
+  // 通过当前 PTY 执行，而不是另开 SSH channel。命令主体放进一次性的
+  // sh 子进程，避免 exit、trap、set -e 等影响用户正在使用的交互 shell。
+  // marker 仅用于服务端划分边界，不会转发到浏览器终端。
+  return `${ token }_payload='${ encoded }'; printf '\n${ begin }\n'; (printf '%s' "$${ token }_payload" | base64 -d | env PAGER=cat SYSTEMD_PAGER= GIT_PAGER=cat LESS= sh); ${ token }_status=$?; printf '\n${ end }:%s\n' "$${ token }_status"\n`
+}
+
+function createAiCommandBridge(socket, stream) {
+  let active = null
+  let disposed = false
+
+  const emitProgress = () => {
+    if (!active) return
+    socket.emit('terminal_ai_command_progress', {
+      requestId: active.requestId,
+      output: active.output.slice(-12 * 1024),
+      durationMs: Date.now() - active.startedAt
+    })
+  }
+
+  const settle = (result) => {
+    if (!active) return
+    const command = active
+    active = null
+    clearTimeout(command.timeout)
+    clearTimeout(command.progressTimer)
+    socket.emit('terminal_ai_command_result', {
+      requestId: command.requestId,
+      ok: Boolean(result.ok),
+      error: result.error,
+      output: command.output.slice(-AI_COMMAND_OUTPUT_LIMIT),
+      exitCode: result.exitCode,
+      capturedAt: Date.now(),
+      durationMs: Date.now() - command.startedAt
+    })
+  }
+
+  const processLine = (line) => {
+    if (!active) return { visible: line }
+    const plain = line.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '')
+    const markerLine = plain.replace(/[\r\n]/g, '').trim()
+    if (markerLine === active.begin) {
+      active.started = true
+      return { visible: '' }
+    }
+    const endPrefix = `${ active.end }:`
+    if (markerLine.startsWith(endPrefix)) {
+      const statusText = markerLine.slice(endPrefix.length)
+      const status = /^\d+$/.test(statusText) ? Number.parseInt(statusText, 10) : null
+      // 包装命令在回显时也会出现 "...:end:%s"。只有严格的数值退出码
+      // 才能作为完成信号，不能让回显提前结束一次真实命令。
+      if (status === null) return { visible: '' }
+      settle({ ok: true, exitCode: status })
+      return { visible: '' }
+    }
+    // 包装命令的 echo 和 marker 都含有本次随机 token，不能污染终端画面。
+    if (plain.includes(active.token)) return { visible: '' }
+    if (active.started) {
+      active.output += line
+      if (active.output.length > AI_COMMAND_OUTPUT_LIMIT) {
+        active.output = active.output.slice(-AI_COMMAND_OUTPUT_LIMIT)
+      }
+      if (!active.progressTimer) {
+        active.progressTimer = setTimeout(() => {
+          if (active) active.progressTimer = null
+          emitProgress()
+        }, 400)
+      }
+    }
+    return { visible: line }
+  }
+
+  const handleOutput = (data) => {
+    if (!active) return data
+    active.pending += data
+    const visible = []
+    let newlineIndex = active.pending.search(/[\r\n]/)
+    while (active && newlineIndex !== -1) {
+      let end = newlineIndex + 1
+      if (active.pending[newlineIndex] === '\r' && active.pending[end] === '\n') end += 1
+      const line = active.pending.slice(0, end)
+      active.pending = active.pending.slice(end)
+      const parsed = processLine(line)
+      if (parsed.visible) visible.push(parsed.visible)
+      if (!active) break
+      newlineIndex = active.pending.search(/[\r\n]/)
+    }
+    return visible.join('')
+  }
+
+  const handleAiTerminalCommand = ({ requestId, command } = {}) => {
+    const input = typeof command === 'string' ? command.trim() : ''
+    if (!requestId || !input) {
+      socket.emit('terminal_ai_command_result', { requestId, ok: false, error: '终端命令不能为空' })
+      return
+    }
+    if (active) {
+      socket.emit('terminal_ai_command_result', { requestId, ok: false, error: '当前终端已有 AI 命令正在执行' })
+      return
+    }
+    const token = `__ENAI_${ randomUUID().replace(/-/g, '') }__`
+    active = {
+      requestId,
+      token,
+      begin: `${ token }:begin`,
+      end: `${ token }:end`,
+      output: '',
+      pending: '',
+      started: false,
+      startedAt: Date.now(),
+      progressTimer: null,
+      timeout: null
+    }
+    active.timeout = setTimeout(() => {
+      settle({ ok: false, error: '终端命令执行超时（60 分钟）' })
+    }, AI_COMMAND_TIMEOUT_MS)
+
+    // 包装器被 output 过滤；此事件让用户仍看到实际交给服务器的原始命令。
+    try {
+      socket.emit('terminal_ai_command_echo', { requestId, command: input })
+      stream.write(buildAiCommandEnvelope(input, token))
+    } catch (error) {
+      settle({ ok: false, error: `写入终端失败: ${ error.message }` })
+    }
+  }
+
+  const handleAiTerminalCommandCancel = ({ requestId } = {}) => {
+    if (!active || active.requestId !== requestId) return
+
+    // AI 命令在当前 PTY 的前台进程组中运行。Ctrl-C 能同时中断 shell
+    // 子进程及其前台子任务；仍保留原本的超时作为连接异常时的兜底。
+    try {
+      stream.write('\u0003')
+    } catch (error) {
+      settle({ ok: false, error: `中断终端命令失败: ${ error.message }` })
+    }
+  }
+
+  socket.on('ai_terminal_command', handleAiTerminalCommand)
+  socket.on('ai_terminal_command_cancel', handleAiTerminalCommandCancel)
+
+  return {
+    handleOutput,
+    dispose() {
+      if (disposed) return
+      disposed = true
+      if (active) settle({ ok: false, error: '终端连接已关闭' })
+      socket.off('ai_terminal_command', handleAiTerminalCommand)
+      socket.off('ai_terminal_command_cancel', handleAiTerminalCommandCancel)
+    }
+  }
+}
 
 async function getConnectionOptions(hostId) {
   const hostInfo = await hostListDB.findOneAsync({ _id: hostId })
@@ -58,17 +219,21 @@ function createInteractiveShell(socket, targetSSHClient) {
           return reject(err)
         }
 
+        const aiCommandBridge = createAiCommandBridge(socket, stream)
         resolve(stream)
 
         stream
           .on('data', (data) => {
-            socket.emit('output', data.toString())
+            const output = aiCommandBridge.handleOutput(data.toString())
+            if (output) socket.emit('output', output)
           })
           .on('close', () => {
+            aiCommandBridge.dispose()
             logger.info('交互终端已关闭')
             targetSSHClient.end()
           })
           .on('error', (streamErr) => {
+            aiCommandBridge.dispose()
             logger.error('终端流错误:', streamErr.message)
             socket.emit('terminal_connect_fail', streamErr.message)
           })
@@ -132,7 +297,7 @@ async function handleProxyAndJumpHostConnection(options) {
           if (typeof socket.emit === 'function') {
             try {
               socket.emit('terminal_print_info', `使用代理服务器: ${ proxyConfig.name } (${ proxyConfig.type.toUpperCase() }) - ${ proxyConfig.host }:${ proxyConfig.port }`)
-            } catch (emitError) {
+            } catch {
               // 忽略emit错误，因为不同socket可能有不同的事件
             }
           }
@@ -158,7 +323,7 @@ async function handleProxyAndJumpHostConnection(options) {
         if (socket && socket.emit && typeof socket.emit === 'function') {
           try {
             socket.emit('terminal_print_info', '代理连接建立成功，准备通过代理连接目标服务器')
-          } catch (emitError) {
+          } catch {
             // 忽略emit错误
           }
         }
@@ -287,9 +452,11 @@ function resumeSession(socket, session) {
   const bufferedOutput = session.flushBuffer()
 
   // 重新绑定stream的data事件，发送到前端
+  const aiCommandBridge = createAiCommandBridge(socket, stream)
   stream.removeAllListeners('data')
   stream.on('data', (data) => {
-    socket.emit('output', data.toString())
+    const output = aiCommandBridge.handleOutput(data.toString())
+    if (output) socket.emit('output', output)
   })
 
   // 设置输入监听
