@@ -20,13 +20,14 @@
 </template>
 
 <script setup>
-import { reactive, markRaw, getCurrentInstance, computed, watchEffect } from 'vue'
+import { reactive, markRaw, getCurrentInstance, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   Menu as IconMenu,
   Key,
   Setting,
   ScaleToOriginal,
+  Monitor,
   ArrowRight,
   Pointer,
   FolderOpened
@@ -37,6 +38,10 @@ const props = defineProps({
   mode: {
     type: String,
     default: 'vertical'
+  },
+  forceExpanded: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -59,7 +64,7 @@ const list = reactive([
   },
   {
     name: '远程桌面',
-    icon: markRaw(ScaleToOriginal),
+    icon: markRaw(Monitor),
     index: '/rdp'
   },
   {
@@ -89,19 +94,12 @@ const list = reactive([
   },
 ])
 
-const menuCollapse = computed(() => props.mode === 'horizontal' ? false : $store.menuCollapse)
+const menuCollapse = computed(() => props.mode === 'horizontal' || props.forceExpanded ? false : $store.menuCollapse)
 
-// eslint-disable-next-line no-useless-escape
 const regex = /^\/([^\/]+)/
 const defaultActiveMenu = computed(() => {
   const match = route.path.match(regex)
   return match[0]
-})
-
-watchEffect(() => {
-  const idx = route.path.match(regex)[0]
-  const targetRoute = list.find(item => item.index === idx)
-  $store.setTitle(targetRoute?.name || '')
 })
 
 const handleSelect = (path) => {

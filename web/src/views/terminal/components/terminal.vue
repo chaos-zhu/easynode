@@ -111,7 +111,6 @@ const hostObj = computed(() => props.hostObj)
 const hostId = computed(() => hostObj.value.id)
 const host = computed(() => hostObj.value.host)
 const menuCollapse = computed(() => $store.menuCollapse)
-const menuPosition = computed(() => $store.menuPosition)
 const autoExecuteScript = computed(() => $store.terminalConfig.autoExecuteScript)
 const autoReconnect = computed(() => $store.terminalConfig.autoReconnect)
 const keywordHighlight = computed(() => $store.terminalConfig.keywordHighlight)
@@ -182,7 +181,7 @@ const applyTerminalTheme = () => {
   }
 }
 
-watch([menuCollapse, menuPosition,], () => {
+watch(menuCollapse, () => {
   nextTick(() => {
     handleResize()
   })

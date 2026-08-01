@@ -16,9 +16,7 @@ const useStore = defineStore('global', {
     user: localStorage.getItem('user') || null,
     token: localStorage.getItem('token') || null,
     deviceId: localStorage.getItem('deviceId') || null,
-    title: '',
     isDark: false,
-    menuPosition: localStorage.getItem('menuPosition') || 'left', // left | top
     menuCollapse: localStorage.getItem('menuCollapse') === 'true',
     defaultBackgroundImages: [
       'linear-gradient(-225deg, #CBBACC 0%, #2580B3 100%)',
@@ -89,9 +87,6 @@ const useStore = defineStore('global', {
       localStorage.setItem('user', username)
       localStorage.setItem('deviceId', deviceId)
       this.$patch({ user: username, deviceId })
-    },
-    async setTitle(title) {
-      this.$patch({ title })
     },
     async removeLoginInfo(removeSession = false) {
       try {
@@ -256,10 +251,6 @@ const useStore = defineStore('global', {
       }
       localStorage.setItem('menuCollapse', newState)
       this.$patch({ menuCollapse: newState })
-    },
-    setMenuPosition(position) {
-      localStorage.setItem('menuPosition', position)
-      this.$patch({ menuPosition: position })
     }
   }
 })

@@ -94,7 +94,7 @@
         </div>
       </div>
     </div>
-    <div v-else>
+    <div v-else class="terminal_workspace">
       <TerminalWrapper
         :terminal-tabs="terminalTabs"
         @remove-tab="handleRemoveTab"
@@ -289,7 +289,7 @@ const handleResumeSession = (session) => {
 // 一键恢复所有挂起会话
 const handleResumeAll = () => {
   // 过滤出可恢复的活跃会话
-  const sessionsToRestore = [...suspendedSessions.value].filter(s => s.connectionAlive)
+  const sessionsToRestore = [...suspendedSessions.value,].filter(s => s.connectionAlive)
 
   if (sessionsToRestore.length === 0) {
     $message.warning('没有可恢复的活跃会话')
@@ -301,7 +301,7 @@ const handleResumeAll = () => {
     handleResumeSession(session)
   })
 
-  $message.success(`正在恢复 ${sessionsToRestore.length} 个挂起的会话`)
+  $message.success(`正在恢复 ${ sessionsToRestore.length } 个挂起的会话`)
 }
 
 // 监听showLinkTips变化，当返回到初始界面时重新获取挂起会话列表
@@ -329,8 +329,15 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .terminal_container {
-  height: calc(100% - 60px - 20px);
+  height: 100%;
+  min-height: 0;
   overflow: auto;
+
+  .terminal_workspace {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
   .terminal_link_tips {
     width: 100%;
     max-width: 1500px;

@@ -555,8 +555,10 @@ const showOtherSettings = ref(false)
 const showMenuOptions = ref(false)
 const showSessionSetting = ref(false)
 const showInfoSide = ref(isMobileScreen.value ? false : localStorage.getItem('showInfoSide') !== 'false')
-const showSftpSide = ref(isMobileScreen.value ? false : localStorage.getItem('showSftpSide') !== 'false')
-const showTerminalAi = ref(false)
+const showTerminalAi = ref(isMobileScreen.value ? false : localStorage.getItem('showTerminalAi') === 'true')
+const showSftpSide = ref(isMobileScreen.value
+  ? false
+  : !showTerminalAi.value && localStorage.getItem('showSftpSide') !== 'false')
 const terminalAiMounted = ref(false)
 let terminalAiMountTimer = null
 const terminalAiPrefills = reactive({})
@@ -649,7 +651,8 @@ const changeTerminalAi = () => {
   localStorage.setItem('showSftpSide', showSftpSide.value)
 }
 
-watch(showTerminalAi, (visible) => {
+watch(showTerminalAi, (visible, previousVisible) => {
+  if (previousVisible !== undefined) localStorage.setItem('showTerminalAi', visible)
   clearTimeout(terminalAiMountTimer)
   // 关闭侧栏只隐藏，不销毁会话。否则正在运行的命令会随着 Agent Socket
   // 断开而失去状态与取消通道，重新打开也无法看到原任务。
@@ -659,7 +662,7 @@ watch(showTerminalAi, (visible) => {
   terminalAiMountTimer = setTimeout(() => {
     terminalAiMounted.value = true
   }, 200)
-})
+}, { immediate: true })
 
 const handleTerminalAiInput = (item, text) => {
   if (isSingleWindowMode.value) singleWindowAiHost.value = item
@@ -1086,7 +1089,7 @@ watch(
 )
 
 watch(
-  [showFooterBar, showInfoSide, showSftpSide,],
+  [showFooterBar, showInfoSide, showSftpSide, showTerminalAi,],
   () => {
     setTimeout(async () => {
       resizeTerminal()
@@ -1150,6 +1153,10 @@ const handleVerticalScreen = () => {
 }
 
 const resizeTerminal = () => {
+  if (isSingleWindowMode.value) {
+    singleWindowRef.value?.resizeTerminals()
+    return
+  }
   for (let terminalTabRef of terminalRefs.value) {
     const { handleResize } = terminalTabRef || {}
     handleResize && handleResize()
@@ -1300,35 +1307,8 @@ const handleSuspendTerminalSingleDone = (terminalKey) => {
   fetchSuspendedSessions()
 }
 
-const handleToFullScreen = () => {
-  if (isSingleWindowMode.value) {
-    const singleWindowWrapper = document.querySelector('.single_window_wrapper')
-    singleWindowWrapper.style.height = 'calc(100vh - 32px)'
-  } else {
-    const terminalWraps = document.querySelectorAll('.tab_content_wrap')
-    terminalWraps.forEach(wrap => {
-      wrap.style.height = 'calc(100vh - 62px)'
-    })
-  }
-}
-const handleToNormal = () => {
-  if (isSingleWindowMode.value) {
-    const singleWindowWrapper = document.querySelector('.single_window_wrapper')
-    singleWindowWrapper.style.height = 'calc(100vh - 115px)'
-  } else {
-    const terminalWraps = document.querySelectorAll('.tab_content_wrap')
-    terminalWraps.forEach(wrap => {
-      wrap.style.height = 'calc(100vh - 142px)'
-    })
-  }
-}
-
-const fullScreenCb = () => {
-  if (document.fullscreenElement) {
-    handleToFullScreen()
-  } else {
-    handleToNormal()
-  }
+const fullScreenCb = async() => {
+  await $nextTick()
   setTimeout(() => {
     resizeTerminal()
   }, 210)
@@ -1357,9 +1337,22 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .terminal_wrap {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
   :deep(.el-tabs__content) {
+    min-height: 0;
+    flex: 1;
     padding: 0;
+    overflow: hidden;
+  }
+
+  :deep(.el-tab-pane) {
+    height: 100%;
+    min-height: 0;
   }
 
   :deep(.el-tabs--border-card) {
@@ -1376,6 +1369,7 @@ onUnmounted(() => {
   .terminal_top {
     width: 100%;
     height: $terminalTopHeight;
+    flex: 0 0 $terminalTopHeight;
     &.mobile {
       overflow-x: scroll;
       overflow-y: auto;
@@ -1461,6 +1455,11 @@ onUnmounted(() => {
   }
 
   .tabs_container {
+    min-height: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     position: relative;
 
     .tab_label {
@@ -1486,8 +1485,8 @@ onUnmounted(() => {
     }
 
     .tab_content_wrap {
-      flex: 1;
-      height: calc(100vh - 142px);
+      height: 100%;
+      min-height: 0;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -1689,7 +1688,8 @@ onUnmounted(() => {
 }
 
 .single_window_wrapper {
-  height: calc(100vh - 115px);
+  min-height: 0;
+  flex: 1;
   overflow: hidden;
   border: 1px solid var(--el-border-color);
   display: flex;
