@@ -103,7 +103,14 @@
         >
           <template #title>
             <span class="plus_alert_message">{{ state.plusRequired.message }}</span>
-            <el-button class="plus_activation_button" type="primary" link @click="openPlusSettings">去激活</el-button>
+            <el-button
+              class="plus_activation_button"
+              type="primary"
+              link
+              @click="openPlusSettings"
+            >
+              去激活
+            </el-button>
           </template>
         </el-alert>
         <el-alert
