@@ -1,5 +1,22 @@
 [
   {
+    "version": "v3.7.2",
+    "date": "2026-08-02",
+    "nativeVersion": "native-v1.1.0",
+    "nativeReleaseUrl": "https://github.com/chaos-zhu/easynode/releases",
+    "iosReleaseUrl": "",
+    "ohosReleaseUrl": "",
+    "features": [
+      "AI Chat 功能重构为 AI Agent 功能上线",
+      "web 端布局调整",
+      "h5 端优化",
+      "server 端规范调整",
+      "其他功能优化与bug修复"
+    ],
+    "nativeFeatures": [
+    ]
+  },
+  {
     "version": "v3.7.1",
     "date": "2026-07-05",
     "nativeVersion": "native-v1.1.0",

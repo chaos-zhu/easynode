@@ -6,6 +6,13 @@
 * 支持csv模板特定格式导入
 * AI功能增强
 
+## [3.7.2](https://github.com/chaos-zhu/easynode/releases) (2026-08-02)
+* AI Chat 功能重构为 AI Agent 功能上线
+* web 端布局调整
+* server 端规范调整
+* h5 端优化
+* 其他功能优化与bug修复
+
 ## [native-v1.1.0](https://github.com/chaos-zhu/easynode/releases) (2026-07-05)
 * 新增终端页服务器状态组件
 * 新增Docker容器Tab & 终端页Docker联动
