@@ -5,9 +5,10 @@
  * 渲染副本，不是发给模型的真值 —— 不要试图从它反推请求体。
  */
 
-import { reactive, ref, computed, onBeforeUnmount } from 'vue'
+import { reactive, ref, computed, onBeforeUnmount, watch } from 'vue'
 import { generateSocketInstance } from '@/utils'
 import $api from '@/api'
+import useStore from '@/store'
 import {
   applyEvent,
   removeApproval,
@@ -18,6 +19,7 @@ import {
 import { DEFAULT_PRESET } from '@/components/ai-agent/presets'
 
 export function useAgentSession(config = {}) {
+  const store = useStore()
   const scope = config.scope === 'terminal' ? 'terminal' : 'ops'
   const terminalHostId = config.hostId || ''
   const socket = ref(null)
@@ -78,6 +80,24 @@ export function useAgentSession(config = {}) {
 
   const canSend = computed(() => connected.value && !state.running && !state.stopping)
 
+  function applyModels(models, defaultModel = '') {
+    options.models = Array.isArray(models) ? [...models,] : []
+    options.defaultModel = defaultModel || options.models[0] || ''
+    if (!settings.modelId || !options.models.includes(settings.modelId)) {
+      settings.modelId = options.defaultModel
+    }
+  }
+
+  // ready 只在 WebSocket 建连时发送。设置页保存 Provider 后连接仍然存在，
+  // 因此还要跟随全局配置更新，避免模型下拉框一直停留在旧列表。
+  watch(
+    () => store.aiConfig?.models,
+    (models) => {
+      if (Array.isArray(models)) applyModels(models)
+    },
+    { immediate: true, deep: true }
+  )
+
   function dismissPlusRequired() {
     if (plusRequiredTimer) {
       clearTimeout(plusRequiredTimer)
@@ -136,15 +156,11 @@ export function useAgentSession(config = {}) {
   function handleEvent(event) {
     switch (event.type) {
       case 'ready':
-        options.models = event.models || []
+        applyModels(event.models, event.defaultModel)
         options.presets = event.presets || []
-        options.defaultModel = event.defaultModel || ''
         options.defaultPreset = event.defaultPreset || DEFAULT_PRESET
         options.tools = Array.isArray(event.tools) ? event.tools : []
         options.plusAvailable = Boolean(event.plusAvailable)
-        if (!settings.modelId || !options.models.includes(settings.modelId)) {
-          settings.modelId = options.defaultModel
-        }
         return
 
       case 'session_created':
