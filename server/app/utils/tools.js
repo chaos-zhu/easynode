@@ -416,7 +416,7 @@ async function requestWithFailover(path, options = {}, timeout = 5000) {
     } catch (error) {
       // 如果不是最后一个服务，尝试下一个服务器[防止异常报错]
       if (i < plusServers.length - 1) {
-        logger.info(`Plus服务: ${ i + 1 }/${ plusServers.length }: ${ server }${ path } 请求失败: ${ error.message }，尝试下一个服务器`)
+        // logger.info(`Plus服务: ${ i + 1 }/${ plusServers.length }: ${ server }${ path } 请求失败: ${ error.message }，尝试下一个服务器`)
         continue
       }
       // 如果是最后一个服务器，抛出错误
