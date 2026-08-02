@@ -136,6 +136,26 @@ async function handleLogout() {
 .account_badge {
   display: block;
   width: 100%;
+
+  :deep(.el-badge__content.is-dot) {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px var(--el-bg-color), 0 0 6px rgba(245, 108, 108, 0.4);
+    animation: update-dot-pulse 1.8s ease-in-out infinite;
+    transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  }
+}
+
+@keyframes update-dot-pulse {
+  0%, 100% { transform: translateY(-50%) translateX(100%) scale(1); }
+  50% { transform: translateY(-50%) translateX(100%) scale(1.16); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account_badge :deep(.el-badge__content.is-dot) {
+    animation: none;
+  }
 }
 
 .account_trigger {
@@ -206,6 +226,13 @@ async function handleLogout() {
 
   .version_badge {
     height: 16px;
+
+    .el-badge__content.is-dot {
+      width: 9px;
+      height: 9px;
+      box-shadow: 0 0 6px rgba(245, 108, 108, 0.45);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
   }
 
   .danger_item {
