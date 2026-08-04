@@ -46,6 +46,7 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
   final TextEditingController _searchCtrl = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final Map<String, VoidCallback> _selectionListeners = {};
+  final Map<String, VoidCallback> _scrollListeners = {};
   final Map<String, _TerminalSearchState> _searchStates = {};
   // 当前实时触摸点（active session 的终端本地坐标），驱动放大镜显示；
   // 长按选词/拖动扩展选区完全交给 xterm 内建手势处理，这里只用 Listener 被动跟踪坐标，
@@ -58,6 +59,14 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
   bool _ignoreNextTapUp = false;
   bool _showSearchBar = false;
   Timer? _searchDebounce;
+  Timer? _scrollIdleTimer;
+  Timer? _selectionAutoScrollTimer;
+  TerminalSession? _selectionDragSession;
+  Offset? _selectionDragGlobalPosition;
+  bool _selectionDragIsStart = false;
+  bool _selectionHandleDragging = false;
+  bool _terminalScrolling = false;
+  bool _scrollFrameScheduled = false;
 
   TerminalSessionManager get _manager =>
       ref.read(terminalSessionManagerProvider);
@@ -115,13 +124,27 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
     final liveIds = <String>{};
     for (final session in _manager.sessions) {
       liveIds.add(session.id);
-      if (_selectionListeners.containsKey(session.id)) continue;
-      void listener() {
-        if (mounted) setState(() {});
+      if (!_selectionListeners.containsKey(session.id)) {
+        void listener() {
+          if (!mounted) return;
+          if (session.viewController.selection == null &&
+              _longPressMenuSessionId == session.id) {
+            _clearLongPressMenu();
+            return;
+          }
+          setState(() {});
+        }
+
+        session.viewController.addListener(listener);
+        _selectionListeners[session.id] = listener;
       }
 
-      session.viewController.addListener(listener);
-      _selectionListeners[session.id] = listener;
+      if (!_scrollListeners.containsKey(session.id)) {
+        void listener() => _handleTerminalScroll(session);
+
+        session.scrollController.addListener(listener);
+        _scrollListeners[session.id] = listener;
+      }
     }
 
     final removedIds = _selectionListeners.keys
@@ -129,8 +152,25 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
         .toList(growable: false);
     for (final id in removedIds) {
       _selectionListeners.remove(id);
+      _scrollListeners.remove(id);
       _searchStates.remove(id)?.dispose();
     }
+  }
+
+  void _handleTerminalScroll(TerminalSession session) {
+    if (!mounted || _manager.activeSession?.id != session.id) return;
+    if (_scrollFrameScheduled) return;
+    _scrollFrameScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollFrameScheduled = false;
+      if (!mounted || _manager.activeSession?.id != session.id) return;
+      _scrollIdleTimer?.cancel();
+      setState(() => _terminalScrolling = true);
+      _scrollIdleTimer = Timer(const Duration(milliseconds: 140), () {
+        if (!mounted || _manager.activeSession?.id != session.id) return;
+        setState(() => _terminalScrolling = false);
+      });
+    });
   }
 
   String? _selectedText(TerminalSession session) {
@@ -391,16 +431,16 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
     return _toOverlayLocal(offset);
   }
 
-  void _updateSelectionHandle(
+  void _updateSelectionHandleAtGlobalPosition(
     TerminalSession session, {
     required bool start,
-    required DragUpdateDetails details,
+    required Offset globalPosition,
   }) {
     final buffer = session.controller.terminal.buffer;
     final selection = session.viewController.selection;
     final target = _cellOffsetForGlobalPosition(
       session,
-      details.globalPosition,
+      globalPosition,
     );
     if (selection == null || target == null) return;
     final begin = start ? target : selection.begin;
@@ -415,6 +455,9 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
     TerminalSession session,
     DragStartDetails details,
   ) {
+    setState(() => _selectionHandleDragging = true);
+    _selectionDragSession = session;
+    _selectionDragGlobalPosition = details.globalPosition;
     _trackTouchPosition(session, details.globalPosition);
   }
 
@@ -423,8 +466,107 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
     required bool start,
     required DragUpdateDetails details,
   }) {
-    _updateSelectionHandle(session, start: start, details: details);
+    _selectionDragSession = session;
+    _selectionDragIsStart = start;
+    _selectionDragGlobalPosition = details.globalPosition;
+    _updateSelectionHandleAtGlobalPosition(
+      session,
+      start: start,
+      globalPosition: details.globalPosition,
+    );
+    _updateSelectionAutoScroll();
     _trackTouchPosition(session, details.globalPosition);
+  }
+
+  double _selectionAutoScrollDelta(
+    RenderTerminal render,
+    Offset globalPosition,
+  ) {
+    const edgeExtent = 56.0;
+    final localY = render.globalToLocal(globalPosition).dy;
+    final viewportHeight = render.size.height;
+    if (viewportHeight <= 0) return 0;
+
+    double direction;
+    double distance;
+    if (localY < edgeExtent) {
+      direction = -1;
+      distance = edgeExtent - localY;
+    } else if (localY > viewportHeight - edgeExtent) {
+      direction = 1;
+      distance = localY - (viewportHeight - edgeExtent);
+    } else {
+      return 0;
+    }
+
+    final strength = (distance / edgeExtent).clamp(0.0, 2.0);
+    return direction * render.lineHeight * (0.35 + strength * 1.35);
+  }
+
+  void _updateSelectionAutoScroll() {
+    final session = _selectionDragSession;
+    final globalPosition = _selectionDragGlobalPosition;
+    final render = session == null ? null : _renderTerminalFor(session);
+    if (session == null || globalPosition == null || render == null) {
+      _stopSelectionAutoScroll(clearDrag: false);
+      return;
+    }
+    final delta = _selectionAutoScrollDelta(render, globalPosition);
+    if (delta == 0 || !session.scrollController.hasClients) {
+      _stopSelectionAutoScroll(clearDrag: false);
+      return;
+    }
+    _selectionAutoScrollTimer ??= Timer.periodic(
+      const Duration(milliseconds: 16),
+      (_) => _tickSelectionAutoScroll(),
+    );
+  }
+
+  void _tickSelectionAutoScroll() {
+    final session = _selectionDragSession;
+    final globalPosition = _selectionDragGlobalPosition;
+    if (session == null ||
+        globalPosition == null ||
+        _manager.activeSession?.id != session.id ||
+        !session.scrollController.hasClients) {
+      _stopSelectionAutoScroll(clearDrag: false);
+      return;
+    }
+    final render = _renderTerminalFor(session);
+    if (render == null) {
+      _stopSelectionAutoScroll(clearDrag: false);
+      return;
+    }
+    final delta = _selectionAutoScrollDelta(render, globalPosition);
+    if (delta == 0) {
+      _stopSelectionAutoScroll(clearDrag: false);
+      return;
+    }
+
+    final position = session.scrollController.position;
+    final target = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if (target == position.pixels) {
+      _stopSelectionAutoScroll(clearDrag: false);
+      return;
+    }
+    session.scrollController.jumpTo(target);
+    _updateSelectionHandleAtGlobalPosition(
+      session,
+      start: _selectionDragIsStart,
+      globalPosition: globalPosition,
+    );
+    _trackTouchPosition(session, globalPosition);
+  }
+
+  void _stopSelectionAutoScroll({required bool clearDrag}) {
+    _selectionAutoScrollTimer?.cancel();
+    _selectionAutoScrollTimer = null;
+    if (!clearDrag) return;
+    _selectionDragSession = null;
+    _selectionDragGlobalPosition = null;
   }
 
   void _normalizeSelectionDirection(TerminalSession session) {
@@ -439,36 +581,61 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
   }
 
   void _handleHandleDragEnd(TerminalSession session, DragEndDetails details) {
+    _stopSelectionAutoScroll(clearDrag: true);
     _normalizeSelectionDirection(session);
     _clearTouchPosition();
+    if (mounted) setState(() => _selectionHandleDragging = false);
   }
 
   void _handleHandleDragCancel(TerminalSession session) {
+    _stopSelectionAutoScroll(clearDrag: true);
     _normalizeSelectionDirection(session);
     _clearTouchPosition();
+    if (mounted) setState(() => _selectionHandleDragging = false);
   }
 
   Offset? _selectionMenuOffset(TerminalSession session) {
     final render = _renderTerminalFor(session);
     final selection = _normalizedSelection(session);
     if (render == null) return null;
-    final beginOffset = selection == null
-        ? _longPressMenuOffset
-        : _toOverlayLocal(render.getOffset(selection.begin));
-    if (beginOffset == null) return null;
-    final boxSize = render.size;
+    final contentSize = render.size;
+    final overlaySize = Size(
+      contentSize.width + _terminalContentPadding.horizontal,
+      contentSize.height + _terminalContentPadding.vertical,
+    );
+    final cellHeight = render.cellSize.height;
+    final Offset anchor;
+    if (selection == null) {
+      final longPressOffset = _longPressMenuOffset;
+      if (longPressOffset == null) return null;
+      anchor = longPressOffset;
+    } else {
+      final beginOffset = _toOverlayLocal(render.getOffset(selection.begin));
+      final endOffset = _toOverlayLocal(render.getOffset(selection.end));
+      final contentTop = _terminalContentPadding.top;
+      final contentBottom = contentTop + contentSize.height;
+      if (endOffset.dy + cellHeight < contentTop ||
+          beginOffset.dy > contentBottom) {
+        return null;
+      }
+      anchor = Offset(
+        beginOffset.dy < contentTop
+            ? _terminalContentPadding.left
+            : beginOffset.dx,
+        beginOffset.dy.clamp(contentTop, contentBottom - cellHeight),
+      );
+    }
     const menuWidth = 200.0;
     const menuHeight = 44.0;
     const gap = 12.0;
-    final preferredLeft = beginOffset.dx + gap;
-    final preferredTop = beginOffset.dy - menuHeight - gap;
-    final left = preferredLeft.clamp(8.0, boxSize.width - menuWidth - 8.0);
+    final preferredLeft = anchor.dx + gap;
+    final preferredTop = anchor.dy - menuHeight - gap;
+    final maxLeft = max(8.0, overlaySize.width - menuWidth - 8.0);
+    final maxTop = max(8.0, overlaySize.height - menuHeight - 8.0);
+    final left = preferredLeft.clamp(8.0, maxLeft);
     final top = preferredTop < 8.0
-        ? (beginOffset.dy + render.cellSize.height + gap).clamp(
-            8.0,
-            boxSize.height - menuHeight - 8.0,
-          )
-        : preferredTop.clamp(8.0, boxSize.height - menuHeight - 8.0);
+        ? (anchor.dy + cellHeight + gap).clamp(8.0, maxTop)
+        : preferredTop.clamp(8.0, maxTop);
     return Offset(left, top);
   }
 
@@ -626,10 +793,16 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _scrollIdleTimer?.cancel();
+    _stopSelectionAutoScroll(clearDrag: true);
     for (final session in _manager.sessions) {
       final listener = _selectionListeners[session.id];
       if (listener != null) {
         session.viewController.removeListener(listener);
+      }
+      final scrollListener = _scrollListeners[session.id];
+      if (scrollListener != null) {
+        session.scrollController.removeListener(scrollListener);
       }
     }
     for (final state in _searchStates.values) {
@@ -768,22 +941,6 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                                               ),
                                             ),
                                           if (session.id == active?.id &&
-                                              (activeRange != null ||
-                                                  _longPressMenuSessionId ==
-                                                      session.id))
-                                            _SelectionContextMenu(
-                                              offset: _selectionMenuOffset(
-                                                session,
-                                              ),
-                                              showCopy: activeRange != null,
-                                              onCopy: () =>
-                                                  _copySelection(session),
-                                              onPaste: () =>
-                                                  _pasteToTerminal(session),
-                                              onClear: () =>
-                                                  _clearTerminal(session),
-                                            ),
-                                          if (session.id == active?.id &&
                                               activeRange != null) ...[
                                             _SelectionHandle(
                                               offset: _selectionHandleOffset(
@@ -859,6 +1016,26 @@ class _TerminalShellPageState extends ConsumerState<TerminalShellPage> {
                                                   Size.zero,
                                             ),
                                           ],
+                                          // 菜单必须放在手柄之后，确保它位于手柄透明热区
+                                          // 上方，否则靠近选区时复制/粘贴按钮会被手柄截获。
+                                          if (session.id == active?.id &&
+                                              (activeRange != null ||
+                                                  _longPressMenuSessionId ==
+                                                      session.id) &&
+                                              !_selectionHandleDragging &&
+                                              !_terminalScrolling)
+                                            _SelectionContextMenu(
+                                              offset: _selectionMenuOffset(
+                                                session,
+                                              ),
+                                              showCopy: activeRange != null,
+                                              onCopy: () =>
+                                                  _copySelection(session),
+                                              onPaste: () =>
+                                                  _pasteToTerminal(session),
+                                              onClear: () =>
+                                                  _clearTerminal(session),
+                                            ),
                                         ],
                                       ),
                                   ],
