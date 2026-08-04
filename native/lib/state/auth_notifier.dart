@@ -87,9 +87,3 @@ class AuthNotifier extends StateNotifier<AuthState> {
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   throw UnimplementedError('authProvider must be overridden in bootstrap');
 });
-
-/// Holds the reason (server-provided `msg`) of the most recent forced
-/// sign-out so the LoginPage can surface it to the user. Set by the 401/403
-/// interceptor, consumed once and reset back to null after the SnackBar is
-/// shown.
-final signOutReasonProvider = StateProvider<String?>((ref) => null);

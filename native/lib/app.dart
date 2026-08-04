@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -9,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/api/api_client.dart';
 import 'core/api/cookie_store.dart';
+import 'core/api/api_result.dart';
 import 'core/storage/app_storage.dart';
 import 'core/storage/secure_storage.dart';
 import 'features/auth/auth_session.dart';
@@ -16,6 +19,7 @@ import 'features/auth/login_controller.dart';
 import 'features/auth/login_page.dart';
 import 'features/shell/main_shell_page.dart';
 import 'l10n/app_localizations.dart';
+import 'state/api_access_notifier.dart';
 import 'state/auth_notifier.dart';
 import 'state/auth_state.dart';
 import 'state/color_theme_notifier.dart';
@@ -36,6 +40,7 @@ class _Bootstrap {
     required this.appVersion,
     required this.initialPassword,
     required this.initialAuthState,
+    required this.initialIpAccessDenied,
   });
 
   final AppStorage appStorage;
@@ -45,6 +50,7 @@ class _Bootstrap {
   final String appVersion;
   final String initialPassword;
   final AuthState initialAuthState;
+  final bool initialIpAccessDenied;
 }
 
 class EasyNodeApp extends StatelessWidget {
@@ -74,6 +80,7 @@ class EasyNodeApp extends StatelessWidget {
     }
 
     AuthState initialAuthState = AuthState.empty;
+    var initialIpAccessDenied = false;
     final token = await secureWrapper.readToken();
     final cookie = await secureWrapper.readSessionCookie();
     final deviceId = await secureWrapper.readDeviceId();
@@ -106,6 +113,25 @@ class EasyNodeApp extends StatelessWidget {
           apiClient: api,
           publicKeyPem: pubKey,
         );
+      } on IpAccessDeniedFailure {
+        // The saved session can still be used from an allowed network. Keep
+        // the main shell behind the blocking prompt; its data requests cannot
+        // proceed while the IP policy is active, but showing LoginPage here
+        // incorrectly implies that the credentials were invalidated.
+        initialAuthState = AuthState(
+          session: AuthSession(
+            serverAddress: appStorage.serverAddress,
+            username: appStorage.username,
+            token: token,
+            deviceId: deviceId,
+          ),
+          apiClient: api,
+          // Repositories are not used while the access-denied prompt blocks
+          // the UI. A non-null placeholder preserves the restored shell until
+          // the user exits or explicitly signs out.
+          publicKeyPem: '',
+        );
+        initialIpAccessDenied = true;
       } catch (_) {
         await secureWrapper.deleteToken();
         await secureWrapper.deleteSessionCookie();
@@ -122,6 +148,7 @@ class EasyNodeApp extends StatelessWidget {
         appVersion: appVersion,
         initialPassword: initialPassword,
         initialAuthState: initialAuthState,
+        initialIpAccessDenied: initialIpAccessDenied,
       ),
     );
   }
@@ -140,16 +167,22 @@ class EasyNodeApp extends StatelessWidget {
       child: _AppRoot(
         initialPassword: _b.initialPassword,
         appVersion: _b.appVersion,
+        initialIpAccessDenied: _b.initialIpAccessDenied,
       ),
     );
   }
 }
 
 class _AppRoot extends ConsumerStatefulWidget {
-  const _AppRoot({required this.initialPassword, required this.appVersion});
+  const _AppRoot({
+    required this.initialPassword,
+    required this.appVersion,
+    required this.initialIpAccessDenied,
+  });
 
   final String initialPassword;
   final String appVersion;
+  final bool initialIpAccessDenied;
 
   @override
   ConsumerState<_AppRoot> createState() => _AppRootState();
@@ -160,32 +193,41 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey =
       GlobalKey<ScaffoldMessengerState>();
+  var _ipAccessDeniedDialogShowing = false;
 
   @override
   void initState() {
     super.initState();
-    _loginController = LoginController(apiClientFactory: _buildApiClient)
-      ..onLoginSuccess(_onLoginSuccess);
-    // The ApiClient built during bootstrap (restored from saved login) was
-    // constructed before authProvider existed, so it has no onUnauthorized
-    // callback. Wire it now so 401/403 from a restored session also signs
-    // the user out.
-    ref.read(authProvider).apiClient?.setOnUnauthorized(_signOutOnUnauthorized);
+    _loginController = LoginController(
+      apiClientFactory: _buildAnonymousApiClient,
+    )..onLoginSuccess(_onLoginSuccess);
+    // The restored client is constructed before ProviderScope exists. Bind
+    // its session-failure handler once the global coordinator is available.
+    ref
+        .read(authProvider)
+        .apiClient
+        ?.setOnSessionFailure(_handleSessionFailure);
+    if (widget.initialIpAccessDenied) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref
+            .read(apiAccessProvider.notifier)
+            .handleSessionFailure(
+              IpAccessDeniedFailure('IP access denied', statusCode: 403),
+            );
+      });
+    }
   }
 
-  Future<void> _signOutOnUnauthorized(String? message) async {
-    // Stash the server-provided reason before clearing auth state so the
-    // SnackBar listener below can surface it on the LoginPage.
-    ref.read(signOutReasonProvider.notifier).state = message;
-    await ref.read(authProvider.notifier).signOut();
+  Future<void> _handleSessionFailure(ApiSessionFailure failure) {
+    return ref.read(apiAccessProvider.notifier).handleSessionFailure(failure);
   }
 
-  ApiClient _buildApiClient(String serverAddress, {String? token}) {
+  ApiClient _buildAnonymousApiClient(String serverAddress, {String? token}) {
     return ApiClient(
       serverAddress: serverAddress,
       cookieStore: ref.read(cookieStoreProvider),
       token: token,
-      onUnauthorized: _signOutOnUnauthorized,
       appVersion: widget.appVersion,
     );
   }
@@ -194,8 +236,14 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     AuthSession session,
     String? passwordToSave,
   ) async {
-    final api = _buildApiClient(session.serverAddress, token: session.token);
+    // Public-key validation is part of the login flow, so errors still belong
+    // to LoginPage. Bind global session handling only after it succeeds.
+    final api = _buildAnonymousApiClient(
+      session.serverAddress,
+      token: session.token,
+    );
     final pubKey = await api.getPublicKey();
+    api.setOnSessionFailure(_handleSessionFailure);
     await ref
         .read(authProvider.notifier)
         .signIn(
@@ -204,6 +252,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
           publicKeyPem: pubKey,
           passwordToSave: passwordToSave,
         );
+    ref.read(apiAccessProvider.notifier).reset();
   }
 
   @override
@@ -220,28 +269,40 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       }
     });
 
-    // Show a SnackBar whenever the 401/403 interceptor stashes a reason, then
-    // clear it so the same message isn't shown twice on rebuilds.
-    ref.listen<String?>(signOutReasonProvider, (_, next) {
-      if (next == null || next.isEmpty) return;
-      final messenger = _messengerKey.currentState;
-      if (messenger == null) return;
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(next),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      // Reset on the next frame so we don't trigger another listener pass
-      // while the current one is still running.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        ref.read(signOutReasonProvider.notifier).state = null;
-      });
-    });
+    // Show the server-provided reason after the REST coordinator signs out,
+    // then clear it so the same message isn't shown twice on rebuilds.
+    ref.listen<String?>(
+      apiAccessProvider.select((state) => state.signOutReason),
+      (_, next) {
+        if (next == null || next.isEmpty) return;
+        final messenger = _messengerKey.currentState;
+        if (messenger == null) return;
+        messenger
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(next),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        // Reset on the next frame so we don't trigger another listener pass
+        // while the current one is still running.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          ref.read(apiAccessProvider.notifier).consumeSignOutReason();
+        });
+      },
+    );
+
+    ref.listen<bool>(
+      apiAccessProvider.select((state) => state.ipAccessDenied),
+      (previous, next) {
+        if (next && previous != true && ref.read(authProvider).signedIn) {
+          _showIpAccessDeniedDialog();
+        }
+      },
+    );
 
     final Widget home;
     if (auth.signedIn) {
@@ -312,6 +373,51 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       },
       home: _BrandedSplashGate(child: home),
     );
+  }
+
+  Future<void> _showIpAccessDeniedDialog() async {
+    if (_ipAccessDeniedDialogShowing || !mounted) return;
+    final dialogContext = _navigatorKey.currentContext;
+    if (dialogContext == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showIpAccessDeniedDialog();
+      });
+      return;
+    }
+    _ipAccessDeniedDialogShowing = true;
+    final l = AppLocalizations.of(dialogContext);
+    await showDialog<void>(
+      context: dialogContext,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: Text(l.tr('access.ipDeniedTitle')),
+          content: Text(l.tr('access.ipDeniedBody')),
+          actions: [
+            if (!Platform.isIOS)
+              TextButton(
+                onPressed: _exitApp,
+                child: Text(l.tr('common.exitApp')),
+              ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await ref
+                    .read(apiAccessProvider.notifier)
+                    .signOutFromIpAccessDenied();
+              },
+              child: Text(l.tr('settings.logout')),
+            ),
+          ],
+        ),
+      ),
+    );
+    _ipAccessDeniedDialogShowing = false;
+  }
+
+  Future<void> _exitApp() async {
+    await SystemNavigator.pop();
   }
 }
 

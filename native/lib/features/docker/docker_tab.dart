@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/api/api_result.dart';
 import '../../core/ui/app_color_theme.dart';
 import '../../core/ui/refresh_feedback.dart';
 import '../../core/ui/top_notice.dart';
@@ -117,10 +116,6 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
       );
     } catch (error) {
       if (!mounted) return;
-      if (error is UnauthorizedFailure) {
-        await ref.read(authProvider.notifier).signOut();
-        return;
-      }
       _showSnack(error.toString());
     } finally {
       if (mounted) setState(() => _connecting = false);
@@ -191,9 +186,6 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
                     ),
                   ),
                   error: (error, _) {
-                    if (error is UnauthorizedFailure) {
-                      return const SizedBox.shrink();
-                    }
                     return _DockerMessageList(
                       message: error.toString(),
                       action: TextButton(

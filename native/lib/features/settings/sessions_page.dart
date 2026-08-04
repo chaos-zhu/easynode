@@ -162,13 +162,6 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
       }
       _showSnack(l.tr('sessions.revokeDone'));
       await ref.read(loginLogProvider.notifier).refresh();
-    } on UnauthorizedFailure catch (err) {
-      if (!mounted) return;
-      if (!revokingCurrentSession) {
-        _showSnack(err.message);
-        return;
-      }
-      await ref.read(authProvider.notifier).signOut();
     } on ApiFailure catch (err) {
       if (!mounted) return;
       _showSnack(err.message);

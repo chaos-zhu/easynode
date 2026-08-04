@@ -16,6 +16,22 @@ class ApiFailure implements Exception {
   String toString() => message;
 }
 
-class UnauthorizedFailure extends ApiFailure {
+/// Base type for failures that affect the active application session and are
+/// handled by the global REST session coordinator.
+abstract class ApiSessionFailure extends ApiFailure {
+  ApiSessionFailure(super.message, {super.statusCode, super.data});
+}
+
+class UnauthorizedFailure extends ApiSessionFailure {
   UnauthorizedFailure(super.message, {super.statusCode, super.data});
+}
+
+/// The request reached EasyNode, but its source IP is not permitted by the
+/// server's IP allow-list. This is not an authentication failure: credentials
+/// remain valid and must not be cleared automatically.
+class IpAccessDeniedFailure extends ApiSessionFailure {
+  IpAccessDeniedFailure(super.message, {super.statusCode, super.data});
+
+  @override
+  bool get isUnauthorized => false;
 }

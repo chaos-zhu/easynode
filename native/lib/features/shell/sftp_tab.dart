@@ -8,14 +8,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../core/api/api_result.dart';
 import '../../core/ui/app_color_theme.dart';
 import '../../core/ui/refresh_feedback.dart';
 import '../../core/ui/top_notice.dart';
 import '../../features/servers/server_model.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
-import '../../state/auth_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/plus_info_notifier.dart';
 import '../../state/terminal_providers.dart';
@@ -124,10 +122,6 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
       );
     } catch (error) {
       if (!mounted) return;
-      if (error is UnauthorizedFailure) {
-        await ref.read(authProvider.notifier).signOut();
-        return;
-      }
       if (error is SftpConnectTimeoutException) {
         _showSnack(l.tr('sftp.connectTimeout'));
       } else {
@@ -203,9 +197,6 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
                     ),
                   ),
                   error: (error, _) {
-                    if (error is UnauthorizedFailure) {
-                      return const SizedBox.shrink();
-                    }
                     return _SftpMessageList(
                       message: error.toString(),
                       action: TextButton(

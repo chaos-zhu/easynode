@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_result.dart';
 import '../../core/ui/top_notice.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
-import '../../state/auth_notifier.dart';
 import '../../state/plus_info_notifier.dart';
 import '../../state/script_group_list_notifier.dart';
 import '../../state/script_list_notifier.dart';
@@ -121,10 +119,6 @@ class _ScriptGroupsPageState extends ConsumerState<ScriptGroupsPage> {
       ).showSnackBar(SnackBar(content: Text(message)));
     } catch (error) {
       if (!mounted) return;
-      if (error is UnauthorizedFailure) {
-        await ref.read(authProvider.notifier).signOut();
-        return;
-      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l.trf('scripts.deleteFailed', [error.toString()])),
@@ -167,9 +161,6 @@ class _ScriptGroupsPageState extends ConsumerState<ScriptGroupsPage> {
       body: groupsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) {
-          if (error is UnauthorizedFailure) {
-            return const SizedBox.shrink();
-          }
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -529,10 +520,6 @@ class _GroupFormState extends ConsumerState<_GroupForm> {
       ).showSnackBar(SnackBar(content: Text(message)));
     } catch (error) {
       if (!mounted) return;
-      if (error is UnauthorizedFailure) {
-        await ref.read(authProvider.notifier).signOut();
-        return;
-      }
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

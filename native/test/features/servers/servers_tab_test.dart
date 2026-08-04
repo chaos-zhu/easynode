@@ -273,7 +273,7 @@ void main() {
     expect(refreshed, hasLength(2));
   });
 
-  testWidgets('signs out when initial host fetch is unauthorized', (
+  testWidgets('host notifier does not own unauthorized session side effects', (
     tester,
   ) async {
     final repo = _FakeRepository(
@@ -289,12 +289,13 @@ void main() {
         }),
       ],
     );
+    container.read(authProvider);
     addTearDown(container.dispose);
 
     await expectLater(
       container.read(hostListProvider.future),
       throwsA(isA<UnauthorizedFailure>()),
     );
-    expect(auth.signOutCalls, 1);
+    expect(auth.signOutCalls, 0);
   });
 }

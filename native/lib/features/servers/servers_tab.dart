@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../core/api/api_result.dart';
 import '../../core/ui/app_color_theme.dart';
 import '../../core/ui/refresh_feedback.dart';
 import '../../core/ui/top_notice.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
-import '../../state/auth_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/group_list_notifier.dart';
 import '../../state/plus_info_notifier.dart';
@@ -91,10 +89,6 @@ class _ServersTabState extends ConsumerState<ServersTab> {
           .fetchSshConfig(server.id);
     } catch (error) {
       if (!mounted) return;
-      if (error is UnauthorizedFailure) {
-        await ref.read(authProvider.notifier).signOut();
-        return;
-      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -157,13 +151,6 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                 ).showSnackBar(SnackBar(content: Text(message)));
               } catch (error) {
                 if (!mounted) return;
-                if (error is UnauthorizedFailure) {
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                  await ref.read(authProvider.notifier).signOut();
-                  return;
-                }
                 if (dialogContext.mounted) {
                   setDialogState(() => deleting = false);
                 }
@@ -277,8 +264,6 @@ class _ServersTabState extends ConsumerState<ServersTab> {
 
   @override
   Widget build(BuildContext context) {
-    // Logout from UnauthorizedFailure inside refresh is handled by the
-    // notifier; we just need to redraw on host-list state changes.
     final hostsAsync = ref.watch(hostListProvider);
     final groupsAsync = ref.watch(groupListProvider);
     final manager = ref.watch(terminalSessionManagerProvider);
@@ -330,11 +315,6 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     return hostsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) {
-        if (error is UnauthorizedFailure) {
-          // signOut already triggered by the notifier; show nothing useful
-          // for the brief moment before AppRoot rebuilds to LoginPage.
-          return const SizedBox.shrink();
-        }
         return ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(24),

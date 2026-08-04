@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_result.dart';
 import '../../core/ui/app_color_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
-import '../../state/auth_notifier.dart';
 import '../../state/script_group_list_notifier.dart';
 import '../../state/script_list_notifier.dart';
 import 'script_group_model.dart';
@@ -131,10 +129,6 @@ class _ScriptFormPageState extends ConsumerState<ScriptFormPage> {
       ).showSnackBar(SnackBar(content: Text(message)));
     } catch (error) {
       if (!mounted) return;
-      if (error is UnauthorizedFailure) {
-        await ref.read(authProvider.notifier).signOut();
-        return;
-      }
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

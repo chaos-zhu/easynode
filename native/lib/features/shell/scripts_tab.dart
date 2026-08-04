@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_result.dart';
 import '../../core/ui/refresh_feedback.dart';
 import '../../features/scripts/script_form_page.dart';
 import '../../features/scripts/script_group_model.dart';
@@ -10,7 +9,6 @@ import '../../features/scripts/script_groups_page.dart';
 import '../../features/scripts/script_model.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
-import '../../state/auth_notifier.dart';
 import '../../state/script_group_list_notifier.dart';
 import '../../state/script_list_notifier.dart';
 import 'tab_header.dart';
@@ -124,10 +122,6 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
       ).showSnackBar(SnackBar(content: Text(message)));
     } catch (error) {
       if (!mounted) return;
-      if (error is UnauthorizedFailure) {
-        await ref.read(authProvider.notifier).signOut();
-        return;
-      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l.trf('scripts.deleteFailed', [error.toString()])),
@@ -173,7 +167,6 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
     return scriptsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) {
-        if (error is UnauthorizedFailure) return const SizedBox.shrink();
         return ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(24),
@@ -790,4 +783,3 @@ InputDecoration _searchFieldDecoration(BuildContext context, AppLocalizations l)
     ),
   );
 }
-

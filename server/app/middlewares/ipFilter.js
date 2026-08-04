@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path, { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { isAllowedIp, getClientIP } from '../utils/tools.js'
+import { apiPrefix } from '../config/index.js'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 const htmlPath = path.join(currentDir, '../template/ipForbidden.html')
@@ -12,6 +13,14 @@ const ipFilter = async (ctx, next) => {
   const requestIP = getClientIP(ctx.socket.remoteAddress, ctx.get('x-forwarded-for'))
   if (isAllowedIp(requestIP)) return await next()
   ctx.status = 403
+  if (ctx.path === apiPrefix || ctx.path.startsWith(`${ apiPrefix }/`)) {
+    ctx.body = {
+      status: 403,
+      data: { code: 'IP_ACCESS_DENIED' },
+      msg: '当前 IP 不在白名单中，禁止访问'
+    }
+    return
+  }
   ctx.body = ipForbiddenHtml
 }
 

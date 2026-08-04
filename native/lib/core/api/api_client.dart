@@ -7,6 +7,40 @@ import 'api_result.dart';
 import 'cookie_store.dart';
 
 const String _fallbackNativeAppVersion = 'unknown';
+const String ipAccessDeniedCode = 'IP_ACCESS_DENIED';
+
+typedef SessionFailureHandler =
+    Future<void> Function(ApiSessionFailure failure);
+
+bool isIpAccessDeniedResponse(Object? body) {
+  if (body is! Map) return false;
+  final data = body['data'];
+  return data is Map && data['code'] == ipAccessDeniedCode;
+}
+
+/// Converts a failed HTTP response into the app's semantic error types.
+/// Kept outside [ApiClient] so the server response contract is directly
+/// testable without a live secure-storage backend.
+ApiFailure apiFailureFromDioException(DioException error) {
+  final body = error.response?.data;
+  String? msg;
+  Object? data;
+  if (body is Map && body['msg'] is String) {
+    msg = body['msg'] as String;
+  }
+  if (body is Map) {
+    data = body['data'];
+  }
+  final statusCode = error.response?.statusCode;
+  final message = msg ?? error.message ?? 'Network error';
+  if (isIpAccessDeniedResponse(body)) {
+    return IpAccessDeniedFailure(message, statusCode: statusCode, data: data);
+  }
+  if (statusCode == 401 || statusCode == 403) {
+    return UnauthorizedFailure(message, statusCode: statusCode, data: data);
+  }
+  return ApiFailure(message, statusCode: statusCode, data: data);
+}
 
 String buildNativeUserAgent({String? appVersion}) {
   String clientName;
@@ -38,12 +72,12 @@ class ApiClient {
     required String serverAddress,
     required SessionCookieStore cookieStore,
     String? token,
-    Future<void> Function(String? message)? onUnauthorized,
+    SessionFailureHandler? onSessionFailure,
     String? appVersion,
     Dio? dio,
   }) : _cookieStore = cookieStore,
        _token = token,
-       _onUnauthorized = onUnauthorized,
+       _onSessionFailure = onSessionFailure,
        _dio =
            dio ??
            Dio(
@@ -87,37 +121,21 @@ class ApiClient {
           }
           handler.next(response);
         },
-        onError: (error, handler) {
-          final status = error.response?.statusCode;
-          if (status == 401 || status == 403) {
-            final cb = _onUnauthorized;
-            if (cb != null) {
-              final body = error.response?.data;
-              String? msg;
-              if (body is Map && body['msg'] is String) {
-                msg = body['msg'] as String;
-              }
-              _signOutFuture ??= cb(msg);
-            }
-          }
-          handler.next(error);
-        },
       ),
     );
   }
 
   final Dio _dio;
   final SessionCookieStore _cookieStore;
-  Future<void> Function(String? message)? _onUnauthorized;
-  Future<void>? _signOutFuture;
+  SessionFailureHandler? _onSessionFailure;
   String? _token;
 
   void setToken(String? token) {
     _token = token;
   }
 
-  void setOnUnauthorized(Future<void> Function(String? message)? cb) {
-    _onUnauthorized = cb;
+  void setOnSessionFailure(SessionFailureHandler? handler) {
+    _onSessionFailure = handler;
   }
 
   Future<String> getPublicKey() async {
@@ -128,44 +146,47 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> getJson(String path) async {
-    try {
-      final response = await _dio.get(path);
-      return _asJson(response);
-    } on DioException catch (error) {
-      throw _toFailure(error);
-    }
+    return _request(() => _dio.get(path));
   }
 
   Future<Map<String, dynamic>> postJson(
     String path,
     Map<String, dynamic> data,
   ) async {
-    try {
-      final response = await _dio.post(path, data: data);
-      return _asJson(response);
-    } on DioException catch (error) {
-      throw _toFailure(error);
-    }
+    return _request(() => _dio.post(path, data: data));
   }
 
   Future<Map<String, dynamic>> putJson(
     String path,
     Map<String, dynamic> data,
   ) async {
-    try {
-      final response = await _dio.put(path, data: data);
-      return _asJson(response);
-    } on DioException catch (error) {
-      throw _toFailure(error);
-    }
+    return _request(() => _dio.put(path, data: data));
   }
 
   Future<Map<String, dynamic>> deleteJson(String path) async {
+    return _request(() => _dio.delete(path));
+  }
+
+  Future<Map<String, dynamic>> _request(
+    Future<Response<dynamic>> Function() send,
+  ) async {
     try {
-      final response = await _dio.delete(path);
-      return _asJson(response);
+      return _asJson(await send());
     } on DioException catch (error) {
-      throw _toFailure(error);
+      final failure = apiFailureFromDioException(error);
+      if (failure is ApiSessionFailure) {
+        final handler = _onSessionFailure;
+        if (handler != null) {
+          try {
+            await handler(failure);
+          } catch (_) {
+            // A global side effect must never replace the request's semantic
+            // failure, otherwise feature-level error handling becomes
+            // dependent on cleanup implementation details.
+          }
+        }
+      }
+      throw failure;
     }
   }
 
@@ -173,23 +194,5 @@ class ApiClient {
     final data = response.data;
     if (data is Map<String, dynamic>) return data;
     throw ApiFailure('Unexpected server response');
-  }
-
-  ApiFailure _toFailure(DioException error) {
-    final body = error.response?.data;
-    String? msg;
-    Object? data;
-    if (body is Map && body['msg'] is String) {
-      msg = body['msg'] as String;
-    }
-    if (body is Map) {
-      data = body['data'];
-    }
-    final statusCode = error.response?.statusCode;
-    final message = msg ?? error.message ?? 'Network error';
-    if (statusCode == 401 || statusCode == 403) {
-      return UnauthorizedFailure(message, statusCode: statusCode, data: data);
-    }
-    return ApiFailure(message, statusCode: statusCode, data: data);
   }
 }

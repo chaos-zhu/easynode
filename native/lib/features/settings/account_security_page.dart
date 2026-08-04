@@ -113,8 +113,6 @@ class _AccountSecurityPageState extends ConsumerState<AccountSecurityPage> {
       if (!mounted) return;
       _showSnack(l.tr('account.changed'));
       await ref.read(authProvider.notifier).signOut();
-    } on UnauthorizedFailure {
-      await ref.read(authProvider.notifier).signOut();
     } on ApiFailure catch (err) {
       if (!mounted) return;
       _showSnack(err.message);

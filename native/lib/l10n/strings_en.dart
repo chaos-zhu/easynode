@@ -48,6 +48,11 @@ const Map<String, String> stringsEn = {
   'login.errLoginGeneric': 'Login failed',
   'login.errMissingFields': 'Server login response is missing required fields',
 
+  // Access control
+  'access.ipDeniedTitle': 'Access denied',
+  'access.ipDeniedBody':
+      'This device IP is not in the server allow-list. Switch to an allowed network, then restart the app.',
+
   // Login expiry options
   'login.expiry.threeDays': '3 days',
   'login.expiry.sevenDays': '7 days',

@@ -46,6 +46,10 @@ const Map<String, String> stringsZh = {
   'login.errSchemeUnsupported': '服务端地址仅支持 http 或 https',
   'login.errLoginGeneric': '登录失败',
   'login.errMissingFields': '服务端登录响应缺少必要字段',
+
+  // Access control
+  'access.ipDeniedTitle': '禁止访问',
+  'access.ipDeniedBody': '当前设备 IP 不在服务器白名单中。请切换到允许的网络后重启 App。',
   'login.expiry.threeDays': '3天',
   'login.expiry.sevenDays': '7天',
   'login.expiry.thirtyDays': '30天',

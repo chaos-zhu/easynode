@@ -1,9 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/api/api_result.dart';
 import '../features/scripts/script_model.dart';
 import 'api_providers.dart';
-import 'auth_notifier.dart';
 
 /// Mirrors web's `store.scriptList` + `store.getScriptList()`. The list is
 /// fetched on first read and exposed as an [AsyncValue]; consumers across
@@ -13,12 +11,7 @@ class ScriptListNotifier extends AsyncNotifier<List<ScriptModel>> {
   @override
   Future<List<ScriptModel>> build() async {
     final repo = ref.watch(scriptRepositoryProvider);
-    try {
-      return await repo.fetchScripts();
-    } on UnauthorizedFailure {
-      await ref.read(authProvider.notifier).signOut();
-      rethrow;
-    }
+    return repo.fetchScripts();
   }
 
   Future<void> refresh({bool throwOnError = false}) async {
@@ -29,10 +22,6 @@ class ScriptListNotifier extends AsyncNotifier<List<ScriptModel>> {
     try {
       final scripts = await ref.read(scriptRepositoryProvider).fetchScripts();
       state = AsyncData(scripts);
-    } on UnauthorizedFailure {
-      await ref.read(authProvider.notifier).signOut();
-      if (!throwOnError) return;
-      rethrow;
     } catch (error, stackTrace) {
       state = previous == null
           ? AsyncError(error, stackTrace)

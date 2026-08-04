@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/api/api_result.dart';
 import '../../core/ui/app_color_theme.dart';
 import '../../features/docker/docker_icon.dart';
 import '../../features/docker/docker_tab.dart';
@@ -10,7 +9,6 @@ import '../../features/servers/server_model.dart';
 import '../../features/shell/sftp_tab.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
-import '../../state/auth_notifier.dart';
 import '../../state/host_list_notifier.dart';
 import '../../state/terminal_providers.dart';
 import 'ssh_terminal_controller.dart';
@@ -751,10 +749,6 @@ class _ConnectionsSheetState extends ConsumerState<_ConnectionsSheet> {
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
-      if (error is UnauthorizedFailure) {
-        await ref.read(authProvider.notifier).signOut();
-        return;
-      }
       _showSnack(l.trf('terminal.openFailed', [error.toString()]));
     } finally {
       if (mounted) setState(() => _connectingId = null);

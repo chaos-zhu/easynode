@@ -1,21 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/api/api_result.dart';
 import '../features/servers/server_group_model.dart';
 import 'api_providers.dart';
-import 'auth_notifier.dart';
 
 /// Mirrors web's `store.groupList` + `store.getGroupList()`.
 class GroupListNotifier extends AsyncNotifier<List<ServerGroupModel>> {
   @override
   Future<List<ServerGroupModel>> build() async {
     final repo = ref.watch(serverRepositoryProvider);
-    try {
-      return await repo.fetchGroups();
-    } on UnauthorizedFailure {
-      await ref.read(authProvider.notifier).signOut();
-      rethrow;
-    }
+    return repo.fetchGroups();
   }
 
   Future<void> refresh({bool throwOnError = false}) async {
@@ -26,10 +19,6 @@ class GroupListNotifier extends AsyncNotifier<List<ServerGroupModel>> {
     try {
       final groups = await ref.read(serverRepositoryProvider).fetchGroups();
       state = AsyncData(groups);
-    } on UnauthorizedFailure {
-      await ref.read(authProvider.notifier).signOut();
-      if (!throwOnError) return;
-      rethrow;
     } catch (error, stackTrace) {
       state = previous == null
           ? AsyncError(error, stackTrace)

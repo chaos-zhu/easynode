@@ -36,22 +36,24 @@ class LoginResult {
 
 /// Builds an [ApiClient] for a given server address. Allows tests to inject
 /// a stub client so the controller can be exercised without real network.
-typedef ApiClientFactory = ApiClient Function(String serverAddress, {String? token});
+typedef ApiClientFactory =
+    ApiClient Function(String serverAddress, {String? token});
+
+typedef LoginSuccessHandler =
+    Future<void> Function(AuthSession session, String? passwordToSave);
 
 /// Orchestrates the native client login flow.
 class LoginController {
-  LoginController({
-    required ApiClientFactory apiClientFactory,
-    RsaCrypto? rsa,
-  })  : _apiClientFactory = apiClientFactory,
-        _rsa = rsa ?? RsaCrypto();
+  LoginController({required ApiClientFactory apiClientFactory, RsaCrypto? rsa})
+    : _apiClientFactory = apiClientFactory,
+      _rsa = rsa ?? RsaCrypto();
 
   /// Test factory that returns a controller without a real HTTP client. Real
   /// network calls will fail because the factory throws when invoked.
   factory LoginController.fake() => LoginController(
-        apiClientFactory: (_, {String? token}) =>
-            throw StateError('apiClientFactory not configured for tests'),
-      );
+    apiClientFactory: (_, {String? token}) =>
+        throw StateError('apiClientFactory not configured for tests'),
+  );
 
   final ApiClientFactory _apiClientFactory;
   final RsaCrypto _rsa;
@@ -109,7 +111,9 @@ class LoginController {
         );
       }
       final data = response['data'];
-      if (data is! Map || data['token'] is! String || data['deviceId'] is! String) {
+      if (data is! Map ||
+          data['token'] is! String ||
+          data['deviceId'] is! String) {
         return const LoginResult(
           message: '服务端登录响应缺少必要字段',
           messageKey: 'login.errMissingFields',
@@ -121,20 +125,24 @@ class LoginController {
         token: data['token'] as String,
         deviceId: data['deviceId'] as String,
       );
-      // ignore: parameter_assignments
-      _onLoginSuccess?.call(session, savePassword ? password : null);
+      final onLoginSuccess = _onLoginSuccess;
+      if (onLoginSuccess != null) {
+        await onLoginSuccess(session, savePassword ? password : null);
+      }
       return LoginResult(success: true, session: session);
     } on ApiFailure catch (error) {
       return LoginResult(message: error.message);
+    } catch (error) {
+      return LoginResult(message: error.toString());
     }
   }
 
   /// Optional callback invoked on successful login. The end-to-end wiring
   /// step (Task 13) supplies this so the controller stays decoupled from
   /// concrete storage in tests.
-  void Function(AuthSession session, String? passwordToSave)? _onLoginSuccess;
+  LoginSuccessHandler? _onLoginSuccess;
   // ignore: use_setters_to_change_properties
-  void onLoginSuccess(void Function(AuthSession session, String? passwordToSave) cb) {
+  void onLoginSuccess(LoginSuccessHandler cb) {
     _onLoginSuccess = cb;
   }
 }
