@@ -391,7 +391,7 @@ async function requestWithFailover(path, options = {}, timeout = 5000) {
         method,
         headers,
         body,
-        timeout
+        signal: AbortSignal.timeout(timeout)
       })
 
       // 200+
