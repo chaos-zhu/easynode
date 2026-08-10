@@ -21,8 +21,9 @@ instance.interceptors.response.use((response) => {
   if (response.status === 200) return response.data
 }, (error) => {
   let { response } = error
+  const skipErrorMessage = error.config?.skipErrorMessage
   if (error?.message?.includes('timeout')) {
-    ElMessage({ message: '请求超时', type: 'error', center: true })
+    if (!skipErrorMessage) ElMessage({ message: '请求超时', type: 'error', center: true })
     return Promise.reject(error)
   }
   switch (response?.data?.status) {
@@ -30,16 +31,16 @@ instance.interceptors.response.use((response) => {
       router.push('login')
       return Promise.reject(error)
     case 403:
-      ElMessage({ message: `${ response?.data?.msg || '登录错误' }`, type: 'error', center: true })
+      if (!skipErrorMessage) ElMessage({ message: `${ response?.data?.msg || '登录错误' }`, type: 'error', center: true })
       router.push('login')
       return Promise.reject(error)
   }
   switch (response?.status) {
     case 404:
-      ElMessage({ message: '404 Not Found', type: 'error', center: true })
+      if (!skipErrorMessage) ElMessage({ message: '404 Not Found', type: 'error', center: true })
       return Promise.reject(error)
   }
-  ElMessage({ message: response?.data.msg || error?.message || '网络错误', type: 'error', center: true })
+  if (!skipErrorMessage) ElMessage({ message: response?.data.msg || error?.message || '网络错误', type: 'error', center: true })
   return Promise.reject(error)
 })
 

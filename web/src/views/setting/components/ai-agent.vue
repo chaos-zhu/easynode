@@ -328,7 +328,8 @@ async function fetchModels() {
     availableModels.value = data.map((item) => item.id).filter(Boolean)
     $message.success(`已加载 ${ availableModels.value.length } 个模型，请从下拉列表选择`)
   } catch (error) {
-    $message.error(`获取模型列表失败：${ error.message || '未知错误' }`)
+    const message = error.response?.data?.data?.message || error.response?.data?.msg || error.message || '未知错误'
+    $message.error(`获取模型列表失败：${ message }`)
   } finally {
     fetchingModels.value = false
   }
