@@ -12,6 +12,56 @@ const String ipAccessDeniedCode = 'IP_ACCESS_DENIED';
 typedef SessionFailureHandler =
     Future<void> Function(ApiSessionFailure failure);
 
+const _sensitiveDebugKeys = <String>{
+  'apikey',
+  'authorization',
+  'cookie',
+  'encryptedkey',
+  'opnesshkeypassword',
+  'password',
+  'privatekey',
+  'set-cookie',
+  'tempkey',
+  'token',
+};
+
+bool _isSensitiveDebugKey(Object? key) {
+  final normalized = key
+      .toString()
+      .replaceAll(RegExp(r'[-_]'), '')
+      .toLowerCase();
+  return _sensitiveDebugKeys.contains(normalized) ||
+      normalized.endsWith('token') ||
+      normalized.contains('password') ||
+      normalized.contains('privatekey') ||
+      normalized.contains('apikey') ||
+      normalized.contains('cookie') ||
+      normalized.contains('secret');
+}
+
+Object? redactDebugValue(Object? value) {
+  if (value is Map) {
+    return value.map((key, item) {
+      return MapEntry(
+        key.toString(),
+        _isSensitiveDebugKey(key) ? '<redacted>' : redactDebugValue(item),
+      );
+    });
+  }
+  if (value is Iterable) return value.map(redactDebugValue).toList();
+  return value;
+}
+
+Uri redactDebugUri(Uri uri) {
+  if (uri.queryParameters.isEmpty) return uri;
+  return uri.replace(
+    queryParameters: uri.queryParameters.map(
+      (key, value) =>
+          MapEntry(key, _isSensitiveDebugKey(key) ? '<redacted>' : value),
+    ),
+  );
+}
+
 bool isIpAccessDeniedResponse(Object? body) {
   if (body is! Map) return false;
   final data = body['data'];
@@ -92,13 +142,32 @@ class ApiClient {
            ) {
     if (kDebugMode) {
       _dio.interceptors.add(
-        LogInterceptor(
-          requestHeader: true,
-          requestBody: true,
-          responseHeader: false,
-          responseBody: true,
-          error: true,
-          logPrint: (object) => debugPrint(object.toString(), wrapWidth: 1024),
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            debugPrint(
+              '[API] ${options.method} ${redactDebugUri(options.uri)} '
+              '${redactDebugValue(options.data)}',
+              wrapWidth: 1024,
+            );
+            handler.next(options);
+          },
+          onResponse: (response, handler) {
+            debugPrint(
+              '[API] ${response.statusCode} '
+              '${redactDebugUri(response.requestOptions.uri)} '
+              '${redactDebugValue(response.data)}',
+              wrapWidth: 1024,
+            );
+            handler.next(response);
+          },
+          onError: (error, handler) {
+            debugPrint(
+              '[API] ERROR ${redactDebugUri(error.requestOptions.uri)} '
+              '${redactDebugValue(error.response?.data)}',
+              wrapWidth: 1024,
+            );
+            handler.next(error);
+          },
         ),
       );
     }
@@ -145,8 +214,11 @@ class ApiClient {
     throw ApiFailure('Server public key is missing');
   }
 
-  Future<Map<String, dynamic>> getJson(String path) async {
-    return _request(() => _dio.get(path));
+  Future<Map<String, dynamic>> getJson(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    return _request(() => _dio.get(path, queryParameters: queryParameters));
   }
 
   Future<Map<String, dynamic>> postJson(
@@ -163,8 +235,18 @@ class ApiClient {
     return _request(() => _dio.put(path, data: data));
   }
 
-  Future<Map<String, dynamic>> deleteJson(String path) async {
-    return _request(() => _dio.delete(path));
+  Future<Map<String, dynamic>> patchJson(
+    String path,
+    Map<String, dynamic> data,
+  ) async {
+    return _request(() => _dio.patch(path, data: data));
+  }
+
+  Future<Map<String, dynamic>> deleteJson(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    return _request(() => _dio.delete(path, queryParameters: queryParameters));
   }
 
   Future<Map<String, dynamic>> _request(

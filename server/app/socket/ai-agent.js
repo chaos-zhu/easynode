@@ -28,6 +28,7 @@ import { TOOL_SPECS } from '../ai/tools/spec.js'
 // 同一件事只留一条路径，避免两边行为漂移。
 import { createSession, getSession, appendTurn } from '../ai/session-store.js'
 import { resolveTerminalDispatch, reportTerminalDispatchProgress, clearTerminalDispatchBySession } from '../ai/terminal-dispatch.js'
+import { claimSessionRun, releaseSessionRun } from '../ai/session-run-lock.js'
 
 const runtimeState = new RuntimeState().getInstance()
 
@@ -52,6 +53,7 @@ function resolveOperator(socket) {
 
 /** socket.id -> { controller, sessionId, running } */
 const active = new Map()
+const starting = new Set()
 
 function createEmitter(socket) {
   return (payload) => {
@@ -73,7 +75,6 @@ function abortActive(socketId) {
   } catch {
     // 忽略
   }
-  active.delete(socketId)
 }
 
 export default (httpServer) => {
@@ -113,25 +114,29 @@ export default (httpServer) => {
       // 历史会话的 hostIds，否则用户取消选择主机后仍可能继续操作旧主机。
       const selectedHostIds = Array.isArray(hostIds) ? hostIds : []
 
-      if (active.get(socket.id)?.running) {
+      if (active.get(socket.id)?.running || starting.has(socket.id)) {
         return emit({ type: 'error', message: '当前会话仍有任务在执行，请先停止' })
       }
       if (!input || typeof input !== 'string' || !input.trim()) {
         return emit({ type: 'error', message: '消息内容不能为空' })
       }
 
+      starting.add(socket.id)
       let session
       try {
         // 会话由后端持有：前端只发本轮输入，历史不经过网络来回搬，
         // 也就不存在前端改写历史绕过权限的可能
         session = payload.sessionId ? await getSession(payload.sessionId) : null
         if (session && (session.scope || 'ops') !== scope) {
+          starting.delete(socket.id)
           return emit({ type: 'error', message: '不能在不同类型的 AI 会话之间混用历史' })
         }
         if (scope === 'terminal' && (!hostId || !terminalContext || typeof terminalContext.output !== 'string' || terminalContext.output.length > 16 * 1024 || selectedHostIds.length !== 1 || selectedHostIds[0] !== hostId)) {
+          starting.delete(socket.id)
           return emit({ type: 'error', message: '终端 AI 缺少当前终端上下文或目标主机' })
         }
         if (session && scope === 'terminal' && session.hostId !== hostId) {
+          starting.delete(socket.id)
           return emit({ type: 'error', message: '当前终端与历史会话主机不一致' })
         }
         if (!session) {
@@ -145,12 +150,23 @@ export default (httpServer) => {
           emit({ type: 'session_created', session: { id: session.id, title: session.title } })
         }
       } catch (error) {
+        starting.delete(socket.id)
         return emit({ type: 'error', message: `会话初始化失败: ${ error.message }` })
+      }
+
+      if (socket.disconnected) {
+        starting.delete(socket.id)
+        return
+      }
+      if (!claimSessionRun(session.id, socket.id)) {
+        starting.delete(socket.id)
+        return emit({ type: 'error', message: '该会话正在其他客户端执行，请稍后再试' })
       }
 
       const controller = new AbortController()
       const targetHosts = selectedHostIds
       active.set(socket.id, { controller, sessionId: session.id, running: true, hostIds: targetHosts, scope })
+      starting.delete(socket.id)
 
       // 前端重连后把仍在挂起的审批重放一遍，否则用户看不到待确认项
       const pendingApprovals = listPending(session.id)
@@ -203,6 +219,7 @@ export default (httpServer) => {
 
         const entry = active.get(socket.id)
         if (entry?.controller === controller) active.delete(socket.id)
+        releaseSessionRun(session.id, socket.id)
       }
     })
 
@@ -228,6 +245,7 @@ export default (httpServer) => {
     })
 
     socket.on('disconnect', () => {
+      starting.delete(socket.id)
       const entry = active.get(socket.id)
       abortActive(socket.id)
       if (entry?.sessionId) {

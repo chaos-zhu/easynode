@@ -7,10 +7,12 @@ import 'package:easynode_native/features/servers/server_form_page.dart';
 import 'package:easynode_native/features/servers/server_group_model.dart';
 import 'package:easynode_native/features/servers/server_model.dart';
 import 'package:easynode_native/features/servers/server_repository.dart';
+import 'package:easynode_native/core/ui/app_color_theme.dart';
 import 'package:easynode_native/features/shell/sftp_session_manager.dart';
 import 'package:easynode_native/features/terminal/ssh_connection_config.dart';
 import 'package:easynode_native/l10n/app_localizations.dart';
 import 'package:easynode_native/state/api_providers.dart';
+import 'package:easynode_native/state/plus_info_notifier.dart';
 
 class _FakeRepository implements ServerRepository {
   int createCalls = 0;
@@ -51,17 +53,21 @@ class _FakeRepository implements ServerRepository {
 
 Widget _wrap(ServerRepository repo) {
   return ProviderScope(
-    overrides: [serverRepositoryProvider.overrideWithValue(repo)],
-    child: const MaterialApp(
-      locale: Locale('en'),
-      localizationsDelegates: [
+    overrides: [
+      serverRepositoryProvider.overrideWithValue(repo),
+      isPlusActiveProvider.overrideWithValue(true),
+    ],
+    child: MaterialApp(
+      theme: ThemeData(extensions: const [AppColorTheme.defaultLight]),
+      locale: const Locale('en'),
+      localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      home: ServerFormPage(),
+      home: const ServerFormPage(),
     ),
   );
 }

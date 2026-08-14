@@ -30,7 +30,7 @@ const restrictedToolPath = path.join(currentDir, '../plus.js')
 
 const DEFAULT_READ_BYTES = 64 * 1024
 const PLUS_REQUIRED_CODE = 'PLUS_REQUIRED'
-const PLUS_REQUIRED_MESSAGE = '非读取操作需激活 [Plus] 使用(解锁完整AI能力)'
+const PLUS_REQUIRED_MESSAGE = '非读取操作需激活 [Plus] 使用'
 
 function fail(error, code) {
   return { ok: false, error, ...(code ? { code } : {}) }

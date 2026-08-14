@@ -70,7 +70,6 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
   }
 
   Future<void> _saveWhitelist() async {
-    final l = AppLocalizations.of(context);
     setState(() => _whitelistSaving = true);
     try {
       await ref
@@ -78,7 +77,6 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
           .saveIpWhiteList(List.of(_whitelist));
       if (!mounted) return;
       _whitelistDirty = false;
-      _showSnack(l.tr('sessions.ipSaved'));
       await ref.read(loginLogProvider.notifier).refresh();
     } on ApiFailure catch (err) {
       if (!mounted) return;

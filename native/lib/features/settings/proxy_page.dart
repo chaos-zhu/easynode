@@ -112,7 +112,6 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
     try {
       await ref.read(settingsRepositoryProvider).createProxy(clone);
       if (!mounted) return;
-      _showSnack(l.tr('proxy.saved'));
       await ref.read(proxyListProvider.notifier).refresh();
     } on ApiFailure catch (err) {
       if (!mounted) return;

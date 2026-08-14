@@ -68,6 +68,37 @@ class AppStorage {
   Future<void> setEditorTheme(String value) =>
       _prefs.setString(_keyEditorTheme, value);
 
+  // ── Global AI agent ──
+
+  static const _keyAgentModel = 'agent.model';
+  static const _keyAgentMode = 'agent.mode';
+  static const _keyAgentEntrySide = 'agent.entrySide';
+  static const _keyAgentEntryY = 'agent.entryY';
+  static const _keyNativeAgentEnabledCache = 'agent.nativeEnabledCache';
+
+  String get agentModel => _prefs.getString(_keyAgentModel) ?? '';
+  Future<void> setAgentModel(String value) =>
+      _prefs.setString(_keyAgentModel, value);
+
+  String get agentMode => _prefs.getString(_keyAgentMode) ?? 'review';
+  Future<void> setAgentMode(String value) =>
+      _prefs.setString(_keyAgentMode, value);
+
+  String get agentEntrySide =>
+      _prefs.getString(_keyAgentEntrySide) == 'left' ? 'left' : 'right';
+  Future<void> setAgentEntrySide(String value) =>
+      _prefs.setString(_keyAgentEntrySide, value == 'left' ? 'left' : 'right');
+
+  double get agentEntryY =>
+      (_prefs.getDouble(_keyAgentEntryY) ?? 0.68).clamp(0.05, 0.95);
+  Future<void> setAgentEntryY(double value) =>
+      _prefs.setDouble(_keyAgentEntryY, value.clamp(0.05, 0.95));
+
+  bool? get nativeAgentEnabledCache =>
+      _prefs.getBool(_keyNativeAgentEnabledCache);
+  Future<void> setNativeAgentEnabledCache(bool value) =>
+      _prefs.setBool(_keyNativeAgentEnabledCache, value);
+
   // ── Terminal settings ──
 
   static const _keyTermFontSize = 'terminal.fontSize';

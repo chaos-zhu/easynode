@@ -81,7 +81,6 @@ class _CredentialEditPageState extends ConsumerState<CredentialEditPage> {
         );
       }
       if (!mounted) return;
-      _showSnack(l.tr('credentials.saved'));
       await ref.read(credentialListProvider.notifier).refresh();
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -112,7 +111,9 @@ class _CredentialEditPageState extends ConsumerState<CredentialEditPage> {
         backgroundColor: context.colors.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: Text(_isEdit ? l.tr('credentials.edit') : l.tr('credentials.add')),
+        title: Text(
+          _isEdit ? l.tr('credentials.edit') : l.tr('credentials.add'),
+        ),
       ),
       bottomNavigationBar: _BottomSaveBar(
         saving: _saving,
@@ -215,7 +216,8 @@ class _CredentialEditPageState extends ConsumerState<CredentialEditPage> {
                 obscure: !_showPassphrase,
                 suffix: _EyeButton(
                   open: _showPassphrase,
-                  onTap: () => setState(() => _showPassphrase = !_showPassphrase),
+                  onTap: () =>
+                      setState(() => _showPassphrase = !_showPassphrase),
                 ),
               ),
             ],
@@ -349,10 +351,7 @@ class _FormField extends StatelessWidget {
         filled: true,
         fillColor: monospace ? context.colors.chip : context.colors.card,
         hintText: hint,
-        hintStyle: TextStyle(
-          fontSize: 13,
-          color: context.colors.softMuted,
-        ),
+        hintStyle: TextStyle(fontSize: 13, color: context.colors.softMuted),
         suffixIcon: suffix,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
@@ -440,7 +439,9 @@ class _TypeOption extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: selected ? context.colors.primary : context.colors.text,
+                  color: selected
+                      ? context.colors.primary
+                      : context.colors.text,
                 ),
               ),
               const SizedBox(height: 2),

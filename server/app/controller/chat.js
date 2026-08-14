@@ -73,18 +73,23 @@ async function saveAIConfig({ res, request }) {
 }
 
 async function updateAIPreferences({ res, request }) {
-  const { petEnabled } = request.body || {}
-  if (typeof petEnabled !== 'boolean') return res.fail({ msg: 'param error' })
+  const body = request.body || {}
+  const preferences = {}
+  if (typeof body.petEnabled === 'boolean') preferences.petEnabled = body.petEnabled
+  if (typeof body.nativeAgentEnabled === 'boolean') {
+    preferences.nativeAgentEnabled = body.nativeAgentEnabled
+  }
+  if (!Object.keys(preferences).length) return res.fail({ msg: 'param error' })
 
   try {
     const existConfig = await aiConfigDB.findOneAsync({})
-    const ui = mergeAIPreferences(existConfig, { petEnabled })
+    const ui = mergeAIPreferences(existConfig, preferences)
     if (existConfig) {
       await aiConfigDB.updateAsync({ _id: existConfig._id }, { $set: { ui } })
     } else {
       await aiConfigDB.insertAsync({ ui })
     }
-    res.success({ msg: 'save success', data: { petEnabled } })
+    res.success({ msg: 'save success', data: preferences })
   } catch {
     res.fail({ msg: 'save AI preferences failed', data: { success: false } })
   }

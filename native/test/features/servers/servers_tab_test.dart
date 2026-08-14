@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:easynode_native/core/api/api_result.dart';
+import 'package:easynode_native/core/ui/app_color_theme.dart';
 import 'package:easynode_native/features/servers/server_form_data.dart';
 import 'package:easynode_native/features/servers/server_model.dart';
 import 'package:easynode_native/features/servers/server_group_model.dart';
@@ -134,6 +135,7 @@ Widget _wrap({required ServerRepository repo}) {
   return ProviderScope(
     overrides: [serverRepositoryProvider.overrideWithValue(repo)],
     child: MaterialApp(
+      theme: ThemeData(extensions: const [AppColorTheme.defaultLight]),
       // Force English so test assertions stay stable regardless of host locale.
       locale: const Locale('en'),
       localizationsDelegates: const [

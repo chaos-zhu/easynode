@@ -1,3 +1,30 @@
+class ServerAiPolicy {
+  const ServerAiPolicy({
+    this.enabled = true,
+    this.maxEffect = 'write',
+    this.maxMode = 'authorized',
+  });
+
+  final bool enabled;
+  final String maxEffect;
+  final String maxMode;
+
+  factory ServerAiPolicy.fromJson(Object? value) {
+    final json = value is Map
+        ? value.map((key, value) => MapEntry(key.toString(), value))
+        : const <String, dynamic>{};
+    final effect = json['maxEffect']?.toString();
+    final mode = json['maxMode']?.toString();
+    return ServerAiPolicy(
+      enabled: json['enabled'] != false,
+      maxEffect: const {'read', 'write'}.contains(effect) ? effect! : 'write',
+      maxMode: const {'review', 'assist', 'authorized'}.contains(mode)
+          ? mode!
+          : 'authorized',
+    );
+  }
+}
+
 /// Native-side projection of `/api/v1/host-list` items.
 ///
 /// Only fields needed for the native list and connect action are kept;
@@ -25,6 +52,7 @@ class ServerModel {
     required this.command,
     required this.expired,
     required this.isConfig,
+    required this.aiPolicy,
   });
 
   final String id;
@@ -47,6 +75,7 @@ class ServerModel {
   final String command;
   final bool expired;
   final bool isConfig;
+  final ServerAiPolicy aiPolicy;
 
   factory ServerModel.fromJson(Map<String, dynamic> json) {
     final id = (json['id'] ?? json['_id'] ?? '').toString();
@@ -94,6 +123,7 @@ class ServerModel {
       command: (json['command'] ?? '').toString(),
       expired: json['expired'] == true,
       isConfig: json['isConfig'] == true,
+      aiPolicy: ServerAiPolicy.fromJson(json['aiPolicy']),
     );
   }
 
@@ -111,7 +141,9 @@ class ServerModel {
     }
     final text = value.toString();
     final timestamp = int.tryParse(text);
-    if (timestamp != null) return DateTime.fromMillisecondsSinceEpoch(timestamp);
+    if (timestamp != null) {
+      return DateTime.fromMillisecondsSinceEpoch(timestamp);
+    }
     return DateTime.tryParse(text);
   }
 

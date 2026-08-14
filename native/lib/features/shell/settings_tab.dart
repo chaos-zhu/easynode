@@ -19,6 +19,7 @@ import '../../state/plus_discount_notifier.dart';
 import '../../state/plus_info_notifier.dart';
 import '../../state/script_list_notifier.dart';
 import '../settings/account_security_page.dart';
+import '../settings/ai_agent_settings_page.dart';
 import '../settings/app_update_prompt.dart';
 import '../settings/credentials_page.dart';
 import '../settings/models/plus_info.dart';
@@ -460,6 +461,13 @@ class SettingsTab extends ConsumerWidget {
                 child: SettingsSection(
                   title: l.tr('settings.section.preferences'),
                   children: [
+                    SettingsRow(
+                      key: const Key('settings-ai-agent'),
+                      icon: Icons.smart_toy_outlined,
+                      title: l.tr('agent.settings'),
+                      subtitle: l.tr('agent.settings.subtitle'),
+                      onTap: () => _push(context, const AiAgentSettingsPage()),
+                    ),
                     SettingsRow(
                       key: const Key('settings-language'),
                       icon: Icons.translate,

@@ -111,7 +111,6 @@ class _AccountSecurityPageState extends ConsumerState<AccountSecurityPage> {
             newPwd: newPwd,
           );
       if (!mounted) return;
-      _showSnack(l.tr('account.changed'));
       await ref.read(authProvider.notifier).signOut();
     } on ApiFailure catch (err) {
       if (!mounted) return;
@@ -148,7 +147,6 @@ class _AccountSecurityPageState extends ConsumerState<AccountSecurityPage> {
     try {
       await ref.read(settingsRepositoryProvider).enableMfa2(token);
       if (!mounted) return;
-      _showSnack(l.tr('account.mfa.enabled'));
       setState(() {
         _setup = null;
         _mfaEnabled = true;
@@ -177,7 +175,6 @@ class _AccountSecurityPageState extends ConsumerState<AccountSecurityPage> {
     try {
       await ref.read(settingsRepositoryProvider).disableMfa2(token);
       if (!mounted) return;
-      _showSnack(l.tr('account.mfa.disabled'));
       setState(() {
         _mfaEnabled = false;
         _setup = null;

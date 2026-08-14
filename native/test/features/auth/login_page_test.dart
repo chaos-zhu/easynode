@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:easynode_native/features/auth/auth_session.dart';
 import 'package:easynode_native/features/auth/login_controller.dart';
 import 'package:easynode_native/features/auth/login_page.dart';
+import 'package:easynode_native/core/ui/app_color_theme.dart';
 import 'package:easynode_native/l10n/app_localizations.dart';
 
 void main() {
-  Widget wrap(Widget child) => MaterialApp(
-    locale: const Locale('zh'),
-    localizationsDelegates: const [
-      AppLocalizations.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: child,
+  Widget wrap(Widget child) => ProviderScope(
+    child: MaterialApp(
+      theme: ThemeData(extensions: const [AppColorTheme.defaultLight]),
+      locale: const Locale('zh'),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: child,
+    ),
   );
 
   Future<void> pumpLoginPage(WidgetTester tester, Widget child) async {

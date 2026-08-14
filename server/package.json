@@ -14,7 +14,7 @@
     "test:api": "node test/test-rest-api-auth.js",
     "test:ws": "node test/test-ws-comprehensive.js",
     "test:mobile": "node test/test-mobile-crypto.js && node test/test-mobile-ssh-payload.js",
-    "test:ai": "node test/test-ai-config.js && node test/test-ai-safety.js && node test/test-ai-session.js && node test/test-ai-compaction.js && node test/test-ai-access.js && node test/test-ai-data.js"
+    "test:ai": "node test/test-ai-config.js && node test/test-ai-session-run-lock.js && node test/test-ai-safety.js && node test/test-ai-session.js && node test/test-ai-compaction.js && node test/test-ai-access.js && node test/test-ai-data.js"
   },
   "keywords": [],
   "author": "",

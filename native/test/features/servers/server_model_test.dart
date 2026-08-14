@@ -22,6 +22,7 @@ void main() {
       'tag': ['a', 'b'],
       'expired': false,
       'isConfig': true,
+      'aiPolicy': {'enabled': false, 'maxEffect': 'read', 'maxMode': 'review'},
     });
 
     expect(model.id, 'h1');
@@ -29,6 +30,9 @@ void main() {
     expect(model.port, 22);
     expect(model.tag, ['a', 'b']);
     expect(model.canConnect, isTrue);
+    expect(model.aiPolicy.enabled, isFalse);
+    expect(model.aiPolicy.maxEffect, 'read');
+    expect(model.aiPolicy.maxMode, 'review');
   });
 
   test('falls back to _id and default port', () {
@@ -46,6 +50,9 @@ void main() {
     expect(model.id, 'h2');
     expect(model.port, 22);
     expect(model.tag, isEmpty);
+    expect(model.aiPolicy.enabled, isTrue);
+    expect(model.aiPolicy.maxEffect, 'write');
+    expect(model.aiPolicy.maxMode, 'authorized');
   });
 
   test('canConnect mirrors isConfig state', () {

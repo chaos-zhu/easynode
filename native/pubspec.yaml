@@ -41,6 +41,7 @@ dependencies:
   url_launcher: ^6.3.1
   package_info_plus: ^8.1.0
   socket_io_client: ^3.1.6
+  flutter_markdown_plus: ^1.0.12
 
 dev_dependencies:
   flutter_test:

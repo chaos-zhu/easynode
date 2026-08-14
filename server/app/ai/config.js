@@ -4,7 +4,8 @@ export function normalizeAIConfig(config = {}) {
     ...source,
     ui: {
       ...(source.ui || {}),
-      petEnabled: source.ui?.petEnabled !== false
+      petEnabled: source.ui?.petEnabled !== false,
+      nativeAgentEnabled: source.ui?.nativeAgentEnabled !== false
     }
   }
 }
@@ -20,8 +21,10 @@ export function mergeAIProviderConfig(existingConfig = {}, providerConfig = {}) 
 }
 
 export function mergeAIPreferences(existingConfig = {}, preferences = {}) {
-  return {
-    ...(existingConfig?.ui || {}),
-    petEnabled: preferences.petEnabled
+  const ui = { ...(existingConfig?.ui || {}) }
+  if (typeof preferences.petEnabled === 'boolean') ui.petEnabled = preferences.petEnabled
+  if (typeof preferences.nativeAgentEnabled === 'boolean') {
+    ui.nativeAgentEnabled = preferences.nativeAgentEnabled
   }
+  return ui
 }

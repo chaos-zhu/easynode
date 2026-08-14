@@ -39,4 +39,35 @@ void main() {
       expect(failure.isUnauthorized, isTrue);
     }
   });
+
+  test('redacts nested credentials and sensitive query parameters', () {
+    final redacted =
+        redactDebugValue({
+              'apiKey': 'sk-secret',
+              'nested': {
+                'access_token': 'token-value',
+                'password': 'password-value',
+                'privateKey': 'private-key-value',
+                'model': 'gpt-test',
+              },
+              'items': [
+                {'Cookie': 'session=value'},
+              ],
+            })
+            as Map<String, dynamic>;
+
+    expect(redacted['apiKey'], '<redacted>');
+    expect((redacted['nested'] as Map)['access_token'], '<redacted>');
+    expect((redacted['nested'] as Map)['password'], '<redacted>');
+    expect((redacted['nested'] as Map)['privateKey'], '<redacted>');
+    expect((redacted['nested'] as Map)['model'], 'gpt-test');
+    expect(((redacted['items'] as List).single as Map)['Cookie'], '<redacted>');
+
+    final uri = redactDebugUri(
+      Uri.parse('https://example.com/models?api_key=secret&scope=ops'),
+    );
+    expect(uri.queryParameters['api_key'], '<redacted>');
+    expect(uri.queryParameters['scope'], 'ops');
+    expect(uri.toString(), isNot(contains('secret')));
+  });
 }

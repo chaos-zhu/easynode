@@ -78,7 +78,6 @@ class _ProxyEditPageState extends ConsumerState<ProxyEditPage> {
         await repo.createProxy(next);
       }
       if (!mounted) return;
-      _showSnack(l.tr('proxy.saved'));
       await ref.read(proxyListProvider.notifier).refresh();
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -119,111 +118,107 @@ class _ProxyEditPageState extends ConsumerState<ProxyEditPage> {
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                  children: [
-                    _FieldLabel(label: l.tr('proxy.field.type')),
-                    const SizedBox(height: 8),
-                    _TypeSelector(
-                      value: _type,
-                      onChanged: (next) => setState(() => _type = next),
-                    ),
-                    const SizedBox(height: 16),
-                    _FieldLabel(label: l.tr('proxy.field.name')),
-                    const SizedBox(height: 8),
-                    _FormField(
-                      controller: _nameCtrl,
-                      hintText: l.tr('proxy.field.nameHint'),
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? l.tr('proxy.validation.name')
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _FieldLabel(label: l.tr('proxy.field.host')),
-                              const SizedBox(height: 8),
-                              _FormField(
-                                controller: _hostCtrl,
-                                hintText: l.tr('proxy.field.hostHint'),
-                                monospace: true,
-                                validator: (v) =>
-                                    (v == null || v.trim().isEmpty)
-                                        ? l.tr('proxy.validation.host')
-                                        : null,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        SizedBox(
-                          width: 110,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _FieldLabel(label: l.tr('proxy.field.port')),
-                              const SizedBox(height: 8),
-                              _FormField(
-                                controller: _portCtrl,
-                                hintText: l.tr('proxy.field.portHint'),
-                                monospace: true,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (v) {
-                                  final n = int.tryParse(
-                                    (v ?? '').trim(),
-                                  );
-                                  if (n == null || n < 1 || n > 65535) {
-                                    return l.tr('proxy.validation.port');
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _FieldLabel(
-                      label: l.tr('proxy.field.username'),
-                      trailing: l.tr('common.optional'),
-                    ),
-                    const SizedBox(height: 8),
-                    _FormField(
-                      controller: _userCtrl,
-                      hintText: l.tr('proxy.field.username'),
-                    ),
-                    const SizedBox(height: 16),
-                    _FieldLabel(
-                      label: l.tr('proxy.field.password'),
-                      trailing: l.tr('common.optional'),
-                    ),
-                    const SizedBox(height: 8),
-                    _FormField(
-                      controller: _passCtrl,
-                      hintText: l.tr('proxy.field.password'),
-                      obscure: !_showPassword,
-                      suffix: IconButton(
-                        onPressed: () =>
-                            setState(() => _showPassword = !_showPassword),
-                        icon: Icon(
-                          _showPassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          size: 18,
-                          color: context.colors.muted,
-                        ),
+          children: [
+            _FieldLabel(label: l.tr('proxy.field.type')),
+            const SizedBox(height: 8),
+            _TypeSelector(
+              value: _type,
+              onChanged: (next) => setState(() => _type = next),
+            ),
+            const SizedBox(height: 16),
+            _FieldLabel(label: l.tr('proxy.field.name')),
+            const SizedBox(height: 8),
+            _FormField(
+              controller: _nameCtrl,
+              hintText: l.tr('proxy.field.nameHint'),
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? l.tr('proxy.validation.name')
+                  : null,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _FieldLabel(label: l.tr('proxy.field.host')),
+                      const SizedBox(height: 8),
+                      _FormField(
+                        controller: _hostCtrl,
+                        hintText: l.tr('proxy.field.hostHint'),
+                        monospace: true,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? l.tr('proxy.validation.host')
+                            : null,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 110,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _FieldLabel(label: l.tr('proxy.field.port')),
+                      const SizedBox(height: 8),
+                      _FormField(
+                        controller: _portCtrl,
+                        hintText: l.tr('proxy.field.portHint'),
+                        monospace: true,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        validator: (v) {
+                          final n = int.tryParse((v ?? '').trim());
+                          if (n == null || n < 1 || n > 65535) {
+                            return l.tr('proxy.validation.port');
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _FieldLabel(
+              label: l.tr('proxy.field.username'),
+              trailing: l.tr('common.optional'),
+            ),
+            const SizedBox(height: 8),
+            _FormField(
+              controller: _userCtrl,
+              hintText: l.tr('proxy.field.username'),
+            ),
+            const SizedBox(height: 16),
+            _FieldLabel(
+              label: l.tr('proxy.field.password'),
+              trailing: l.tr('common.optional'),
+            ),
+            const SizedBox(height: 8),
+            _FormField(
+              controller: _passCtrl,
+              hintText: l.tr('proxy.field.password'),
+              obscure: !_showPassword,
+              suffix: IconButton(
+                onPressed: () => setState(() => _showPassword = !_showPassword),
+                icon: Icon(
+                  _showPassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 18,
+                  color: context.colors.muted,
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -299,10 +294,7 @@ class _FormField extends StatelessWidget {
       ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(
-          fontSize: 13,
-          color: context.colors.softMuted,
-        ),
+        hintStyle: TextStyle(fontSize: 13, color: context.colors.softMuted),
         isDense: true,
         filled: true,
         fillColor: context.colors.card,
@@ -439,11 +431,11 @@ class _TypeOption extends StatelessWidget {
               ),
             ),
             Icon(
-              selected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_off,
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
               size: 18,
-              color: selected ? context.colors.primary : context.colors.softMuted,
+              color: selected
+                  ? context.colors.primary
+                  : context.colors.softMuted,
             ),
           ],
         ),

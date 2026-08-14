@@ -427,7 +427,6 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
 
   Future<void> _save() async {
     if (_formKey.currentState?.validate() != true) return;
-    final l = AppLocalizations.of(context);
     setState(() => _saving = true);
     _form
       ..name = _nameCtrl.text
@@ -446,16 +445,13 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
       ..command = _commandCtrl.text;
     try {
       final repo = ref.read(serverRepositoryProvider);
-      final message = _form.isEdit
-          ? await repo.updateHost(_form)
-          : await repo.createHost(_form);
+      if (_form.isEdit) {
+        await repo.updateHost(_form);
+      } else {
+        await repo.createHost(_form);
+      }
       await refreshServerSharedData(ref);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message == 'success' ? l.tr('common.saved') : message),
-        ),
-      );
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;

@@ -17,6 +17,7 @@ import 'core/storage/secure_storage.dart';
 import 'features/auth/auth_session.dart';
 import 'features/auth/login_controller.dart';
 import 'features/auth/login_page.dart';
+import 'features/ai_agent/agent_overlay.dart';
 import 'features/shell/main_shell_page.dart';
 import 'l10n/app_localizations.dart';
 import 'state/api_access_notifier.dart';
@@ -194,6 +195,15 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   final GlobalKey<ScaffoldMessengerState> _messengerKey =
       GlobalKey<ScaffoldMessengerState>();
   var _ipAccessDeniedDialogShowing = false;
+  var _splashFinished = false;
+  final AgentNavigationObserver _agentNavigationObserver =
+      AgentNavigationObserver();
+
+  @override
+  void dispose() {
+    _agentNavigationObserver.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -326,6 +336,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       title: 'EasyNode',
       debugShowCheckedModeBanner: false,
       navigatorKey: _navigatorKey,
+      navigatorObservers: [_agentNavigationObserver],
       scaffoldMessengerKey: _messengerKey,
       themeMode: ref.watch(themeModeProvider),
       theme: ThemeData(
@@ -371,7 +382,24 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       localeResolutionCallback: (deviceLocale, supported) {
         return AppLocalizations.resolve(deviceLocale, supported);
       },
-      home: _BrandedSplashGate(child: home),
+      builder: (context, child) => Stack(
+        children: [
+          ?child,
+          if (auth.signedIn && _splashFinished)
+            AgentGlobalOverlay(
+              navigationObserver: _agentNavigationObserver,
+              navigatorKey: _navigatorKey,
+            ),
+        ],
+      ),
+      home: _BrandedSplashGate(
+        onFinished: () {
+          if (mounted && !_splashFinished) {
+            setState(() => _splashFinished = true);
+          }
+        },
+        child: home,
+      ),
     );
   }
 
@@ -422,9 +450,10 @@ class _AppRootState extends ConsumerState<_AppRoot> {
 }
 
 class _BrandedSplashGate extends StatefulWidget {
-  const _BrandedSplashGate({required this.child});
+  const _BrandedSplashGate({required this.child, required this.onFinished});
 
   final Widget child;
+  final VoidCallback onFinished;
 
   @override
   State<_BrandedSplashGate> createState() => _BrandedSplashGateState();
@@ -460,7 +489,10 @@ class _BrandedSplashGateState extends State<_BrandedSplashGate>
         );
     unawaited(_controller.forward());
     _timer = Timer(const Duration(milliseconds: 1250), () {
-      if (mounted) setState(() => _showSplash = false);
+      if (mounted) {
+        setState(() => _showSplash = false);
+        widget.onFinished();
+      }
     });
   }
 
