@@ -22,6 +22,7 @@
   "license": "ISC",
   "scripts": {
     "dev": "concurrently -k \"yarn workspace web run dev\" \"yarn workspace server run local\"",
+    "backup": "node ./scripts/backup-source.js",
     "clean": "yarn clean:native && yarn clean:web-server",
     "clean:web-server": "rimraf web/node_modules server/node_modules node_modules",
     "clean:native": "rimraf native/build native/.dart_tool native/.pub native/.pub-cache native/coverage native/android/.gradle native/android/app/build native/ios/Pods native/ios/.symlinks native/ios/Flutter/.last_build_id",
