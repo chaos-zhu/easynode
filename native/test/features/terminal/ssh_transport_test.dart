@@ -259,6 +259,9 @@ class FakeSocket implements SSHSocket {
   }
 
   @override
+  Future<void> flush() async {}
+
+  @override
   void destroy() {
     closed = true;
     unawaited(_sinkController.close());

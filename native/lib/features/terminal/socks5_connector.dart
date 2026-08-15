@@ -26,6 +26,9 @@ class SocketSshSocket implements SSHSocket {
   Future<void> close() => _socket.close();
 
   @override
+  Future<void> flush() => _socket.flush();
+
+  @override
   void destroy() {
     _socket.destroy();
   }
