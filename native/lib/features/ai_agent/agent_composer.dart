@@ -27,46 +27,8 @@ class _AgentComposer extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: controller,
-                minLines: 1,
-                maxLines: 5,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  hintText: l.tr('agent.inputHint'),
-                  filled: true,
-                  fillColor: context.colors.chip,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(
-                      AgentUiTokens.radiusMedium,
-                    ),
-                    borderSide: BorderSide.none,
-                  ),
-                  suffixIcon: state.conversation.running
-                      ? IconButton(
-                          tooltip: l.tr('agent.stop'),
-                          onPressed: ref
-                              .read(agentControllerProvider.notifier)
-                              .stop,
-                          icon: Icon(
-                            Icons.stop_circle,
-                            color: context.colors.danger,
-                          ),
-                        )
-                      : ValueListenableBuilder<TextEditingValue>(
-                          valueListenable: controller,
-                          builder: (context, value, _) => IconButton(
-                            tooltip: l.tr('agent.send'),
-                            onPressed: state.canSendDraft(value.text)
-                                ? onSend
-                                : null,
-                            icon: const Icon(Icons.arrow_upward_rounded),
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 8),
               Row(
+                key: const Key('agent-composer-options'),
                 children: [
                   Expanded(
                     child: _ComposerPickerButton(
@@ -104,6 +66,46 @@ class _AgentComposer extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: const Key('agent-composer-input'),
+                controller: controller,
+                minLines: 1,
+                maxLines: 5,
+                textInputAction: TextInputAction.newline,
+                decoration: InputDecoration(
+                  hintText: l.tr('agent.inputHint'),
+                  filled: true,
+                  fillColor: context.colors.chip,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      AgentUiTokens.radiusMedium,
+                    ),
+                    borderSide: BorderSide.none,
+                  ),
+                  suffixIcon: state.conversation.running
+                      ? IconButton(
+                          tooltip: l.tr('agent.stop'),
+                          onPressed: ref
+                              .read(agentControllerProvider.notifier)
+                              .stop,
+                          icon: Icon(
+                            Icons.stop_circle,
+                            color: context.colors.danger,
+                          ),
+                        )
+                      : ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: controller,
+                          builder: (context, value, _) => IconButton(
+                            tooltip: l.tr('agent.send'),
+                            onPressed: state.canSendDraft(value.text)
+                                ? onSend
+                                : null,
+                            icon: const Icon(Icons.arrow_upward_rounded),
+                          ),
+                        ),
+                ),
               ),
             ],
           ),

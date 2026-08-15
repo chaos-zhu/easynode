@@ -182,11 +182,42 @@ void main() {
     await tester.pump();
 
     final entry = find.byKey(const Key('agent-global-entry'));
+    final logicalWidth =
+        tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    expect(tester.getTopRight(entry).dx, closeTo(logicalWidth, 0.01));
+
     await tester.drag(entry, const Offset(-700, -120));
     await tester.pumpAndSettle();
 
     expect(prefs.agentEntrySide, 'left');
     expect(prefs.agentEntryY, inInclusiveRange(0.05, 0.95));
-    expect(tester.getTopLeft(entry).dx, lessThan(20));
+    expect(tester.getTopLeft(entry).dx, closeTo(0, 0.01));
+  });
+
+  testWidgets('animates to the nearest edge after release', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final prefs = await storage();
+    final observer = AgentNavigationObserver();
+    addTearDown(observer.dispose);
+    await tester.pumpWidget(app(storage: prefs, observer: observer));
+    await tester.pump();
+
+    final entry = find.byKey(const Key('agent-global-entry'));
+    await tester.drag(entry, const Offset(-200, 0));
+    await tester.pump();
+    final releaseX = tester.getTopLeft(entry).dx;
+    expect(releaseX, greaterThan(0));
+
+    await tester.pump(const Duration(milliseconds: 80));
+
+    final transitioningX = tester.getTopLeft(entry).dx;
+    expect(transitioningX, greaterThan(0));
+    expect(transitioningX, lessThan(releaseX));
+
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(entry).dx, closeTo(0, 0.01));
   });
 }

@@ -91,27 +91,36 @@ class _AgentGlobalOverlayState extends ConsumerState<AgentGlobalOverlay> {
               final bottomInset = media.viewInsets.bottom > 0
                   ? media.viewInsets.bottom + AgentUiTokens.edgeGap
                   : media.padding.bottom + 84;
-              final maxX = constraints.maxWidth - size - AgentUiTokens.edgeGap;
+              const minX = AgentUiTokens.entryHorizontalInset;
+              final maxX =
+                  (constraints.maxWidth -
+                          size -
+                          AgentUiTokens.entryHorizontalInset)
+                      .clamp(minX, double.infinity)
+                      .toDouble();
               final maxY = (constraints.maxHeight - size - bottomInset)
                   .clamp(topInset, double.infinity)
                   .toDouble();
               final range = (maxY - topInset)
                   .clamp(1.0, double.infinity)
                   .toDouble();
-              _lastX =
-                  (_dragX ?? (_side == 'left' ? AgentUiTokens.edgeGap : maxX))
-                      .clamp(AgentUiTokens.edgeGap, maxX)
-                      .toDouble();
+              _lastX = (_dragX ?? (_side == 'left' ? minX : maxX))
+                  .clamp(minX, maxX)
+                  .toDouble();
               _lastY = (_dragY ?? topInset + range * _yFraction)
                   .clamp(topInset, maxY)
                   .toDouble();
               return Stack(
                 children: [
-                  Positioned(
+                  AnimatedPositioned(
                     left: _lastX,
                     top: _lastY,
                     width: size,
                     height: size,
+                    duration: _dragX == null
+                        ? AgentUiTokens.entrySnapDuration
+                        : Duration.zero,
+                    curve: Curves.easeOutCubic,
                     child: FocusableActionDetector(
                       onShowFocusHighlight: (value) {
                         if (mounted) setState(() => _entryFocused = value);
@@ -148,7 +157,7 @@ class _AgentGlobalOverlayState extends ConsumerState<AgentGlobalOverlay> {
                           onPanUpdate: (details) {
                             setState(() {
                               _dragX = (_dragX! + details.delta.dx)
-                                  .clamp(AgentUiTokens.edgeGap, maxX)
+                                  .clamp(minX, maxX)
                                   .toDouble();
                               _dragY = (_dragY! + details.delta.dy)
                                   .clamp(topInset, maxY)

@@ -9,6 +9,10 @@ on:
         description: 'Tag Name (leave empty for default latest)'
         required: false
         default: 'latest'
+
+permissions:
+  contents: read
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest

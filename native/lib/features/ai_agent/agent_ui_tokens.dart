@@ -1,6 +1,8 @@
 abstract final class AgentUiTokens {
   static const compactBreakpoint = 720.0;
   static const entrySize = 56.0;
+  static const entryHorizontalInset = 0.0;
+  static const entrySnapDuration = Duration(milliseconds: 320);
   static const edgeGap = 12.0;
   static const wideWidth = 480.0;
   static const wideHeight = 720.0;
