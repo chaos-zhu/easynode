@@ -1,0 +1,80 @@
+name: Recover Android signing backup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Create encrypted signing backup
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_RECOVERY_PASSWORD: ${{ secrets.ANDROID_RECOVERY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          for name in \
+            ANDROID_KEYSTORE_BASE64 \
+            ANDROID_STORE_PASSWORD \
+            ANDROID_KEY_PASSWORD \
+            ANDROID_KEY_ALIAS \
+            ANDROID_RECOVERY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required secret: $name"
+              exit 1
+            fi
+          done
+
+          work_dir="${RUNNER_TEMP}/easynode-android-signing-recovery"
+          plain_dir="${work_dir}/plain"
+          gnupg_dir="${work_dir}/gnupg"
+          mkdir -p "$plain_dir" "$gnupg_dir"
+          chmod 700 "$gnupg_dir"
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" \
+            | base64 --decode > "$plain_dir/easynode-release.jks"
+          printf '%s\n' \
+            "storePassword=$ANDROID_STORE_PASSWORD" \
+            "keyPassword=$ANDROID_KEY_PASSWORD" \
+            "keyAlias=$ANDROID_KEY_ALIAS" \
+            'storeFile=easynode-release.jks' \
+            > "$plain_dir/key.properties"
+
+          tar -C "$plain_dir" -czf "$work_dir/easynode-android-signing-backup.tar.gz" \
+            easynode-release.jks key.properties
+          printf '%s' "$ANDROID_RECOVERY_PASSWORD" > "$work_dir/recovery-passphrase"
+
+          gpg --homedir "$gnupg_dir" --batch --yes --pinentry-mode loopback \
+            --passphrase-file "$work_dir/recovery-passphrase" \
+            --symmetric --cipher-algo AES256 \
+            --output "$work_dir/easynode-android-signing-backup.tar.gz.gpg" \
+            "$work_dir/easynode-android-signing-backup.tar.gz"
+
+          rm -rf -- "$plain_dir"
+          rm -f -- \
+            "$work_dir/easynode-android-signing-backup.tar.gz" \
+            "$work_dir/recovery-passphrase"
+
+      - name: Upload encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: easynode-android-signing-backup-encrypted
+          path: ${{ runner.temp }}/easynode-android-signing-recovery/easynode-android-signing-backup.tar.gz.gpg
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Remove temporary files
+        if: always()
+        shell: bash
+        run: rm -rf -- "${RUNNER_TEMP:?}/easynode-android-signing-recovery"
