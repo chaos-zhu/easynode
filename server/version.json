@@ -1,5 +1,26 @@
 [
   {
+    "version": "v3.7.3",
+    "date": "2026-08-15",
+    "nativeVersion": "native-v1.2.0",
+    "nativeReleaseUrl": "https://github.com/chaos-zhu/easynode/releases",
+    "iosReleaseUrl": "",
+    "ohosReleaseUrl": "",
+    "features": [
+      "移动端 AI Agent 功能支持",
+      "优化首页加载逻辑",
+      "其他功能优化与bug修复"
+    ],
+    "nativeFeatures": [
+      "移动端AI助手功能上线",
+      "ssh & sfpt状态共享优化",
+      "终端页拖动选择滚动优化",
+      "支持更多主题",
+      "proxyList 延迟加载修复",
+      "其他功能优化与bug修复"
+    ]
+  },
+  {
     "version": "v3.7.2",
     "date": "2026-08-02",
     "nativeVersion": "native-v1.1.0",

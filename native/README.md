@@ -4,12 +4,14 @@ EasyNode 的 Flutter Native App，复用现有后端 (`/api/v1`)，在原生端�
 
 ## 技术栈
 
-- Flutter `^3.11.5`
+- Flutter `^3.11.0`
 - Riverpod (`flutter_riverpod`) 状态管理
 - Dio + dio_cookie_manager + flutter_secure_storage 网络与持久化
 - dartssh2 + xterm 终端
+- Socket.IO (`socket_io_client`) AI 助手实时通信
 - pointycastle + basic_utils RSA / AES-GCM 加密
 - re_editor / photo_view 文件预览与编辑
+- flutter_markdown_plus Markdown 渲染
 
 ## 目录结构
 
@@ -17,23 +19,25 @@ EasyNode 的 Flutter Native App，复用现有后端 (`/api/v1`)，在原生端�
 native/
 ├── lib/
 │   ├── main.dart                   # 入口，调用 EasyNodeApp.bootstrap()
-│   ├── app.dart                    # 启动装配、ProviderScope override、登录态路由
+│   ├── app.dart                    # 启动装配、ProviderScope override、登录态路由、AI Agent overlay
 │   ├── core/
 │   │   ├── api/                    # ApiClient / Cookie / 通用错误
 │   │   ├── crypto/                 # RSA、AES-GCM、CryptoJS 兼容
 │   │   ├── storage/                # SharedPreferences + SecureStorage + deviceId
-│   │   ├── i18n/                   # 多语言资源
 │   │   ├── ui/                     # 主题色板
 │   │   └── utils/                  # JWT、表单校验
 │   ├── features/
 │   │   ├── auth/                   # 登录页、登录控制器、AuthSession
 │   │   ├── servers/                # 服务器列表、表单、Repository、模型
 │   │   ├── terminal/               # SSH 通道、xterm 控制器、会话管理、工具栏
+│   │   ├── ai_agent/               # AI 助手：Socket.IO 客户端、消息流、工具调用审批
 │   │   ├── scripts/                # 脚本库与脚本分组
 │   │   ├── settings/               # 账户安全、凭据、代理、登录日志、Plus
 │   │   └── shell/                  # MainShell / SFTP / 编辑器 / 媒体预览
-│   ├── state/                      # Riverpod providers (auth、host list、terminal …)
-│   └── l10n/                       # 多语言入口
+│   │       ├── editor/             # 文件编辑器（re_editor）
+│   │       └── media/              # 媒体预览（photo_view）
+│   ├── state/                      # Riverpod providers (auth、host list、terminal、agent …)
+│   └── l10n/                       # 多语言入口：AppLocalizations、strings_zh/en
 ├── android/                        # Android 工程，含 key.properties.example
 ├── ios/                            # iOS 工程
 ├── assets/                         # 图标 / 图片资源
@@ -80,12 +84,14 @@ native/
 
 ### 主壳
 
-`features/shell/main_shell_page.dart` 是四个 tab 的 IndexedStack 保活容器：
+`features/shell/main_shell_page.dart` 是四个 tab 的 IndexedStack 保活容器 + AI Agent 全局浮窗：
 
 - `ServersTab`：服务器列表，点击连接走 `ApiServerRepository.fetchSshConfig(hostId)` → `TerminalSessionManager.openSession()` 在本地起 dartssh2 session。
 - `SftpTab`：SFTP 文件操作。
 - `ScriptsTab`：脚本库与脚本分组。
 - `SettingsTab`：账户安全 / 凭据 / 代理 / 登录日志 / Plus。
+
+AI Agent 通过 `AgentOverlay` 浮窗全局可用，支持多种 AI 提供商（OpenAI、Anthropic、Google），实时 Socket.IO 通信，工具调用需用户审批。
 
 登出由 `authProvider` 状态变更触发 `_AppRoot` 回到 `LoginPage`，不需要手动 pop。
 
@@ -95,6 +101,14 @@ native/
 - `terminal_session_manager.dart`：所有终端会话集合 + 当前激活 id，提供 open / setActive / reconnect / close / closeAll。`reconnect` 复用现有 `Terminal` buffer，避免清屏。
 - `ssh_connection_config.dart`：与服务端 native SSH payload 对齐的纯数据类。
 - `http_proxy_connector.dart` / `socks5_connector.dart` / `ssh_transport.dart`：代理与跳板机连接通道。
+
+### AI Agent
+
+- `features/ai_agent/agent_socket_client.dart`：Socket.IO 客户端，连接 `/agent` 命名空间，处理 `message` / `tool-call` / `stream-end` 事件。
+- `agent_controller.dart` + `agent_reducer.dart`：消息流状态机，处理用户输入、工具审批、历史会话。
+- `agent_overlay.dart` + `agent_window.dart`：全局可拖拽浮窗，支持最小化 / 展开，跨 tab 保持状态。
+- `agent_repository.dart`：`GET /api/v1/agent/provider-config` 获取 AI 配置，`POST /agent/history` 保存会话。
+- 工具调用（如执行 SSH 命令、读文件）需要用户在 `agent_approval_card.dart` 中点击批准，未批准的调用自动拒绝。
 
 ### 存储分层
 
@@ -117,10 +131,137 @@ flutter test             # 单元测试（仅在显式需要时执行）
 
 ## 打包步骤
 
-打包 / 发布操作（Android 本地构建、Android CI、iOS 构建、发布前自检）见 `docs/native-packaging.md`；纯 Android 从零环境搭建见 `docs/native-android-build-from-zero.md`。
+### Android
+
+1. **准备签名密钥**（仅首次）
+
+   ```bash
+   keytool -genkeypair -v -keystore easynode-release.jks \
+     -alias easynode -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+   把生成的 `easynode-release.jks` 放到 `native/android/` 下。
+
+2. **创建 `native/android/key.properties`**
+
+   参考 `key.properties.example`：
+
+   ```properties
+   storePassword=<your-store-password>
+   keyPassword=<your-key-password>
+   keyAlias=easynode
+   storeFile=easynode-release.jks
+   ```
+
+   该文件已被 `.gitignore` 忽略，**不要提交**。如果不提供，`build.gradle.kts` 会回退到 debug keystore，仅供本地 `flutter run --release` 使用，正式产物必须有 release keystore。
+
+3. **更新版本号**
+
+   编辑 `native/pubspec.yaml` 顶部的 `version: x.y.z+build`，`+` 之前是 `versionName`，之后是 `versionCode`。
+
+4. **构建产物**
+
+   ```bash
+   flutter pub get
+   flutter clean                              # 可选，更新插件后建议执行
+   flutter build apk --release                # 通用 APK
+   flutter build apk --release --split-per-abi  # 按 ABI 拆分（推荐用于分发）
+   flutter build appbundle --release          # Google Play 上架用 AAB
+   ```
+
+   产物位置：
+
+   - APK: `native/build/app/outputs/flutter-apk/`
+   - AAB: `native/build/app/outputs/bundle/release/`
+
+### Android CI 构建
+
+GitHub Actions 使用 `.github/workflows/native-android-release.yml` 构建 Android 产物。
+
+触发方式：
+
+- 推送 `native-v*` 标签，例如 `native-v0.1.0-beta.1`（会构建并上传到对应 GitHub Release）
+- 在 Actions 页面手动运行 `Build Native Android`（只产出 artifact，不写 Release）
+
+需要在仓库配置以下 GitHub Secrets（`Settings → Secrets and variables → Actions`）：
+
+- `ANDROID_KEYSTORE_BASE64`：`native/android/easynode-release.jks` 的 base64 内容
+- `ANDROID_STORE_PASSWORD`：keystore store password
+- `ANDROID_KEY_PASSWORD`：key password
+- `ANDROID_KEY_ALIAS`：默认 `easynode`
+
+生成 keystore 的 base64（任选其一）：
+
+```powershell
+# Windows PowerShell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("native/android/easynode-release.jks"))
+```
+
+```bash
+# Linux
+base64 -w 0 native/android/easynode-release.jks
+# macOS
+base64 -i native/android/easynode-release.jks
+```
+
+workflow 会在还原签名后校验上述 Secret 非空，并在构建后用 `apksigner` 校验产物证书不是 debug keystore，任一不满足直接失败。
+
+CI 产物：
+
+- APK: `native/build/app/outputs/flutter-apk/*.apk`（APK 可直接安装/侧载，当前分发方式）
+
+> AAB（Google Play 上架格式）默认不构建，workflow 里 `Build app bundle` 步骤已注释。需要上架 Google Play 时取消注释，并恢复两个上传步骤里的 `*.aab` 路径。
+
+发布版本时需要同步更新：
+
+- `native/pubspec.yaml` 的 `version: x.y.z+build`（`+build`/versionCode 必须单调递增，否则无法上架 Google Play）
+- `server/version.json` 的 `nativeVersion: native-vx.y.z`
+
+> 提示：发布 `native-v*` 的 GitHub Release 不会触发服务端 Docker 构建（`docker-builder.yml` 已对 `native-`/`client` 前缀加了跳过守卫），Web 端更新检测也已忽略 `native-v*` 标签。
+
+### iOS
+
+iOS 构建需要 macOS + Xcode。
+
+1. **首次准备**
+
+   ```bash
+   cd native/ios
+   pod install
+   ```
+
+2. **在 Xcode 配置签名**
+
+   用 Xcode 打开 `native/ios/Runner.xcworkspace`，在 `Runner` → `Signing & Capabilities` 配置 Team / Bundle Identifier / Provisioning Profile。
+
+3. **构建归档**
+
+   ```bash
+   flutter build ipa --release
+   ```
+
+   或在 Xcode 中选择 `Product → Archive`，再通过 Organizer 上传到 App Store Connect / 导出 Ad-hoc IPA。
+
+   产物位置：`native/build/ios/archive/` 与 `native/build/ios/ipa/`。
+
+### HarmonyOS
+
+参见 `OHOS_PATCH.md` 获取完整的 HarmonyOS 构建说明。
+
+### 发布前自检
+
+- `flutter analyze` 通过。
+- 在真机 release 模式运行一次（`flutter run --release`）。
+- 确认登录页能输入服务器地址、HTTP 地址有风险提示、HTTPS 不提示。
+- 确认终端、SFTP、脚本三个 tab 能正常访问后端。
+- 确认登出后 token / cookie / deviceId 已清空。
 
 ## 后端约定
 
 - Native 端复用 `/api/v1` 全部接口，鉴权与 Web 端一致：`token` header + `session` cookie。
-- 专属端点：`POST /api/v1/native/ssh-connection`，返回 AES-GCM 加密后的 SSH 连接参数。修改时同步更新 `server/app/controller/native.js` 与 `native/lib/features/servers/server_repository.dart`、`native/lib/core/crypto/aes_gcm_crypto.dart`。
+- 专属端点：
+  - `POST /api/v1/native/ssh-connection`：返回 AES-GCM 加密后的 SSH 连接参数。修改时同步更新 `server/app/controller/native.js` 与 `native/lib/features/servers/server_repository.dart`、`native/lib/core/crypto/aes_gcm_crypto.dart`。
+  - `GET /api/v1/agent/provider-config`：返回 AI Agent 配置（提供商、模型列表、上下文限制）。
+- WebSocket 命名空间：
+  - `/agent`：AI Agent 实时通信，事件包括 `message`（流式文本）、`tool-call`（工具调用请求）、`stream-end`（会话结束）。
 - 解密后的 SSH 凭据**不得写入磁盘或日志**。
