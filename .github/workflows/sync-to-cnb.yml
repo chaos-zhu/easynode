@@ -1,22 +1,87 @@
 name: Sync to CNB
-on: [push]
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-to-cnb-main
+  cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Sync to CNB Repository
+      - name: Align and sync CNB main
+        env:
+          CNB_ACCESS_TOKEN: ${{ secrets.CNB_ACCESS_TOKEN }}
+          CNB_REPOSITORY: https://cnb.cool/chaoszhu/easynode.git
+          CNB_ONLY_PATHS: |-
+            .cnb.yml
+            server/SECURITY_AUDIT_REPORT.md
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:${{ github.workspace }} \
-            -w ${{ github.workspace }} \
-            -e PLUGIN_TARGET_URL="https://cnb.cool/chaoszhu/easynode.git" \
-            -e PLUGIN_AUTH_TYPE="https" \
-            -e PLUGIN_USERNAME="cnb" \
-            -e PLUGIN_PASSWORD=${{ secrets.CNB_ACCESS_TOKEN }} \
-            -e PLUGIN_SYNC_MODE="rebase" \
-            tencentcom/git-sync
+          set -euo pipefail
+
+          if [ -z "$CNB_ACCESS_TOKEN" ]; then
+            echo "CNB_ACCESS_TOKEN is not configured"
+            exit 1
+          fi
+
+          work_dir="$(mktemp -d)"
+          credential_file="$RUNNER_TEMP/cnb-git-credentials"
+
+          cleanup() {
+            rm -rf "$work_dir"
+            rm -f "$credential_file"
+          }
+          trap cleanup EXIT
+
+          git config --global credential.helper "store --file=$credential_file"
+          printf 'protocol=https\nhost=cnb.cool\nusername=cnb\npassword=%s\n\n' \
+            "$CNB_ACCESS_TOKEN" | git credential approve
+
+          git clone --no-tags --single-branch --branch main \
+            "$CNB_REPOSITORY" "$work_dir"
+
+          target_sha="$(git -C "$work_dir" rev-parse origin/main)"
+          git -C "$work_dir" remote add source "$GITHUB_WORKSPACE"
+          git -C "$work_dir" fetch --no-tags source main
+          git -C "$work_dir" switch --detach source/main
+
+          for cnb_path in $CNB_ONLY_PATHS; do
+            if git -C "$work_dir" cat-file -e "origin/main:$cnb_path"; then
+              git -C "$work_dir" checkout origin/main -- "$cnb_path"
+            fi
+          done
+
+          git -C "$work_dir" config user.name "Git Sync Workflow"
+          git -C "$work_dir" config user.email "git-sync@workflow.local"
+
+          if ! git -C "$work_dir" diff --cached --quiet; then
+            git -C "$work_dir" commit -m "chore: preserve CNB-only files"
+          fi
+
+          git -C "$work_dir" push \
+            --force-with-lease="refs/heads/main:$target_sha" \
+            origin HEAD:main
+
+          git -C "$work_dir" fetch --no-tags origin main
+          git -C "$work_dir" merge-base --is-ancestor source/main origin/main
+
+          synced_sha="$(git -C "$work_dir" rev-parse origin/main)"
+          expected_sha="$(git -C "$work_dir" rev-parse HEAD)"
+          if [ "$synced_sha" != "$expected_sha" ]; then
+            echo "CNB main changed during verification"
+            exit 1
+          fi
+
+          echo "CNB main synchronized to ${synced_sha:0:8}"
