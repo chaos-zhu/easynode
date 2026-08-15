@@ -96,8 +96,8 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
     final credentials =
         ref.watch(credentialListProvider).valueOrNull ??
         const <ServerCredentialModel>[];
-    final proxies =
-        ref.watch(proxyListProvider).valueOrNull ?? const <ServerProxyModel>[];
+    final proxiesAsync = ref.watch(proxyListProvider);
+    final proxies = proxiesAsync.valueOrNull ?? const <ServerProxyModel>[];
     final isPlusActive = ref.watch(isPlusActiveProvider);
     final jumpHostOptions = hosts
         .where((host) => host.isConfig && host.id != _form.id)
@@ -271,13 +271,28 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
                               : _form.proxyServer,
                           validator: _form.proxyType.isEmpty
                               ? null
-                              : (value) => value == null || value.isEmpty
-                                    ? l.tr(
-                                        _form.proxyType == 'jumpHosts'
-                                            ? 'servers.validation.jumpHosts'
-                                            : 'servers.validation.proxyServer',
-                                      )
-                                    : null,
+                              : (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return l.tr(
+                                      _form.proxyType == 'jumpHosts'
+                                          ? 'servers.validation.jumpHosts'
+                                          : 'servers.validation.proxyServer',
+                                    );
+                                  }
+                                  if (_form.proxyType == 'proxyServer') {
+                                    final loadedProxies =
+                                        proxiesAsync.valueOrNull;
+                                    if (loadedProxies != null &&
+                                        !loadedProxies.any(
+                                          (proxy) => proxy.id == value,
+                                        )) {
+                                      return l.tr(
+                                        'servers.validation.proxyServer',
+                                      );
+                                    }
+                                  }
+                                  return null;
+                                },
                           builder: (field) => Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -307,7 +322,9 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
                                   key: ValueKey(_form.proxyType),
                                   proxyType: _form.proxyType,
                                   proxies: proxies,
-                                  proxyValue: _normalizeProxyValue(proxies),
+                                  proxyValue: _form.proxyServer.isEmpty
+                                      ? null
+                                      : _form.proxyServer,
                                   jumpHostOptions: jumpHostOptions,
                                   jumpHostIds: _form.jumpHosts,
                                   errorText: field.errorText,
@@ -405,14 +422,6 @@ class _ServerFormPageState extends ConsumerState<ServerFormPage> {
       _form.group = groups.first.id;
       return _form.group;
     }
-    return null;
-  }
-
-  String? _normalizeProxyValue(List<ServerProxyModel> proxies) {
-    if (proxies.any((proxy) => proxy.id == _form.proxyServer)) {
-      return _form.proxyServer;
-    }
-    if (_form.proxyServer.isNotEmpty) _form.proxyServer = '';
     return null;
   }
 

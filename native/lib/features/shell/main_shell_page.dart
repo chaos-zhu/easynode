@@ -9,7 +9,7 @@ import '../../features/settings/app_update_prompt.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/app_update_notifier.dart';
 import '../../state/auth_notifier.dart';
-import '../../state/plus_info_notifier.dart';
+import '../../state/server_data_refresh.dart';
 import '../../state/tab_order_notifier.dart';
 import '../../state/terminal_providers.dart';
 import '../docker/docker_icon.dart';
@@ -91,7 +91,7 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
   @override
   Widget build(BuildContext context) {
     ref.listen(authProvider, (_, _) {});
-    ref.watch(plusInfoProvider);
+    ref.watch(serverSharedDataBootstrapProvider);
 
     final l = AppLocalizations.of(context);
     final sftpManager = ref.watch(sftpSessionManagerProvider);

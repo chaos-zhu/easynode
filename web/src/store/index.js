@@ -105,16 +105,18 @@ const useStore = defineStore('global', {
       }
     },
     async getMainData() {
-      await this.getAIConfig()
-      await this.getGroupList()
-      await this.getHostList()
-      await this.getSSHList()
-      await this.getScriptList()
-      await this.getScriptGroupList()
-      await this.getPlusInfo()
-      await this.getProxyList()
-      await this.getTerminalConfig() // 添加终端配置获取
-      await this.getServerListConfig() // 添加服务器列表配置获取
+      await Promise.all([
+        this.getAIConfig(),
+        this.getGroupList(),
+        this.getHostList(),
+        this.getSSHList(),
+        this.getScriptList(),
+        this.getScriptGroupList(),
+        this.getPlusInfo(),
+        this.getProxyList(),
+        this.getTerminalConfig(),
+        this.getServerListConfig(),
+      ])
     },
     async getHostList() {
       let { data: newHostList } = await $api.getHostList()
