@@ -136,6 +136,8 @@ const normalCases = [
   ['date +%F', Effect.READ],
   ['find /tmp -type f', Effect.READ],
   ['journalctl --no-pager -n 50', Effect.READ],
+  ['last -n 15', Effect.READ],
+  ['lastb -n 15', Effect.READ],
   ['dmesg --level err', Effect.READ],
   ['ss -lntp', Effect.READ],
   ['crontab -l', Effect.READ],

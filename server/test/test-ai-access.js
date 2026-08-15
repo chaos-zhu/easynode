@@ -30,6 +30,7 @@ const { getToolSpec, PlusPolicy, requiresPlus } = await import(`${ originalCwd }
 const { requestTerminalDispatch } = await import(`${ originalCwd }/app/ai/terminal-dispatch.js`)
 const { buildTools, describeAvailableTools } = await import(`${ originalCwd }/app/ai/tools/index.js`)
 const { hostList, checkRestrictedToolAccess } = await import(`${ originalCwd }/app/ai/tools/executors.js`)
+const { RuntimeState } = await import(`${ originalCwd }/app/utils/runtime-state.js`)
 
 const hostListDB = new HostListDB().getInstance()
 
@@ -241,6 +242,26 @@ console.log('\n========== Plus 工具权限 ==========')
       && event.effect === Effect.WRITE
       && event.toolCallId === 'tool-write'
   )))
+
+  const runtimeState = new RuntimeState().getInstance()
+  runtimeState.setPlusKicked(true)
+  events.length = 0
+  const invalidAccess = await checkRestrictedToolAccess(
+    ctx,
+    'exec_command',
+    Effect.WRITE,
+    'tool-invalid-plus'
+  )
+  expect('已失效的 Plus 授权不误报成未激活', invalidAccess.code, 'PLUS_AUTH_INVALID')
+  assert('授权失效时返回可恢复的工具拒绝', events.some((event) => (
+    event.type === 'tool_denied'
+      && event.toolCallId === 'tool-invalid-plus'
+      && event.permanent === false
+  )))
+  assert('授权失效时不弹出重复激活提示', !events.some((event) => (
+    event.type === 'tool_requires_plus'
+  )))
+  runtimeState.setPlusKicked(false)
 }
 
 console.log('\n========== 会话保留策略 ==========')

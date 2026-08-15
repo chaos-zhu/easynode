@@ -85,7 +85,8 @@ const ALWAYS_READ_ONLY_CMDS = new Set([
   'ls', 'stat', 'du', 'df', 'grep', 'egrep', 'fgrep', 'wc',
   'readlink', 'realpath', 'pwd', 'which', 'whereis', 'echo', 'printf', 'test',
   'cd',
-  'ps', 'free', 'uptime', 'uname', 'whoami', 'id', 'printenv',
+  'ps', 'free', 'uptime', 'uname', 'whoami', 'last', 'lastb',
+  'id', 'printenv',
   'md5sum', 'sha256sum', 'cut', 'tr', 'jq'
 ])
 
