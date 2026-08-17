@@ -28,7 +28,10 @@
     "clean:native": "rimraf native/build native/.dart_tool native/.pub native/.pub-cache native/coverage native/android/.gradle native/android/app/build native/ios/Pods native/ios/.symlinks native/ios/Flutter/.last_build_id",
     "android": "cd native && flutter run -d android",
     "ios": "cd native && flutter run -d ios",
-    "encrypt": "node ./local-script/encrypt-file.js"
+    "encrypt": "node ./local-script/release/encrypt-cli.js",
+    "release:server": "node ./local-script/release/server-cli.js",
+    "release:native": "node ./local-script/release/native-cli.js",
+    "test:release": "node --test ./local-script/release/test/*.test.js"
   },
   "bugs": {
     "url": "https://github.com/chaos-zhu/easynode/issues"
@@ -39,6 +42,7 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "crypto-js": "4.2.0",
     "rimraf": "^6.0.1"
   }
 }

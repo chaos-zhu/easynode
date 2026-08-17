@@ -42,8 +42,7 @@ _✨ 一个多功能Linux服务器终端面板(webSSH&webSFTP) ✨_
 ## 功能
 
 + [x] 功能完善的**SSH终端**&**SFTP**
-+ [x] 跳板机功能,拯救被墙实例与加速跨国终端输入
-+ [x] AI对话组件，对话联动终端
++ [x] AI agent组件 🤖
 + [x] 批量导入、导出、编辑服务器配置、脚本等
 + [x] 脚本库
 + [x] 实例分组
@@ -71,57 +70,38 @@ Native端复用现有EasyNode后端，在移动设备上提供服务器管理、
 
 ## 项目部署
 
-- v3.1.0版本开始用户名密码不再是admin/admin. 需查看**终端日志**，另外登录后请及时修改，避免日志残留敏感信息。请牢记账号密码，出于安全原因，不提供一键重置密码的脚本
+### 默认账号与密码查看
+
+- 首次启动后会在终端自动生成管理员账号密码，登录后请及时修改，避免日志残留敏感信息。
+- 请牢记账号密码，出于安全原因，不提供一键重置密码的脚本
 - 默认web端口：**8082**
 
 
-### docker-compose部署-自动更新（推荐）
+### docker-compose部署
+
+> 无特殊需求建议使用docker-compose.yml一键启动
 
 部署本项目的[docker-compose.yml](https://github.com/chaos-zhu/easynode/blob/main/docker-compose.yml)默认采用[腾讯云CNB自动构建镜像](https://cnb.cool/chaoszhu/easynode)，如发现服务不可用请自行替换或移除加速
+
 ```shell
 # docker compose快速部署
 
 # 1. 创建easynode目录
 mkdir -p /root/easynode && cd /root/easynode
 
-# 2. 下载docker-compose.yml文件
+# 2. 下载docker-compose.yml文件（含watchtower）
 wget https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/main/docker-compose.yml
 
 # 3. 启动服务
 docker compose up -d
 ```
 
-
-### docker镜像
-
-**注意！！！**
-
-**v3.5.0版本新增RDP连接windows服务器功能，此功能依赖单独的guacd服务**
-
-- 如果你不知道guacd服务，请使用上面的 docker-compose.yml 进行部署
-
-- 如果你不想使用 docker-compose.yml 进行部署，请配置环境变量 `GUACD_HOST` 和 `GUACD_PORT`
-
-```shell
-# GUACD_HOST: 自建 guacd 服务 IP【此处127.0.0.1仅为示例,需自建服务】
-# GUACD_PORT: 自建 guacd 服务端口
-docker run -d \
-  -p 8082:8082 \
-  --restart=always \
-  -v /root/easynode/db:/easynode/app/db \
-  -e GUACD_HOST=127.0.0.1 \
-  -e GUACD_PORT=4822 \
-  chaoszhu/easynode
-```
-
 ## 环境变量
-
-> 无特殊需求建议使用docker-compose.yml一键启动
 
 | 变量名称 | 说明 | 默认值 | 备注 |
 |---------|------|--------|------|
-| `GUACD_HOST` | 自建guacd服务IP | - | - |
-| `GUACD_PORT` | 自建guacd服务PORT | - | - |
+| `GUACD_HOST` | 自建guacd服务IP | - | docker-compose 已配置 |
+| `GUACD_PORT` | 自建guacd服务PORT | - | docker-compose 已配置 |
 | `DEBUG` | 启动日志 | `true` | `false`：关闭，`true`：开启 |
 | `RDP_PORT` | RDP服务端口 | - | 无特殊需求保持默认即可 |
 | `ENABLE_HTTPS` | 是否启用HTTPS | `0` | `0`：关闭<br/>`1`：自签证书（适合内网）<br/>`2`：合法证书（适合外网）<br/>外网建议使用 nginx/caddy 进行 HTTPS 转发 |
@@ -131,16 +111,11 @@ docker run -d \
 
 注意: **docker默认不启用ipv6，请参考Q&A配置或者使用支持ipv6的跳板机中转.**
 
-## 监控服务安装
-
-！v3.2.0开始不再需要安装监控服务端，低于此版本的面板不再提供客户端下载，建议升级到此版本。
-已经安装过监控服务的服务器建议使用内置一键脚本卸载：`脚本库 -> easynode监控服务卸载`
-
 ## 建议
 
 > 任何系统无法保障没有bug的存在，EasyNode也一样。
 
-1. 请妥善利用面板提供MFA2、IP白名单等安全功能, 如需加强建议搭配**OpenVPN**搭建安全隧道访问。如果需要更高级别的安全性，建议面板服务不要暴露到公网。
+1. 请妥善利用面板提供MFA2、IP白名单等安全功能, 如需加强建议搭配**OpenVPN**、**TailScale** 等手段访问。**建议面板服务不要暴露到公网**。
 
 2. webssh与监控服务都将以`该服务器作为中转`。中国大陆用户建议使用香港、新加坡、日本、韩国等地区的低延迟服务器来安装服务端面板。
 
