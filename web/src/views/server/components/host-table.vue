@@ -52,7 +52,12 @@
       >
         <template #default="scope">{{ formatProxyType(scope.row) }}</template>
       </el-table-column>
-      <el-table-column v-if="props.columnSettings.expired" property="expired" label="到期时间" sortable />
+      <el-table-column
+        v-if="props.columnSettings.expired"
+        property="expired"
+        label="到期时间"
+        sortable
+      />
       <el-table-column
         v-if="props.columnSettings.consoleUrl"
         property="consoleUrl"
