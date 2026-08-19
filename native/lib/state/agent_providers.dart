@@ -65,11 +65,13 @@ class AgentSettingsNotifier extends AsyncNotifier<AgentSettingsData> {
     // Provider data and UI preferences use separate endpoints. Keeping the
     // existing preference out of the provider write prevents a stale settings
     // form from overwriting another client's UI preference.
-    await _repository.saveProvider(
-      config.copyWith(
-        nativeAgentEnabled: previousEnabled ?? config.nativeAgentEnabled,
-      ),
-    );
+    if (config.nativeAgentEnabled) {
+      await _repository.saveProvider(
+        config.copyWith(
+          nativeAgentEnabled: previousEnabled ?? config.nativeAgentEnabled,
+        ),
+      );
+    }
     var savedEnabled = config.nativeAgentEnabled;
     if (previousEnabled == null ||
         previousEnabled != config.nativeAgentEnabled) {

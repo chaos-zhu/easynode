@@ -319,23 +319,29 @@ class _AiAgentSettingsPageState extends ConsumerState<AiAgentSettingsPage> {
 
   Future<void> _save(AgentProviderConfig original) async {
     final models = _parseModels(_models.text);
-    setState(() => _modelsInvalid = models.isEmpty);
-    if (_formKey.currentState?.validate() != true || models.isEmpty) return;
+    if (_nativeAgentEnabled) {
+      setState(() => _modelsInvalid = models.isEmpty);
+      if (_formKey.currentState?.validate() != true || models.isEmpty) return;
+    }
+
+    final config = _nativeAgentEnabled
+        ? original.copyWith(
+            providerType: _provider,
+            apiUrl: _url.text.trim(),
+            apiKey: _key.text.trim(),
+            models: models,
+            contextLimit: int.parse(_contextLimit.text),
+            maxSteps: int.parse(_maxSteps.text),
+            nativeAgentEnabled: true,
+          )
+        : original.copyWith(nativeAgentEnabled: false);
 
     setState(() => _saving = true);
     try {
       await ref
           .read(agentSettingsProvider.notifier)
           .saveSettings(
-            config: original.copyWith(
-              providerType: _provider,
-              apiUrl: _url.text.trim(),
-              apiKey: _key.text.trim(),
-              models: models,
-              contextLimit: int.parse(_contextLimit.text),
-              maxSteps: int.parse(_maxSteps.text),
-              nativeAgentEnabled: _nativeAgentEnabled,
-            ),
+            config: config,
             hostPolicies: _hostPolicies,
             changedHostPolicies: _hostPolicies
                 .where((policy) => _changedHostIds.contains(policy.hostId))

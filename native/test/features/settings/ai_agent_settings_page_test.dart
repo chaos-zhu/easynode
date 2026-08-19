@@ -52,12 +52,7 @@ class _FakeDisabledSettingsNotifier extends AgentSettingsNotifier {
 
   @override
   Future<AgentSettingsData> build() async => AgentSettingsData(
-    config: AgentProviderConfig(
-      apiUrl: 'https://api.openai.com/v1',
-      apiKey: 'secret',
-      models: const ['gpt-5.6'],
-      nativeAgentEnabled: false,
-    ),
+    config: AgentProviderConfig(nativeAgentEnabled: false),
     hostPolicies: const [],
   );
 
