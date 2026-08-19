@@ -21,7 +21,7 @@
         label="名称"
         property="name"
         sortable
-        :sort-method="(a, b) => a.name - b.name"
+        :sort-method="compareHostNames"
       >
         <template #default="scope">
           <span v-if="scope.row.connectType !== 'rdp'">
@@ -138,6 +138,7 @@ import { ref, computed, getCurrentInstance, nextTick } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import clipboard from '@/utils/clipboard'
+import { compareHostNames } from '@/utils/host-sort'
 
 const { proxy: { $message, $messageBox, $api, $router, $store } } = getCurrentInstance()
 

@@ -9,7 +9,7 @@
     "preview": "vite preview --port 5050",
     "lint": "eslint . --ext .js,.vue",
     "lint:fix": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
-    "test": "node test/test-agent-messages.js"
+    "test": "node test/test-agent-messages.js && node test/test-host-sort.js"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.2",
