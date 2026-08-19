@@ -71,7 +71,6 @@
           <el-input
             v-model="sshForm.openSSHKeyPassword"
             type="password"
-            :disabled="!isPlusActive"
             placeholder="请输入openssh私钥密码(没有密码请留空)"
             show-password
             autocomplete="off"
@@ -121,9 +120,7 @@
       <template #footer>
         <span>
           <el-button @click="keyPasswordVisible = false">取消</el-button>
-          <PlusSupportTip>
-            <el-button type="primary" :disabled="!isPlusActive" @click="handleDecryptKey">确认</el-button>
-          </PlusSupportTip>
+          <el-button type="primary" @click="handleDecryptKey">确认</el-button>
         </span>
       </template>
     </el-dialog>
@@ -134,7 +131,6 @@
 import { ref, reactive, computed, nextTick, getCurrentInstance, watch } from 'vue'
 import { randomStr, AESEncrypt, RSAEncrypt } from '@utils/index.js'
 import { WarningFilled } from '@element-plus/icons-vue'
-import PlusSupportTip from '@/components/common/PlusSupportTip.vue'
 
 const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
 
@@ -161,7 +157,6 @@ const updateFormRef = ref(null)
 const privateKeyRef = ref(null)
 
 let sshList = computed(() => $store.sshList)
-let isPlusActive = computed(() => $store.isPlusActive)
 
 // 检测密码是否包含空格
 const passwordHasSpace = computed(() => {
