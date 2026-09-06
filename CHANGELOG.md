@@ -6,6 +6,10 @@
 * 支持csv模板特定格式导入
 * AI功能增强
 
+## [3.8.1](https://github.com/chaos-zhu/easynode/releases) (2026-09-06)
+* 路径导入修复
+* 终端侧边栏展开错位
+
 ## [native-v1.3.0](https://github.com/chaos-zhu/easynode/releases) (2026-09-05)
 * AI Agent 新增外部 MCP 接入，支持远程 MCP Server、工具发现、启停与调用授权
 * 新增自签证书信任功能，支持 SHA-256 指纹确认及证书变更安全提醒
