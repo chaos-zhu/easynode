@@ -402,6 +402,7 @@
             >
               <SftpV2
                 ref="sftpRefs"
+                class="terminal_sftp_panel"
                 :init-connect="showSftpSide"
                 :host-id="item.id"
                 @exec-script="handleExecScript"
@@ -422,6 +423,7 @@
               </div>
               <SftpV2
                 ref="sftpRefs"
+                class="terminal_sftp_panel"
                 :init-connect="showSftpSide"
                 :host-id="item.id"
                 @exec-script="handleExecScript"
@@ -669,11 +671,6 @@ const debounce = (func, delay) => {
   }
 }
 
-// 防抖版本的终端尺寸重计算
-const debouncedResizeTerminal = debounce(() => {
-  resizeTerminal()
-}, 100)
-
 // 防抖版本的localStorage保存
 const debouncedSaveToStorage = debounce((height) => {
   localStorage.setItem('footerBarHeight', height.toString())
@@ -685,9 +682,6 @@ const handleFooterBarHeightChange = (height) => {
 
   // 防抖保存到localStorage
   debouncedSaveToStorage(height)
-
-  // 防抖触发终端尺寸重计算
-  debouncedResizeTerminal()
 }
 
 // SFTP宽度调整相关
@@ -724,7 +718,6 @@ const stopResizeSftp = () => {
   document.body.style.userSelect = ''
   // 保存宽度到 localStorage
   localStorage.setItem(SFTP_WIDTH_KEY, sftpWidth.value.toString())
-  debouncedResizeTerminal()
 }
 
 const isResizingTerminalAi = ref(false)
@@ -755,7 +748,6 @@ const stopResizeTerminalAi = () => {
   document.body.style.cursor = ''
   document.body.style.userSelect = ''
   localStorage.setItem(SFTP_WIDTH_KEY, sftpWidth.value.toString())
-  debouncedResizeTerminal()
 }
 
 const getStartIndexByTabIndex = (idx) => {
@@ -1034,6 +1026,7 @@ const handleSyncPathToSftp = (path) => {
 
 const tabChange = async (index) => {
   await $nextTick()
+  getTerminalRefsOfTab(index).forEach(terminalRef => terminalRef?.handleResize())
   getFirstTerminalRefOfTab(index)?.focusTab()
 }
 
@@ -1046,19 +1039,6 @@ watch(
       activeTabIndex.value = len - 1
       tabChange(activeTabIndex.value)
     }
-  },
-  {
-    immediate: true,
-    deep: false
-  }
-)
-
-watch(
-  [showFooterBar, showInfoSide, showSftpSide, showTerminalAi, statusBarEnabled,],
-  () => {
-    setTimeout(async () => {
-      resizeTerminal()
-    }, 210)
   },
   {
     immediate: true,
@@ -1276,9 +1256,7 @@ const handleSuspendTerminalSingleDone = (terminalKey) => {
 const fullScreenCb = async() => {
   isFullscreen.value = !!document.fullscreenElement
   await $nextTick()
-  setTimeout(() => {
-    resizeTerminal()
-  }, 210)
+  resizeTerminal()
 }
 
 watch(isSingleWindowMode, async() => {
@@ -1509,7 +1487,7 @@ onUnmounted(() => {
           height: 100%;
           overflow-y: auto;
           overflow-x: hidden;
-          transition: all 0.2s;
+          transition: width 0.2s, min-width 0.2s;
           &.show_info_side {
             width: 250px;
             min-width: 250px;
@@ -1601,7 +1579,7 @@ onUnmounted(() => {
           width: 0;
           min-width: 0;
           overflow: hidden;
-          transition: all 0.2s;
+          transition: width 0.2s, min-width 0.2s, max-width 0.2s;
           flex-shrink: 0;
           position: relative;
           &.show_sftp,
@@ -1669,7 +1647,7 @@ onUnmounted(() => {
       }
 
       .tab_content_footer {
-        transition: all 0.2s;
+        transition: height 0.2s, min-height 0.2s;
         height: 0;
         min-height: 0;
         overflow: hidden;
@@ -1703,7 +1681,7 @@ onUnmounted(() => {
     min-width: 0;
     overflow: hidden;
     position: relative;
-    transition: all 0.2s;
+    transition: width 0.2s, min-width 0.2s, max-width 0.2s;
     flex-shrink: 0;
     &.show_ai {
       overflow: hidden;
@@ -1745,6 +1723,10 @@ onUnmounted(() => {
 </style>
 
 <style>
+.terminal_sftp_panel {
+  border-left: 1px solid var(--el-border-color);
+}
+
 .action_icon {
   color: var(--el-color-primary);
 }

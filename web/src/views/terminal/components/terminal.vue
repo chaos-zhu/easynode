@@ -85,7 +85,6 @@ const AI_CANCEL_CONFIRM_TIMEOUT_MS = 10 * 1000
 const term = ref(null)
 const highlighter = ref(null)
 const initCommand = ref('')
-const timer = ref(null)
 const fitAddon = ref(null)
 const searchAddon = ref(null)
 const searchBarRef = ref(null) // TerminalSearch组件引用
@@ -95,6 +94,13 @@ const curStatus = ref(CONNECTING)
 const sessionId = ref(null) // 会话ID，用于挂起/恢复
 const terminalRef = ref(null)
 const { showMenu, closeMenu, isVisible } = useContextMenu()
+
+const TERMINAL_RESIZE_EMIT_DELAY = 80
+let terminalResizeObserver = null
+let terminalResizeFrame = null
+let terminalResizeEmitTimer = null
+let pendingTerminalSize = null
+let lastEmittedTerminalSize = null
 
 // 临时路径同步回调
 const tempPathSyncCallback = ref(null)
@@ -108,7 +114,6 @@ const fontSize = computed(() => terminalSettings.value.appearance.font.size)
 const fontFamily = computed(() => terminalSettings.value.appearance.font.family)
 const hostObj = computed(() => props.hostObj)
 const hostId = computed(() => hostObj.value.id)
-const menuCollapse = computed(() => $store.menuCollapse)
 const autoExecuteScript = computed(() => terminalSettings.value.behavior.autoExecuteScript)
 const autoReconnect = computed(() => terminalSettings.value.behavior.autoReconnect)
 const keywordHighlight = computed(() => terminalSettings.value.highlighting.enabled)
@@ -133,12 +138,6 @@ const applyTerminalTheme = () => {
   const viewport = terminalRef.value.querySelector('.xterm-viewport')
   if (viewport) viewport.style.setProperty('background-color', theme.value.background || '#1e1e1e', 'important')
 }
-
-watch(menuCollapse, () => {
-  nextTick(() => {
-    handleResize()
-  })
-})
 
 watch(theme, () => nextTick(applyTerminalTheme))
 
@@ -206,6 +205,12 @@ const connectIO = () => {
 
     socketConnected.value = true
     const terminalSize = { rows: term.value.rows, cols: term.value.cols }
+    lastEmittedTerminalSize = terminalSize
+    pendingTerminalSize = null
+    if (terminalResizeEmitTimer) {
+      clearTimeout(terminalResizeEmitTimer)
+      terminalResizeEmitTimer = null
+    }
 
     // 检查是否是恢复会话
     if (hostObj.value.resumeSessionId) {
@@ -422,36 +427,69 @@ const createLocalTerminal = () => {
   })
 }
 
-const shellResize = () => {
-  // 由于非当前的el-tab-pane的display属性为none, 调用fitAddon.value?.fit()时无法获取宽高，因此先展示，再fit，最后再隐藏
-  let temp = []
-  let panes = Array.from(document.getElementsByClassName('el-tab-pane'))
-  panes.forEach((item, index) => {
-    temp[index] = item.style.display
-    item.style.display = 'block'
-  })
+const isSameTerminalSize = (left, right) => Boolean(
+  left &&
+  right &&
+  left.rows === right.rows &&
+  left.cols === right.cols
+)
+
+const emitPendingTerminalSize = () => {
+  terminalResizeEmitTimer = null
+  const nextSize = pendingTerminalSize
+  pendingTerminalSize = null
+  if (!nextSize || !socket.value?.connected || isSameTerminalSize(nextSize, lastEmittedTerminalSize)) return
+
+  socket.value.emit('resize', nextSize)
+  lastEmittedTerminalSize = nextSize
+}
+
+const scheduleTerminalSizeEmit = (size) => {
+  if (!socket.value?.connected) return
+  if (isSameTerminalSize(size, lastEmittedTerminalSize)) {
+    pendingTerminalSize = null
+    if (terminalResizeEmitTimer) {
+      clearTimeout(terminalResizeEmitTimer)
+      terminalResizeEmitTimer = null
+    }
+    return
+  }
+
+  pendingTerminalSize = size
+  if (terminalResizeEmitTimer) clearTimeout(terminalResizeEmitTimer)
+  terminalResizeEmitTimer = setTimeout(emitPendingTerminalSize, TERMINAL_RESIZE_EMIT_DELAY)
+}
+
+const fitTerminal = () => {
+  const container = terminalRef.value
+  if (!container?.isConnected || !term.value || !fitAddon.value) return
+
+  // 隐藏的 el-tab-pane 没有可用尺寸。等它重新可见后由 ResizeObserver
+  // 或 tab 激活时的显式 handleResize 再执行 fit。
+  if (container.clientWidth <= 0 || container.clientHeight <= 0) return
 
   fitAddon.value.fit()
-  let { rows, cols } = term.value
-  socket.value?.emit('resize', { rows, cols })
-  term.value?.scrollToBottom()
+  scheduleTerminalSizeEmit({ rows: term.value.rows, cols: term.value.cols })
+}
 
-  panes.forEach((item, index) => {
-    item.style.display = temp[index]
+const handleResize = () => {
+  if (terminalResizeFrame !== null) return
+
+  terminalResizeFrame = requestAnimationFrame(() => {
+    terminalResizeFrame = null
+    fitTerminal()
   })
 }
 
 const onResize = () => {
   fitAddon.value = new FitAddon()
   term.value.loadAddon(fitAddon.value)
-  window.addEventListener('resize', handleResize)
-}
 
-const handleResize = () => {
-  if (timer.value) clearTimeout(timer.value)
-  timer.value = setTimeout(() => {
-    shellResize()
-  }, 200)
+  if (typeof ResizeObserver !== 'undefined') {
+    terminalResizeObserver = new ResizeObserver(handleResize)
+    terminalResizeObserver.observe(terminalRef.value)
+  }
+  window.addEventListener('resize', handleResize)
 }
 
 const onWebLinks = () => {
@@ -883,7 +921,7 @@ onMounted(async () => {
   createLocalTerminal()
   // SSH shell 创建前先确定真实行列数，避免首屏按默认 80×24 输出后再次 reflow。
   await nextTick()
-  shellResize()
+  fitTerminal()
   await getCommand()
   connectIO()
   onData()
@@ -896,6 +934,9 @@ onBeforeUnmount(() => {
     request.resolve({ ok: false, error: '终端已关闭，无法读取命令输出' })
   }
   socket.value?.close()
+  terminalResizeObserver?.disconnect()
+  if (terminalResizeFrame !== null) cancelAnimationFrame(terminalResizeFrame)
+  if (terminalResizeEmitTimer) clearTimeout(terminalResizeEmitTimer)
   window.removeEventListener('resize', handleResize)
   tempPathSyncCallback.value = null
 })
