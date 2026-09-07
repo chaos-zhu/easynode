@@ -11,6 +11,7 @@ const suites = {
     'test-onekey-execution.js',
     'test-terminal-settings.js',
     'test-login-attempt-limiter.js',
+    'test-login-ip-async.js',
     'test-auth-session.js',
     'test-ip-access.js',
     'test-ping-output.js',
@@ -22,6 +23,7 @@ const suites = {
   ],
   security: [
     'test-login-attempt-limiter.js',
+    'test-login-ip-async.js',
     'test-auth-session.js',
     'test-ip-access.js',
     'test-sftp-cache-path.js',

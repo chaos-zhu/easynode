@@ -59,12 +59,22 @@ const respondLoginLocked = (ctx, lockStatus) => {
 }
 
 const notifyLoginLocked = async (clientIp) => {
-  const { country = '未知', city = '未知' } = await getNetIPInfo(clientIp)
-  await sendNoticeAsync(
-    'err_login',
-    '登录错误提醒',
-    `错误登录次数: ${ DEFAULT_MAX_ATTEMPTS }\n地点：${ country }${ city }\nIP: ${ clientIp }\n锁定时间: ${ DEFAULT_LOCK_DURATION_MS / 60_000 }分钟`
-  )
+  // 异步查询IP归属地，不阻塞锁定响应
+  getNetIPInfo(clientIp).then(({ country = '未知', city = '未知' } = {}) => {
+    sendNoticeAsync(
+      'err_login',
+      '登录错误提醒',
+      `错误登录次数: ${ DEFAULT_MAX_ATTEMPTS }\n地点：${ country }${ city }\nIP: ${ clientIp }\n锁定时间: ${ DEFAULT_LOCK_DURATION_MS / 60_000 }分钟`
+    )
+  }).catch(error => {
+    logger.error('查询登录锁定IP归属地失败:', error)
+    // 即使IP查询失败也发送通知
+    sendNoticeAsync(
+      'err_login',
+      '登录错误提醒',
+      `错误登录次数: ${ DEFAULT_MAX_ATTEMPTS }\n地点：未知\nIP: ${ clientIp }\n锁定时间: ${ DEFAULT_LOCK_DURATION_MS / 60_000 }分钟`
+    )
+  })
 }
 
 const failLoginAttempt = (ctx, clientIp, msg) => {
@@ -193,14 +203,41 @@ const beforeLoginHandler = async (clientIp, jwtExpires, jwtExpireAt, agentInfo, 
   const tokenHash = SHA256Encrypt(token)
   token = await AESEncryptAsync(token) // 对称加密token后再传输给前端
 
-  const clientIPInfo = await getNetIPInfo(clientIp)
-  const { ip, country, city } = clientIPInfo || {}
-  logger.info('登录成功:', { ip, country, city, agentInfo })
+  // 先插入session记录，IP信息使用占位符
+  await sessionDB.insertAsync({
+    session,
+    tokenHash,
+    userId,
+    deviceId,
+    revoked: false,
+    ip: clientIp,
+    country: '查询中',
+    city: '查询中',
+    agentInfo,
+    create: Date.now(),
+    expireAt: jwtExpireAt
+  })
 
-  // 登录通知
-  sendNoticeAsync('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }\n设备信息: ${ agentInfo?.browser?.name } ${ agentInfo?.os?.name }`)
+  // 异步查询IP归属地并更新数据库（不阻塞登录响应）
+  getNetIPInfo(clientIp).then(clientIPInfo => {
+    const { ip, country, city } = clientIPInfo || {}
+    logger.info('登录成功:', { ip, country, city, agentInfo })
 
-  await sessionDB.insertAsync({ session, tokenHash, userId, deviceId, revoked: false, ip, country, city, agentInfo, create: Date.now(), expireAt: jwtExpireAt })
+    // 更新session记录中的IP信息
+    sessionDB.updateAsync({ session }, { $set: { ip, country, city } }).catch(error => {
+      logger.error('更新IP归属地信息失败:', error)
+    })
+
+    // 登录通知
+    sendNoticeAsync('login', '登录提醒', `地点：${ country + city }\nIP: ${ ip }\n设备信息: ${ agentInfo?.browser?.name } ${ agentInfo?.os?.name }`)
+  }).catch(error => {
+    logger.error('查询IP归属地失败:', error)
+    // 即使查询失败也更新为未知，避免一直显示"查询中"
+    sessionDB.updateAsync({ session }, { $set: { country: '未知', city: '未知' } }).catch(e => {
+      logger.error('更新IP归属地信息失败:', e)
+    })
+  })
+
   return { token, session, deviceId }
 }
 
