@@ -311,7 +311,7 @@
             >
               <ServerStatus
                 ref="infoSideRef"
-                :visible="showInfoSide && isActiveTerminalTab(index)"
+                :visible="showInfoSide"
                 :host-id="item.id"
               />
             </el-drawer>
@@ -319,7 +319,7 @@
             <div v-else :class="['tab_content_main_info_side', { 'show_info_side': showInfoSide }]">
               <ServerStatus
                 ref="infoSideRef"
-                :visible="showInfoSide && isActiveTerminalTab(index)"
+                :visible="showInfoSide"
                 :host-id="item.id"
               />
             </div>
@@ -356,7 +356,6 @@
               <ServerStatusBar
                 v-if="statusBarEnabled && !showInfoSide"
                 :host-id="item.id"
-                :visible="isActiveTerminalTab(index)"
               />
             </div>
 
