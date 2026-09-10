@@ -83,6 +83,7 @@ const Map<String, String> stringsZh = {
   'servers.addServer': '新增服务器',
   'servers.editServer': '编辑服务器',
   'servers.searchHint': '按名称 / 主机 / 用户名 / 标签 / 分组搜索',
+  'servers.defaultGroup': '默认分组',
   'servers.emptyHint': '还没有服务器，请在 Web 端添加后下拉刷新',
   'servers.emptyFiltered': '没有匹配的服务器',
   'servers.notConfigured': '未配置',

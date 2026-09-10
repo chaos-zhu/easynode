@@ -373,9 +373,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('hides group filter when only the default group exists', (
-    tester,
-  ) async {
+  testWidgets('shows and collapses the default group section', (tester) async {
     final repo = _FakeRepository(
       hosts: [_server(id: 'h1', group: 'default')],
       groups: [_group()],
@@ -383,11 +381,33 @@ void main() {
     await tester.pumpWidget(_wrap(repo: repo));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('All'), findsNothing);
+    expect(find.text('Default group'), findsOneWidget);
     expect(find.byKey(const Key('server-h1')), findsOneWidget);
+    final groupHeader = find.byKey(const ValueKey('server-group-default'));
+    final headerMaterial = tester.widget<Material>(groupHeader);
+    final groupName = tester.widget<Text>(
+      find.descendant(of: groupHeader, matching: find.text('Default group')),
+    );
+    final count = find.descendant(of: groupHeader, matching: find.text('1'));
+    final expandIcon = find.descendant(
+      of: groupHeader,
+      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
+    );
+    expect(headerMaterial.color, Colors.transparent);
+    expect(groupName.style?.fontSize, 13);
+    expect(groupName.style?.color, AppColorTheme.defaultLight.muted);
+    expect(
+      tester.getCenter(count).dx,
+      lessThan(tester.getCenter(expandIcon).dx),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('server-group-toggle-default')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('server-h1')), findsNothing);
   });
 
-  testWidgets('enters explicit flat order mode and renders drag handles', (
+  testWidgets('enters grouped order mode and renders drag handles', (
     tester,
   ) async {
     final repo = _FakeRepository(
@@ -429,8 +449,49 @@ void main() {
 
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
-    expect(repo.submittedOrderChanges.single.scope, 'flat');
+    expect(repo.submittedOrderChanges.single.scope, 'groupItems');
+    expect(repo.submittedOrderChanges.single.groupId, 'default');
     expect(repo.submittedOrderChanges.single.orderedIds, ['h1', 'h2']);
+  });
+
+  testWidgets('submits one order change for each server group', (tester) async {
+    final repo = _FakeRepository(
+      hosts: [
+        _server(id: 'h1', group: 'default'),
+        _server(id: 'h2', group: 'overseas'),
+      ],
+      groups: [
+        _group(),
+        _group(id: 'overseas', name: 'Overseas'),
+      ],
+    );
+    await tester.pumpWidget(_wrap(repo: repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('More actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Adjust order'));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.drag_handle), findsNWidgets(2));
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(repo.submittedOrderChanges, hasLength(2));
+    expect(
+      repo.submittedOrderChanges.map((change) => change.scope),
+      everyElement('groupItems'),
+    );
+    expect(
+      {
+        for (final change in repo.submittedOrderChanges)
+          change.groupId: change.orderedIds,
+      },
+      {
+        'default': ['h1'],
+        'overseas': ['h2'],
+      },
+    );
   });
 
   testWidgets('groups search and adjust order under the more actions menu', (
@@ -488,7 +549,7 @@ void main() {
     expect(find.byKey(const ValueKey('search-field')), findsOneWidget);
   });
 
-  testWidgets('shows group filters and filters cards by selected group', (
+  testWidgets('shows all group sections and collapses them independently', (
     tester,
   ) async {
     final repo = _FakeRepository(
@@ -504,15 +565,22 @@ void main() {
     await tester.pumpWidget(_wrap(repo: repo));
     await tester.pumpAndSettle();
 
-    expect(find.text('All 2'), findsOneWidget);
-    expect(find.text('Default group 1'), findsOneWidget);
-    expect(find.text('Overseas 1'), findsOneWidget);
+    expect(find.text('Default group'), findsOneWidget);
+    expect(find.text('Overseas'), findsOneWidget);
+    expect(find.byKey(const Key('server-h1')), findsOneWidget);
+    expect(find.byKey(const Key('server-h2')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('server-group-divider-1')),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.text('Overseas 1'));
+    await tester.tap(
+      find.byKey(const ValueKey('server-group-toggle-overseas')),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('server-h1')), findsNothing);
-    expect(find.byKey(const Key('server-h2')), findsOneWidget);
+    expect(find.byKey(const Key('server-h1')), findsOneWidget);
+    expect(find.byKey(const Key('server-h2')), findsNothing);
   });
 
   testWidgets('shows error and Retry when fetch fails', (tester) async {

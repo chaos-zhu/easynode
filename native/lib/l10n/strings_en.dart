@@ -91,6 +91,7 @@ const Map<String, String> stringsEn = {
   'servers.addServer': 'Add server',
   'servers.editServer': 'Edit server',
   'servers.searchHint': 'Search by name, host, user, tag, or group',
+  'servers.defaultGroup': 'Default group',
   'servers.emptyHint':
       'No servers yet. Pull to refresh after adding hosts on web.',
   'servers.emptyFiltered': 'No matching servers.',

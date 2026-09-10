@@ -21,6 +21,7 @@ import '../../state/server_data_refresh.dart';
 import '../../state/terminal_providers.dart';
 import 'server_form_page.dart';
 import 'server_group_model.dart';
+import 'server_repository.dart';
 import '../shell/tab_header.dart';
 import '../terminal/ssh_connection_config.dart';
 import '../terminal/terminal_shell_page.dart';
@@ -45,14 +46,14 @@ class _ServersTabState extends ConsumerState<ServersTab> {
   final AppSwipeActionsController _swipeActionsController =
       AppSwipeActionsController();
   final Set<String> _connectingIds = {};
+  final Set<String> _collapsedGroupIds = {};
   String? _expandedServerId;
-  String? _selectedGroupId;
   String _query = '';
   bool _searchVisible = false;
   bool _orderMode = false;
   bool _orderSaving = false;
   int _orderRevision = 0;
-  List<String> _orderDraft = const [];
+  Map<String, List<String>> _orderDraftByGroup = const {};
 
   @override
   void dispose() {
@@ -421,10 +422,6 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         final searched = _orderMode
             ? servers
             : _searchedServers(servers, groups);
-        final effectiveGroupId = _effectiveSelectedGroupId(groups);
-        final filtered = _orderMode
-            ? _orderedDraftServers(servers)
-            : _filterByGroup(searched, effectiveGroupId);
         final sessions = manager.sessions.length;
         return Column(
           children: [
@@ -469,9 +466,10 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                                       context,
                                       hintText: l.tr('servers.searchHint'),
                                     ),
-                                    onChanged: (value) => setState(
-                                      () => _query = value.trim().toLowerCase(),
-                                    ),
+                                    onChanged: (value) => setState(() {
+                                      _query = value.trim().toLowerCase();
+                                      _collapsedGroupIds.clear();
+                                    }),
                                   ),
                                 ),
                               )
@@ -481,16 +479,6 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                               ),
                       ),
                     ),
-                  _ServerGroupFilter(
-                    groups: groups,
-                    servers: searched,
-                    selectedGroupId: effectiveGroupId,
-                    onSelected: (groupId) {
-                      if (_orderMode) return;
-                      _closeTransientRows(collapseDetails: true);
-                      setState(() => _selectedGroupId = groupId);
-                    },
-                  ),
                 ],
               ),
             ),
@@ -500,44 +488,12 @@ class _ServersTabState extends ConsumerState<ServersTab> {
                   _closeTransientRows(collapseDetails: true);
                   return false;
                 },
-                child: _orderMode
-                    ? ReorderableListView.builder(
-                        buildDefaultDragHandles: false,
-                        proxyDecorator: buildAppReorderProxy,
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
-                        itemCount: filtered.length,
-                        onReorderItem: _reorder,
-                        itemBuilder: (context, index) {
-                          final server = filtered[index];
-                          return _ServerCard(
-                            key: ValueKey('order-${server.id}'),
-                            server: server,
-                            state: this,
-                            groupName: _groupDisplayName(server, groups),
-                            orderMode: true,
-                            orderIndex: index,
-                          );
-                        },
-                      )
-                    : ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
-                        children: [
-                          if (servers.isEmpty)
-                            _MessageState(message: l.tr('servers.emptyHint'))
-                          else if (filtered.isEmpty)
-                            _MessageState(
-                              message: l.tr('servers.emptyFiltered'),
-                            )
-                          else
-                            for (final server in filtered)
-                              _ServerCard(
-                                server: server,
-                                state: this,
-                                groupName: _groupDisplayName(server, groups),
-                              ),
-                        ],
-                      ),
+                child: _buildGroupedList(
+                  l: l,
+                  servers: servers,
+                  groups: groups,
+                  searched: searched,
+                ),
               ),
             ),
           ],
@@ -546,58 +502,52 @@ class _ServersTabState extends ConsumerState<ServersTab> {
     );
   }
 
-  List<ServerModel> _orderedDraftServers(List<ServerModel> servers) {
-    final byId = {for (final server in servers) server.id: server};
-    return _orderDraft.map((id) => byId[id]).whereType<ServerModel>().toList();
-  }
-
   Future<void> _startOrder() async {
     _closeTransientRows(collapseDetails: true);
     final catalog = await ref.read(serverRepositoryProvider).fetchCatalog();
-    final groupId = _selectedGroupId;
-    final ids = groupId == null
-        ? catalog.order.flatItemIds
-        : catalog.order.sections
-                  .where((section) => section.groupId == groupId)
-                  .map((section) => section.itemIds)
-                  .firstOrNull ??
-              const <String>[];
     if (!mounted) return;
     setState(() {
       _searchVisible = false;
       _searchCtrl.clear();
       _query = '';
       _orderRevision = catalog.order.revision;
-      _orderDraft = [...ids];
+      _orderDraftByGroup = _createOrderDraft(catalog);
+      _collapsedGroupIds.clear();
       _orderMode = true;
     });
   }
 
   void _cancelOrder() => setState(() {
     _orderMode = false;
-    _orderDraft = const [];
+    _orderDraftByGroup = const {};
   });
 
-  void _reorder(int oldIndex, int newIndex) {
+  void _reorder(String groupId, int oldIndex, int newIndex) {
     setState(() {
-      final draft = [..._orderDraft];
+      final draft = [...?_orderDraftByGroup[groupId]];
       final id = draft.removeAt(oldIndex);
       draft.insert(newIndex, id);
-      _orderDraft = draft;
+      _orderDraftByGroup = {..._orderDraftByGroup, groupId: draft};
     });
   }
 
   Future<void> _saveOrder() async {
     setState(() => _orderSaving = true);
-    final groupId = _selectedGroupId;
     try {
-      await ref.read(serverRepositoryProvider).updateOrder(_orderRevision, [
-        OrderChange(
-          scope: groupId == null ? 'flat' : 'groupItems',
-          groupId: groupId,
-          orderedIds: _orderDraft,
-        ),
-      ]);
+      await ref
+          .read(serverRepositoryProvider)
+          .updateOrder(
+            _orderRevision,
+            _orderDraftByGroup.entries
+                .map(
+                  (entry) => OrderChange(
+                    scope: 'groupItems',
+                    groupId: entry.key,
+                    orderedIds: entry.value,
+                  ),
+                )
+                .toList(growable: false),
+          );
       await refreshServerSharedData(ref);
       if (!mounted) return;
       _cancelOrder();
@@ -643,32 +593,239 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         .toList(growable: false);
   }
 
-  String? _effectiveSelectedGroupId(List<ServerGroupModel> groups) {
-    if (_selectedGroupId == null) return null;
-    if (groups.any((group) => group.id == _selectedGroupId)) {
-      return _selectedGroupId;
-    }
-    return null;
+  static String _normalizedGroupId(String groupId) {
+    return groupId.isEmpty ? 'default' : groupId;
   }
 
-  List<ServerModel> _filterByGroup(List<ServerModel> servers, String? groupId) {
-    if (groupId == null) return servers;
-    final byId = {for (final server in servers) server.id: server};
-    final order = ref.read(hostOrderProvider);
-    final section = order?.sections.where((item) => item.groupId == groupId);
-    if (section != null && section.isNotEmpty) {
-      return section.first.itemIds
-          .map((id) => byId[id])
-          .whereType<ServerModel>()
-          .toList(growable: false);
+  Map<String, List<String>> _createOrderDraft(HostCatalog catalog) {
+    final hostsById = {for (final host in catalog.hosts) host.id: host};
+    final groupIds = <String>[];
+
+    void addGroup(String groupId) {
+      if (!groupIds.contains(groupId)) groupIds.add(groupId);
     }
-    return servers
-        .where((server) => _normalizedGroupId(server.group) == groupId)
+
+    for (final section in catalog.order.sections) {
+      addGroup(section.groupId);
+    }
+    for (final group in catalog.groups) {
+      addGroup(group.id);
+    }
+    for (final host in catalog.hosts) {
+      addGroup(_normalizedGroupId(host.group));
+    }
+
+    final draft = <String, List<String>>{};
+    for (final groupId in groupIds) {
+      final orderedIds = catalog.order.sections
+          .where((section) => section.groupId == groupId)
+          .expand((section) => section.itemIds)
+          .where(
+            (id) =>
+                hostsById.containsKey(id) &&
+                _normalizedGroupId(hostsById[id]!.group) == groupId,
+          )
+          .toList();
+      final seen = orderedIds.toSet();
+      orderedIds.addAll(
+        catalog.hosts
+            .where(
+              (host) =>
+                  _normalizedGroupId(host.group) == groupId &&
+                  !seen.contains(host.id),
+            )
+            .map((host) => host.id),
+      );
+      draft[groupId] = orderedIds;
+    }
+    return draft;
+  }
+
+  List<_ServerGroupSection> _serverSections({
+    required List<ServerModel> servers,
+    required List<ServerGroupModel> groups,
+    required AppLocalizations l,
+  }) {
+    final hostsById = {for (final host in servers) host.id: host};
+    final groupNames = {
+      for (final group in groups) group.id: group.displayName,
+    };
+    final order = ref.read(hostOrderProvider);
+    final orderedIdsByGroup = _orderMode
+        ? _orderDraftByGroup
+        : <String, List<String>>{
+            for (final section in order?.sections ?? const <OrderSection>[])
+              section.groupId: section.itemIds,
+          };
+    final groupIds = <String>[];
+
+    void addGroup(String groupId) {
+      if (!groupIds.contains(groupId)) groupIds.add(groupId);
+    }
+
+    for (final groupId in orderedIdsByGroup.keys) {
+      addGroup(groupId);
+    }
+    for (final group in groups) {
+      addGroup(group.id);
+    }
+    for (final host in servers) {
+      addGroup(_normalizedGroupId(host.group));
+    }
+
+    return groupIds
+        .map((groupId) {
+          final orderedHosts = <ServerModel>[];
+          final seen = <String>{};
+          for (final id in orderedIdsByGroup[groupId] ?? const <String>[]) {
+            final host = hostsById[id];
+            if (host != null &&
+                _normalizedGroupId(host.group) == groupId &&
+                seen.add(id)) {
+              orderedHosts.add(host);
+            }
+          }
+          for (final host in servers) {
+            if (_normalizedGroupId(host.group) == groupId &&
+                seen.add(host.id)) {
+              orderedHosts.add(host);
+            }
+          }
+          return _ServerGroupSection(
+            id: groupId,
+            name:
+                groupNames[groupId] ??
+                (groupId == 'default' ? l.tr('servers.defaultGroup') : groupId),
+            servers: orderedHosts,
+          );
+        })
+        .where((section) => section.servers.isNotEmpty)
         .toList(growable: false);
   }
 
-  static String _normalizedGroupId(String groupId) {
-    return groupId.isEmpty ? 'default' : groupId;
+  Widget _buildGroupedList({
+    required AppLocalizations l,
+    required List<ServerModel> servers,
+    required List<ServerGroupModel> groups,
+    required List<ServerModel> searched,
+  }) {
+    final sections = _serverSections(servers: searched, groups: groups, l: l);
+    final slivers = <Widget>[];
+
+    if (servers.isEmpty) {
+      slivers.add(
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverToBoxAdapter(
+            child: _MessageState(message: l.tr('servers.emptyHint')),
+          ),
+        ),
+      );
+    } else if (sections.isEmpty) {
+      slivers.add(
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverToBoxAdapter(
+            child: _MessageState(message: l.tr('servers.emptyFiltered')),
+          ),
+        ),
+      );
+    } else {
+      for (
+        var sectionIndex = 0;
+        sectionIndex < sections.length;
+        sectionIndex++
+      ) {
+        final section = sections[sectionIndex];
+        final expanded = !_collapsedGroupIds.contains(section.id);
+        if (sectionIndex > 0) {
+          slivers.add(
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 2),
+              sliver: SliverToBoxAdapter(
+                child: Divider(
+                  key: ValueKey('server-group-divider-$sectionIndex'),
+                  height: 1,
+                  thickness: 1,
+                  color: context.colors.border.withValues(alpha: 0.55),
+                ),
+              ),
+            ),
+          );
+        }
+        slivers.add(
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(16, sectionIndex == 0 ? 4 : 2, 16, 0),
+            sliver: SliverToBoxAdapter(
+              child: _ServerGroupHeader(
+                groupId: section.id,
+                name: section.name,
+                count: section.servers.length,
+                expanded: expanded,
+                onTap: () {
+                  _closeTransientRows(collapseDetails: true);
+                  setState(() {
+                    if (expanded) {
+                      _collapsedGroupIds.add(section.id);
+                    } else {
+                      _collapsedGroupIds.remove(section.id);
+                    }
+                  });
+                },
+              ),
+            ),
+          ),
+        );
+        if (!expanded) continue;
+
+        if (_orderMode) {
+          slivers.add(
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverReorderableList(
+                itemCount: section.servers.length,
+                onReorderItem: (oldIndex, newIndex) =>
+                    _reorder(section.id, oldIndex, newIndex),
+                proxyDecorator: buildAppReorderProxy,
+                itemBuilder: (context, index) {
+                  final server = section.servers[index];
+                  return _ServerCard(
+                    key: ValueKey('order-${section.id}-${server.id}'),
+                    server: server,
+                    state: this,
+                    groupName: '',
+                    orderMode: true,
+                    orderIndex: index,
+                  );
+                },
+              ),
+            ),
+          );
+        } else {
+          slivers.add(
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final server = section.servers[index];
+                  return _ServerCard(
+                    server: server,
+                    state: this,
+                    groupName: '',
+                  );
+                }, childCount: section.servers.length),
+              ),
+            ),
+          );
+        }
+      }
+    }
+    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 110)));
+
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: slivers,
+    );
   }
 
   String _groupDisplayName(ServerModel server, List<ServerGroupModel> groups) {
@@ -693,115 +850,92 @@ class _ServersTabState extends ConsumerState<ServersTab> {
   }
 }
 
-class _ServerGroupFilter extends StatelessWidget {
-  const _ServerGroupFilter({
-    required this.groups,
+class _ServerGroupSection {
+  const _ServerGroupSection({
+    required this.id,
+    required this.name,
     required this.servers,
-    required this.selectedGroupId,
-    required this.onSelected,
   });
 
-  final List<ServerGroupModel> groups;
+  final String id;
+  final String name;
   final List<ServerModel> servers;
-  final String? selectedGroupId;
-  final ValueChanged<String?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-
-    final counts = <String, int>{for (final group in groups) group.id: 0};
-    for (final server in servers) {
-      final groupId = _ServersTabState._normalizedGroupId(server.group);
-      if (counts.containsKey(groupId)) {
-        counts[groupId] = counts[groupId]! + 1;
-      } else if (counts.containsKey('default')) {
-        counts['default'] = counts['default']! + 1;
-      }
-    }
-    final visibleGroups = groups
-        .where((group) => (counts[group.id] ?? 0) > 0)
-        .toList(growable: false);
-    if (visibleGroups.length < 2) return const SizedBox.shrink();
-
-    return SizedBox(
-      height: 46,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 8),
-        itemCount: visibleGroups.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return _GroupPill(
-              label: l.tr('common.all'),
-              count: servers.length,
-              selected: selectedGroupId == null,
-              onTap: () => onSelected(null),
-            );
-          }
-          final group = visibleGroups[index - 1];
-          return _GroupPill(
-            label: group.displayName,
-            count: counts[group.id] ?? 0,
-            selected: selectedGroupId == group.id,
-            onTap: () => onSelected(group.id),
-          );
-        },
-      ),
-    );
-  }
 }
 
-class _GroupPill extends StatelessWidget {
-  const _GroupPill({
-    required this.label,
+class _ServerGroupHeader extends StatelessWidget {
+  const _ServerGroupHeader({
+    required this.groupId,
+    required this.name,
     required this.count,
-    required this.selected,
+    required this.expanded,
     required this.onTap,
   });
 
-  final String label;
+  final String groupId;
+  final String name;
   final int count;
-  final bool selected;
+  final bool expanded;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final background = selected ? context.colors.primary : Colors.transparent;
-    final foreground = selected
-        ? context.colors.fontOnPrimary
-        : context.colors.muted;
     return Material(
-      color: background,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: selected
-            ? BorderSide.none
-            : BorderSide(color: context.colors.border),
-      ),
+      key: ValueKey('server-group-$groupId'),
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        key: ValueKey('server-group-toggle-$groupId'),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 168),
-          child: SizedBox(
-            height: 36,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Center(
-                widthFactor: 1,
-                child: Text(
-                  '$label $count',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: foreground,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+        child: SizedBox(
+          height: 48,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.muted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
+                Container(
+                  constraints: const BoxConstraints(minWidth: 26),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colors.chip,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '$count',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: context.colors.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: expanded ? 0 : -0.25,
+                  duration: const Duration(milliseconds: 180),
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: context.colors.muted,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
