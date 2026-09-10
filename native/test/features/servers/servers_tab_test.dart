@@ -394,8 +394,13 @@ void main() {
       matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
     );
     expect(headerMaterial.color, Colors.transparent);
+    expect(tester.getSize(groupHeader).height, 38);
     expect(groupName.style?.fontSize, 13);
     expect(groupName.style?.color, AppColorTheme.defaultLight.muted);
+    expect(
+      find.descendant(of: groupHeader, matching: find.byType(InkWell)),
+      findsNothing,
+    );
     expect(
       tester.getCenter(count).dx,
       lessThan(tester.getCenter(expandIcon).dx),

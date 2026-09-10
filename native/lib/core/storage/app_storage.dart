@@ -1,4 +1,44 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
+class SavedLoginAccount {
+  const SavedLoginAccount({
+    required this.serverAddress,
+    required this.username,
+    required this.savePassword,
+  });
+
+  final String serverAddress;
+  final String username;
+  final bool savePassword;
+
+  bool matches(String serverAddress, String username) =>
+      this.serverAddress == serverAddress && this.username == username;
+
+  Map<String, Object> toJson() => {
+    'serverAddress': serverAddress,
+    'username': username,
+    'savePassword': savePassword,
+  };
+
+  static SavedLoginAccount? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final serverAddress = value['serverAddress'];
+    final username = value['username'];
+    if (serverAddress is! String ||
+        serverAddress.isEmpty ||
+        username is! String ||
+        username.isEmpty) {
+      return null;
+    }
+    return SavedLoginAccount(
+      serverAddress: serverAddress,
+      username: username,
+      savePassword: value['savePassword'] == true,
+    );
+  }
+}
 
 /// Low-sensitivity persistence — server address, username, save-password
 /// preference. Stored in `SharedPreferences` because Android/iOS app sandboxes
@@ -12,6 +52,7 @@ class AppStorage {
   static const _keyServerAddress = 'serverAddress';
   static const _keyUsername = 'username';
   static const _keySavePassword = 'savePassword';
+  static const _keySavedLoginAccounts = 'savedLoginAccounts.v1';
   static const _keyLocale = 'locale';
   static const _keyEditorFontSize = 'editor.fontSize';
   static const _keyEditorWordWrap = 'editor.wordWrap';
@@ -28,6 +69,71 @@ class AppStorage {
   bool get savePassword => _prefs.getBool(_keySavePassword) ?? false;
   Future<void> setSavePassword(bool value) =>
       _prefs.setBool(_keySavePassword, value);
+
+  /// Successful login accounts, most recently used first. Passwords are not
+  /// stored here; [savePassword] only tells the UI whether it should request
+  /// the matching secret from SecureAppStorage.
+  List<SavedLoginAccount> get savedLoginAccounts {
+    final raw = _prefs.getString(_keySavedLoginAccounts);
+    if (raw != null) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          return decoded
+              .map(SavedLoginAccount.fromJson)
+              .whereType<SavedLoginAccount>()
+              .toList(growable: false);
+        }
+      } on FormatException {
+        return const [];
+      }
+      return const [];
+    }
+
+    // Seamlessly expose the single account saved by older app versions.
+    if (serverAddress.isEmpty || username.isEmpty) return const [];
+    return [
+      SavedLoginAccount(
+        serverAddress: serverAddress,
+        username: username,
+        savePassword: savePassword,
+      ),
+    ];
+  }
+
+  Future<void> upsertSavedLoginAccount(SavedLoginAccount account) async {
+    final accounts = savedLoginAccounts.toList()
+      ..removeWhere(
+        (item) => item.matches(account.serverAddress, account.username),
+      )
+      ..insert(0, account);
+    await _prefs.setString(
+      _keySavedLoginAccounts,
+      jsonEncode(accounts.map((item) => item.toJson()).toList()),
+    );
+
+    // Keep the legacy current-account fields for session restore and backward
+    // compatibility with older app versions.
+    await setServerAddress(account.serverAddress);
+    await setUsername(account.username);
+    await setSavePassword(account.savePassword);
+  }
+
+  Future<void> removeSavedLoginAccount(SavedLoginAccount account) async {
+    final accounts = savedLoginAccounts
+        .where((item) => !item.matches(account.serverAddress, account.username))
+        .toList();
+    await _prefs.setString(
+      _keySavedLoginAccounts,
+      jsonEncode(accounts.map((item) => item.toJson()).toList()),
+    );
+
+    if (account.matches(serverAddress, username)) {
+      await _prefs.remove(_keyServerAddress);
+      await _prefs.remove(_keyUsername);
+      await _prefs.setBool(_keySavePassword, false);
+    }
+  }
 
   /// `null` means "follow system locale". Otherwise a BCP-47-ish language code
   /// like `en` or `zh`.

@@ -7,6 +7,7 @@ import 'package:easynode_native/features/auth/login_controller.dart';
 import 'package:easynode_native/features/auth/login_page.dart';
 import 'package:easynode_native/core/ui/app_color_theme.dart';
 import 'package:easynode_native/core/security/server_certificate_trust.dart';
+import 'package:easynode_native/core/storage/app_storage.dart';
 import 'package:easynode_native/core/utils/jwt_expiry.dart';
 import 'package:easynode_native/l10n/app_localizations.dart';
 
@@ -174,5 +175,246 @@ void main() {
     expect(find.text('信任此证书'), findsOneWidget);
     expect(find.text('仅本次继续'), findsNothing);
     expect(find.text(certificate.displayFingerprint), findsOneWidget);
+  });
+
+  testWidgets('opens login history from its icon and switches account', (
+    tester,
+  ) async {
+    const account = SavedLoginAccount(
+      serverAddress: 'https://saved.example.com',
+      username: 'admin',
+      savePassword: true,
+    );
+    const currentAccount = SavedLoginAccount(
+      serverAddress: 'https://current.example.com',
+      username: 'root',
+      savePassword: false,
+    );
+    await pumpLoginPage(
+      tester,
+      LoginPage(
+        controller: LoginController.fake(),
+        initialServerAddress: '',
+        initialUsername: '',
+        initialSavePassword: false,
+        initialAccounts: const [currentAccount, account],
+        loadSavedPassword: (_) async => 'saved-secret',
+        onLoginSuccess: (_) {},
+      ),
+    );
+
+    final usernameTopBefore = tester.getTopLeft(
+      byKey(const Key('field-username')),
+    );
+    await tester.tap(byKey(const Key('btn-login-history')));
+    await tester.pumpAndSettle();
+    expect(byKey(const Key('saved-account-menu')), findsOneWidget);
+    expect(
+      tester.getTopLeft(byKey(const Key('field-username'))),
+      usernameTopBefore,
+    );
+
+    await tester.tap(
+      byKey(const ValueKey('saved-account-https://saved.example.com-admin')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<TextField>(byKey(const Key('field-server')))
+          .controller!
+          .text,
+      account.serverAddress,
+    );
+    expect(
+      tester
+          .widget<TextField>(byKey(const Key('field-username')))
+          .controller!
+          .text,
+      account.username,
+    );
+    expect(
+      tester
+          .widget<TextField>(byKey(const Key('field-password')))
+          .controller!
+          .text,
+      'saved-secret',
+    );
+    expect(
+      tester.widget<Switch>(byKey(const Key('switch-save-password'))).value,
+      isTrue,
+    );
+  });
+
+  testWidgets('asks for confirmation before deleting a saved account', (
+    tester,
+  ) async {
+    const account = SavedLoginAccount(
+      serverAddress: 'https://saved.example.com',
+      username: 'admin',
+      savePassword: false,
+    );
+    const currentAccount = SavedLoginAccount(
+      serverAddress: 'https://current.example.com',
+      username: 'root',
+      savePassword: false,
+    );
+    SavedLoginAccount? deleted;
+    await pumpLoginPage(
+      tester,
+      LoginPage(
+        controller: LoginController.fake(),
+        initialServerAddress: '',
+        initialUsername: '',
+        initialSavePassword: false,
+        initialAccounts: const [currentAccount, account],
+        onDeleteAccount: (value) async => deleted = value,
+        onLoginSuccess: (_) {},
+      ),
+    );
+
+    await tester.tap(byKey(const Key('btn-login-history')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      byKey(
+        const ValueKey('delete-saved-account-https://saved.example.com-admin'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('删除记录？'), findsOneWidget);
+    expect(byKey(const Key('saved-account-menu')), findsOneWidget);
+    expect(deleted, isNull);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(byKey(const Key('saved-account-menu')), findsOneWidget);
+    expect(deleted, isNull);
+
+    await tester.tap(
+      byKey(
+        const ValueKey('delete-saved-account-https://saved.example.com-admin'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
+
+    expect(deleted, account);
+    expect(byKey(const Key('saved-account-menu')), findsOneWidget);
+    expect(
+      byKey(
+        const ValueKey('delete-saved-account-https://saved.example.com-admin'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('always shows login history icon', (tester) async {
+    await pumpLoginPage(
+      tester,
+      LoginPage(
+        controller: LoginController.fake(),
+        initialServerAddress: 'https://only.example.com',
+        initialUsername: 'root',
+        initialSavePassword: false,
+        initialAccounts: const [
+          SavedLoginAccount(
+            serverAddress: 'https://only.example.com',
+            username: 'root',
+            savePassword: false,
+          ),
+        ],
+        onLoginSuccess: (_) {},
+      ),
+    );
+
+    expect(byKey(const Key('btn-login-history')), findsOneWidget);
+    await tester.tap(byKey(const Key('btn-login-history')));
+    await tester.pumpAndSettle();
+    expect(byKey(const Key('saved-account-menu')), findsOneWidget);
+    expect(find.text('root'), findsWidgets);
+  });
+
+  testWidgets('shows an empty history state and closes on outside tap', (
+    tester,
+  ) async {
+    await pumpLoginPage(
+      tester,
+      LoginPage(
+        controller: LoginController.fake(),
+        initialServerAddress: '',
+        initialUsername: '',
+        initialSavePassword: false,
+        onLoginSuccess: (_) {},
+      ),
+    );
+
+    expect(byKey(const Key('btn-login-history')), findsOneWidget);
+    await tester.tap(byKey(const Key('btn-login-history')));
+    await tester.pumpAndSettle();
+    expect(find.text('暂无历史登录'), findsOneWidget);
+
+    await tester.tapAt(const Offset(12, 12));
+    await tester.pumpAndSettle();
+    expect(byKey(const Key('saved-account-menu')), findsNothing);
+  });
+
+  testWidgets('dismisses input focus and opens history from the bottom', (
+    tester,
+  ) async {
+    const accounts = [
+      SavedLoginAccount(
+        serverAddress: 'https://one.example.com',
+        username: 'root',
+        savePassword: false,
+      ),
+      SavedLoginAccount(
+        serverAddress: 'https://two.example.com',
+        username: 'admin',
+        savePassword: false,
+      ),
+      SavedLoginAccount(
+        serverAddress: 'https://three.example.com',
+        username: 'ops',
+        savePassword: false,
+      ),
+    ];
+    await pumpLoginPage(
+      tester,
+      LoginPage(
+        controller: LoginController.fake(),
+        initialServerAddress: '',
+        initialUsername: '',
+        initialSavePassword: false,
+        initialAccounts: accounts,
+        onLoginSuccess: (_) {},
+      ),
+    );
+
+    await tester.tap(byKey(const Key('field-server')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<TextField>(byKey(const Key('field-server')))
+          .focusNode!
+          .hasFocus,
+      isTrue,
+    );
+    await tester.tap(byKey(const Key('btn-login-history')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<TextField>(byKey(const Key('field-server')))
+          .focusNode!
+          .hasFocus,
+      isFalse,
+    );
+    final menuBottom = tester
+        .getBottomRight(byKey(const Key('saved-account-menu')))
+        .dy;
+    final screenBottom =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(menuBottom, screenBottom);
   });
 }

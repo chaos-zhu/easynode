@@ -334,6 +334,16 @@ class _AppRootState extends ConsumerState<_AppRoot> {
         initialUsername: appStorage.username,
         initialSavePassword: appStorage.savePassword,
         initialPassword: widget.initialPassword,
+        initialAccounts: appStorage.savedLoginAccounts,
+        loadSavedPassword: (account) => ref
+            .read(secureStorageProvider)
+            .readPassword(account.serverAddress, account.username),
+        onDeleteAccount: (account) async {
+          await ref
+              .read(secureStorageProvider)
+              .deletePassword(account.serverAddress, account.username);
+          await appStorage.removeSavedLoginAccount(account);
+        },
         onLoginSuccess: (_) {},
       );
     }

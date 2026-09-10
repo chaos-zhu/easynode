@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api/api_client.dart';
+import '../core/storage/app_storage.dart';
 import '../features/auth/auth_session.dart';
 import 'docker_providers.dart';
 import 'auth_state.dart';
@@ -25,22 +26,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final appStorage = _ref.read(appStorageProvider);
     final secureStorage = _ref.read(secureStorageProvider);
 
-    await appStorage.setServerAddress(session.serverAddress);
-    await appStorage.setUsername(session.username);
     if (passwordToSave != null) {
-      await appStorage.setSavePassword(true);
       await secureStorage.writePassword(
         session.serverAddress,
         session.username,
         passwordToSave,
       );
     } else {
-      await appStorage.setSavePassword(false);
       await secureStorage.deletePassword(
         session.serverAddress,
         session.username,
       );
     }
+    await appStorage.upsertSavedLoginAccount(
+      SavedLoginAccount(
+        serverAddress: session.serverAddress,
+        username: session.username,
+        savePassword: passwordToSave != null,
+      ),
+    );
     await secureStorage.writeToken(session.token);
     await secureStorage.writeDeviceId(session.deviceId);
 

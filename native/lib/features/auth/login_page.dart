@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/ui/app_color_theme.dart';
 import '../../core/utils/jwt_expiry.dart';
 import '../../core/utils/validators.dart';
 import '../../core/security/server_certificate_trust.dart';
+import '../../core/storage/app_storage.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/package_info_provider.dart';
 import 'auth_session.dart';
@@ -20,6 +22,9 @@ class LoginPage extends StatefulWidget {
     required this.initialSavePassword,
     required this.onLoginSuccess,
     this.initialPassword = '',
+    this.initialAccounts = const [],
+    this.loadSavedPassword,
+    this.onDeleteAccount,
   });
 
   final LoginController controller;
@@ -27,6 +32,9 @@ class LoginPage extends StatefulWidget {
   final String initialUsername;
   final String initialPassword;
   final bool initialSavePassword;
+  final List<SavedLoginAccount> initialAccounts;
+  final Future<String?> Function(SavedLoginAccount account)? loadSavedPassword;
+  final Future<void> Function(SavedLoginAccount account)? onDeleteAccount;
   final ValueChanged<AuthSession> onLoginSuccess;
 
   @override
@@ -46,6 +54,8 @@ class _LoginPageState extends State<LoginPage> {
   bool _savePassword = false;
   bool _httpRiskAccepted = false;
   bool _submitting = false;
+  int _accountSelection = 0;
+  late List<SavedLoginAccount> _savedAccounts;
   String? _errorMessage;
 
   @override
@@ -55,6 +65,7 @@ class _LoginPageState extends State<LoginPage> {
     _userCtrl = TextEditingController(text: widget.initialUsername);
     _pwdCtrl = TextEditingController(text: widget.initialPassword);
     _savePassword = widget.initialSavePassword;
+    _savedAccounts = widget.initialAccounts.toList();
   }
 
   @override
@@ -63,6 +74,9 @@ class _LoginPageState extends State<LoginPage> {
     if (oldWidget.initialPassword != widget.initialPassword &&
         _pwdCtrl.text != widget.initialPassword) {
       _pwdCtrl.text = widget.initialPassword;
+    }
+    if (!identical(oldWidget.initialAccounts, widget.initialAccounts)) {
+      _savedAccounts = widget.initialAccounts.toList();
     }
   }
 
@@ -76,6 +90,113 @@ class _LoginPageState extends State<LoginPage> {
     _userFocus.dispose();
     _passwordFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _showSavedAccounts() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    if (!mounted) return;
+    final accounts = _savedAccounts.toList();
+    final selectedAccount = await showModalBottomSheet<SavedLoginAccount>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.34),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => FractionallySizedBox(
+          heightFactor: accounts.isEmpty ? 0.34 : 0.62,
+          child: _LoginHistorySheet(
+            accounts: accounts,
+            onSelect: (account) => Navigator.of(sheetContext).pop(account),
+            onDelete: (account) async {
+              final deleted = await _confirmDeleteAccount(account);
+              if (!deleted || !sheetContext.mounted) return;
+              setSheetState(() {
+                accounts.removeWhere(
+                  (item) =>
+                      item.matches(account.serverAddress, account.username),
+                );
+              });
+            },
+          ),
+        ),
+      ),
+    );
+    if (!mounted || selectedAccount == null) return;
+    await _selectAccount(selectedAccount);
+  }
+
+  Future<void> _selectAccount(SavedLoginAccount account) async {
+    final selection = ++_accountSelection;
+    setState(() {
+      _httpRiskAccepted = false;
+      _errorMessage = null;
+      _serverCtrl.text = account.serverAddress;
+      _userCtrl.text = account.username;
+      _pwdCtrl.clear();
+      _mfaCtrl.clear();
+      _savePassword = account.savePassword;
+    });
+    _serverFocus.unfocus();
+
+    final loader = widget.loadSavedPassword;
+    if (!account.savePassword || loader == null) return;
+    final password = await loader(account);
+    if (!mounted || selection != _accountSelection) return;
+    if (_serverCtrl.text == account.serverAddress &&
+        _userCtrl.text == account.username) {
+      setState(() => _pwdCtrl.text = password ?? '');
+    }
+  }
+
+  Future<bool> _confirmDeleteAccount(SavedLoginAccount account) async {
+    final l = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.tr('login.deleteAccount')),
+        content: Text(
+          l.trf('login.deleteAccountBody', [
+            '${account.username} · ${account.serverAddress}',
+          ]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l.tr('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l.tr('common.delete')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return false;
+
+    try {
+      await widget.onDeleteAccount?.call(account);
+      if (!mounted) return false;
+      final isCurrent =
+          _serverCtrl.text == account.serverAddress &&
+          _userCtrl.text == account.username;
+      setState(() {
+        _savedAccounts.removeWhere(
+          (item) => item.matches(account.serverAddress, account.username),
+        );
+        if (isCurrent) {
+          _pwdCtrl.clear();
+          _savePassword = false;
+        }
+      });
+      return true;
+    } catch (error) {
+      if (!mounted) return false;
+      setState(
+        () => _errorMessage = l.trf('login.deleteAccountFailed', [error]),
+      );
+      return false;
+    }
   }
 
   /// Resolve a [LoginResult] into the user-facing error string. Prefers the
@@ -240,9 +361,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
                     children: [
-                      _LoginHero(
-                        title: l.tr('app.title'),
-                      ),
+                      _LoginHero(title: l.tr('app.title')),
                       const SizedBox(height: 22),
                       _LoginFormCard(
                         serverCtrl: _serverCtrl,
@@ -252,6 +371,7 @@ class _LoginPageState extends State<LoginPage> {
                         serverFocus: _serverFocus,
                         userFocus: _userFocus,
                         passwordFocus: _passwordFocus,
+                        onShowSavedAccounts: _showSavedAccounts,
                         onSubmit: _submit,
                       ),
                       const SizedBox(height: 24),
@@ -274,10 +394,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
-            _LoginBottomBar(
-              submitting: _submitting,
-              onSubmit: _submit,
-            ),
+            _LoginBottomBar(submitting: _submitting, onSubmit: _submit),
           ],
         ),
       ),
@@ -294,6 +411,7 @@ class _LoginFormCard extends StatelessWidget {
     required this.serverFocus,
     required this.userFocus,
     required this.passwordFocus,
+    required this.onShowSavedAccounts,
     required this.onSubmit,
   });
 
@@ -304,6 +422,7 @@ class _LoginFormCard extends StatelessWidget {
   final FocusNode serverFocus;
   final FocusNode userFocus;
   final FocusNode passwordFocus;
+  final VoidCallback onShowSavedAccounts;
   final VoidCallback onSubmit;
 
   @override
@@ -325,6 +444,12 @@ class _LoginFormCard extends StatelessWidget {
             label: l.tr('login.serverAddress'),
             hint: l.tr('login.serverAddressHint'),
             icon: Icons.dns_outlined,
+            suffixIcon: IconButton(
+              key: const Key('btn-login-history'),
+              tooltip: l.tr('login.savedAccounts'),
+              onPressed: onShowSavedAccounts,
+              icon: const Icon(Icons.history, size: 20),
+            ),
             keyboardType: TextInputType.url,
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => userFocus.requestFocus(),
@@ -375,6 +500,7 @@ class _LoginTextField extends StatelessWidget {
     this.keyboardType,
     this.textInputAction,
     this.onSubmitted,
+    this.suffixIcon,
     this.obscureText = false,
   });
 
@@ -387,6 +513,7 @@ class _LoginTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
+  final Widget? suffixIcon;
   final bool obscureText;
 
   @override
@@ -408,6 +535,7 @@ class _LoginTextField extends StatelessWidget {
         labelText: label,
         hintText: hint,
         prefixIcon: Icon(icon, size: 18, color: context.colors.muted),
+        suffixIcon: suffixIcon,
         filled: true,
         fillColor: context.colors.chip,
         contentPadding: const EdgeInsets.symmetric(
@@ -439,6 +567,171 @@ class _LoginTextField extends StatelessWidget {
   }
 }
 
+class _LoginHistorySheet extends StatelessWidget {
+  const _LoginHistorySheet({
+    required this.accounts,
+    required this.onSelect,
+    required this.onDelete,
+  });
+
+  final List<SavedLoginAccount> accounts;
+  final ValueChanged<SavedLoginAccount> onSelect;
+  final ValueChanged<SavedLoginAccount> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final colors = Theme.of(context).colorScheme;
+    return SafeArea(
+      top: false,
+      child: Container(
+        key: const Key('saved-account-menu'),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.history_rounded,
+                    size: 21,
+                    color: colors.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l.tr('login.savedAccounts'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('btn-close-login-history'),
+                    tooltip: l.tr('common.close'),
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: colors.outlineVariant),
+            if (accounts.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    l.tr('login.noSavedAccounts'),
+                    style: TextStyle(
+                      color: context.colors.softMuted,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                  itemCount: accounts.length,
+                  separatorBuilder: (context, index) => Divider(
+                    height: 1,
+                    indent: 48,
+                    color: context.colors.border.withValues(alpha: 0.65),
+                  ),
+                  itemBuilder: (context, index) {
+                    final account = accounts[index];
+                    return InkWell(
+                      key: ValueKey(
+                        'saved-account-${account.serverAddress}-${account.username}',
+                      ),
+                      onTap: () => onSelect(account),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              key: ValueKey(
+                                'delete-saved-account-${account.serverAddress}-${account.username}',
+                              ),
+                              tooltip: l.tr('common.delete'),
+                              constraints: const BoxConstraints.tightFor(
+                                width: 36,
+                                height: 36,
+                              ),
+                              padding: EdgeInsets.zero,
+                              style: IconButton.styleFrom(
+                                foregroundColor: context.colors.softMuted,
+                                backgroundColor: context.colors.chip.withValues(
+                                  alpha: 0.72,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              onPressed: () => onDelete(account),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    account.username,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: context.colors.text,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    account.serverAddress,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: context.colors.softMuted,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SavePasswordRow extends StatelessWidget {
   const _SavePasswordRow({required this.value, required this.onChanged});
 
@@ -452,11 +745,7 @@ class _SavePasswordRow extends StatelessWidget {
       height: 48,
       child: Row(
         children: [
-          Icon(
-            Icons.shield_outlined,
-            color: context.colors.muted,
-            size: 18,
-          ),
+          Icon(Icons.shield_outlined, color: context.colors.muted, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -550,13 +839,8 @@ class _LoginHero extends ConsumerWidget {
           width: 56,
           height: 56,
           clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Image.asset(
-            'assets/logo_v2_01.png',
-            fit: BoxFit.cover,
-          ),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14)),
+          child: Image.asset('assets/logo_v2_01.png', fit: BoxFit.cover),
         ),
         const SizedBox(height: 12),
         Text(
@@ -675,14 +959,18 @@ class _ExpiryPicker extends StatelessWidget {
                 backgroundColor: context.colors.card,
                 selectedColor: context.colors.banner,
                 side: BorderSide(
-                  color: entry.key == value ? context.colors.accent : context.colors.border,
+                  color: entry.key == value
+                      ? context.colors.accent
+                      : context.colors.border,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(999),
                 ),
                 labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                 labelStyle: TextStyle(
-                  color: entry.key == value ? context.colors.text : context.colors.muted,
+                  color: entry.key == value
+                      ? context.colors.text
+                      : context.colors.muted,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),

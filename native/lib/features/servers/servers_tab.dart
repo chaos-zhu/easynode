@@ -741,7 +741,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         if (sectionIndex > 0) {
           slivers.add(
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 2),
+              padding: const EdgeInsets.fromLTRB(20, 5, 20, 1),
               sliver: SliverToBoxAdapter(
                 child: Divider(
                   key: ValueKey('server-group-divider-$sectionIndex'),
@@ -755,7 +755,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         }
         slivers.add(
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, sectionIndex == 0 ? 4 : 2, 16, 0),
+            padding: EdgeInsets.fromLTRB(16, sectionIndex == 0 ? 2 : 1, 16, 0),
             sliver: SliverToBoxAdapter(
               child: _ServerGroupHeader(
                 groupId: section.id,
@@ -883,12 +883,12 @@ class _ServerGroupHeader extends StatelessWidget {
       key: ValueKey('server-group-$groupId'),
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(12),
-      child: InkWell(
+      child: GestureDetector(
         key: ValueKey('server-group-toggle-$groupId'),
-        borderRadius: BorderRadius.circular(12),
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: SizedBox(
-          height: 48,
+          height: 38,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
