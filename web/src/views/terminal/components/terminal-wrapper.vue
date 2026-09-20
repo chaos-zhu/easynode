@@ -603,14 +603,6 @@ const getTabKeyByIndex = (idx) => terminalTabs.value[idx]?.key
 
 const getSplitStatus = (key) => splitStatusMap[key] || { h: false, v: false }
 
-// 计算某 tab 需要渲染的终端数量
-const getTerminalCountByIndex = (idx) => {
-  const key = getTabKeyByIndex(idx)
-  if (!key) return 0
-  const { h, v } = getSplitStatus(key)
-  return (h ? 2 : 1) * (v ? 2 : 1)
-}
-
 const changeInfoSide = () => {
   showInfoSide.value = !showInfoSide.value
   localStorage.setItem('showInfoSide', showInfoSide.value)
@@ -749,18 +741,10 @@ const stopResizeTerminalAi = () => {
   localStorage.setItem(SFTP_WIDTH_KEY, sftpWidth.value.toString())
 }
 
-const getStartIndexByTabIndex = (idx) => {
-  let start = 0
-  for (let i = 0; i < idx; i++) {
-    start += getTerminalCountByIndex(i)
-  }
-  return start
-}
-
 const getTerminalRefsOfTab = (idx) => {
-  const start = getStartIndexByTabIndex(idx)
-  const count = getTerminalCountByIndex(idx)
-  return terminalRefs.value.slice(start, start + count)
+  const key = getTabKeyByIndex(idx)
+  if (!key) return []
+  return terminalRefs.value.filter(terminalRef => terminalRef?.getTabKey?.() === key)
 }
 
 const getFirstTerminalRefOfTab = (idx) => getTerminalRefsOfTab(idx)[0]
@@ -1024,9 +1008,13 @@ const handleSyncPathToSftp = (path) => {
 }
 
 const tabChange = async (index) => {
+  activeTabIndex.value = Number(index)
   await $nextTick()
-  getTerminalRefsOfTab(index).forEach(terminalRef => terminalRef?.handleResize())
-  getFirstTerminalRefOfTab(index)?.focusTab()
+  const terminalRefsOfTab = getTerminalRefsOfTab(index)
+  const targetTerminalRef = terminalRefsOfTab.find(item => item?.$?.uid === focusedUid.value) || terminalRefsOfTab[0]
+  focusedUid.value = targetTerminalRef?.$?.uid || null
+  terminalRefsOfTab.forEach(terminalRef => terminalRef?.handleResize())
+  targetTerminalRef?.focusTab()
 }
 
 watch(
@@ -1114,18 +1102,10 @@ const handleInputCommand = async (command, type = 'input', useBase64 = false) =>
     await $nextTick()
     singleWindowRef.value?.inputCommandToTerminal(command, type, useBase64)
   } else {
-    // 多窗口模式下，优先使用当前聚焦的终端
-    let targetTerminalRef = null
-
-    // 首先尝试找到当前聚焦的终端
-    if (focusedUid.value) {
-      targetTerminalRef = terminalRefs.value.find(ref => ref?.$?.uid === focusedUid.value)
-    }
-
-    // 如果没有找到聚焦的终端，则使用当前活跃标签页的第一个终端
-    if (!targetTerminalRef) {
-      targetTerminalRef = getFirstTerminalRefOfTab(activeTabIndex.value)
-    }
+    // 聚焦 uid 可能仍属于刚切走的 tab，只能在当前 tab 内解析目标终端。
+    const tabTerminalRefs = getTerminalRefsOfTab(activeTabIndex.value)
+    const targetTerminalRef = tabTerminalRefs.find(ref => ref?.$?.uid === focusedUid.value) || tabTerminalRefs[0]
+    focusedUid.value = targetTerminalRef?.$?.uid || null
 
     await $nextTick()
     targetTerminalRef?.focusTab()
@@ -1137,7 +1117,6 @@ const handleInputCommand = async (command, type = 'input', useBase64 = false) =>
 
     if (isSyncCurTab) {
       // 同步到当前标签页的其他分屏终端
-      const tabTerminalRefs = getTerminalRefsOfTab(activeTabIndex.value)
       const targetUid = targetTerminalRef?.$?.uid
 
       tabTerminalRefs.forEach((terminalRef) => {

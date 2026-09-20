@@ -5,7 +5,7 @@
       class="terminal_container"
       @contextmenu="handleRightClick"
       @mouseup="handleMouseUp"
-      @mousedown="emit('tab-focus', uid)"
+      @mousedown="handleTerminalMouseDown"
     />
     <!-- <div class="terminal_command_history">
       <CommandHistory :list="commandHistoryList" />
@@ -99,6 +99,7 @@ const TERMINAL_RESIZE_EMIT_DELAY = 80
 let terminalResizeObserver = null
 let terminalResizeFrame = null
 let terminalResizeEmitTimer = null
+let terminalFocusFrame = null
 let pendingTerminalSize = null
 let lastEmittedTerminalSize = null
 
@@ -888,15 +889,21 @@ const handlePaste = async () => {
   }
 }
 
+const handleTerminalMouseDown = () => {
+  if (!props.suppressFocus) term.value?.focus()
+  emit('tab-focus', uid)
+}
+
 const focusTab = () => {
   if (props.suppressFocus) return
-  term.value.blur()
-  setTimeout(() => {
-    // 部分 tab 切换会留下延迟 focus；再次判断，不能覆盖已打开的 AI 输入框。
+  if (terminalFocusFrame !== null) cancelAnimationFrame(terminalFocusFrame)
+  terminalFocusFrame = requestAnimationFrame(() => {
+    terminalFocusFrame = null
+    // tab 显示状态在下一帧稳定后再聚焦，同时避免覆盖已打开的 AI 输入框。
     if (props.suppressFocus) return
-    term.value.focus()
+    term.value?.focus()
     emit('tab-focus', uid)
-  }, 200)
+  })
 }
 
 const inputCommand = (command, type = 'input', useBase64 = false) => {
@@ -936,6 +943,7 @@ onBeforeUnmount(() => {
   socket.value?.close()
   terminalResizeObserver?.disconnect()
   if (terminalResizeFrame !== null) cancelAnimationFrame(terminalResizeFrame)
+  if (terminalFocusFrame !== null) cancelAnimationFrame(terminalFocusFrame)
   if (terminalResizeEmitTimer) clearTimeout(terminalResizeEmitTimer)
   window.removeEventListener('resize', handleResize)
   tempPathSyncCallback.value = null
@@ -1109,6 +1117,7 @@ const executeManualCommand = (command) => {
 const isAiTerminalConnected = () => Boolean(socket.value?.connected && curStatus.value === CONNECT_SUCCESS)
 
 defineExpose({
+  getTabKey: () => props.hostObj.key,
   focusTab,
   handleResize,
   inputCommand,
