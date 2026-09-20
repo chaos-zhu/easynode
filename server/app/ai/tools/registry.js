@@ -7,6 +7,11 @@ const BUILTIN_LABELS = {
   host_status: '获取主机状态',
   script_list: '查询脚本库',
   run_script: '运行脚本',
+  scheduled_task_list: '查询定时任务',
+  scheduled_task_get: '查看定时任务',
+  scheduled_task_create: '创建定时任务',
+  scheduled_task_update: '修改定时任务',
+  scheduled_task_delete: '删除定时任务',
   exec_command: '执行命令',
   terminal_command: '提交终端命令',
   read_file: '读取文件',
@@ -15,7 +20,7 @@ const BUILTIN_LABELS = {
   read_output: '回读输出'
 }
 
-const HOST_TOOLS = new Set([
+const SELECTED_HOST_TOOLS = new Set([
   'host_list', 'host_status', 'script_list', 'run_script', 'exec_command', 'read_file', 'write_file', 'list_dir',
   'read_output', 'terminal_command'
 ])
@@ -28,8 +33,8 @@ function builtinDefinition(spec) {
     scopes: spec.name === 'terminal_command'
       ? ['terminal']
       : (spec.name === 'read_output' ? ['ops', 'terminal'] : ['ops']),
-    requiresSelectedHosts: HOST_TOOLS.has(spec.name),
-    hostArg: HOST_TOOLS.has(spec.name) ? 'hostId' : null,
+    requiresSelectedHosts: SELECTED_HOST_TOOLS.has(spec.name),
+    hostArg: SELECTED_HOST_TOOLS.has(spec.name) ? 'hostId' : null,
     approvalPolicy: 'policy',
     execute: EXECUTORS[spec.name]
   }

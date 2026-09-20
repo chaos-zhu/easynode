@@ -94,10 +94,7 @@ async function initGroupDB() {
 
 async function initNotifyDB() {
   const notifyDB = new NotifyDB().getInstance()
-  let count = await notifyDB.countAsync({})
-  if (count !== 0) return
-  logger.info('初始化notifyDB✔')
-  let defaultData = [{
+  const defaultData = [{
     'type': 'login',
     'desc': '登录面板提醒',
     'sw': false
@@ -121,8 +118,17 @@ async function initNotifyDB() {
     'type': 'host_expired',
     'desc': '服务器到期提醒',
     'sw': false
+  }, {
+    'type': 'scheduled_task_execution',
+    'desc': '定时任务执行通知',
+    'sw': false
   }]
-  return notifyDB.insertAsync(defaultData)
+  const existing = await notifyDB.findAsync({})
+  const existingTypes = new Set(existing.map(item => item.type))
+  const missing = defaultData.filter(item => !existingTypes.has(item.type))
+  if (!missing.length) return
+  logger.info('初始化notifyDB✔')
+  return notifyDB.insertAsync(missing)
 }
 
 async function initNotifyConfigDB() {

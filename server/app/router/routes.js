@@ -17,6 +17,18 @@ import { getProxyList, addProxy, updateProxy, removeProxy } from '../controller/
 import { getServerListConfig, saveServerListConfig } from '../controller/server-list-config.js'
 import { getSuspendedSessions, getTerminalSessionConfig, updateTerminalSessionConfig } from '../controller/terminal.js'
 import { getNativeSshConnection } from '../controller/native.js'
+import {
+  addScheduledTask,
+  clearScheduledTaskRunsController,
+  editScheduledTask,
+  getScheduledTaskDetail,
+  getScheduledTaskRunDetail,
+  getScheduledTaskRuns,
+  getScheduledTasks,
+  removeScheduledTask,
+  runScheduledTaskNow,
+  stopScheduledTaskRunController
+} from '../controller/scheduled-task.js'
 import terminalSettingsRoutes from './modules/terminal-settings.js'
 
 const ssh = [
@@ -474,6 +486,19 @@ const native = [
   }
 ]
 
+const scheduledTasks = [
+  { method: 'get', path: '/scheduled-tasks', controller: getScheduledTasks },
+  { method: 'post', path: '/scheduled-tasks', controller: addScheduledTask },
+  { method: 'get', path: '/scheduled-tasks/:id', controller: getScheduledTaskDetail },
+  { method: 'put', path: '/scheduled-tasks/:id', controller: editScheduledTask },
+  { method: 'delete', path: '/scheduled-tasks/:id', controller: removeScheduledTask },
+  { method: 'post', path: '/scheduled-tasks/:id/run', controller: runScheduledTaskNow },
+  { method: 'get', path: '/scheduled-task-runs', controller: getScheduledTaskRuns },
+  { method: 'delete', path: '/scheduled-task-runs', controller: clearScheduledTaskRunsController },
+  { method: 'get', path: '/scheduled-task-runs/:id', controller: getScheduledTaskRunDetail },
+  { method: 'post', path: '/scheduled-task-runs/:id/stop', controller: stopScheduledTaskRunController }
+]
+
 const sftp = [
   {
     method: 'get',
@@ -499,6 +524,7 @@ export default [].concat(
   terminalSettingsRoutes,
   serverListConfig,
   terminal,
+  scheduledTasks,
   native,
   sftp
 )

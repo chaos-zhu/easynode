@@ -7,6 +7,7 @@ const serverDirectory = resolve(testDirectory, '..')
 
 const suites = {
   default: [
+    'test-scheduled-tasks.js',
     'test-order-service.js',
     'test-onekey-execution.js',
     'test-terminal-settings.js',
@@ -35,6 +36,7 @@ const suites = {
   ws: ['test-ws-comprehensive.js'],
   mobile: ['test-mobile-crypto.js', 'test-mobile-ssh-payload.js'],
   ai: [
+    'test-scheduled-tasks.js',
     'test-ai-config.js',
     'test-ai-session-run-lock.js',
     'test-ai-safety.js',

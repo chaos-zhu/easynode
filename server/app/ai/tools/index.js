@@ -68,7 +68,7 @@ export function describeAvailableTools(ctx) {
     return `- \`${ definition.name }\`${ provider }：${ definition.description }`
   })
   if (!ctx.allowedHostIds?.size && ctx.scope !== 'terminal') {
-    lines.unshift('- 当前未选择目标主机，处于纯聊天模式，不能读取、枚举或操作 EasyNode 主机；不依赖目标主机的 MCP 工具仍可使用。')
+    lines.unshift('- 当前未选择目标主机，不能直接读取、枚举或操作 EasyNode 主机；面板级定时任务工具和不依赖目标主机的 MCP 工具仍可使用。')
   }
   return lines.join('\n') || '- 当前没有可用工具。'
 }

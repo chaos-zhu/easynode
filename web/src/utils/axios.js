@@ -45,7 +45,7 @@ instance.interceptors.request.use((config) => {
 })
 
 instance.interceptors.response.use((response) => {
-  if (response.status === 200) return response.data
+  return response.data
 }, (error) => {
   const { response } = error
   const skipErrorMessage = error.config?.skipErrorMessage

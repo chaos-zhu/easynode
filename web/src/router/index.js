@@ -9,6 +9,7 @@ import Credentials from '@views/credentials/index.vue'
 import File from '@views/file/index.vue'
 import Onekey from '@views/onekey/index.vue'
 import Scripts from '@views/scripts/index.vue'
+import ScheduledTasks from '@views/scheduled-tasks/index.vue'
 import Setting from '@views/setting/index.vue'
 
 // const Login = () => import('@views/login/index.vue')
@@ -33,6 +34,7 @@ const routes = [
       { path: '/file', component: File },
       { path: '/onekey', component: Onekey },
       { path: '/scripts', component: Scripts },
+      { path: '/scheduled-tasks', component: ScheduledTasks },
       { path: '/setting', component: Setting },
       { path: '', redirect: 'server' }, // 这里添加重定向
     ]

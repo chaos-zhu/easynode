@@ -20,19 +20,30 @@ process.chdir(tmpDir)
 
 global.logger = { warn() {}, info() {}, error() {} }
 
-const { resolveHostAccess, buildAllowedHostIds, HostAccessError } = await import(`${ originalCwd }/app/ai/host-access.js`)
+const {
+  resolveHostAccess,
+  resolvePanelHostAccess,
+  buildAllowedHostIds,
+  HostAccessError
+} = await import(`${ originalCwd }/app/ai/host-access.js`)
 const { shellQuote, wrapCommand } = await import(`${ originalCwd }/app/ai/ssh.js`)
 const { grantKey, requestApproval, resolveApproval, clearSession } = await import(`${ originalCwd }/app/ai/approval.js`)
-const { HostListDB } = await import(`${ originalCwd }/app/utils/db-class.js`)
-const { Effect, Mode } = await import(`${ originalCwd }/app/ai/policy.js`)
+const { HostListDB, ScheduledTaskDB } = await import(`${ originalCwd }/app/utils/db-class.js`)
+const { Effect, Mode, strongerEffect } = await import(`${ originalCwd }/app/ai/policy.js`)
 const { normalizeMaxSteps, DEFAULT_MAX_STEPS, MAX_MAX_STEPS, deriveBaseURL } = await import(`${ originalCwd }/app/ai/provider.js`)
 const { getToolSpec, PlusPolicy, requiresPlus } = await import(`${ originalCwd }/app/ai/tools/spec.js`)
 const { requestTerminalDispatch } = await import(`${ originalCwd }/app/ai/terminal-dispatch.js`)
 const { buildTools, describeAvailableTools } = await import(`${ originalCwd }/app/ai/tools/index.js`)
-const { hostList, checkRestrictedToolAccess } = await import(`${ originalCwd }/app/ai/tools/executors.js`)
+const {
+  hostList,
+  scheduledTaskGet,
+  scheduledTaskList,
+  checkRestrictedToolAccess
+} = await import(`${ originalCwd }/app/ai/tools/executors.js`)
 const { RuntimeState } = await import(`${ originalCwd }/app/utils/runtime-state.js`)
 
 const hostListDB = new HostListDB().getInstance()
+const scheduledTaskDB = new ScheduledTaskDB().getInstance()
 
 let passed = 0
 let failed = 0
@@ -81,6 +92,12 @@ const disabled = await hostListDB.insertAsync({
   name: '禁用机', host: '10.0.0.3', port: 22,
   aiPolicy: { enabled: false }
 })
+const panelTask = await scheduledTaskDB.insertAsync({
+  name: '跨主机定时任务', enabled: false, hostIds: [open._id, restricted._id],
+  cron: '0 2 * * *', timezone: 'Asia/Shanghai', timeoutSeconds: 120,
+  script: { type: 'inline', command: 'true', useBase64: false },
+  notificationPolicy: 'failure', createdAt: Date.now(), updatedAt: Date.now()
+})
 
 console.log('\n========== 主机访问控制 ==========')
 
@@ -90,6 +107,14 @@ console.log('\n========== 主机访问控制 ==========')
 
   await expectReject('未选择主机时拒绝普通主机', resolveHostAccess(open._id, ctx, Effect.WRITE), /当前会话未授权/)
   await expectReject('未选择主机时拒绝受限主机', resolveHostAccess(restricted._id, ctx, Effect.READ), /当前会话未授权/)
+
+  const panelAccess = await resolvePanelHostAccess(open._id, ctx, Effect.WRITE)
+  expect('面板级操作不依赖会话主机选择', panelAccess.host.name, '测试机')
+  await expectReject(
+    '面板级操作仍遵守主机 AI 策略',
+    resolvePanelHostAccess(restricted._id, ctx, Effect.WRITE),
+    /仅允许/
+  )
 }
 
 {
@@ -142,8 +167,20 @@ console.log('\n========== 纯聊天模式 ==========')
     sessionMode: Mode.AUTHORIZED,
     allowedHostIds: buildAllowedHostIds([])
   }
-  expect('未选择主机时不下发任何运维工具', Object.keys(buildTools(noHostCtx)), [])
-  assert('纯聊天模式 prompt 明确不提供主机工具', describeAvailableTools(noHostCtx).includes('纯聊天模式'))
+  const noHostTools = Object.keys(buildTools(noHostCtx))
+  expect('未选择主机时仍下发面板定时任务工具', noHostTools, [
+    'scheduled_task_list',
+    'scheduled_task_get',
+    'scheduled_task_create',
+    'scheduled_task_update',
+    'scheduled_task_delete'
+  ])
+  assert('未选择主机时仍明确禁止直接主机操作', describeAvailableTools(noHostCtx).includes('不能直接读取'))
+
+  const tasksWithoutHosts = await scheduledTaskList(noHostCtx, {})
+  expect('未选择主机仍能查询全部定时任务', tasksWithoutHosts.data.tasks.map(task => task.taskId), [panelTask._id])
+  const taskWithoutHosts = await scheduledTaskGet(noHostCtx, { taskId: panelTask._id })
+  expect('未选择主机仍能查看定时任务详情', taskWithoutHosts.data.id, panelTask._id)
 
   const selectedCtx = {
     ...noHostCtx,
@@ -153,6 +190,9 @@ console.log('\n========== 纯聊天模式 ==========')
   assert('工具注册不按 Plus 状态裁剪写入工具', Object.keys(buildTools(selectedCtx)).includes('write_file'))
   const listed = await hostList(selectedCtx, {})
   expect('host_list 仅返回会话选择的主机', listed.data.hosts.map((host) => host.hostId), [open._id])
+  const tasksWithPartialSelection = await scheduledTaskList(selectedCtx, {})
+  expect('只选择部分目标主机仍能查询跨主机任务',
+    tasksWithPartialSelection.data.tasks.map(task => task.taskId), [panelTask._id])
 }
 
 console.log('\n========== shell 转义 ==========')
@@ -222,6 +262,8 @@ console.log('\n========== Agent 执行上限 ==========')
   expect('只读命令不需要 Plus', requiresPlus(getToolSpec('exec_command'), Effect.READ), false)
   expect('写入命令需要 Plus', requiresPlus(getToolSpec('exec_command'), Effect.WRITE), true)
   expect('敏感文件读取仍为免费能力', requiresPlus(getToolSpec('read_file'), Effect.READ), false)
+  expect('定时任务变更不会被只读脚本降级', strongerEffect(Effect.WRITE, Effect.READ), Effect.WRITE)
+  expect('定时任务变更保留删除脚本效果', strongerEffect(Effect.WRITE, Effect.DELETE), Effect.DELETE)
   expect('模型发现保留自定义 API 前缀', deriveBaseURL('https://example.com/api/v1/chat/completions'), 'https://example.com/api/v1')
 }
 

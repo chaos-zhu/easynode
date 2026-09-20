@@ -90,6 +90,11 @@ const TOOL_LABELS = {
   host_status: '获取主机状态',
   script_list: '查询脚本库',
   run_script: '运行脚本',
+  scheduled_task_list: '查询定时任务',
+  scheduled_task_get: '查看定时任务',
+  scheduled_task_create: '创建定时任务',
+  scheduled_task_update: '修改定时任务',
+  scheduled_task_delete: '删除定时任务',
   exec_command: '执行命令',
   terminal_command: '提交终端命令',
   read_file: '读取文件',
@@ -111,6 +116,8 @@ const summary = computed(() => {
   if (props.part.tool === 'host_status' && props.part.output?.name) {
     return `主机: ${ props.part.output.name }`
   }
+  if (input.taskName) return `任务: ${ input.taskName }`
+  if (input.taskId) return `任务: ${ input.taskId }`
   if (input.command) return input.command
   if (input.path) return input.path
   if (input.handle) return `handle: ${ String(input.handle).slice(0, 8) }…`

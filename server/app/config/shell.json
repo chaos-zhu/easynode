@@ -1,25 +1,30 @@
 [
   {
+    "id": "builtin-system-info",
     "name": "[内置]查看系统信息",
     "command": "curl https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/refs/heads/main/server/app/shell/system-info.sh -sSf | sh",
     "description": "查看系统信息(来源: AI生成)"
   },
   {
+    "id": "builtin-swap",
     "name": "[内置]swap配置",
     "command": "curl -fsSL https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/refs/heads/main/server/app/shell/swap.sh -o swap.sh && bash swap.sh",
     "description": "swap大小配置(来源: NS)"
   },
   {
+    "id": "builtin-docker-official",
     "name": "[内置]安装docker(官方)",
     "command": "curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh",
     "description": "docker安装(来源: https://github.com/docker/docker-install)"
   },
   {
+    "id": "builtin-docker-cn",
     "name": "[内置]安装docker(阿里云加速)",
     "command": "curl https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/refs/heads/main/server/app/shell/docker-install-cn.sh -sSf | bash",
     "description": "docker安装(来源: https://mirrors.aliyun.com/docker-ce/linux)"
   },
   {
+    "id": "builtin-reinstall-os",
     "name": "[内置]重装系统",
     "command": "tmp_script=$(mktemp /tmp/easynode-reinstall-os-XXXXXX.sh) && curl -fsSL https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/easynode/refs/heads/main/server/app/shell/reinstall-os.sh -o \"$tmp_script\" && chmod +x \"$tmp_script\" && bash \"$tmp_script\"; script_status=$?; rm -f \"$tmp_script\"; unset tmp_script; [ \"$script_status\" -eq 0 ]",
     "description": "重装系统(来源: https://cnb.cool/bin456789/reinstall)"

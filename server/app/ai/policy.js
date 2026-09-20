@@ -84,6 +84,12 @@ export function isEffectAllowed(effect, maxEffect) {
   return maxEffect === Effect.WRITE
 }
 
+export function strongerEffect(...effects) {
+  if (effects.includes(Effect.DELETE)) return Effect.DELETE
+  if (effects.includes(Effect.WRITE)) return Effect.WRITE
+  return Effect.READ
+}
+
 /**
  * @param {{ mode: string, effect: string, risk: string, hostOperation?: boolean }} operation
  */

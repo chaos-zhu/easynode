@@ -33,6 +33,8 @@ const config = {
   serverListDBPath: path.join(process.cwd(),'app/db/server-list-config.db'),
   sessionDBPath: path.join(process.cwd(),'app/db/session.db'),
   terminalSessionDBPath: path.join(process.cwd(),'app/db/terminal-session.db'),
+  scheduledTaskDBPath: path.join(process.cwd(),'app/db/scheduled-task.db'),
+  scheduledTaskRunDBPath: path.join(process.cwd(),'app/db/scheduled-task-run.db'),
   apiPrefix: '/api/v1',
   logConfig: {
     outDir: path.join(process.cwd(),'./app/db/logs'),
@@ -73,6 +75,8 @@ export const {
   serverListDBPath,
   sessionDBPath,
   terminalSessionDBPath,
+  scheduledTaskDBPath,
+  scheduledTaskRunDBPath,
   apiPrefix,
   logConfig
 } = config

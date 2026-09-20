@@ -65,6 +65,11 @@ const TOOL_LABELS = {
   host_status: '获取主机状态',
   script_list: '查询脚本库',
   run_script: '运行脚本',
+  scheduled_task_list: '查询定时任务',
+  scheduled_task_get: '查看定时任务',
+  scheduled_task_create: '创建定时任务',
+  scheduled_task_update: '修改定时任务',
+  scheduled_task_delete: '删除定时任务',
   exec_command: '执行命令',
   terminal_command: '提交终端命令',
   read_file: '读取文件',
@@ -116,13 +121,13 @@ const contextDescription = computed(() => {
   if (props.scope === 'terminal') {
     return `当前绑定终端：${ props.hostName || '当前主机' }`
   }
-  if (!props.selectedHostCount) return '当前未选择目标主机，处于纯聊天模式'
+  if (!props.selectedHostCount) return '当前未选择目标主机，可使用聊天和面板级工具'
   return `当前已选择 ${ props.selectedHostCount } 台目标主机`
 })
 
 const emptyDescription = computed(() => {
   if (!props.connected || !props.tools.length) return '连接服务端后显示工具列表'
-  if (props.scope === 'ops' && !props.selectedHostCount) return '选择目标主机后，才会向模型开放运维工具'
+  if (props.scope === 'ops' && !props.selectedHostCount) return '直接操作主机前需要选择目标主机'
   return '当前模式下暂无可用工具'
 })
 

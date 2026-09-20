@@ -275,6 +275,36 @@ export default {
   getSuspendedSessions() {
     return axios({ url: '/suspended-sessions', method: 'get' })
   },
+  getScheduledTasks(params = {}) {
+    return axios({ url: '/scheduled-tasks', method: 'get', params })
+  },
+  getScheduledTask(id) {
+    return axios({ url: `/scheduled-tasks/${ id }`, method: 'get' })
+  },
+  addScheduledTask(data) {
+    return axios({ url: '/scheduled-tasks', method: 'post', data })
+  },
+  updateScheduledTask(id, data) {
+    return axios({ url: `/scheduled-tasks/${ id }`, method: 'put', data })
+  },
+  removeScheduledTask(id) {
+    return axios({ url: `/scheduled-tasks/${ id }`, method: 'delete' })
+  },
+  runScheduledTask(id) {
+    return axios({ url: `/scheduled-tasks/${ id }/run`, method: 'post' })
+  },
+  getScheduledTaskRuns(params = {}) {
+    return axios({ url: '/scheduled-task-runs', method: 'get', params })
+  },
+  clearScheduledTaskRuns() {
+    return axios({ url: '/scheduled-task-runs', method: 'delete' })
+  },
+  getScheduledTaskRun(id) {
+    return axios({ url: `/scheduled-task-runs/${ id }`, method: 'get' })
+  },
+  stopScheduledTaskRun(id) {
+    return axios({ url: `/scheduled-task-runs/${ id }/stop`, method: 'post' })
+  },
   // 终端会话设置相关API
   getTerminalSessionConfig() {
     return axios({ url: '/terminal-session-config', method: 'get' })

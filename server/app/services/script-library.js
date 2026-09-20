@@ -5,17 +5,15 @@
  * 或对 id / 分组的转换规则。这里仅负责读取；执行权限仍由各调用方控制。
  */
 
-import { randomStr } from '../utils/tools.js'
 import { ScriptsDB } from '../utils/db-class.js'
 import { getLayout, ORDER_DOMAIN, orderByIds } from './order-service.js'
 import localShellJson from '../config/shell.json' with { type: 'json' }
 
 const scriptsDB = new ScriptsDB().getInstance()
 
-// 内置脚本没有数据库 _id，启动时生成稳定于本进程生命周期的可引用 id。
+// 内置脚本的 ID 持久稳定，定时任务才能在面板重启后继续引用。
 const builtinScripts = JSON.parse(JSON.stringify(localShellJson)).map((item) => ({
   ...item,
-  id: randomStr(10),
   description: item.description,
   group: 'builtin',
   builtin: true

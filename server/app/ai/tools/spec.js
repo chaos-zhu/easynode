@@ -28,6 +28,17 @@ export function requiresPlus(spec, effect = spec?.effect) {
 }
 
 const hostIdField = z.string().min(1).describe('目标主机 ID，来自 host_list 的返回结果')
+const scheduledTaskScriptSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('inline'),
+    command: z.string().min(1).max(256 * 1024).describe('由任务独立维护的 Shell 脚本'),
+    useBase64: z.boolean().optional().describe('是否通过 Base64 脚本方式执行')
+  }),
+  z.object({
+    type: z.literal('library'),
+    scriptId: z.string().min(1).describe('持续引用此脚本库脚本的最新内容')
+  })
+])
 
 export const TOOL_SPECS = [
   {
@@ -71,6 +82,66 @@ export const TOOL_SPECS = [
       scriptId: z.string().min(1).describe('script_list 返回的脚本 ID'),
       timeoutSeconds: z.number().int().min(1).max(1800).optional()
         .describe('超时秒数，默认 60；长时间脚本请显式调大')
+    })
+  },
+  {
+    name: 'scheduled_task_list',
+    effect: Effect.READ,
+    plusPolicy: PlusPolicy.FREE,
+    description: '列出 EasyNode 面板中的全部定时任务，不依赖当前会话是否选择主机，包含状态、Cron、时区、目标主机、下次执行和最近结果。',
+    inputSchema: z.object({
+      keyword: z.string().optional().describe('按任务名称、Cron 或时区筛选')
+    })
+  },
+  {
+    name: 'scheduled_task_get',
+    effect: Effect.READ,
+    plusPolicy: PlusPolicy.FREE,
+    description: '查看一项面板定时任务及最近 5 次执行摘要，不依赖当前会话是否选择主机，也不返回 stdout 或 stderr。',
+    inputSchema: z.object({
+      taskId: z.string().min(1).describe('scheduled_task_list 返回的任务 ID')
+    })
+  },
+  {
+    name: 'scheduled_task_create',
+    shell: true,
+    plusPolicy: PlusPolicy.REQUIRED,
+    description: '创建由 EasyNode 面板托管的定时任务。创建前会按最终脚本内容执行安全分类和审批。',
+    inputSchema: z.object({
+      name: z.string().min(1).max(100),
+      hostIds: z.array(hostIdField).min(1),
+      cron: z.string().min(1).describe('5 段 Cron：分 时 日 月 周'),
+      timezone: z.string().optional().describe('IANA 时区，默认 Asia/Shanghai'),
+      timeoutSeconds: z.number().int().min(1).max(1800).optional(),
+      script: scheduledTaskScriptSchema,
+      notificationPolicy: z.enum(['failure', 'always', 'never']).optional(),
+      enabled: z.boolean().optional()
+    })
+  },
+  {
+    name: 'scheduled_task_update',
+    shell: true,
+    plusPolicy: PlusPolicy.REQUIRED,
+    description: '修改现有定时任务。未提供的字段保持不变，最终脚本仍会重新执行安全分类和审批。',
+    inputSchema: z.object({
+      taskId: z.string().min(1),
+      name: z.string().min(1).max(100).optional(),
+      hostIds: z.array(hostIdField).min(1).optional(),
+      cron: z.string().min(1).optional(),
+      timezone: z.string().optional(),
+      timeoutSeconds: z.number().int().min(1).max(1800).optional(),
+      script: scheduledTaskScriptSchema.optional(),
+      notificationPolicy: z.enum(['failure', 'always', 'never']).optional(),
+      enabled: z.boolean().optional()
+    })
+  },
+  {
+    name: 'scheduled_task_delete',
+    effect: Effect.DELETE,
+    plusPolicy: PlusPolicy.REQUIRED,
+    description: '删除一项定时任务。正在运行的任务必须先由用户在管理页停止。',
+    inputSchema: z.object({
+      taskId: z.string().min(1).describe('要删除的任务 ID')
     })
   },
   {

@@ -19,10 +19,18 @@ import { createMcpClientManager } from './mcp/client.js'
 import { checkRestrictedToolAccess } from './tools/executors.js'
 import { buildSystemPrompt } from './prompt.js'
 import { classifyCommand, Risk, primaryReason } from './safety.js'
-import { DEFAULT_PRESET, Effect, Mode, isEffectAllowed, needsApproval, resolveEffectivePolicy } from './policy.js'
+import {
+  DEFAULT_PRESET,
+  Effect,
+  Mode,
+  isEffectAllowed,
+  needsApproval,
+  resolveEffectivePolicy,
+  strongerEffect
+} from './policy.js'
 import { requestApproval } from './approval.js'
 import { compactMessages, isContextLengthError } from './compaction.js'
-import { resolveHostAccess, buildAllowedHostIds } from './host-access.js'
+import { resolveHostAccess, resolvePanelHostAccess, buildAllowedHostIds } from './host-access.js'
 import { loadForModel } from './session-store.js'
 import { writeAudit, ACTION } from './audit.js'
 import { HostListDB } from '../utils/db-class.js'
@@ -32,6 +40,13 @@ import { classifyReadPath, stricterDataRisk } from './data-policy.js'
 import { buildWriteFilePreview } from './write-preview.js'
 import { resolveRemotePath } from './remote-path.js'
 import { isSensitiveMutationPath } from './file-mutation-policy.js'
+import {
+  findStoredTask,
+  normalizeTaskInput,
+  resolveTaskScript,
+  scheduledTaskDeleteFingerprint,
+  scheduledTaskFingerprint
+} from '../services/scheduled-task-store.js'
 
 const hostListDB = new HostListDB().getInstance()
 
@@ -112,6 +127,8 @@ function createToolApproval(ctx) {
     let targets = []
     let sensitiveDisclosure = false
     let scriptHash = null
+    let scheduledTaskHash = null
+    let hostPolicies = []
 
     if (toolCall.toolName === 'run_script') {
       const script = await getScriptById(input.scriptId)
@@ -162,6 +179,47 @@ function createToolApproval(ctx) {
       sensitiveDisclosure = hasSensitiveRead(verdict)
     }
 
+    if (['scheduled_task_create', 'scheduled_task_update', 'scheduled_task_delete'].includes(toolCall.toolName)) {
+      try {
+        const existing = input.taskId ? await findStoredTask(input.taskId) : null
+        if (input.taskId && !existing) throw new Error('定时任务不存在')
+
+        if (toolCall.toolName === 'scheduled_task_delete') {
+          effect = Effect.DELETE
+          risk = Risk.NORMAL
+          targets = existing.hostIds
+          scheduledTaskHash = scheduledTaskDeleteFingerprint(existing)
+          approvalInput = { taskId: existing._id, taskName: existing.name, hostIds: existing.hostIds }
+        } else {
+          const normalized = await normalizeTaskInput(input, existing)
+          const finalTask = existing ? { ...existing, ...normalized } : normalized
+          const resolvedScript = await resolveTaskScript(finalTask)
+          verdict = classifyCommand(resolvedScript.command)
+          effect = strongerEffect(Effect.WRITE, verdict.effect)
+          risk = verdict.risk
+          reason = primaryReason(verdict)
+          targets = verdict.targets
+          scheduledTaskHash = await scheduledTaskFingerprint(finalTask)
+          approvalInput = {
+            ...input,
+            hostIds: finalTask.hostIds,
+            scriptName: resolvedScript.scriptName,
+            command: resolvedScript.command
+          }
+        }
+
+        hostPolicies = await Promise.all((toolCall.toolName === 'scheduled_task_delete'
+          ? existing.hostIds
+          : approvalInput.hostIds).map(async targetHostId => {
+          const access = await resolvePanelHostAccess(targetHostId, ctx)
+          return access
+        }))
+        hostName = hostPolicies.map(item => item.host.name).join('、')
+      } catch (error) {
+        return denyToolCall(ctx, toolCall, input, error.message, '定时任务')
+      }
+    }
+
     ctx.toolMeta[toolCall.toolCallId] = {
       ...(ctx.toolMeta[toolCall.toolCallId] || {}),
       effect,
@@ -192,6 +250,13 @@ function createToolApproval(ctx) {
         type: 'denied',
         reason: `该命令被安全策略永久拒绝：${ reason?.reason || '命中拒绝规则' }。不要改写或拆分绕过；可以把原始命令展示给用户，由用户自行决定是否在终端执行。`
       }
+    }
+
+    const blockedScheduledHost = hostPolicies.find(item => !isEffectAllowed(effect, item.policy.maxEffect))
+    if (blockedScheduledHost) {
+      return denyToolCall(ctx, toolCall, input,
+        `主机「${ blockedScheduledHost.host.name }」仅允许 AI 读取，不能执行${ effect === Effect.DELETE ? '删除' : '写入' }操作`,
+        '主机策略')
     }
 
     if (hostId && !isEffectAllowed(effect, hostPolicy.maxEffect)) {
@@ -248,19 +313,21 @@ function createToolApproval(ctx) {
       }
     }
 
-    const shouldApprove = spec.approvalPolicy === 'always' || needsApproval({
-      mode: hostPolicy.mode,
+    const effectivePolicies = hostPolicies.length ? hostPolicies.map(item => item.policy) : [hostPolicy]
+    const shouldApprove = spec.approvalPolicy === 'always' || effectivePolicies.some(policy => needsApproval({
+      mode: policy.mode,
       effect,
       risk,
-      hostOperation: Boolean(hostId)
-    })
+      hostOperation: Boolean(hostId || hostPolicies.length)
+    }))
 
     if (!shouldApprove) {
       authorizePreparedCall(ctx, toolCall.toolCallId, {
         approvalPreview,
         approvedReadPath,
         sensitiveDisclosure,
-        scriptHash
+        scriptHash,
+        scheduledTaskHash
       })
       return 'not-applicable'
     }
@@ -270,7 +337,9 @@ function createToolApproval(ctx) {
       toolName: toolCall.toolName,
       toolCallId: toolCall.toolCallId,
       input: approvalInput,
-      mode: hostPolicy.mode,
+      mode: effectivePolicies.some(policy => policy.mode === Mode.REVIEW)
+        ? Mode.REVIEW
+        : (effectivePolicies.some(policy => policy.mode === Mode.ASSIST) ? Mode.ASSIST : Mode.AUTHORIZED),
       effect,
       targets,
       riskLevel: risk,
@@ -300,7 +369,8 @@ function createToolApproval(ctx) {
         approvalPreview,
         approvedReadPath,
         sensitiveDisclosure,
-        scriptHash
+        scriptHash,
+        scheduledTaskHash
       })
       return { type: 'approved' }
     }
@@ -321,6 +391,7 @@ function authorizePreparedCall(ctx, toolCallId, prepared) {
   if (prepared.approvedReadPath) ctx.approvedReads.set(toolCallId, prepared.approvedReadPath)
   if (prepared.sensitiveDisclosure) ctx.sensitiveOutputs.add(toolCallId)
   if (prepared.scriptHash) ctx.authorizedScripts.set(toolCallId, prepared.scriptHash)
+  if (prepared.scheduledTaskHash) ctx.authorizedScheduledTasks.set(toolCallId, prepared.scheduledTaskHash)
 }
 
 function denyToolCall(ctx, toolCall, input, reason, category) {
@@ -386,6 +457,7 @@ export async function runTurn(params) {
     toolMeta,
     authorizedWrites: new Map(),
     authorizedScripts: new Map(),
+    authorizedScheduledTasks: new Map(),
     approvedReads: new Map(),
     sensitiveOutputs: new Set(),
     mcpClients: createMcpClientManager(signal),

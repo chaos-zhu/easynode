@@ -9,6 +9,7 @@ import {
   ORDER_DOMAIN,
   removeItemsFromOrder
 } from '../services/order-service.js'
+import { disableScheduledTasksForScripts } from '../services/scheduled-task-service.js'
 const scriptsDB = new ScriptsDB().getInstance()
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
@@ -42,6 +43,11 @@ const removeScript = async ({ res, request }) => {
   let { params: { id } } = request
   await scriptsDB.removeAsync({ _id: id })
   await removeItemsFromOrder(ORDER_DOMAIN.SCRIPTS, [id])
+  try {
+    await disableScheduledTasksForScripts([id])
+  } catch (error) {
+    logger.error('移除脚本后的定时任务禁用失败:', error)
+  }
   res.success({ data: '移除成功' })
 }
 
@@ -50,6 +56,11 @@ const batchRemoveScript = async ({ res, request }) => {
   if (!Array.isArray(ids)) return res.fail({ msg: '参数错误' })
   const numRemoved = await scriptsDB.removeAsync({ _id: { $in: ids } }, { multi: true })
   await removeItemsFromOrder(ORDER_DOMAIN.SCRIPTS, ids)
+  try {
+    await disableScheduledTasksForScripts(ids)
+  } catch (error) {
+    logger.error('批量移除脚本后的定时任务禁用失败:', error)
+  }
   res.success({ data: `批量移除成功,数量: ${ numRemoved }` })
 }
 

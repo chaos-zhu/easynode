@@ -3,6 +3,7 @@ import { sendNoticeAsync } from '../utils/notify.js'
 import { formatTimestamp } from '../utils/tools.js'
 import { HostListDB, SessionDB } from '../utils/db-class.js'
 import { LOGIN_LOG_RETENTION_DAYS, pruneLoginLogs } from '../utils/login-log.js'
+import { initializeScheduledTasks, pruneScheduledTaskRuns } from '../services/scheduled-task-service.js'
 const hostListDB = new HostListDB().getInstance()
 const sessionDB = new SessionDB().getInstance()
 
@@ -34,7 +35,14 @@ const loginLogRetentionJob = async () => {
   if (removed > 0) logger.info(`已清理 ${ removed } 条超过 ${ LOGIN_LOG_RETENTION_DAYS } 天的登录日志`)
 }
 
-export default () => {
+const scheduledTaskRetentionJob = async () => {
+  const removed = await pruneScheduledTaskRuns()
+  if (removed > 0) logger.info(`已清理 ${ removed } 条过期定时任务执行记录`)
+}
+
+export default async () => {
   schedule.scheduleJob('0 0 12 1/1 * ?', expiredNotifyJob)
   schedule.scheduleJob('0 0 3 * * *', loginLogRetentionJob)
+  schedule.scheduleJob('0 10 3 * * *', scheduledTaskRetentionJob)
+  await initializeScheduledTasks()
 }

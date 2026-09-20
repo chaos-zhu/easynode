@@ -7,9 +7,9 @@ const hostListDB = new HostListDB().getInstance()
 
 export class HostAccessError extends Error {}
 
-export async function resolveHostAccess(hostId, ctx, effect) {
+export async function resolveHostAccess(hostId, ctx, effect, { requireSelected = true } = {}) {
   if (!hostId) throw new HostAccessError('缺少 hostId，请先调用 host_list 获取')
-  if (!(ctx.allowedHostIds instanceof Set) || !ctx.allowedHostIds.has(hostId)) {
+  if (requireSelected && (!(ctx.allowedHostIds instanceof Set) || !ctx.allowedHostIds.has(hostId))) {
     throw new HostAccessError('当前会话未授权访问该主机，请先选择目标主机')
   }
 
@@ -23,6 +23,10 @@ export async function resolveHostAccess(hostId, ctx, effect) {
   }
 
   return { host, policy }
+}
+
+export function resolvePanelHostAccess(hostId, ctx, effect) {
+  return resolveHostAccess(hostId, ctx, effect, { requireSelected: false })
 }
 
 export function buildAllowedHostIds(hostIds) {

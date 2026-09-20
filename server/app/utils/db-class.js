@@ -20,7 +20,9 @@ import {
   terminalConfigDBPath,
   serverListDBPath,
   sessionDBPath,
-  terminalSessionDBPath
+  terminalSessionDBPath,
+  scheduledTaskDBPath,
+  scheduledTaskRunDBPath
 } from '../config/index.js'
 
 export class KeyDB {
@@ -259,5 +261,27 @@ export class TerminalSessionDB {
   }
   getInstance() {
     return TerminalSessionDB.instance
+  }
+}
+
+export class ScheduledTaskDB {
+  constructor() {
+    if (!ScheduledTaskDB.instance) {
+      ScheduledTaskDB.instance = new Datastore({ filename: scheduledTaskDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return ScheduledTaskDB.instance
+  }
+}
+
+export class ScheduledTaskRunDB {
+  constructor() {
+    if (!ScheduledTaskRunDB.instance) {
+      ScheduledTaskRunDB.instance = new Datastore({ filename: scheduledTaskRunDBPath, autoload: true })
+    }
+  }
+  getInstance() {
+    return ScheduledTaskRunDB.instance
   }
 }

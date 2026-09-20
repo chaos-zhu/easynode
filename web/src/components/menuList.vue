@@ -30,7 +30,8 @@ import {
   Monitor,
   ArrowRight,
   Pointer,
-  FolderOpened
+  FolderOpened,
+  Timer
   // FolderOpened
 } from '@element-plus/icons-vue'
 
@@ -86,6 +87,11 @@ const list = reactive([
     name: '批量指令',
     icon: markRaw(Pointer),
     index: '/onekey'
+  },
+  {
+    name: '定时任务',
+    icon: markRaw(Timer),
+    index: '/scheduled-tasks'
   },
   {
     name: '系统设置',

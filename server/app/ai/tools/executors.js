@@ -23,6 +23,7 @@ import { Effect } from '../policy.js'
 import decryptAndExecuteAsync from '../../utils/decrypt-file.js'
 import { RuntimeState } from '../../utils/runtime-state.js'
 import { getLayout, ORDER_DOMAIN, orderByIds } from '../../services/order-service.js'
+import { getScheduledTask, listScheduledTasks } from '../../services/scheduled-task-service.js'
 
 const hostListDB = new HostListDB().getInstance()
 const groupDB = new GroupDB().getInstance()
@@ -336,6 +337,61 @@ export async function runScript(ctx, input, options = {}) {
   })
 }
 
+// ---------------------------------------------------------- scheduled tasks
+
+export async function scheduledTaskList(_ctx, input) {
+  const tasks = await listScheduledTasks(input)
+  return ok({
+    total: tasks.length,
+    tasks: tasks.map(task => ({
+      taskId: task.id,
+      name: task.name,
+      enabled: task.enabled,
+      hostIds: task.hostIds,
+      cron: task.cron,
+      timezone: task.timezone,
+      timeoutSeconds: task.timeoutSeconds,
+      scriptType: task.script?.type,
+      notificationPolicy: task.notificationPolicy,
+      nextRunAt: task.nextRunAt,
+      lastRunAt: task.lastRunAt,
+      lastRunStatus: task.lastRunStatus,
+      disabledReason: task.disabledReason || undefined
+    }))
+  })
+}
+
+export async function scheduledTaskGet(_ctx, input) {
+  const task = await getScheduledTask(input.taskId, { recentRuns: 5 })
+  return ok(task)
+}
+
+async function executeScheduledTaskMutation(tool, ctx, input, options) {
+  return executeRestrictedTool(tool, ctx, input, options)
+}
+
+export async function scheduledTaskCreate(ctx, input, options = {}) {
+  return executeScheduledTaskMutation('scheduled_task_create', ctx, input, options)
+}
+
+export async function scheduledTaskUpdate(ctx, input, options = {}) {
+  try {
+    await getScheduledTask(input.taskId)
+  } catch (error) {
+    return fail(error.message)
+  }
+  return executeScheduledTaskMutation('scheduled_task_update', ctx, input, options)
+}
+
+export async function scheduledTaskDelete(ctx, input, options = {}) {
+  try {
+    await getScheduledTask(input.taskId)
+  } catch (error) {
+    return fail(error.message)
+  }
+  return executeScheduledTaskMutation('scheduled_task_delete', ctx, input, options)
+}
+
 // ------------------------------------------------------------ exec_command
 
 export async function execCommandTool(ctx, input, options = {}) {
@@ -584,6 +640,11 @@ export const EXECUTORS = {
   host_status: hostStatus,
   script_list: scriptList,
   run_script: runScript,
+  scheduled_task_list: scheduledTaskList,
+  scheduled_task_get: scheduledTaskGet,
+  scheduled_task_create: scheduledTaskCreate,
+  scheduled_task_update: scheduledTaskUpdate,
+  scheduled_task_delete: scheduledTaskDelete,
   exec_command: execCommandTool,
   read_file: readFile,
   write_file: writeFile,

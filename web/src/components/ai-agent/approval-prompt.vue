@@ -180,6 +180,9 @@ const TOOL_LABELS = {
   exec_command: '执行命令',
   terminal_command: '提交终端命令',
   run_script: '运行脚本',
+  scheduled_task_create: '创建定时任务',
+  scheduled_task_update: '修改定时任务',
+  scheduled_task_delete: '删除定时任务',
   read_file: '读取文件',
   write_file: '写入文件'
 }

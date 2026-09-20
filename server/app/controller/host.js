@@ -9,6 +9,7 @@ import {
   ORDER_DOMAIN,
   removeItemsFromOrder
 } from '../services/order-service.js'
+import { detachHostsFromScheduledTasks } from '../services/scheduled-task-service.js'
 const hostListDB = new HostListDB().getInstance()
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
@@ -75,6 +76,11 @@ async function removeHost({ res, request }) {
   if (!Array.isArray(ids)) return res.fail({ msg: '参数错误' })
   const numRemoved = await hostListDB.removeAsync({ _id: { $in: ids } }, { multi: true })
   await removeItemsFromOrder(ORDER_DOMAIN.HOSTS, ids)
+  try {
+    await detachHostsFromScheduledTasks(ids)
+  } catch (error) {
+    logger.error('移除主机后的定时任务解绑失败:', error)
+  }
   res.success({ data: `已移除,数量: ${ numRemoved }` })
 }
 
