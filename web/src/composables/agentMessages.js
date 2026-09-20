@@ -285,6 +285,17 @@ export function removeApproval(state, requestId) {
   if (index !== -1) state.pendingApprovals.splice(index, 1)
 }
 
+export function applyApprovalResponse(state, requestId, approved) {
+  const approval = state.pendingApprovals.find((item) => item.requestId === requestId)
+  if (approval) {
+    const part = findToolPart(state.messages, approval.toolCallId)
+    if (part?.status === ToolStatus.AWAITING_APPROVAL) {
+      part.status = approved ? ToolStatus.RUNNING : ToolStatus.DENIED
+    }
+  }
+  removeApproval(state, requestId)
+}
+
 /** 流被打断时，把还挂在 running / 待审批的工具卡片收尾，避免永远转圈 */
 function markUnfinishedTools(state, reason) {
   for (const message of state.messages) {

@@ -65,7 +65,11 @@ void main() {
     expect(tool.status, AgentToolStatus.awaitingApproval);
     expect(state.pendingApprovals.single.requestId, 'approval-1');
 
-    state = removeAgentApproval(state, 'approval-1');
+    state = applyAgentApprovalResponse(state, 'approval-1', true);
+    tool = state.messages.last.parts.single as AgentToolPart;
+    expect(tool.status, AgentToolStatus.running);
+    expect(state.pendingApprovals, isEmpty);
+
     state = applyAgentEvent(state, const {
       'type': 'tool_result',
       'toolCallId': 'tool-1',
@@ -74,7 +78,6 @@ void main() {
     tool = state.messages.last.parts.single as AgentToolPart;
     expect(tool.status, AgentToolStatus.done);
     expect(tool.output, 'ok');
-    expect(state.pendingApprovals, isEmpty);
   });
 
   test('keeps MCP provider metadata through approval and tool events', () {

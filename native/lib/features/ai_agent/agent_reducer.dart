@@ -288,6 +288,30 @@ AgentConversationState removeAgentApproval(
       .toList(growable: false),
 );
 
+AgentConversationState applyAgentApprovalResponse(
+  AgentConversationState state,
+  String requestId,
+  bool approved,
+) {
+  final approval = state.pendingApprovals
+      .where((item) => item.requestId == requestId)
+      .firstOrNull;
+  final updated = approval == null
+      ? state
+      : _updateTool(
+          state,
+          approval.toolCallId,
+          (part) => part.status == AgentToolStatus.awaitingApproval
+              ? part.copyWith(
+                  status: approved
+                      ? AgentToolStatus.running
+                      : AgentToolStatus.denied,
+                )
+              : part,
+        );
+  return removeAgentApproval(updated, requestId);
+}
+
 AgentConversationState _appendStreamText(
   AgentConversationState state,
   String text,

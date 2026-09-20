@@ -245,7 +245,11 @@ class AgentController {
     _socket.approve(requestId, approved: approved, scope: scope);
     _emit(
       _read().copyWith(
-        conversation: removeAgentApproval(_read().conversation, requestId),
+        conversation: applyAgentApprovalResponse(
+          _read().conversation,
+          requestId,
+          approved,
+        ),
       ),
     );
   }

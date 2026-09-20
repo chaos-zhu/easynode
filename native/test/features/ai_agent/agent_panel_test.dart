@@ -83,7 +83,7 @@ void main() {
       list.controller!.position.minScrollExtent,
     );
 
-    await tester.drag(find.byType(ListView), const Offset(0, 320));
+    list.controller!.jumpTo(list.controller!.position.minScrollExtent + 320);
     await tester.pumpAndSettle();
 
     expect(find.byKey(buttonKey), findsOneWidget);
@@ -93,17 +93,61 @@ void main() {
           list.controller!.position.minScrollExtent,
       greaterThan(40),
     );
+    final detachedPixels = list.controller!.position.pixels;
+
+    final streamedMessages = [
+      ...messages,
+      const AgentMessage(
+        id: 'assistant-detached-update',
+        role: AgentMessageRole.assistant,
+        parts: [AgentTextPart('Fast output while the user is reading')],
+        createdAt: 31,
+      ),
+    ];
+
+    notifier.showConversation(
+      AgentConversationState(messages: streamedMessages),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(buttonKey), findsOneWidget);
+    expect(list.controller!.position.pixels, closeTo(detachedPixels, 0.01));
+
+    notifier.showConversation(
+      AgentConversationState(
+        messages: [
+          ...messages,
+          AgentMessage(
+            id: 'assistant-detached-update',
+            role: AgentMessageRole.assistant,
+            parts: [
+              AgentTextPart(
+                List.generate(
+                  12,
+                  (line) => 'Streaming line $line while reading above',
+                ).join('\n'),
+              ),
+            ],
+            createdAt: 31,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(buttonKey), findsOneWidget);
+    expect(list.controller!.position.pixels, closeTo(detachedPixels, 0.01));
 
     await tester.tap(find.byKey(buttonKey));
     notifier.showConversation(
       AgentConversationState(
         messages: [
-          ...messages,
+          ...streamedMessages,
           const AgentMessage(
             id: 'assistant-stream-update',
             role: AgentMessageRole.assistant,
             parts: [AgentTextPart('A new streamed response')],
-            createdAt: 31,
+            createdAt: 32,
           ),
         ],
       ),
@@ -119,6 +163,108 @@ void main() {
     expect(
       list.controller!.position.pixels,
       list.controller!.position.minScrollExtent,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('pending approvals use a dock and only show the queue head', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(400, 520);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    SharedPreferences.setMockInitialValues({});
+    final storage = AppStorage(await SharedPreferences.getInstance());
+    final notifier = _FakeAgentStateNotifier(_TestAgentDeps(storage));
+    final now = DateTime.now().millisecondsSinceEpoch;
+    notifier.showConversation(
+      AgentConversationState(
+        messages: const [
+          AgentMessage(
+            id: 'assistant-1',
+            role: AgentMessageRole.assistant,
+            parts: [AgentTextPart('I need approval')],
+            createdAt: 1,
+          ),
+        ],
+        pendingApprovals: [
+          AgentApproval(
+            requestId: 'approval-1',
+            toolCallId: 'tool-1',
+            tool: 'exec_command',
+            input: {
+              'command': List.generate(
+                20,
+                (index) => 'echo approval-line-$index',
+              ).join('\n'),
+            },
+            createdAt: now,
+          ),
+          AgentApproval(
+            requestId: 'approval-2',
+            toolCallId: 'tool-2',
+            tool: 'exec_command',
+            input: const {'command': 'df -h'},
+            createdAt: now,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [agentControllerProvider.overrideWith((ref) => notifier)],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(
+            useMaterial3: true,
+            extensions: const [AppColorTheme.defaultLight],
+          ),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1.4)),
+            child: child!,
+          ),
+          home: const Scaffold(body: AgentPanel(showHeader: false)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('agent-approval-dock')), findsOneWidget);
+    expect(find.byType(AgentApprovalCard), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('agent-approval-approval-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('agent-approval-approval-2')),
+      findsNothing,
+    );
+    expect(find.text('1 more approvals pending'), findsOneWidget);
+    expect(
+      tester.getSize(find.byType(ListView)).height,
+      greaterThanOrEqualTo(48),
+    );
+    expect(
+      find.byKey(const Key('agent-approval-actions-scroll')),
+      findsOneWidget,
+    );
+    expect(
+      find.ancestor(
+        of: find.byType(AgentApprovalCard),
+        matching: find.byType(ListView),
+      ),
+      findsNothing,
     );
     expect(tester.takeException(), isNull);
   });

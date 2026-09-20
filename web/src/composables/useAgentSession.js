@@ -10,8 +10,8 @@ import { generateSocketInstance } from '@/utils'
 import $api from '@/api'
 import useStore from '@/store'
 import {
+  applyApprovalResponse,
   applyEvent,
-  removeApproval,
   createUserMessage,
   fromModelMessages,
   emptyUsage
@@ -377,7 +377,7 @@ export function useAgentSession(config = {}) {
   function respondApproval(requestId, approved, scope = 'once') {
     if (!socket.value) return
     socket.value.emit('ws_agent_approve', { requestId, approved, scope })
-    removeApproval(state, requestId)
+    applyApprovalResponse(state, requestId, approved)
   }
 
   async function refreshSessions() {

@@ -7,6 +7,7 @@ const webDirectory = resolve(testDirectory, '..')
 const testFiles = [
   'test-terminal-appearance.mjs',
   'test-agent-messages.js',
+  'test-sticky-bottom.js',
   'test-host-sort.js',
   'test-ip-access.js',
   'test-order.js'

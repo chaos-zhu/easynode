@@ -5,7 +5,7 @@
     @pointerdown.stop
     @mousedown.stop
     @click.stop
-    @keydown.stop
+    @keydown.stop="handleKeydown"
   >
     <header class="chat_header">
       <el-button link title="历史会话" @click="showSessions = !showSessions">
@@ -109,44 +109,72 @@
       show-icon
     />
 
-    <el-scrollbar ref="scrollRef" class="chat_body" @scroll="handleScroll">
-      <div ref="bodyRef" class="body_inner">
-        <div v-if="!state.messages.length" class="empty_state">
-          <el-icon class="empty_icon"><ChatDotRound /></el-icon>
-          <p>终端助手仅绑定 {{ host.name }} 的当前终端和会话环境</p>
-          <span>AI 命令会在当前终端执行，并自动读取本次输出</span>
+    <div class="chat_transcript">
+      <el-scrollbar
+        ref="scrollRef"
+        class="chat_body"
+        @scroll="handleScroll"
+        @wheel.passive="handleWheel"
+        @touchstart.passive="handleTouchStart"
+        @touchmove.passive="handleTouchMove"
+        @touchend.passive="handleTouchEnd"
+        @pointerdown="handlePointerDown"
+      >
+        <div ref="bodyRef" class="body_inner">
+          <div v-if="!state.messages.length" class="empty_state">
+            <el-icon class="empty_icon"><ChatDotRound /></el-icon>
+            <p>终端助手仅绑定 {{ host.name }} 的当前终端和会话环境</p>
+            <span>AI 命令会在当前终端执行，并自动读取本次输出</span>
+          </div>
+
+          <MessageItem
+            v-for="(message, index) in state.messages"
+            :key="message.id"
+            :message="message"
+            :running="state.running"
+            :waiting-for-model="state.waitingForModel && index === state.messages.length - 1"
+            :editable="message.role === 'user' && !state.running"
+            :editing="editingMessageId === message.id"
+            :regeneratable="message.role === 'assistant' && !state.running"
+            :code-block-custom-id="codeBlockCustomId"
+            @start-edit="editingMessageId = message.id"
+            @cancel-edit="editingMessageId = ''"
+            @confirm-edit="handleConfirmEdit"
+            @regenerate="handleRegenerate"
+            @fork="handleFork"
+          />
+
+          <p v-if="state.error" class="turn_error">{{ state.error }}</p>
+          <p v-if="state.stopping" class="turn_stopping">正在中断远端命令，等待终端确认…</p>
+          <p v-else-if="state.terminalCancelWarning" class="turn_error">{{ state.terminalCancelWarning }}</p>
+          <p v-else-if="state.aborted" class="turn_aborted">已停止生成</p>
+          <div ref="bottomRef" class="scroll_bottom_sentinel" aria-hidden="true" />
         </div>
+      </el-scrollbar>
 
-        <MessageItem
-          v-for="(message, index) in state.messages"
-          :key="message.id"
-          :message="message"
-          :running="state.running"
-          :waiting-for-model="state.waitingForModel && index === state.messages.length - 1"
-          :editable="message.role === 'user' && !state.running"
-          :editing="editingMessageId === message.id"
-          :regeneratable="message.role === 'assistant' && !state.running"
-          :code-block-custom-id="codeBlockCustomId"
-          @start-edit="editingMessageId = message.id"
-          @cancel-edit="editingMessageId = ''"
-          @confirm-edit="handleConfirmEdit"
-          @regenerate="handleRegenerate"
-          @fork="handleFork"
-        />
+      <el-button
+        v-if="!isAtBottom"
+        class="to_bottom"
+        circle
+        size="small"
+        title="查看最新消息"
+        @click="scrollToBottom"
+      >
+        <el-icon><Bottom /></el-icon>
+      </el-button>
+    </div>
 
-        <ApprovalPrompt
-          v-for="item in state.pendingApprovals"
-          :key="item.requestId"
-          :item="item"
-          @respond="respondApproval"
-        />
-
-        <p v-if="state.error" class="turn_error">{{ state.error }}</p>
-        <p v-if="state.stopping" class="turn_stopping">正在中断远端命令，等待终端确认…</p>
-        <p v-else-if="state.terminalCancelWarning" class="turn_error">{{ state.terminalCancelWarning }}</p>
-        <p v-else-if="state.aborted" class="turn_aborted">已停止生成</p>
+    <div v-if="state.pendingApprovals.length" class="approval_dock">
+      <div v-if="state.pendingApprovals.length > 1" class="approval_queue_count">
+        当前审批完成后，还有 {{ state.pendingApprovals.length - 1 }} 项待确认
       </div>
-    </el-scrollbar>
+      <ApprovalPrompt
+        :key="state.pendingApprovals[0].requestId"
+        :item="state.pendingApprovals[0]"
+        docked
+        @respond="respondApproval"
+      />
+    </div>
 
     <footer class="chat_footer">
       <ChatSender
@@ -181,7 +209,7 @@
 
 <script setup>
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ChatDotRound, Close, Expand, Fold, Plus, Setting } from '@element-plus/icons-vue'
+import { Bottom, ChatDotRound, Close, Expand, Fold, Plus, Setting } from '@element-plus/icons-vue'
 import { setCustomComponents } from 'markstream-vue'
 import ChatSender from '@/components/common/chat-sender.vue'
 import MessageItem from '@/components/ai-agent/message-item.vue'
@@ -191,6 +219,7 @@ import SessionList from '@/components/ai-agent/session-list.vue'
 import AssistantInfoPopover from '@/components/ai-agent/assistant-info-popover.vue'
 import { useAgentSession } from '@/composables/useAgentSession'
 import { findPreviousUserMessage, findUserTurnIndex, messageText } from '@/composables/agentMessages'
+import { useStickyBottom } from '@/composables/useStickyBottom'
 import $api from '@/api'
 import CustomCodeBlock from '@/components/ai-agent/custom-code-block.vue'
 import { PRESET_FALLBACK } from '@/components/ai-agent/presets'
@@ -209,12 +238,10 @@ const codeBlockCustomId = `terminal-agent-${ vueInstance.uid }`
 const senderRef = ref(null)
 const scrollRef = ref(null)
 const bodyRef = ref(null)
+const bottomRef = ref(null)
 const draft = ref('')
 const showSessions = ref(false)
 const editingMessageId = ref('')
-let autoFollow = true
-let lastScrollTop = 0
-let bodyResizeObserver = null
 const isDark = computed(() => $store.isDark)
 const presets = computed(() => (options.presets.length ? options.presets : PRESET_FALLBACK))
 
@@ -252,6 +279,24 @@ const {
   onTerminalCommandCancel: ({ requestId }) => {
     return props.terminal()?.cancelAiCommand?.(requestId) || { ok: false, error: '当前终端不可用，无法确认命令已停止' }
   }
+})
+
+const {
+  isAtBottom,
+  start: startStickyBottom,
+  stop: stopStickyBottom,
+  scrollToBottom,
+  handleScroll,
+  handleWheel,
+  handleTouchStart,
+  handleTouchMove,
+  handleTouchEnd,
+  handleKeydown,
+  handlePointerDown
+} = useStickyBottom({
+  getScrollElement: () => scrollRef.value?.wrapRef,
+  getContentElement: () => bodyRef.value,
+  getBottomElement: () => bottomRef.value
 })
 
 function focusSender() {
@@ -401,26 +446,6 @@ async function editAndResend(message, content, extra) {
   send(content, extra)
 }
 
-function scrollToBottom() {
-  autoFollow = true
-  nextTick(() => {
-    const wrap = scrollRef.value?.wrapRef
-    if (!wrap) return
-    wrap.scrollTop = wrap.scrollHeight
-    lastScrollTop = wrap.scrollTop
-  })
-}
-
-function handleScroll({ scrollTop }) {
-  const wrap = scrollRef.value?.wrapRef
-  if (!wrap) return
-  const isAtBottom = wrap.scrollHeight - scrollTop - wrap.clientHeight < 40
-  // 程序化下滚的事件可能晚于下一次内容增高；只有真正向上滚才退出跟随。
-  if (scrollTop < lastScrollTop) autoFollow = false
-  else if (isAtBottom) autoFollow = true
-  lastScrollTop = scrollTop
-}
-
 watch(() => props.prefill, (value) => {
   if (!value) return
   draft.value = value
@@ -435,10 +460,7 @@ onMounted(() => {
   connect()
   refreshSessions()
   focusSender()
-  bodyResizeObserver = new ResizeObserver(() => {
-    if (autoFollow) scrollToBottom()
-  })
-  if (bodyRef.value) bodyResizeObserver.observe(bodyRef.value)
+  startStickyBottom()
   scrollToBottom()
   // 终端 tab 可能在同一帧留下一个延迟 focus；等侧栏最终宽度落定后再刷新一次。
   window.setTimeout(focusSender, 80)
@@ -446,7 +468,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   EventBus.$off('terminal_ai_execute_code', handleCodeBlockExecution)
-  bodyResizeObserver?.disconnect()
+  stopStickyBottom()
 })
 </script>
 
@@ -538,8 +560,34 @@ onBeforeUnmount(() => {
       font-weight: 600;
     }
   }
-  .chat_body { flex: 1; min-height: 0; }
+  .chat_transcript {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+  .chat_body {
+    height: 100%;
+    :deep(.el-scrollbar__wrap) { overflow-anchor: none; }
+  }
   .body_inner { padding: 14px 12px; }
+  .scroll_bottom_sentinel { height: 1px; pointer-events: none; }
+  .to_bottom { position: absolute; right: 16px; bottom: 12px; z-index: 2; }
+  .approval_dock {
+    display: flex;
+    flex: 0 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    max-height: min(48%, 320px);
+    padding: 6px 10px;
+    border-top: 1px solid var(--el-border-color);
+    background-color: var(--el-bg-color);
+  }
+  .approval_queue_count {
+    flex: none;
+    padding: 0 2px 4px;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+  }
   .empty_state { padding: 48px 12px; text-align: center; color: var(--el-text-color-secondary); }
   .empty_icon { font-size: 32px; }
   .empty_state p { margin: 12px 0 6px; font-size: 16px; color: var(--el-text-color-primary); }

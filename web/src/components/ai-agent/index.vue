@@ -13,6 +13,7 @@
       :style="windowStyle"
       role="dialog"
       aria-label="AI 助手"
+      @keydown="handleKeydown"
     >
       <template v-if="!isMobileScreen && !maximized">
         <i
@@ -150,50 +151,68 @@
             show-icon
           />
 
-          <el-scrollbar ref="scrollRef" class="agent_body" @scroll="handleScroll">
-            <div ref="bodyRef" class="body_inner">
-              <div v-if="!state.messages.length" class="empty_state">
-                <el-icon class="empty_icon"><ChatDotRound /></el-icon>
-                <p class="empty_title">选择一台或多台主机，我可以帮你排查问题、查看状态和执行运维操作</p>
+          <div class="agent_transcript">
+            <el-scrollbar
+              ref="scrollRef"
+              class="agent_body"
+              @scroll="handleScroll"
+              @wheel.passive="handleWheel"
+              @touchstart.passive="handleTouchStart"
+              @touchmove.passive="handleTouchMove"
+              @touchend.passive="handleTouchEnd"
+              @pointerdown="handlePointerDown"
+            >
+              <div ref="bodyRef" class="body_inner">
+                <div v-if="!state.messages.length" class="empty_state">
+                  <el-icon class="empty_icon"><ChatDotRound /></el-icon>
+                  <p class="empty_title">选择一台或多台主机，我可以帮你排查问题、查看状态和执行运维操作</p>
+                </div>
+
+                <MessageItem
+                  v-for="(message, index) in state.messages"
+                  :key="message.id"
+                  :message="message"
+                  :running="state.running"
+                  :waiting-for-model="state.waitingForModel && index === state.messages.length - 1"
+                  :editable="message.role === 'user' && !state.running"
+                  :editing="editingMessageId === message.id"
+                  :regeneratable="message.role === 'assistant' && !state.running"
+                  @start-edit="editingMessageId = message.id"
+                  @cancel-edit="editingMessageId = ''"
+                  @confirm-edit="handleConfirmEdit"
+                  @regenerate="handleRegenerate"
+                  @fork="handleFork"
+                />
+
+                <p v-if="state.error" class="turn_error">{{ state.error }}</p>
+                <p v-else-if="state.aborted" class="turn_aborted">已停止生成</p>
+                <div ref="bottomRef" class="scroll_bottom_sentinel" aria-hidden="true" />
               </div>
+            </el-scrollbar>
 
-              <MessageItem
-                v-for="(message, index) in state.messages"
-                :key="message.id"
-                :message="message"
-                :running="state.running"
-                :waiting-for-model="state.waitingForModel && index === state.messages.length - 1"
-                :editable="message.role === 'user' && !state.running"
-                :editing="editingMessageId === message.id"
-                :regeneratable="message.role === 'assistant' && !state.running"
-                @start-edit="editingMessageId = message.id"
-                @cancel-edit="editingMessageId = ''"
-                @confirm-edit="handleConfirmEdit"
-                @regenerate="handleRegenerate"
-                @fork="handleFork"
-              />
+            <el-button
+              v-if="!isAtBottom"
+              class="to_bottom"
+              circle
+              size="small"
+              title="查看最新消息"
+              @click="scrollToBottom"
+            >
+              <el-icon><Bottom /></el-icon>
+            </el-button>
+          </div>
 
-              <ApprovalPrompt
-                v-for="item in state.pendingApprovals"
-                :key="item.requestId"
-                :item="item"
-                @respond="respondApproval"
-              />
-
-              <p v-if="state.error" class="turn_error">{{ state.error }}</p>
-              <p v-else-if="state.aborted" class="turn_aborted">已停止生成</p>
+          <div v-if="state.pendingApprovals.length" class="approval_dock">
+            <div v-if="state.pendingApprovals.length > 1" class="approval_queue_count">
+              当前审批完成后，还有 {{ state.pendingApprovals.length - 1 }} 项待确认
             </div>
-          </el-scrollbar>
-
-          <el-button
-            v-if="!isAtBottom"
-            class="to_bottom"
-            circle
-            size="small"
-            @click="scrollToBottom"
-          >
-            <el-icon><Bottom /></el-icon>
-          </el-button>
+            <ApprovalPrompt
+              :key="state.pendingApprovals[0].requestId"
+              :item="state.pendingApprovals[0]"
+              docked
+              @respond="respondApproval"
+            />
+          </div>
 
           <footer class="agent_footer">
             <ChatSender
@@ -255,6 +274,7 @@ import SessionList from './session-list.vue'
 import AssistantInfoPopover from './assistant-info-popover.vue'
 import { useAgentSession } from '@/composables/useAgentSession'
 import { findPreviousUserMessage, findUserTurnIndex, messageText } from '@/composables/agentMessages'
+import { useStickyBottom } from '@/composables/useStickyBottom'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { PRESET_FALLBACK } from './presets'
 
@@ -295,11 +315,8 @@ const draft = ref('')
 const senderRef = ref(null)
 const scrollRef = ref(null)
 const bodyRef = ref(null)
+const bottomRef = ref(null)
 const showSessions = ref(false)
-const isAtBottom = ref(true)
-let autoFollow = true
-let lastScrollTop = 0
-let bodyResizeObserver = null
 const dismissedNotice = ref('')
 const editingMessageId = ref('')
 const windowRef = ref(null)
@@ -345,6 +362,24 @@ const senderPlaceholder = computed(() => (settings.hostIds.length
 // 后端 ready 事件之前也要有预设可选，否则首次打开是空下拉
 const presets = computed(() => (options.presets.length ? options.presets : PRESET_FALLBACK))
 
+const {
+  isAtBottom,
+  start: startStickyBottom,
+  stop: stopStickyBottom,
+  scrollToBottom,
+  handleScroll,
+  handleWheel,
+  handleTouchStart,
+  handleTouchMove,
+  handleTouchEnd,
+  handleKeydown,
+  handlePointerDown
+} = useStickyBottom({
+  getScrollElement: () => scrollRef.value?.wrapRef,
+  getContentElement: () => bodyRef.value,
+  getBottomElement: () => bottomRef.value
+})
+
 const notice = computed(() => (historyNotice.value === dismissedNotice.value ? '' : historyNotice.value))
 const clampedTip = computed(() => {
   if (!state.clamped) return ''
@@ -366,12 +401,7 @@ function handleOpen() {
 
 function handleOpened() {
   focusSender()
-  if (!bodyResizeObserver && bodyRef.value) {
-    bodyResizeObserver = new ResizeObserver(() => {
-      if (autoFollow) scrollToBottom()
-    })
-    bodyResizeObserver.observe(bodyRef.value)
-  }
+  startStickyBottom()
   scrollToBottom()
 }
 
@@ -577,7 +607,7 @@ onBeforeUnmount(() => {
   EventBus.$off('sendToAIInput', handleExternalInput)
   window.removeEventListener('resize', handleViewportResize)
   removeWindowInteractionListeners()
-  bodyResizeObserver?.disconnect()
+  stopStickyBottom()
 })
 
 function handleSend(text) {
@@ -703,26 +733,6 @@ async function handleClearSessions() {
   }
 }
 
-function scrollToBottom() {
-  autoFollow = true
-  nextTick(() => {
-    const wrap = scrollRef.value?.wrapRef
-    if (!wrap) return
-    wrap.scrollTop = wrap.scrollHeight
-    lastScrollTop = wrap.scrollTop
-    isAtBottom.value = true
-  })
-}
-
-function handleScroll({ scrollTop }) {
-  const wrap = scrollRef.value?.wrapRef
-  if (!wrap) return
-  isAtBottom.value = wrap.scrollHeight - scrollTop - wrap.clientHeight < 40
-  // 程序化下滚的事件可能晚于下一次内容增高；只有真正向上滚才退出跟随。
-  if (scrollTop < lastScrollTop) autoFollow = false
-  else if (isAtBottom.value) autoFollow = true
-  lastScrollTop = scrollTop
-}
 </script>
 
 <style lang="scss" scoped>
@@ -913,9 +923,18 @@ function handleScroll({ scrollTop }) {
     }
   }
 
-  .agent_body {
+  .agent_transcript {
+    position: relative;
     flex: 1;
     min-height: 0;
+  }
+
+  .agent_body {
+    height: 100%;
+
+    :deep(.el-scrollbar__wrap) {
+      overflow-anchor: none;
+    }
 
     .body_inner {
       padding: 12px;
@@ -925,8 +944,31 @@ function handleScroll({ scrollTop }) {
   .to_bottom {
     position: absolute;
     right: 16px;
-    bottom: 130px;
+    bottom: 12px;
     z-index: 2;
+  }
+
+  .scroll_bottom_sentinel {
+    height: 1px;
+    pointer-events: none;
+  }
+
+  .approval_dock {
+    display: flex;
+    flex: 0 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    max-height: min(48%, 320px);
+    padding: 6px 10px;
+    border-top: 1px solid var(--el-border-color);
+    background-color: var(--el-bg-color);
+  }
+
+  .approval_queue_count {
+    flex: none;
+    padding: 0 2px 4px;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
   }
 
   .empty_state {

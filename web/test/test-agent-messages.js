@@ -9,6 +9,7 @@
  */
 
 import {
+  applyApprovalResponse,
   applyEvent,
   createUserMessage,
   findPreviousUserMessage,
@@ -17,7 +18,6 @@ import {
   messageText,
   normalizeToolOutput,
   emptyUsage,
-  removeApproval,
   ToolStatus
 } from '../src/composables/agentMessages.js'
 import {
@@ -178,8 +178,9 @@ expect(
   expect('审批操作类型', state.pendingApprovals[0].effect, 'delete')
   expect('审批目标', state.pendingApprovals[0].targets, ['nginx',])
 
-  removeApproval(state, 'r1')
+  applyApprovalResponse(state, 'r1', true)
   expect('审批出队', state.pendingApprovals.length, 0)
+  expect('批准后等待工具结果', state.messages[0].parts[0].status, ToolStatus.RUNNING)
 }
 
 {

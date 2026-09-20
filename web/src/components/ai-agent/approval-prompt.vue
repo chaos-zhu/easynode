@@ -1,5 +1,5 @@
 <template>
-  <div class="approval_prompt" :class="{ 'is_dark': isDark }">
+  <div class="approval_prompt" :class="{ 'is_dark': isDark, 'is_docked': docked }">
     <div class="prompt_head">
       <el-icon class="head_icon"><WarnTriangleFilled /></el-icon>
       <span class="head_title">需要你确认</span>
@@ -136,6 +136,10 @@ const props = defineProps({
   timeoutMs: {
     type: Number,
     default: 5 * 60 * 1000
+  },
+  docked: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -232,6 +236,65 @@ function formatBytes(value) {
 
   &.is_dark {
     background-color: rgba(230, 162, 60, 0.12);
+  }
+
+  &.is_docked {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    margin: 0;
+
+    .prompt_head {
+      flex: none;
+      padding: 6px 10px;
+    }
+
+    .prompt_body {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: none;
+      padding: 6px 10px 0;
+
+      .prompt_desc {
+        gap: 5px;
+        margin-bottom: 6px;
+        line-height: 1.45;
+
+        .effect_tag {
+          padding: 0 6px;
+          line-height: 1.5;
+        }
+      }
+
+      .sensitive_notice,
+      .prompt_detail_wrap,
+      .prompt_targets {
+        margin-bottom: 6px;
+      }
+
+      .sensitive_notice,
+      .prompt_risk {
+        padding: 6px 8px;
+      }
+
+      .prompt_detail {
+        max-height: 96px;
+        padding: 6px 36px 6px 8px;
+        line-height: 1.45;
+      }
+
+      .write_preview .write_diff {
+        max-height: 140px;
+      }
+    }
+
+    .prompt_actions {
+      flex: none;
+      gap: 6px;
+      margin-top: 6px;
+      padding: 6px 10px;
+    }
   }
 
   .prompt_head {
