@@ -325,7 +325,7 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
                   ? ReorderableListView.builder(
                       buildDefaultDragHandles: false,
                       proxyDecorator: buildAppReorderProxy,
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       itemCount: filtered.length,
                       onReorderItem: _reorder,
                       itemBuilder: (context, index) {
@@ -339,7 +339,7 @@ class _ScriptsTabState extends ConsumerState<ScriptsTab> {
                     )
                   : ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       children: [
                         if (scripts.isEmpty)
                           _MessageState(message: l.tr('scripts.emptyHint'))

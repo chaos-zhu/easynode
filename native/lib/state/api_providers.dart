@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api/api_client.dart';
 import '../features/scripts/script_repository.dart';
+import '../features/scheduled_tasks/scheduled_task_repository.dart';
 import '../features/servers/server_repository.dart';
 import '../features/settings/settings_repository.dart';
 import 'auth_notifier.dart';
@@ -38,6 +39,12 @@ final scriptRepositoryProvider = Provider<ScriptRepository>((ref) {
     throw StateError('scriptRepositoryProvider read while signed out');
   }
   return ApiScriptRepository(apiClient: api);
+});
+
+final scheduledTaskRepositoryProvider = Provider<ScheduledTaskRepository>((
+  ref,
+) {
+  return ApiScheduledTaskRepository(apiClient: ref.watch(apiClientProvider));
 });
 
 /// Repository for the Settings sub-pages — account, plus, sessions, proxy

@@ -820,7 +820,7 @@ class _ServersTabState extends ConsumerState<ServersTab> {
         }
       }
     }
-    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 110)));
+    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 24)));
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),

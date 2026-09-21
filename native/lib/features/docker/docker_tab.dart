@@ -215,7 +215,7 @@ class _DockerPanelState extends ConsumerState<DockerPanel> {
                     if (session == null) {
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 72, 16, 110),
+                        padding: const EdgeInsets.fromLTRB(16, 72, 16, 24),
                         children: [
                           SizedBox(
                             height: MediaQuery.sizeOf(context).height * 0.58,
@@ -475,7 +475,7 @@ class _DockerContainerListState extends State<_DockerContainerList> {
         Expanded(
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             itemBuilder: (context, index) {
               final container = session.containers[index];
               return _DockerContainerCard(
@@ -1178,7 +1178,7 @@ class _DockerConnectingView extends StatelessWidget {
     final c = context.colors;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 96, 16, 110),
+      padding: const EdgeInsets.fromLTRB(16, 96, 16, 24),
       children: [
         Center(
           child: Column(
@@ -1221,7 +1221,7 @@ class _DockerMessageList extends StatelessWidget {
     final c = context.colors;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(24, 96, 24, 110),
+      padding: const EdgeInsets.fromLTRB(24, 96, 24, 24),
       children: [
         if (icon != null) ...[
           Icon(icon, size: 44, color: c.softMuted),

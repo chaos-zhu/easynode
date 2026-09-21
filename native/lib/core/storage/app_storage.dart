@@ -266,16 +266,24 @@ class AppStorage {
     'sftp',
     'docker',
     'scripts',
+    'scheduledTasks',
     'settings',
   ];
 
   List<String> get tabOrder {
     final stored = _prefs.getStringList(_keyTabOrder);
-    if (stored == null || stored.length != defaultTabOrder.length) {
-      return defaultTabOrder;
+    if (stored == null) return defaultTabOrder;
+    final known = stored.where(defaultTabOrder.contains).toSet().toList();
+    for (final key in defaultTabOrder) {
+      if (known.contains(key)) continue;
+      final settingsIndex = known.indexOf('settings');
+      if (key == 'scheduledTasks' && settingsIndex >= 0) {
+        known.insert(settingsIndex, key);
+      } else {
+        known.add(key);
+      }
     }
-    if (!defaultTabOrder.every(stored.contains)) return defaultTabOrder;
-    return stored;
+    return known;
   }
 
   Future<void> setTabOrder(List<String> v) =>

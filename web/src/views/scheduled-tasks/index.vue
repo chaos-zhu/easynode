@@ -340,6 +340,7 @@ const { proxy: { $api, $message, $messageBox, $store } } = getCurrentInstance()
 const { isMobileScreen } = useMobileWidth()
 const maxScriptBytes = 256 * 1024
 const runStatuses = ['running', 'success', 'partial', 'failed', 'timeout', 'cancelled', 'skipped', 'interrupted',]
+const completedRunStatuses = new Set(['success', 'partial', 'failed', 'timeout', 'cancelled', 'skipped', 'interrupted',])
 const timezones = ['Asia/Shanghai', 'UTC', 'Asia/Hong_Kong', 'Asia/Tokyo', 'Europe/London', 'America/New_York',]
 const cronSuggestions = [
   { label: '每分钟', value: '* * * * *' },
@@ -575,15 +576,23 @@ async function openRun(row) {
   const generation = ++runRequestGeneration
   activeRunId = runId
   runDrawerVisible.value = true
-  runDetailLoading.value = true
+  runDetailLoading.value = runDetail.value?.id !== runId
   clearPoll()
+  let shouldPoll = runDetail.value?.id === runId && !completedRunStatuses.has(runDetail.value.status)
   try {
     const { data } = await $api.getScheduledTaskRun(runId)
     if (generation !== runRequestGeneration || !runDrawerVisible.value || activeRunId !== runId) return
     runDetail.value = data
-    if (data.status === 'running') pollTimer = setTimeout(() => openRun({ id: data.id }), 1800)
+    shouldPoll = !completedRunStatuses.has(data.status)
+  } catch (error) {
+    if (runDetail.value?.id !== runId) throw error
   } finally {
-    if (generation === runRequestGeneration) runDetailLoading.value = false
+    if (generation === runRequestGeneration) {
+      runDetailLoading.value = false
+      if (runDrawerVisible.value && activeRunId === runId && shouldPoll) {
+        pollTimer = setTimeout(() => openRun({ id: runId }), 3000)
+      }
+    }
   }
 }
 
@@ -595,7 +604,7 @@ async function stopRun() {
     $message.success('已提交停止请求')
     if (runDrawerVisible.value && activeRunId === runId) {
       clearPoll()
-      pollTimer = setTimeout(() => openRun({ id: runId }), 500)
+      pollTimer = setTimeout(() => openRun({ id: runId }), 3000)
     }
   } finally {
     stopping.value = false

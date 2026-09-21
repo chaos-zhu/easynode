@@ -217,7 +217,7 @@ class _SftpPanelState extends ConsumerState<SftpPanel> {
                     if (session == null) {
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 72, 16, 110),
+                        padding: const EdgeInsets.fromLTRB(16, 72, 16, 24),
                         children: [
                           SizedBox(
                             height: MediaQuery.sizeOf(context).height * 0.58,
@@ -326,7 +326,7 @@ class _SftpConnectedView extends StatelessWidget {
                   else
                     ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       itemCount: session.entries.length,
                       itemBuilder: (context, index) {
                         final entry = session.entries[index];
@@ -2207,7 +2207,7 @@ class _SftpConnectingView extends StatelessWidget {
     final c = context.colors;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 120, 16, 110),
+      padding: const EdgeInsets.fromLTRB(16, 120, 16, 24),
       children: [
         Center(
           child: Column(

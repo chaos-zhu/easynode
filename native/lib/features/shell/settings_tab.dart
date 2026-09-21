@@ -378,152 +378,162 @@ class SettingsTab extends ConsumerWidget {
       backgroundColor: context.colors.canvas,
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          onRefresh: () => _refresh(context, ref),
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: TabHeader(
-                  title: l.tr('settings.title'),
-                  actions: [
-                    if (versionLabel.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Text(
-                          versionLabel,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: context.colors.softMuted,
-                            letterSpacing: 0.2,
+        child: Column(
+          children: [
+            TabHeader(
+              title: l.tr('settings.title'),
+              actions: [
+                if (versionLabel.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      versionLabel,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: context.colors.softMuted,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                if (!plusActive && !isIosAppStoreCompliance)
+                  _SettingsBellButton(
+                    hasDiscount: hasDiscount,
+                    onTap: () => _showNotifications(context, discount),
+                  ),
+              ],
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => _refresh(context, ref),
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _ProfileCard(
+                        username: session?.username ?? '-',
+                        serverAddress: session?.serverAddress ?? '',
+                        hostCount: hostCount,
+                        credentialCount: credentialCount,
+                        scriptCount: scriptCount,
+                        plusActive: plusActive,
+                        onPlusTap: () => _showPlusServerManagedTip(context),
+                        onLogoutTap: () => _confirmLogout(context, ref),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: SettingsSection(
+                        title: l.tr('settings.section.security'),
+                        children: [
+                          SettingsRow(
+                            icon: Icons.lock_outline,
+                            title: l.tr('settings.account.title'),
+                            subtitle: l.tr('settings.account.subtitle'),
+                            onTap: () =>
+                                _push(context, const AccountSecurityPage()),
                           ),
-                        ),
+                          SettingsRow(
+                            icon: Icons.devices_outlined,
+                            title: l.tr('settings.sessions.title'),
+                            subtitle: l.tr('settings.sessions.subtitle'),
+                            onTap: () => _push(context, const SessionsPage()),
+                          ),
+                          SettingsRow(
+                            icon: Icons.shield_outlined,
+                            title: l.tr('settings.ipAccess.title'),
+                            subtitle: l.tr('settings.ipAccess.subtitle'),
+                            onTap: () => _push(context, const IpAccessPage()),
+                          ),
+                        ],
                       ),
-                    if (!plusActive && !isIosAppStoreCompliance)
-                      _SettingsBellButton(
-                        hasDiscount: hasDiscount,
-                        onTap: () => _showNotifications(context, discount),
+                    ),
+                    SliverToBoxAdapter(
+                      child: SettingsSection(
+                        title: l.tr('settings.section.connection'),
+                        children: [
+                          SettingsRow(
+                            icon: Icons.vpn_key_outlined,
+                            title: l.tr('settings.credentials.title'),
+                            subtitle: l.tr('settings.credentials.subtitle'),
+                            onTap: () =>
+                                _push(context, const CredentialsPage()),
+                          ),
+                          SettingsRow(
+                            icon: Icons.cloud_outlined,
+                            title: l.tr('settings.proxy.title'),
+                            subtitle: l.tr('settings.proxy.subtitle'),
+                            onTap: () => _push(context, const ProxyPage()),
+                          ),
+                        ],
                       ),
-                  ],
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: _ProfileCard(
-                  username: session?.username ?? '-',
-                  serverAddress: session?.serverAddress ?? '',
-                  hostCount: hostCount,
-                  credentialCount: credentialCount,
-                  scriptCount: scriptCount,
-                  plusActive: plusActive,
-                  onPlusTap: () => _showPlusServerManagedTip(context),
-                  onLogoutTap: () => _confirmLogout(context, ref),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: SettingsSection(
-                  title: l.tr('settings.section.security'),
-                  children: [
-                    SettingsRow(
-                      icon: Icons.lock_outline,
-                      title: l.tr('settings.account.title'),
-                      subtitle: l.tr('settings.account.subtitle'),
-                      onTap: () => _push(context, const AccountSecurityPage()),
                     ),
-                    SettingsRow(
-                      icon: Icons.devices_outlined,
-                      title: l.tr('settings.sessions.title'),
-                      subtitle: l.tr('settings.sessions.subtitle'),
-                      onTap: () => _push(context, const SessionsPage()),
-                    ),
-                    SettingsRow(
-                      icon: Icons.shield_outlined,
-                      title: l.tr('settings.ipAccess.title'),
-                      subtitle: l.tr('settings.ipAccess.subtitle'),
-                      onTap: () => _push(context, const IpAccessPage()),
-                    ),
-                  ],
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: SettingsSection(
-                  title: l.tr('settings.section.connection'),
-                  children: [
-                    SettingsRow(
-                      icon: Icons.vpn_key_outlined,
-                      title: l.tr('settings.credentials.title'),
-                      subtitle: l.tr('settings.credentials.subtitle'),
-                      onTap: () => _push(context, const CredentialsPage()),
-                    ),
-                    SettingsRow(
-                      icon: Icons.cloud_outlined,
-                      title: l.tr('settings.proxy.title'),
-                      subtitle: l.tr('settings.proxy.subtitle'),
-                      onTap: () => _push(context, const ProxyPage()),
-                    ),
-                  ],
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: SettingsSection(
-                  title: l.tr('settings.section.preferences'),
-                  children: [
-                    SettingsRow(
-                      key: const Key('settings-ai-agent'),
-                      icon: Icons.smart_toy_outlined,
-                      title: l.tr('agent.settings'),
-                      subtitle: l.tr('agent.settings.subtitle'),
-                      onTap: () => _push(context, const AiAgentSettingsPage()),
-                    ),
-                    SettingsRow(
-                      key: const Key('settings-language'),
-                      icon: Icons.translate,
-                      title: l.tr('settings.language'),
-                      subtitle: _languageSubtitle(context, locale),
-                      onTap: () => _pickLanguage(context, ref),
-                    ),
-                    SettingsRow(
-                      icon: Icons.swap_vert_outlined,
-                      title: l.tr('settings.tabOrder.title'),
-                      subtitle: l.tr('settings.tabOrder.subtitle'),
-                      onTap: () => _showTabOrderDialog(context, ref),
-                    ),
-                    SettingsRow(
-                      icon: Icons.palette_outlined,
-                      title: l.tr('settings.theme.title'),
-                      subtitle: _themeSubtitle(
-                        l,
-                        ref.watch(colorThemeProvider),
-                        ref.watch(themeModeProvider),
+                    SliverToBoxAdapter(
+                      child: SettingsSection(
+                        title: l.tr('settings.section.preferences'),
+                        children: [
+                          SettingsRow(
+                            key: const Key('settings-ai-agent'),
+                            icon: Icons.smart_toy_outlined,
+                            title: l.tr('agent.settings'),
+                            subtitle: l.tr('agent.settings.subtitle'),
+                            onTap: () =>
+                                _push(context, const AiAgentSettingsPage()),
+                          ),
+                          SettingsRow(
+                            key: const Key('settings-language'),
+                            icon: Icons.translate,
+                            title: l.tr('settings.language'),
+                            subtitle: _languageSubtitle(context, locale),
+                            onTap: () => _pickLanguage(context, ref),
+                          ),
+                          SettingsRow(
+                            icon: Icons.navigation_outlined,
+                            title: l.tr('settings.tabOrder.title'),
+                            subtitle: l.tr('settings.tabOrder.subtitle'),
+                            onTap: () => _showTabOrderDialog(context, ref),
+                          ),
+                          SettingsRow(
+                            icon: Icons.palette_outlined,
+                            title: l.tr('settings.theme.title'),
+                            subtitle: _themeSubtitle(
+                              l,
+                              ref.watch(colorThemeProvider),
+                              ref.watch(themeModeProvider),
+                            ),
+                            onTap: () => _showThemePicker(context, ref),
+                          ),
+                          SettingsRow(
+                            key: const Key('settings-check-update'),
+                            icon: Icons.system_update_alt_outlined,
+                            title: l.tr('settings.update.title'),
+                            subtitle:
+                                updateState.status == AppUpdateStatus.available
+                                ? l.trf('settings.update.availableSubtitle', [
+                                    updateState.result!.info.latestVersion,
+                                  ])
+                                : l.tr('settings.update.subtitle'),
+                            trailing: updateState.isChecking
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : null,
+                            onTap: updateState.isChecking
+                                ? null
+                                : () => _checkForUpdates(context, ref),
+                          ),
+                        ],
                       ),
-                      onTap: () => _showThemePicker(context, ref),
                     ),
-                    SettingsRow(
-                      key: const Key('settings-check-update'),
-                      icon: Icons.system_update_alt_outlined,
-                      title: l.tr('settings.update.title'),
-                      subtitle: updateState.status == AppUpdateStatus.available
-                          ? l.trf('settings.update.availableSubtitle', [
-                              updateState.result!.info.latestVersion,
-                            ])
-                          : l.tr('settings.update.subtitle'),
-                      trailing: updateState.isChecking
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : null,
-                      onTap: updateState.isChecking
-                          ? null
-                          : () => _checkForUpdates(context, ref),
-                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
                   ],
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 110)),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -926,6 +936,7 @@ class _TabOrderDialog extends StatefulWidget {
   static const _tabMeta = <String, (IconData, String)>{
     'settings': (Icons.settings_outlined, 'tabs.settings'),
     'scripts': (Icons.article_outlined, 'tabs.scripts'),
+    'scheduledTasks': (Icons.schedule_outlined, 'tabs.scheduledTasks'),
     'servers': (Icons.monitor_outlined, 'tabs.servers'),
     'sftp': (Icons.folder_outlined, 'tabs.sftp'),
     'docker': (Icons.view_in_ar_outlined, 'tabs.docker'),
@@ -999,66 +1010,68 @@ class _TabOrderDialogState extends State<_TabOrderDialog> {
                 style: TextStyle(color: c.softMuted, fontSize: 12),
               ),
             ),
-            ReorderableListView.builder(
-              shrinkWrap: true,
-              buildDefaultDragHandles: false,
-              proxyDecorator: (child, index, animation) {
-                return AnimatedBuilder(
-                  animation: animation,
-                  builder: (context, child) => Material(
-                    elevation: 4,
-                    color: c.card,
-                    borderRadius: BorderRadius.circular(10),
-                    child: child,
-                  ),
-                  child: child,
-                );
-              },
-              itemCount: _order.length,
-              onReorderItem: (oldIndex, newIndex) {
-                setState(() {
-                  final item = _order.removeAt(oldIndex);
-                  _order.insert(newIndex, item);
-                });
-              },
-              itemBuilder: (context, index) {
-                final key = _order[index];
-                final meta = _TabOrderDialog._tabMeta[key]!;
-                final isHome = key == _homeTab;
-                return ListTile(
-                  key: ValueKey(key),
-                  onTap: () => setState(() => _homeTab = key),
-                  leading: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: c.chip,
+            Flexible(
+              child: ReorderableListView.builder(
+                shrinkWrap: true,
+                buildDefaultDragHandles: false,
+                proxyDecorator: (child, index, animation) {
+                  return AnimatedBuilder(
+                    animation: animation,
+                    builder: (context, child) => Material(
+                      elevation: 4,
+                      color: c.card,
                       borderRadius: BorderRadius.circular(10),
+                      child: child,
                     ),
-                    child: Icon(meta.$1, size: 18, color: c.primary),
-                  ),
-                  title: Row(
-                    children: [
-                      Text(
-                        l.tr(meta.$2),
-                        style: TextStyle(
-                          color: c.text,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    child: child,
+                  );
+                },
+                itemCount: _order.length,
+                onReorderItem: (oldIndex, newIndex) {
+                  setState(() {
+                    final item = _order.removeAt(oldIndex);
+                    _order.insert(newIndex, item);
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final key = _order[index];
+                  final meta = _TabOrderDialog._tabMeta[key]!;
+                  final isHome = key == _homeTab;
+                  return ListTile(
+                    key: ValueKey(key),
+                    onTap: () => setState(() => _homeTab = key),
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: c.chip,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      if (isHome) ...[
-                        const SizedBox(width: 6),
-                        Icon(Icons.home_rounded, size: 15, color: c.primary),
+                      child: Icon(meta.$1, size: 18, color: c.primary),
+                    ),
+                    title: Row(
+                      children: [
+                        Text(
+                          l.tr(meta.$2),
+                          style: TextStyle(
+                            color: c.text,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (isHome) ...[
+                          const SizedBox(width: 6),
+                          Icon(Icons.home_rounded, size: 15, color: c.primary),
+                        ],
                       ],
-                    ],
-                  ),
-                  trailing: ReorderableDragStartListener(
-                    index: index,
-                    child: Icon(Icons.drag_handle, color: c.softMuted),
-                  ),
-                );
-              },
+                    ),
+                    trailing: ReorderableDragStartListener(
+                      index: index,
+                      child: Icon(Icons.drag_handle, color: c.softMuted),
+                    ),
+                  );
+                },
+              ),
             ),
             const SizedBox(height: 8),
             Padding(

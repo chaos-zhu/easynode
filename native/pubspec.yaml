@@ -11,6 +11,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: any
+  timezone: ^0.10.1
   dio: ^5.7.0
   crypto: ^3.0.7
   cookie_jar: ^4.0.8
