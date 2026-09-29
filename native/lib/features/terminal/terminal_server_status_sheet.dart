@@ -247,7 +247,6 @@ class _ProgressSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final color = _usageColor(c, percentage);
-    final safePercentage = percentage.clamp(0.0, 100.0);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -268,7 +267,7 @@ class _ProgressSection extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: _buildProgressBar(c, color, safePercentage),
+                child: _StatusProgressBar(percentage: percentage, color: color),
               ),
               const SizedBox(width: 8),
               if (detail != null)
@@ -286,38 +285,62 @@ class _ProgressSection extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildProgressBar(AppColorTheme c, Color color, double safePercentage) {
+class _StatusProgressBar extends StatelessWidget {
+  const _StatusProgressBar({required this.percentage, required this.color});
+
+  final double percentage;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final safePercentage = percentage.clamp(0.0, 100.0);
     return SizedBox(
       height: 18,
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: c.border,
-              borderRadius: BorderRadius.circular(9),
-            ),
-          ),
-          FractionallySizedBox(
-            widthFactor: safePercentage / 100,
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(9),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final minFillWidth = constraints.maxWidth.clamp(0.0, 18.0);
+          final fillWidth = (constraints.maxWidth * safePercentage / 100).clamp(
+            minFillWidth,
+            constraints.maxWidth,
+          );
+          return Stack(
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: c.border,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: const SizedBox.expand(),
               ),
-            ),
-          ),
-          Center(
-            child: Text(
-              '${safePercentage.toStringAsFixed(1)}%',
-              style: TextStyle(
-                color: c.text,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+              if (safePercentage > 0)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: fillWidth,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  ),
+                ),
+              Center(
+                child: Text(
+                  '${safePercentage.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    color: c.text,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -401,7 +424,6 @@ class _DriveProgressRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final color = _usageColor(c, drive.usedPercentage);
-    final safePercentage = drive.usedPercentage.clamp(0.0, 100.0);
     return Tooltip(
       message: '${drive.filesystem}  ${drive.mountedOn}',
       child: Container(
@@ -421,37 +443,9 @@ class _DriveProgressRow extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: SizedBox(
-                height: 18,
-                child: Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: c.border,
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                    ),
-                    FractionallySizedBox(
-                      widthFactor: safePercentage / 100,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Text(
-                        '${safePercentage.toStringAsFixed(1)}%',
-                        style: TextStyle(
-                          color: c.text,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              child: _StatusProgressBar(
+                percentage: drive.usedPercentage,
+                color: color,
               ),
             ),
             const SizedBox(width: 8),

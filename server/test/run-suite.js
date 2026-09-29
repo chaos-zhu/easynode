@@ -16,6 +16,7 @@ const suites = {
     'test-auth-session.js',
     'test-ip-access.js',
     'test-ping-output.js',
+    'test-free-output.js',
     'test-sftp-cache-path.js',
     'test-rsync-command.js',
     'test-cookie-config.js',

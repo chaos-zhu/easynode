@@ -18,17 +18,29 @@ void main() {
     );
   });
 
-  test('parses memory and swap from free output', () {
+  test('parses memory and swap from free -k output', () {
     final parsed = ServerStatusParser.parseMemory('''
               total        used        free      shared  buff/cache   available
-Mem:           7987        1996        1000          11        4991        5600
-Swap:          2047         512        1535
+Mem:        8178688     2043904     1024000       11264     5110784     5734400
+Swap:       2096128      524288     1571840
 ''');
 
     expect(parsed.memInfo.totalMemMb, 7987);
     expect(parsed.memInfo.usedMemMb, 1996);
     expect(parsed.memInfo.usedMemPercentage, closeTo(24.99, 0.01));
     expect(parsed.swapInfo.swapPercentage, closeTo(25.01, 0.01));
+  });
+
+  test('converts OpenWrt BusyBox free values from KiB to MiB', () {
+    final parsed = ServerStatusParser.parseMemory('''
+              total        used        free      shared  buff/cache   available
+Mem:         238128       71380      113900        1584       52848      115504
+Swap:         78844           0       78844
+''');
+
+    expect(parsed.memInfo.totalMemMb, 233);
+    expect(parsed.memInfo.usedMemMb, 70);
+    expect(parsed.swapInfo.swapTotal, 77);
   });
 
   test('filters and parses physical drives', () {

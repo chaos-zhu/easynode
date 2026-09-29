@@ -3,6 +3,7 @@ const { Client: SSHClient } = ssh2Module
 import { createTerminal } from './terminal.js'
 import { createSecureWs } from '../utils/ws-tool.js'
 import { ping } from '../utils/tools.js'
+import { parseFreeOutput } from '../utils/parse-free-output.js'
 const monitorMap = new Map() // key -> { sockets: Set, statusData, stop }
 const pendingConnections = new Map() // key -> Promise，跟踪正在创建的连接
 const pendingRestarts = new Map() // key -> Promise，防止重复重建监控 SSH
@@ -567,9 +568,9 @@ export default (httpServer) => {
       }
     }
 
-    // 获取 cgroup 内存/交换分区限制信息（容器化环境下 free -m 反映的是宿主机数据，而非容器配额）
+    // 获取 cgroup 内存/交换分区限制信息（容器化环境下 free -k 反映的是宿主机数据，而非容器配额）
     // 一次命令拿全 5 行：version, memTotal, memUsed, swapTotal, swapUsed，减少 SSH 往返
-    // 返回 null 表示未容器化 / 权限不足 / 无法确定限制，调用方应继续使用 free -m 的结果兜底
+    // 返回 null 表示未容器化 / 权限不足 / 无法确定限制，调用方应继续使用 free -k 的结果兜底
     const getCgroupMemoryInfo = async () => {
       try {
         const cmd = 'if [ -f /sys/fs/cgroup/memory.max ]; then echo v2; ' +
@@ -604,7 +605,7 @@ export default (httpServer) => {
 
         // 处理交换分区限制：只支持 cgroup v2 的 memory.swap.max/current（swap 专属限制）
         // v1 只有 memsw（内存+交换合并计数），需要减法推导且依赖内核 swapaccount 参数，
-        // 可靠性不足，这里不做处理，交由 free -m 的宿主机数据兜底
+        // 可靠性不足，这里不做处理，交由 free -k 的宿主机数据兜底
         let swapTotalBytes = null
         let swapUsedBytes = null
         if (swapTotalRaw && swapTotalRaw !== 'max' && swapTotalRaw !== 'na') {
@@ -630,92 +631,10 @@ export default (httpServer) => {
       }
 
       try {
-        // 检查是否为BusyBox环境
-        let freeCommand = '\\free -m'
-        let isBusyBox = false
+        const freeOutput = await executeCommand('\\free -k')
+        let { memInfo, swapInfo } = parseFreeOutput(freeOutput)
 
-        try {
-          const busyboxCheck = await executeCommand('busybox --help')
-          if (busyboxCheck.includes('BusyBox')) {
-            freeCommand = 'free'
-            isBusyBox = true
-          }
-        } catch (err) {
-          // 如果检查失败，默认使用 free -m
-        }
-
-        const freeOutput = await executeCommand(freeCommand)
-        const lines = freeOutput.split('\n')
-
-        // 使用更鲁棒的方式查找内存和交换空间行
-        const memLine = lines.find(line => line.trim().startsWith('Mem:'))
-        const swapLine = lines.find(line => line.trim().startsWith('Swap:'))
-
-        let memInfo = defaultReturn.memInfo
-        let swapInfo = defaultReturn.swapInfo
-
-        // 处理内存信息
-        if (memLine) {
-          const parts = memLine.trim().split(/\s+/)
-          if (parts.length >= 3) {
-            let totalVal = parseInt(parts[1], 10)
-            let usedVal = parseInt(parts[2], 10)
-            let freeVal = parts[3] ? parseInt(parts[3], 10) : (totalVal - usedVal)
-
-            // BusyBox环境下需要从KB转换为MB
-            if (isBusyBox) {
-              if (!isNaN(totalVal)) totalVal = Math.round(totalVal / 1024)
-              if (!isNaN(usedVal)) usedVal = Math.round(usedVal / 1024)
-              if (!isNaN(freeVal)) freeVal = Math.round(freeVal / 1024)
-            }
-
-            if (!isNaN(totalVal) && !isNaN(usedVal)) {
-              const usedMemPercentage = totalVal > 0 ? parseFloat(((usedVal / totalVal) * 100).toFixed(2)) : 0
-              const freeMemPercentage = totalVal > 0 ? parseFloat(((freeVal / totalVal) * 100).toFixed(2)) : 0
-
-              memInfo = {
-                totalMemMb: totalVal,
-                usedMemMb: usedVal,
-                freeMemMb: freeVal,
-                usedMemPercentage,
-                freeMemPercentage
-              }
-            }
-          }
-        }
-
-        // 处理交换空间信息
-        if (swapLine) {
-          const parts = swapLine.trim().split(/\s+/)
-          if (parts.length >= 3) {
-            let totalVal = parseInt(parts[1], 10)
-            let usedVal = parseInt(parts[2], 10)
-            let freeVal = parts[3] ? parseInt(parts[3], 10) : (totalVal - usedVal)
-
-            // BusyBox环境下需要从KB转换为MB
-            if (isBusyBox) {
-              if (!isNaN(totalVal)) totalVal = Math.round(totalVal / 1024)
-              if (!isNaN(usedVal)) usedVal = Math.round(usedVal / 1024)
-              if (!isNaN(freeVal)) freeVal = Math.round(freeVal / 1024)
-            }
-
-            if (!isNaN(totalVal) && !isNaN(usedVal)) {
-              const swapPercentage = totalVal > 0 ? ((usedVal / totalVal) * 100).toFixed(1) : '0'
-
-              swapInfo = {
-                swapTotal: totalVal,
-                swapUsed: usedVal,
-                swapFree: freeVal,
-                swapPercentage
-              }
-            }
-          }
-        } else {
-          // 没有交换空间
-          swapInfo = { swapTotal: 0, swapUsed: 0, swapFree: 0, swapPercentage: '0' }
-        }
-
-        // 容器化环境下，free -m 反映的是宿主机数据而非容器配额；
+        // 容器化环境下，free -k 反映的是宿主机数据而非容器配额；
         // 若 cgroup 限制存在且明显比宿主机数据更小（说明确实被限制了），则以 cgroup 数据为准
         try {
           const cgroupMem = await getCgroupMemoryInfo()
@@ -759,7 +678,7 @@ export default (httpServer) => {
 
         // 检查是否是关键错误
         if (isServerCriticalError(error.message)) {
-          logger.error(`执行命令失败：free -m: ${ error.message }`)
+          logger.error(`执行命令失败：free -k: ${ error.message }`)
         }
 
         return defaultReturn

@@ -327,12 +327,12 @@ class ServerStatusMonitorManager extends ChangeNotifier {
 
       if (!runtime.shellReady) return;
 
-      // Group 2: Memory (+ cgroup 内存/交换分区限制，容器化环境下 free -m 反映的是宿主机数据)
+      // Group 2: Memory (+ cgroup 内存/交换分区限制，容器化环境下 free -k 反映的是宿主机数据)
       try {
         const memSep = '---EASYNODE_MEMSEP---';
         final output = await _executeShellCommand(
           runtime,
-          'free -m\necho $memSep'
+          'free -k\necho $memSep'
           '\nif [ -f /sys/fs/cgroup/memory.max ]; then echo v2; '
           'cat /sys/fs/cgroup/memory.max; cat /sys/fs/cgroup/memory.current; '
           'cat /sys/fs/cgroup/memory.swap.max 2>/dev/null || echo na; '

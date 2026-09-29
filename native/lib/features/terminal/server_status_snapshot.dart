@@ -195,41 +195,47 @@ class ServerStatusParser {
         .firstOrNull;
     final memParts = memLine?.trim().split(RegExp(r'\s+')) ?? const [];
     final swapParts = swapLine?.trim().split(RegExp(r'\s+')) ?? const [];
-    final totalMem = _parseIntAt(memParts, 1);
-    final usedMem = _parseIntAt(memParts, 2);
-    final freeMem = _parseIntAt(
+    final totalMemKb = _parseIntAt(memParts, 1);
+    final usedMemKb = _parseIntAt(memParts, 2);
+    final freeMemKb = _parseIntAt(
       memParts,
       3,
-      fallback: max(0, totalMem - usedMem),
+      fallback: max(0, totalMemKb - usedMemKb),
     );
-    final totalSwap = _parseIntAt(swapParts, 1);
-    final usedSwap = _parseIntAt(swapParts, 2);
-    final freeSwap = _parseIntAt(
+    final totalSwapKb = _parseIntAt(swapParts, 1);
+    final usedSwapKb = _parseIntAt(swapParts, 2);
+    final freeSwapKb = _parseIntAt(
       swapParts,
       3,
-      fallback: max(0, totalSwap - usedSwap),
+      fallback: max(0, totalSwapKb - usedSwapKb),
     );
     return MemorySwapInfo(
       memInfo: MemoryInfo(
-        totalMemMb: totalMem,
-        usedMemMb: usedMem,
-        freeMemMb: freeMem,
-        usedMemPercentage: totalMem > 0 ? _round2(usedMem / totalMem * 100) : 0,
-        freeMemPercentage: totalMem > 0 ? _round2(freeMem / totalMem * 100) : 0,
+        totalMemMb: (totalMemKb / 1024).round(),
+        usedMemMb: (usedMemKb / 1024).round(),
+        freeMemMb: (freeMemKb / 1024).round(),
+        usedMemPercentage: totalMemKb > 0
+            ? _round2(usedMemKb / totalMemKb * 100)
+            : 0,
+        freeMemPercentage: totalMemKb > 0
+            ? _round2(freeMemKb / totalMemKb * 100)
+            : 0,
       ),
       swapInfo: SwapInfo(
-        swapTotal: totalSwap,
-        swapUsed: usedSwap,
-        swapFree: freeSwap,
-        swapPercentage: totalSwap > 0 ? _round2(usedSwap / totalSwap * 100) : 0,
+        swapTotal: (totalSwapKb / 1024).round(),
+        swapUsed: (usedSwapKb / 1024).round(),
+        swapFree: (freeSwapKb / 1024).round(),
+        swapPercentage: totalSwapKb > 0
+            ? _round2(usedSwapKb / totalSwapKb * 100)
+            : 0,
       ),
     );
   }
 
   // 解析 cgroup 内存/交换分区限制信息（一次命令拿全 5 行：
   // version, memTotal, memUsed, swapTotal, swapUsed）。
-  // 容器化环境下 free -m 反映的是宿主机数据而非容器配额，需要 cgroup 数据来修正。
-  // 返回 null 表示未容器化 / 权限不足 / 无法确定限制，调用方应继续用 free -m 的结果兜底。
+  // 容器化环境下 free -k 反映的是宿主机数据而非容器配额，需要 cgroup 数据来修正。
+  // 返回 null 表示未容器化 / 权限不足 / 无法确定限制，调用方应继续用 free -k 的结果兜底。
   static CgroupMemoryInfo? parseCgroupMemory(String output) {
     final lines = output
         .split('\n')
@@ -262,7 +268,7 @@ class ServerStatusParser {
 
     // 处理交换分区限制：只支持 cgroup v2 的 memory.swap.max/current（swap 专属限制）
     // v1 只有 memsw（内存+交换合并计数），需要减法推导且依赖内核 swapaccount 参数，
-    // 可靠性不足，这里不做处理，交由 free -m 的宿主机数据兜底
+    // 可靠性不足，这里不做处理，交由 free -k 的宿主机数据兜底
     int? swapTotalBytes;
     int? swapUsedBytes;
     if (swapTotalRaw != 'max' && swapTotalRaw != 'na') {
