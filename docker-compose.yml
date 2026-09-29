@@ -5,7 +5,7 @@ services:
     image: docker.cnb.cool/chaoszhu/easynode:latest # cnb自动同步
     restart: always
     ports:
-      - 127.0.0.1:8082:8082 # http仅内网访问
+      - 8082:8082 # http建议仅内网访问
       - 8092:8092 # https 端口，访问时需手动加 https://ip:8092
     volumes:
       - /root/easynode/db:/easynode/app/db
@@ -17,7 +17,7 @@ services:
       - HTTP_PORT=8082
       - RDP_PORT=8083
       - ENABLE_HTTPS=1 # 默认自签证书
-      - COOKIE_SECURE=true # Session Cookie仅通过HTTPS发送
+      - COOKIE_SECURE= false # Session Cookie仅通过HTTPS发送[仅使用 https 访问时请设置为 true]
       - HTTPS_PORT=8092 # https 端口 8092
       - SSL_CERT_PATH=
       - SSL_KEY_PATH=
