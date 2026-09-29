@@ -1,16 +1,35 @@
 ## TODO
 
-* 批量下发后台定时任务
 * 数据导出(2fa强制)
 * 探针接入
 * 支持csv模板特定格式导入
-* AI功能增强
+
+## [native-v1.3.1](https://github.com/chaos-zhu/easynode/releases) (2026-09-29)
+
+* 新增定时任务，支持按 Cron 和时区在多台主机执行脚本
+* AI Agent 支持查询、创建、修改和删除定时任务
+* 新增定时任务管理及执行详情，并调整应用菜单
+* 移动端新增登录记录，优化服务器分组列表
+* 优化 AI 对话区域的滚动与授权交互
+
+## [3.8.2](https://github.com/chaos-zhu/easynode/releases) (2026-09-29)
+
+* 新增定时任务，支持按 Cron 和时区在多台主机执行脚本
+* AI Agent 支持查询、创建、修改和删除定时任务
+* 移动端新增定时任务管理及执行详情，并调整应用菜单
+* 移动端新增登录记录，优化服务器分组列表
+* 优化 Web 和移动端 AI 对话区域的滚动与授权交互
+* 修复 Web 终端标签页焦点及服务器状态显示问题
+* 优化登录 IP 归属地获取方式，减少登录耗时
+* 修复移动端终端状态条&BusyBox内存读取
 
 ## [3.8.1](https://github.com/chaos-zhu/easynode/releases) (2026-09-06)
+
 * 路径导入修复
 * 终端侧边栏展开错位
 
 ## [native-v1.3.0](https://github.com/chaos-zhu/easynode/releases) (2026-09-05)
+
 * AI Agent 新增外部 MCP 接入，支持远程 MCP Server、工具发现、启停与调用授权
 * 新增自签证书信任功能，支持 SHA-256 指纹确认及证书变更安全提醒
 * 新增 IP 访问控制管理，支持 IPv4、IPv6 及 CIDR 网段规则
@@ -23,6 +42,7 @@
 * 其他交互优化与 bug 修复
 
 ## [3.8.0](https://github.com/chaos-zhu/easynode/releases) (2026-09-05)
+
 * AI Agent 新增外部 MCP 接入，支持远程 MCP Server、工具自动发现与调用授权
 * IP 访问控制全面升级，完善访问规则管理与旧版配置兼容
 * 强化登录与会话安全，支持登录限流、全局会话吊销及注销后即时断开连接
@@ -35,10 +55,12 @@
 * 其他功能优化、依赖升级与 bug 修复
 
 ## [3.7.3](https://github.com/chaos-zhu/easynode/releases) (2026-08-15)
+
 * 兼容 移动端 AI Agent 功能
 * 其他功能优化与bug修复
 
 ## [native-v1.2.0](https://github.com/chaos-zhu/easynode/releases) (2026-08-15)
+
 * AI Agent 功能支持
 * ssh&sfpt状态共享优化
 * 终端页拖动选择滚动优化
@@ -46,6 +68,7 @@
 * 其他功能优化与bug修复
 
 ## [3.7.2](https://github.com/chaos-zhu/easynode/releases) (2026-08-02)
+
 * AI Chat 功能重构为 AI Agent 功能上线
 * web 端布局调整
 * server 端规范调整
@@ -53,6 +76,7 @@
 * 其他功能优化与bug修复
 
 ## [native-v1.1.0](https://github.com/chaos-zhu/easynode/releases) (2026-07-05)
+
 * 新增终端页服务器状态组件
 * 新增Docker容器Tab & 终端页Docker联动
 * 新增SFTP长按docker-compose.yml的快捷指令下发
@@ -62,23 +86,27 @@
 * 其他功能、视觉优化与bug修复
 
 ## [3.7.1](https://github.com/chaos-zhu/easynode/releases) (2026-07-05)
+
 * 服务端实例状态获取优化
 * AI扫描安全问题修复
 * 登录有效期调整为最高支持30天，取消临时登录选项
 * 其他功能优化与bug修复
 
 ## [native-v1.0.1](https://github.com/chaos-zhu/easynode/releases) (2026-06-13)
+
 * 终端页功能增强：布局调整、长命令输入、脚本库联动、终端连接管理、SFTP联动、功能键支持，终端设置支持
 * 移动端风格统一化
 * 新增暗黑主题切换
 * 其他功能优化与bug修复
 
 ## [3.7.0](https://github.com/chaos-zhu/easynode/releases) (2026-05-30)
+
 * 原生Android移动端内测版发布，IOS稍后发布，欢迎Android用户加入内测反馈使用体验
 * 鉴权优化，移除IP统计
 * 其他功能优化与bug修复
 
 ## [3.6.1](https://github.com/chaos-zhu/easynode/releases) (2026-03-15)
+
 * 新增终端内右键挂起&单窗口模式头部右键菜单
 * 修复交互式脚本stdin行为异常(终端高亮模式引起路径重复显示问题)
 * 统一长脚本换行符LF；脚本存储&执行方式更新，支持交互式脚本
@@ -87,6 +115,7 @@
 * 移除IP白名单环境变量(不影响已有配置，统一在'登录管理'中配置)
 
 ## [3.6.0](https://github.com/chaos-zhu/easynode/releases) (2026-02-08)
+
 * 支持终端会话挂起
 * 增强鉴权
 * 支持自签证书(内网推荐)
@@ -98,6 +127,7 @@
 * 🔒 底层安全依赖更新
 
 ## [3.5.6](https://github.com/chaos-zhu/easynode/releases) (2025-12-28)
+
 * docker组件日志优化
 * 快捷指令调整优化
 * AI对话渲染组件重构
@@ -106,17 +136,20 @@
 * 其他：安全更新
 
 ## [3.5.5](https://github.com/chaos-zhu/easynode/releases) (2025-12-11)
+
 * win: 支持清晰度调整,添加断开按钮
 * 安全: 支持登录设备管理；优化日志打印；默认开启DEBUG
 * 底层组件升级
 
 ## [3.5.4](https://github.com/chaos-zhu/easynode/releases) (2025-11-23)
+
 * docker：UI重构、卡片式展示docker容器、支持批量操作
 * SFTP：优化SFTP重连、支持右键菜单docker-compse文件操作、文件编辑支持自动检测编码
 * 终端：优化批量连接时宽高错误的bug
 * 其他：加密密钥解密逻辑优化、支持含空格的密码、tab键优化
 
 ## [3.5.3](https://github.com/chaos-zhu/easynode/releases) (2025-11-02)
+
 * 优化docker组件: 使用基础命令获取docker容器列表；日志滚动；新增端口检测快捷外链功能；
 * 终端右键添加同步[目录到SFTP]菜单项(自动同步暂未找到完美的解决方案)
 * 终端右键添加添加[重新连接]菜单项 - 简化重连操作
@@ -125,6 +158,7 @@
 * 修复分组导入bug
 
 ## [3.5.2](https://github.com/chaos-zhu/easynode/releases) (2025-10-26)
+
 * SFTP上传优化，不再限制文件大小
 * 修复ws协议upgrade失败bug，提升终端连接稳定性
 * 同步后端socket版本
@@ -132,6 +166,7 @@
 * 终端搜索功能优化
 
 ## [3.5.1](https://github.com/chaos-zhu/easynode/releases) (2025-10-20)
+
 * 终端默认缓冲区大小提高至10000@zhanghao-njmu
 * 支持终端内缓冲区内搜索功能@zhanghao-njmu
 * 实例列表-添加实例标识展示(Linux|Win)
@@ -139,8 +174,8 @@
 * 修复粘贴内容的换行符问题
 * ❤️ 特别感谢 @zhanghao-njmu 的功能PR
 
-
 ## [3.5.0](https://github.com/chaos-zhu/easynode/releases) (2025-10-18)
+
 * 🖥️ 支持 RDP 远程 Windows 桌面连接（支持移动端交互 & 剪贴板互动）
 * 🧩 脚本库增强：新增脚本执行模式 — 多行脚本@zhanghao-njmu
 * 💻 终端增强：输出高亮自定义、配置持久化管理、样式优化、全屏下 bug 修复@zhanghao-njmu
@@ -149,11 +184,13 @@
 * ❤️ 特别感谢 @zhanghao-njmu 的功能PR
 
 ## [3.4.2](https://github.com/chaos-zhu/easynode/releases) (2025-08-24)
+
 * 🔒鉴权增强
 * SFTP连接优化、支持搜索文件(夹)、新建文件(夹)功能名称缓存建议
 * 实例列表出现滚动条时出现回到顶部按钮
 
 ## [3.4.0](https://github.com/chaos-zhu/easynode/releases) (2025-08-09)
+
 * 🎉新增文件对传功能
 * SFTP面板支持手动断开重连
 * SFTP loading ui修复
@@ -184,7 +221,6 @@
 * 全面移除旧版本sftp&client等服务组件
 * 🔒升级底层安全依赖组件(建议升级到此版本)
 
-
 ## [3.1.1](https://github.com/chaos-zhu/easynode/releases) (2025-07-19)
 
 * 🎉终端新增单窗口模式
@@ -193,7 +229,6 @@
 * 状态、SFTP等状态本地记忆
 * 修复脚本库与窗口输入同步问题
 * 优化终端大小重置后自动滚动到最后一行
-
 
 ## [3.1.0](https://github.com/chaos-zhu/easynode/releases) (2025-07-13)
 
@@ -204,7 +239,6 @@
 * 已授权ip优化UI并支持一键设置到登录白名单
 * AI组件对话编辑功能与字体大小优化
 * 其他优化
-
 
 ## [3.0.7](https://github.com/chaos-zhu/easynode/releases) (2025-05-24)
 
@@ -255,12 +289,10 @@
 
 * 修复添加实例错误禁用的bug
 
-
 ## [3.0.1](https://github.com/chaos-zhu/easynode/releases) (2024-11-18)
 
 * 修复同IP实例SFTP连接到其他的实例的bug
 * 修复一些UI问题
-
 
 ## [3.0.0](https://github.com/chaos-zhu/easynode/releases) (2024-11-09)
 
@@ -280,7 +312,6 @@
 * 支持MFA2二次登录验证
 * 优化了一些页面在移动端的展示
 * 修复偶现刷新页面需重新登录的bug
-
 
 ## [2.2.8](https://github.com/chaos-zhu/easynode/releases) (2024-10-20)
 
@@ -512,8 +543,7 @@
 
 ## [1.0.0](https://github.com/chaos-zhu/easynode/releases) (2022-06-08)
 
-
 ### Features
 
 * 通过`websocker实时更新`服务器基本信息: 系统、公网IP、CPU、内存、硬盘、网卡等
-*  解决`SSH跨端同步`问题——Web SSH
+* 解决`SSH跨端同步`问题——Web SSH

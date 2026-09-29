@@ -1,5 +1,30 @@
 [
   {
+    "version": "v3.8.2",
+    "date": "2026-09-29",
+    "nativeVersion": "native-v1.3.1",
+    "nativeReleaseUrl": "https://github.com/chaos-zhu/easynode/releases",
+    "iosReleaseUrl": "https://apps.apple.com/th/app/easynode-terminal/id6777670133",
+    "ohosReleaseUrl": "",
+    "features": [
+      "新增定时任务，支持按 Cron 和时区在多台主机执行脚本",
+      "AI Agent 支持查询、创建、修改和删除定时任务",
+      "移动端新增定时任务管理及执行详情，并调整应用菜单",
+      "移动端新增登录记录，优化服务器分组列表",
+      "优化 Web 和移动端 AI 对话区域的滚动与授权交互",
+      "修复 Web 终端标签页焦点及服务器状态显示问题",
+      "优化登录 IP 归属地获取方式，减少登录耗时",
+      "修复移动端终端状态条&BusyBox内存读取"
+    ],
+    "nativeFeatures": [
+      "新增定时任务，支持按 Cron 和时区在多台主机执行脚本",
+      "AI Agent 支持查询、创建、修改和删除定时任务",
+      "新增定时任务管理及执行详情，并调整应用菜单",
+      "移动端新增登录记录，优化服务器分组列表",
+      "优化 AI 对话区域的滚动与授权交互"
+    ]
+  },
+  {
     "version": "v3.8.1",
     "date": "2026-09-06",
     "nativeVersion": "native-v1.3.0",
