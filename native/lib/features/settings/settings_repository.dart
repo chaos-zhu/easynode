@@ -16,14 +16,14 @@ import 'models/plus_info.dart';
 class SettingsRepository {
   SettingsRepository({
     required this.apiClient,
-    required this.publicKeyPem,
+    this.publicKeyPem,
     CryptoJsAes? aes,
     RsaCrypto? rsa,
   }) : _aes = aes ?? CryptoJsAes(),
        _rsa = rsa ?? RsaCrypto();
 
   final ApiClient apiClient;
-  final String publicKeyPem;
+  final String? publicKeyPem;
   final CryptoJsAes _aes;
   final RsaCrypto _rsa;
 
@@ -36,11 +36,12 @@ class SettingsRepository {
     required String newLoginName,
     required String newPwd,
   }) async {
+    final key = publicKeyPem ?? await apiClient.getPublicKey();
     final body = <String, dynamic>{
       'oldLoginName': oldLoginName,
       'newLoginName': newLoginName,
-      'oldPwd': _rsa.encryptPassword(publicKeyPem, oldPwd),
-      'newPwd': _rsa.encryptPassword(publicKeyPem, newPwd),
+      'oldPwd': _rsa.encryptPassword(key, oldPwd),
+      'newPwd': _rsa.encryptPassword(key, newPwd),
     };
     await apiClient.putJson('/pwd', body);
   }
@@ -171,7 +172,7 @@ class SettingsRepository {
     String privateKey = '',
     String openSSHKeyPassword = '',
   }) async {
-    final body = _credentialBody(
+    final body = await _credentialBody(
       name: name,
       authType: authType,
       password: password,
@@ -190,13 +191,14 @@ class SettingsRepository {
     String privateKey = '',
     String openSSHKeyPassword = '',
   }) async {
-    final body = _credentialBody(
+    final body = await _credentialBody(
       name: name,
       authType: authType,
       password: password,
       privateKey: privateKey,
       openSSHKeyPassword: openSSHKeyPassword,
-    )..['id'] = id;
+    );
+    body['id'] = id;
     await apiClient.postJson('/update-ssh', body);
   }
 
@@ -204,13 +206,13 @@ class SettingsRepository {
     await apiClient.deleteJson('/remove-ssh/$id');
   }
 
-  Map<String, dynamic> _credentialBody({
+  Future<Map<String, dynamic>> _credentialBody({
     required String name,
     required String authType,
     required String password,
     required String privateKey,
     required String openSSHKeyPassword,
-  }) {
+  }) async {
     final tempKey = _aes.generateTempKey();
     String encPassword = '';
     String encPrivateKey = '';
@@ -224,7 +226,10 @@ class SettingsRepository {
     if (openSSHKeyPassword.isNotEmpty) {
       encOpenSSHKeyPassword = _aes.encrypt(openSSHKeyPassword, tempKey);
     }
-    final rsaTempKey = _rsa.encryptPassword(publicKeyPem, tempKey);
+    final rsaTempKey = _rsa.encryptPassword(
+      publicKeyPem ?? await apiClient.getPublicKey(),
+      tempKey,
+    );
     return <String, dynamic>{
       'name': name,
       'authType': authType,

@@ -6,6 +6,14 @@ const Map<String, String> stringsEn = {
   'app.title': 'EasyNode',
   'app.subtitle': 'Native terminal access',
 
+  // Startup connection
+  'startup.ipDenied': 'This IP is not allowed. Switch networks and reconnect.',
+  'startup.connecting': 'Connecting to server',
+  'startup.timeout': 'Connection timed out',
+  'startup.failed': 'Unable to connect to server',
+  'startup.reconnect': 'Reconnect',
+  'startup.relogin': 'Log in again',
+
   // Common
   'common.cancel': 'Cancel',
   'common.continue': 'Continue',

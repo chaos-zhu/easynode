@@ -70,11 +70,11 @@ abstract class ServerRepository {
 }
 
 /// Default [ServerRepository] backed by [ApiClient] and the RSA public key
-/// fetched at login time.
+/// fetched on demand after session restore.
 class ApiServerRepository implements ServerRepository {
   ApiServerRepository({
     required ApiClient apiClient,
-    required String publicKeyPem,
+    String? publicKeyPem,
     RsaCrypto? rsa,
     Random? random,
   }) : _api = apiClient,
@@ -83,7 +83,7 @@ class ApiServerRepository implements ServerRepository {
        _random = random ?? Random.secure();
 
   final ApiClient _api;
-  final String _publicKeyPem;
+  final String? _publicKeyPem;
   final RsaCrypto _rsa;
   final Random _random;
   Future<HostCatalog>? _catalogRequest;
@@ -153,7 +153,7 @@ class ApiServerRepository implements ServerRepository {
   Future<String> createHost(ServerFormData form) async {
     final response = await _api.postJson(
       '/host-save',
-      _prepareHostPayload(form),
+      await _prepareHostPayload(form),
     );
     return response['msg']?.toString() ?? 'success';
   }
@@ -162,7 +162,7 @@ class ApiServerRepository implements ServerRepository {
   Future<String> updateHost(ServerFormData form) async {
     final response = await _api.putJson(
       '/host-save',
-      _prepareHostPayload(form),
+      await _prepareHostPayload(form),
     );
     return response['msg']?.toString() ?? 'success';
   }
@@ -177,14 +177,17 @@ class ApiServerRepository implements ServerRepository {
         'success';
   }
 
-  Map<String, dynamic> _prepareHostPayload(ServerFormData form) {
+  Future<Map<String, dynamic>> _prepareHostPayload(ServerFormData form) async {
     final payload = form.toJson();
     final authType = payload['authType']?.toString() ?? '';
     final secret = payload[authType]?.toString() ?? '';
     if (authType.isNotEmpty && secret.isNotEmpty) {
       final tempKey = _randomText(16);
       payload[authType] = encryptCryptoJsAes(secret, tempKey, random: _random);
-      payload['tempKey'] = _rsa.encryptPassword(_publicKeyPem, tempKey);
+      payload['tempKey'] = _rsa.encryptPassword(
+        _publicKeyPem ?? await _api.getPublicKey(),
+        tempKey,
+      );
     }
     return payload;
   }
@@ -192,7 +195,7 @@ class ApiServerRepository implements ServerRepository {
   /// Request decrypted SSH connection parameters for [hostId].
   ///
   /// 1. Generate a fresh 32-byte AES key.
-  /// 2. RSA-encrypt it with the public key fetched at login time.
+  /// 2. RSA-encrypt it with the server public key (loaded on demand).
   /// 3. POST to `/native/ssh-connection`.
   /// 4. AES-GCM-decrypt the response envelope.
   /// 5. Return a strongly typed [SshConnectionConfig].
@@ -201,7 +204,10 @@ class ApiServerRepository implements ServerRepository {
   @override
   Future<SshConnectionConfig> fetchSshConfig(String hostId) async {
     final keyBytes = _randomBytes(32);
-    final encryptedKey = _rsa.encryptTemporaryKey(_publicKeyPem, keyBytes);
+    final encryptedKey = _rsa.encryptTemporaryKey(
+      _publicKeyPem ?? await _api.getPublicKey(),
+      keyBytes,
+    );
     final response = await _api.postJson('/native/ssh-connection', {
       'hostId': hostId,
       'encryptedKey': encryptedKey,

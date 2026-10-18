@@ -5,6 +5,14 @@ const Map<String, String> stringsZh = {
   'app.title': 'EasyNode',
   'app.subtitle': '移动端终端访问',
 
+  // Startup connection
+  'startup.ipDenied': '当前 IP 无权访问，请切换网络后重新连接',
+  'startup.connecting': '正在连接服务器',
+  'startup.timeout': '连接超时',
+  'startup.failed': '无法连接服务器',
+  'startup.reconnect': '重新连接',
+  'startup.relogin': '重新登录',
+
   // Common
   'common.cancel': '取消',
   'common.continue': '继续',

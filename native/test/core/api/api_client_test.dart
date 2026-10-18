@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:easynode_native/core/api/api_client.dart';
 import 'package:easynode_native/core/api/api_result.dart';
+import 'package:easynode_native/core/api/cookie_store.dart';
+import 'package:easynode_native/core/storage/secure_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 DioException _httpFailure(int statusCode, Object body) {
@@ -17,6 +22,169 @@ DioException _httpFailure(int statusCode, Object body) {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'startup checks a protected endpoint and leaves auth failure to the page',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({
+        'sessionCookie': 'session=saved',
+      });
+      final dio = Dio();
+      var globalFailures = 0;
+      var expired = false;
+      final api = ApiClient(
+        serverAddress: 'http://100.64.0.1:8082',
+        cookieStore: SessionCookieStore(
+          SecureAppStorage(const FlutterSecureStorage()),
+        ),
+        token: 'saved-token',
+        dio: dio,
+        onSessionFailure: (_) async {
+          globalFailures++;
+        },
+      );
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            expect(options.path, '/mfa2-status');
+            expect(options.headers['token'], 'saved-token');
+            expect(options.headers['Cookie'], 'session=saved');
+            if (expired) {
+              handler.reject(_httpFailure(403, {'msg': 'expired'}));
+            } else {
+              handler.resolve(
+                Response(
+                  requestOptions: options,
+                  statusCode: 200,
+                  data: {'status': 200, 'data': false},
+                ),
+              );
+            }
+          },
+        ),
+      );
+      await api.checkSession(cancelToken: CancelToken());
+      expired = true;
+      await expectLater(
+        api.checkSession(cancelToken: CancelToken()),
+        throwsA(isA<UnauthorizedFailure>()),
+      );
+      expect(globalFailures, 0);
+    },
+  );
+
+  test(
+    'timeouts preserve credentials and can retry with the same session',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({
+        'sessionCookie': 'session=saved',
+      });
+      var sessionFailures = 0;
+      var offline = true;
+      final dio = Dio();
+      final api = ApiClient(
+        serverAddress: 'http://100.64.0.1:8082',
+        cookieStore: SessionCookieStore(
+          SecureAppStorage(const FlutterSecureStorage()),
+        ),
+        token: 'saved-token',
+        dio: dio,
+        onSessionFailure: (_) async {
+          sessionFailures++;
+        },
+      );
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            expect(options.headers['token'], 'saved-token');
+            expect(options.headers['Cookie'], 'session=saved');
+            if (offline) {
+              handler.reject(
+                DioException(
+                  requestOptions: options,
+                  type: DioExceptionType.connectionTimeout,
+                ),
+              );
+            } else {
+              handler.resolve(
+                Response(
+                  requestOptions: options,
+                  statusCode: 200,
+                  data: {'data': []},
+                ),
+              );
+            }
+          },
+        ),
+      );
+      for (var i = 0; i < 2; i++) {
+        await expectLater(
+          api.getJson('/host-catalog'),
+          throwsA(isA<ApiFailure>()),
+        );
+      }
+      offline = false;
+      expect((await api.getJson('/host-catalog'))['data'], isEmpty);
+      expect(sessionFailures, 0);
+      expect(
+        await const FlutterSecureStorage().read(key: 'sessionCookie'),
+        'session=saved',
+      );
+    },
+  );
+
+  test(
+    'public-key reads retry after failure and share successful results',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      var attempts = 0;
+      final release = Completer<void>();
+      final dio = Dio();
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) async {
+            attempts++;
+            if (attempts == 1) {
+              handler.reject(
+                DioException(
+                  requestOptions: options,
+                  type: DioExceptionType.connectionTimeout,
+                ),
+              );
+              return;
+            }
+            await release.future;
+            handler.resolve(
+              Response(
+                requestOptions: options,
+                statusCode: 200,
+                data: {'data': 'server-public-key'},
+              ),
+            );
+          },
+        ),
+      );
+      final api = ApiClient(
+        serverAddress: 'http://100.64.0.1:8082',
+        cookieStore: SessionCookieStore(
+          SecureAppStorage(const FlutterSecureStorage()),
+        ),
+        dio: dio,
+      );
+      await expectLater(api.getPublicKey(), throwsA(isA<ApiFailure>()));
+      final first = api.getPublicKey();
+      final second = api.getPublicKey();
+      release.complete();
+      expect(await Future.wait([first, second]), [
+        'server-public-key',
+        'server-public-key',
+      ]);
+      expect(await api.getPublicKey(), 'server-public-key');
+      expect(attempts, 2);
+    },
+  );
+
   test('maps the IP allow-list response to a non-auth failure', () {
     final failure = apiFailureFromDioException(
       _httpFailure(403, {

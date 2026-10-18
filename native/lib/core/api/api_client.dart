@@ -207,6 +207,8 @@ class ApiClient {
   final SessionCookieStore _cookieStore;
   SessionFailureHandler? _onSessionFailure;
   String? _token;
+  String? _publicKeyPem;
+  Future<String>? _publicKeyRequest;
 
   void setToken(String? token) {
     _token = token;
@@ -217,10 +219,38 @@ class ApiClient {
   }
 
   Future<String> getPublicKey() async {
+    final cached = _publicKeyPem;
+    if (cached != null) return cached;
+    final pending = _publicKeyRequest;
+    if (pending != null) return pending;
+    final request = _fetchPublicKey();
+    _publicKeyRequest = request;
+    try {
+      return _publicKeyPem = await request;
+    } finally {
+      // Failed requests must be retryable when the network recovers.
+      _publicKeyRequest = null;
+    }
+  }
+
+  Future<String> _fetchPublicKey() async {
     final json = await getJson('/get-pub-pem');
     final data = json['data'];
     if (data is String && data.isNotEmpty) return data;
     throw ApiFailure('Server public key is missing');
+  }
+
+  /// A lightweight, protected endpoint confirms both reachability and auth.
+  /// The startup page owns cancellation and session-failure handling so an
+  /// abandoned attempt cannot sign out a newer session.
+  Future<void> checkSession({required CancelToken cancelToken}) async {
+    final json = await _request(
+      () => _dio.get('/mfa2-status', cancelToken: cancelToken),
+      notifySessionFailure: false,
+    );
+    if (json['status'] != 200 || json['data'] is! bool) {
+      throw ApiFailure('Unexpected server response');
+    }
   }
 
   Future<Map<String, dynamic>> getJson(
@@ -287,8 +317,9 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> _request(
-    Future<Response<dynamic>> Function() send,
-  ) async {
+    Future<Response<dynamic>> Function() send, {
+    bool notifySessionFailure = true,
+  }) async {
     try {
       return _asJson(await send());
     } on DioException catch (error) {
@@ -301,7 +332,7 @@ class ApiClient {
         throw UntrustedServerCertificateException(certificate);
       }
       final failure = apiFailureFromDioException(error);
-      if (failure is ApiSessionFailure) {
+      if (notifySessionFailure && failure is ApiSessionFailure) {
         final handler = _onSessionFailure;
         if (handler != null) {
           try {

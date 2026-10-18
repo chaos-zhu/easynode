@@ -59,12 +59,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _ref.invalidate(plusInfoProvider);
   }
 
-  Future<void> signOut() async {
-    // Flip auth state FIRST so _AppRoot rebuilds to LoginPage immediately,
-    // regardless of whether the IO cleanup below succeeds. Otherwise an
-    // exception inside closeAll / secureStorage / cookieStore would leave
-    // the user stuck on a screen whose API calls keep 401-ing.
-    state = AuthState.empty;
+  Future<void> signOut() => _signOut();
+
+  /// During startup there are no usable feature pages to unblock. Keep the
+  /// connection page mounted until old credentials are deleted, so a new
+  /// login cannot race with that deletion.
+  Future<void> signOutAfterCleanup() => _signOut(clearAuthFirst: false);
+
+  Future<void> _signOut({bool clearAuthFirst = true}) async {
+    // Active feature pages must leave immediately even if cleanup fails.
+    // Startup can wait on its connection page to avoid exposing a new login
+    // while the old credentials are still being deleted.
+    if (clearAuthFirst) state = AuthState.empty;
     try {
       await _ref.read(terminalSessionManagerProvider).closeAll();
     } catch (_) {}
@@ -82,6 +88,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await _ref.read(cookieStoreProvider).clear();
     } catch (_) {}
+    if (!clearAuthFirst && mounted) state = AuthState.empty;
     try {
       _ref.invalidate(plusInfoProvider);
     } catch (_) {}

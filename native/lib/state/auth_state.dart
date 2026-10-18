@@ -1,9 +1,9 @@
 import '../core/api/api_client.dart';
 import '../features/auth/auth_session.dart';
 
-/// Snapshot of authenticated-app state. `signedIn` requires all three fields
-/// to be present; the UI uses that flag to decide between login and main
-/// shell without re-checking the underlying nullables in every consumer.
+/// Snapshot of authenticated-app state. A saved session and API client allow
+/// offline restoration; the public key is loaded when encryption is needed.
+/// Protected requests validate the session once the server is reachable.
 class AuthState {
   const AuthState({this.session, this.apiClient, this.publicKeyPem});
 
@@ -11,8 +11,7 @@ class AuthState {
   final ApiClient? apiClient;
   final String? publicKeyPem;
 
-  bool get signedIn =>
-      session != null && apiClient != null && publicKeyPem != null;
+  bool get signedIn => session != null && apiClient != null;
 
   static const empty = AuthState();
 

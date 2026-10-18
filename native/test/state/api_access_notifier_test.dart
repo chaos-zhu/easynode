@@ -9,6 +9,12 @@ class _RecordingAuthNotifier extends AuthNotifier {
   _RecordingAuthNotifier(Ref ref) : super(ref, AuthState.empty);
 
   int signOutCalls = 0;
+  int deferredSignOutCalls = 0;
+
+  @override
+  Future<void> signOutAfterCleanup() async {
+    deferredSignOutCalls++;
+  }
 
   @override
   Future<void> signOut() async {
@@ -34,6 +40,17 @@ void main() {
   });
 
   tearDown(() => container.dispose());
+
+  test('startup auth failures wait for credential cleanup', () async {
+    await container
+        .read(apiAccessProvider.notifier)
+        .handleSessionFailure(
+          UnauthorizedFailure('expired', statusCode: 403),
+          waitForCleanup: true,
+        );
+    expect(auth.deferredSignOutCalls, 1);
+    expect(auth.signOutCalls, 0);
+  });
 
   test('deduplicates concurrent unauthorized sign-outs', () async {
     final notifier = container.read(apiAccessProvider.notifier);
