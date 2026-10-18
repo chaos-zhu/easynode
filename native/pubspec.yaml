@@ -71,6 +71,9 @@ flutter_launcher_icons:
     image_path: "assets/logo_v2_03.png"
 
 dependency_overrides:
+  # 2.5.0 switches to JNI; release builds can lose its getAll entry point.
+  # Keep the existing MethodChannel backend until that regression is fixed.
+  shared_preferences_android: 2.4.23
   shared_preferences:
     git:
       url: "https://gitcode.com/CPF-Flutter/flutter_packages.git"
