@@ -804,7 +804,6 @@ const getSplitContainerClass = (tabKey) => {
 }
 
 const isPlusActive = computed(() => $store.isPlusActive)
-const terminalTabsLen = computed(() => props.terminalTabs.length)
 const hostList = computed(() => {
   if (!Array.isArray($store.hostList)) return []
   return $store.hostList.filter(item => item.connectType !== 'rdp')
@@ -1057,10 +1056,11 @@ const handleSyncPathToSftp = (path) => {
 
 const tabChange = async (index) => {
   activeTabIndex.value = Number(index)
+  const key = getTabKeyByIndex(index)
   await $nextTick()
   // 单窗口使用自己的面板焦点，隐藏标签的变更不能抢走它。
-  if (isSingleWindowMode.value) return
-  const terminalRefsOfTab = getTerminalRefsOfTab(index)
+  if (isSingleWindowMode.value || !key || getTabKeyByIndex(activeTabIndex.value) !== key) return
+  const terminalRefsOfTab = getTerminalRefsOfTab(activeTabIndex.value)
   const targetTerminalRef = terminalRefsOfTab.find(item => item?.$?.uid === focusedUid.value) || terminalRefsOfTab[0]
   focusedUid.value = targetTerminalRef?.$?.uid || null
   terminalRefsOfTab.forEach(terminalRef => terminalRef?.handleResize())
@@ -1068,22 +1068,27 @@ const tabChange = async (index) => {
 }
 
 watch(
-  terminalTabsLen,
-  async (len, previousLength = 0) => {
-    if (len > 0) {
-      activeTabIndex.value = len - 1
-      if (isSingleWindowMode.value) {
-        // 新连接仍自动聚焦；删除面板时由单窗口保留或回退焦点。
-        if (len > previousLength) {
-          const key = terminalTabs.value[len - 1].key
-          await $nextTick()
-          if (isSingleWindowMode.value && terminalTabs.value.at(-1)?.key === key) {
-            singleWindowRef.value?.focusTerminal(getTerminalPanels(key)[0]?.key)
-          }
+  () => terminalTabs.value.map(tab => tab.key),
+  async (keys, previousKeys = []) => {
+    if (!keys.length) {
+      activeTabIndex.value = 0
+      return
+    }
+    // 下标会随删除移动：新增时选中新会话，否则按 key 保留原活动会话。
+    const addedKey = keys.filter(key => !previousKeys.includes(key)).at(-1)
+    const targetKey = addedKey ?? previousKeys[activeTabIndex.value]
+    const targetIndex = keys.indexOf(targetKey)
+    activeTabIndex.value = targetIndex !== -1 ? targetIndex : Math.min(Number(activeTabIndex.value), keys.length - 1)
+    if (isSingleWindowMode.value) {
+      // 删除面板时由单窗口保留或回退焦点。
+      if (addedKey) {
+        await $nextTick()
+        if (isSingleWindowMode.value && getTabKeyByIndex(activeTabIndex.value) === addedKey) {
+          singleWindowRef.value?.focusTerminal(getTerminalPanels(addedKey)[0]?.key)
         }
-      } else {
-        tabChange(activeTabIndex.value)
       }
+    } else {
+      tabChange(activeTabIndex.value)
     }
   },
   {
@@ -1093,17 +1098,13 @@ watch(
 )
 
 const removeTab = (index) => {
-  emit('removeTab', index)
+  // 父组件可能同步 splice，必须在 emit 前取得被删除会话的 key。
   const key = getTabKeyByIndex(index)
+  emit('removeTab', index)
   if (key) {
     if (splitStatusMap[key]) delete splitStatusMap[key]
     if (syncCurTabMap[key]) delete syncCurTabMap[key]
     if (activeSplitMap[key]) delete activeSplitMap[key]
-  }
-  if (index === activeTabIndex.value) {
-    nextTick(() => {
-      activeTabIndex.value = 0
-    })
   }
 }
 

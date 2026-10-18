@@ -21,7 +21,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount, getCurrentInstance, watch, nextTick } from 'vue'
+import { ref, shallowRef, onMounted, computed, onBeforeUnmount, getCurrentInstance, watch, nextTick } from 'vue'
 // import CommandHistory from './command_history.vue'
 // 自定义搜索组件，xterm-addon-search-bar已废弃
 import TerminalSearch from './terminal-search.vue'
@@ -78,15 +78,16 @@ const props = defineProps({
 
 const emit = defineEmits(['inputCommand', 'reset-long-press', 'tab-focus', 'sync-path-to-sftp', 'request-suspend', 'terminal-ai-input',])
 
-const socket = ref(null)
+const socket = shallowRef(null)
 const aiCommandRequests = new Map()
 const AI_CANCEL_CONFIRM_TIMEOUT_MS = 10 * 1000
 // const commandHistoryList = ref([])
-const term = ref(null)
-const highlighter = ref(null)
+// xterm / addon 的内部注册表依赖对象身份，不能使用 Vue 深层代理。
+const term = shallowRef(null)
+const highlighter = shallowRef(null)
 const initCommand = ref('')
-const fitAddon = ref(null)
-const searchAddon = ref(null)
+const fitAddon = shallowRef(null)
+const searchAddon = shallowRef(null)
 const searchBarRef = ref(null) // TerminalSearch组件引用
 // const searchBar = ref(null)
 const socketConnected = ref(false)
@@ -957,13 +958,17 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   isUnmounted = true
   closeTerminalSocket()
-  term.value?.dispose()
   terminalResizeObserver?.disconnect()
   if (terminalResizeFrame !== null) cancelAnimationFrame(terminalResizeFrame)
   if (terminalFocusFrame !== null) cancelAnimationFrame(terminalFocusFrame)
   if (terminalResizeEmitTimer) clearTimeout(terminalResizeEmitTimer)
   window.removeEventListener('resize', handleResize)
   tempPathSyncCallback.value = null
+  const terminal = term.value
+  term.value = null
+  // xterm 5.5 的 open() 会排入一个未随 dispose 取消的视口初始化定时器。
+  // 连接和组件回调已停用，延至下一任务释放渲染器，让该初始化先完成。
+  if (terminal) setTimeout(() => terminal.dispose(), 0)
 })
 
 // 挂起终端

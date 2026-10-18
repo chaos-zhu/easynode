@@ -3,7 +3,8 @@ import { EventEmitter } from 'node:events'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 import { parse } from '@vue/compiler-sfc'
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef, isProxy } from 'vue'
+import xterm from '@xterm/xterm'
 import { createDefaultTerminalSettings } from '../src/utils/terminal-settings.js'
 
 // 执行组件自身的 setup，替换浏览器和网络依赖，测试真实连接/命令入口。
@@ -52,6 +53,7 @@ function createHarness({ autoReconnect = true, resumeSessionId = null } = {}) {
   let unmount
   const context = {
     ref,
+    shallowRef,
     computed,
     watch: () => {},
     onMounted: () => {},
@@ -205,6 +207,25 @@ interruptedResume.sockets[0].receive('disconnect', 'transport close')
 interruptedResume.flushTimers()
 assert.equal(interruptedResume.sockets[1].messages('input').length, 0, '旧恢复回车不能进入新 shell')
 interruptedResume.unmount()
+interruptedResume.flushTimers()
 assert.equal(interruptedResume.timers.size, 0)
 
-console.log('Web 终端连接与 SFTP 命令回归测试通过')
+// 使用真实 xterm 和插件验证对象身份；普通 dispose stub 无法发现代理问题。
+globalThis.self = globalThis
+const [{ default: fit }, { default: search }, { default: webLinks },] = await Promise.all([
+  import('@xterm/addon-fit'), import('@xterm/addon-search'), import('@xterm/addon-web-links'),
+])
+const disposal = createHarness()
+const realTerminal = new xterm.Terminal()
+disposal.terminal.term.value = realTerminal
+assert.equal(isProxy(disposal.terminal.term.value), false)
+for (const addon of [new fit.FitAddon(), new search.SearchAddon(), new webLinks.WebLinksAddon(),]) {
+  disposal.terminal.term.value.loadAddon(addon)
+}
+assert.doesNotThrow(() => disposal.unmount(), '真实 xterm 插件必须可以正常卸载')
+assert.equal(disposal.terminal.term.value, null)
+assert.equal(disposal.timers.size, 1, '渲染器在下一任务释放，避开 xterm 视口初始化回调')
+assert.doesNotThrow(() => disposal.flushTimers(), '延迟释放必须实际完成真实插件销毁')
+assert.equal(disposal.timers.size, 0)
+
+console.log('Web 终端连接、SFTP 命令与真实 xterm 插件销毁回归测试通过')

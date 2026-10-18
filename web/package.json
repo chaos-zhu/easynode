@@ -9,7 +9,8 @@
     "preview": "vite preview --port 5050",
     "lint": "eslint . --ext .js,.vue",
     "lint:fix": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
-    "test": "node test/run-suite.mjs"
+    "test": "node test/run-suite.mjs",
+    "test:terminal:browser": "node test/test-terminal-browser.mjs"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.2",

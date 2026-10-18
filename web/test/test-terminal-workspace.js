@@ -119,7 +119,7 @@ const dependencies = {
 }
 const Single = loadComponent('terminal-single-window.vue', dependencies, 'handleExecCommand')
 const Wrapper = loadComponent('terminal-wrapper.vue', { ...dependencies, TerminalSingleWindow: Single },
-  'handleHorizontalScreen, handleVerticalScreen, handleSuspendTerminal, handleCloseTerminalSingle, terminalPanels, getTerminalPanels, isSingleWindowMode, singleWindowRef, activeTabIndex, terminalInstances, isSyncAllSession')
+  'handleHorizontalScreen, handleVerticalScreen, handleSuspendTerminal, handleCloseTerminalSingle, terminalPanels, getTerminalPanels, isSingleWindowMode, singleWindowRef, activeTabIndex, terminalInstances, isSyncAllSession, tabChange, removeTab, handleCloseOtherTabs')
 for (const initialSingle of [false, true,]) {
   globalThis.localStorage.getItem = key => key === 'isSingleWindowMode' ? String(initialSingle) : null
   mounts.clear()
@@ -237,6 +237,42 @@ for (const initialSingle of [false, true,]) {
   w.handleCloseTerminalSingle('E')
   await flushWorkspace()
   assert.equal(focusedKey, 'B', '关闭当前单窗口终端后聚焦存活终端')
+
+  // 多窗口以会话身份保留活动标签，不能把删除后的数组下标当成另一台主机。
+  w.isSingleWindowMode = false
+  tabs.push(...['C', 'D', 'E',].map(key => ({ key, id: key, name: key })))
+  await flushWorkspace()
+  assert.equal(focusedKey, 'E', '新增连接仍自动聚焦')
+  await w.tabChange(0)
+  w.handleHorizontalScreen()
+  await flushWorkspace()
+  const activeSplit = w.getTerminalPanels('B')[1].key
+  w.terminalInstances[activeSplit].focusTab()
+  await flushWorkspace()
+  w.removeTab(1)
+  await flushWorkspace()
+  assert.equal(tabs[w.activeTabIndex].key, 'B', '删除后方后台标签保留活动主机')
+  assert.equal(focusedKey, activeSplit, '删除后台标签保留当前分屏输入焦点')
+  await w.tabChange(1)
+  await flushWorkspace()
+  w.removeTab(0)
+  await flushWorkspace()
+  assert.equal(tabs[w.activeTabIndex].key, 'D', '删除前方标签后跟随原主机的新下标')
+  assert.equal(focusedKey, 'D')
+  w.removeTab(0)
+  await flushWorkspace()
+  assert.equal(tabs[w.activeTabIndex].key, 'E', '关闭当前标签后聚焦相邻存活标签')
+  assert.equal(focusedKey, 'E')
+  w.removeTab(0)
+  await flushWorkspace()
+  assert.equal(tabs.length, 0)
+  assert.equal(w.activeTabIndex, 0)
+  tabs.push(...['F', 'G', 'H',].map(key => ({ key, id: key, name: key })))
+  await flushWorkspace()
+  w.handleCloseOtherTabs(0)
+  await flushWorkspace()
+  assert.equal(tabs[w.activeTabIndex].key, 'F', '批量关闭其他标签后选中唯一存活会话')
+  assert.equal(focusedKey, 'F')
   app.unmount()
 }
 console.log('终端分屏挂起、布局实例复用和单窗口引用回归测试通过')
