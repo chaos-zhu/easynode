@@ -53,10 +53,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       apiClient: apiClient,
       publicKeyPem: publicKeyPem,
     );
-    // Plus state may have changed between sessions (different account, key
-    // activated elsewhere). Re-fetch eagerly so gating UI never reads stale
-    // data from a previous login.
-    _ref.invalidate(plusInfoProvider);
+    // Repositories and Plus info watch auth and rebuild for the new session.
   }
 
   Future<void> signOut() => _signOut();

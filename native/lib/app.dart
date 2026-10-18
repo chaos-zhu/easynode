@@ -170,7 +170,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   final GlobalKey<ScaffoldMessengerState> _messengerKey =
       GlobalKey<ScaffoldMessengerState>();
   var _ipAccessDeniedDialogShowing = false;
-  var _splashFinished = false;
+  late bool _startupConnectionPending;
   final AgentNavigationObserver _agentNavigationObserver =
       AgentNavigationObserver();
 
@@ -183,6 +183,8 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   @override
   void initState() {
     super.initState();
+    // Only a session restored at launch needs the startup connection check.
+    _startupConnectionPending = ref.read(authProvider).signedIn;
     _loginController = LoginController(
       apiClientFactory: _buildAnonymousApiClient,
       certificateTrust: ref.read(certificateTrustProvider),
@@ -230,7 +232,6 @@ class _AppRootState extends ConsumerState<_AppRoot> {
           passwordToSave: passwordToSave,
         );
     ref.read(apiAccessProvider.notifier).reset();
-    if (mounted) setState(() => _splashFinished = true);
   }
 
   @override
@@ -243,6 +244,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       next,
     ) {
       if (previous == true && !next) {
+        setState(() => _startupConnectionPending = false);
         _navigatorKey.currentState?.popUntil((route) => route.isFirst);
       }
     });
@@ -363,18 +365,19 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       builder: (context, child) => Stack(
         children: [
           ?child,
-          if (auth.signedIn && _splashFinished)
+          if (auth.signedIn && !_startupConnectionPending)
             AgentGlobalOverlay(
               navigationObserver: _agentNavigationObserver,
               navigatorKey: _navigatorKey,
             ),
         ],
       ),
-      home: auth.signedIn && !_splashFinished
+      home: auth.signedIn && _startupConnectionPending
           ? StartupConnectionPage(
               serverAddress: auth.session!.serverAddress,
               connect: auth.apiClient!.checkSession,
-              onConnected: () => setState(() => _splashFinished = true),
+              onConnected: () =>
+                  setState(() => _startupConnectionPending = false),
               onUnauthorized: (failure) => ref
                   .read(apiAccessProvider.notifier)
                   .handleSessionFailure(failure, waitForCleanup: true),

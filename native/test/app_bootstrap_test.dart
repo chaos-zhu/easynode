@@ -5,6 +5,7 @@ import 'package:easynode_native/core/api/api_client.dart';
 import 'package:easynode_native/core/api/api_result.dart';
 import 'package:easynode_native/core/api/cookie_store.dart';
 import 'package:easynode_native/core/storage/secure_storage.dart';
+import 'package:easynode_native/features/auth/auth_session.dart';
 import 'package:easynode_native/features/auth/login_page.dart';
 import 'package:easynode_native/features/auth/startup_connection_page.dart';
 import 'package:easynode_native/features/shell/main_shell_page.dart';
@@ -155,6 +156,53 @@ void main() {
     expect(await const FlutterSecureStorage().read(key: 'token'), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  for (final entry in ['signed out', 'expired session', 'manual relogin']) {
+    testWidgets('login after $entry opens home without a startup check', (
+      tester,
+    ) async {
+      if (entry == 'signed out') {
+        FlutterSecureStorage.setMockInitialValues({});
+      }
+      final restoredApi = _StartupApi();
+      await tester.pumpWidget((await bootstrap(tester, restoredApi))!);
+      await tester.pump();
+      if (entry == 'expired session') {
+        restoredApi.attempts.single.completeError(
+          UnauthorizedFailure('expired', statusCode: 403),
+        );
+        await tester.pumpAndSettle();
+      } else if (entry == 'manual relogin') {
+        await tester.pump(const Duration(seconds: 5));
+        await tester.tap(find.text('重新登录'));
+        await tester.pumpAndSettle();
+      }
+      expect(find.byType(LoginPage), findsOneWidget);
+
+      final api = _StartupApi();
+      // Publish the authenticated session, as the login success handler does.
+      // Check this transition before the handler's later bookkeeping finishes.
+      final signIn = container(tester)
+          .read(authProvider.notifier)
+          .signIn(
+            session: const AuthSession(
+              serverAddress: 'http://100.64.0.1:8082',
+              username: 'admin',
+              token: 'new-token',
+              deviceId: 'new-device',
+            ),
+            apiClient: api,
+            publicKeyPem: 'test-public-key',
+          );
+      await signIn;
+      await tester.pump();
+      expect(api.attempts, isEmpty);
+      expect(find.byType(MainShellPage), findsOneWidget);
+      expect(find.byType(StartupConnectionPage), findsNothing);
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
 
   testWidgets('missing session credentials still opens signed out', (
     tester,
