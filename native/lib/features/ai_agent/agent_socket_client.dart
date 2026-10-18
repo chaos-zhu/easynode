@@ -24,14 +24,12 @@ Map<String, dynamic> buildOpsAgentRunPayload({
   required String input,
   required String modelId,
   required String permission,
-  required List<String> hostIds,
   String? sessionId,
 }) => {
   if (sessionId != null && sessionId.isNotEmpty) 'sessionId': sessionId,
   'input': input.trim(),
   'modelId': modelId,
   'permission': permission,
-  'hostIds': List<String>.unmodifiable(hostIds),
   'scope': 'ops',
 };
 
@@ -165,7 +163,6 @@ class AgentSocketClient {
     required String input,
     required String modelId,
     required String permission,
-    required List<String> hostIds,
     String? sessionId,
   }) {
     _socket?.emit(
@@ -175,7 +172,6 @@ class AgentSocketClient {
         input: input,
         modelId: modelId,
         permission: permission,
-        hostIds: hostIds,
       ),
     );
   }

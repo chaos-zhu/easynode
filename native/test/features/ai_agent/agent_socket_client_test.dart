@@ -10,26 +10,23 @@ void main() {
   });
 
   test('native run payload is always ops-only and context-free', () {
-    final hosts = ['host-1'];
     final payload = buildOpsAgentRunPayload(
       sessionId: 'session-1',
       input: '  inspect services  ',
       modelId: 'model-a',
       permission: 'review',
-      hostIds: hosts,
     );
-    hosts.add('host-2');
 
     expect(payload, {
       'sessionId': 'session-1',
       'input': 'inspect services',
       'modelId': 'model-a',
       'permission': 'review',
-      'hostIds': ['host-1'],
       'scope': 'ops',
     });
     expect(payload, isNot(contains('terminalContext')));
     expect(payload, isNot(contains('terminalPermission')));
     expect(payload, isNot(contains('hostId')));
+    expect(payload, isNot(contains('hostIds')));
   });
 }

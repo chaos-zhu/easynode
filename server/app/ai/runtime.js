@@ -115,6 +115,16 @@ function createToolApproval(ctx) {
         const access = await resolveHostAccess(hostId, ctx)
         hostPolicy = access.policy
         hostName = access.host.name
+        if (ctx.scope === 'ops') {
+          ctx.toolMeta[toolCall.toolCallId] = {
+            ...ctx.toolMeta[toolCall.toolCallId],
+            targetHost: {
+              hostId: access.host._id,
+              name: access.host.name,
+              address: `${ access.host.host }:${ access.host.port || 22 }`
+            }
+          }
+        }
       } catch (error) {
         return denyToolCall(ctx, toolCall, input, error.message, '主机策略')
       }
@@ -345,6 +355,7 @@ function createToolApproval(ctx) {
       riskLevel: risk,
       risk: reason,
       hostName: hostName || ctx.hosts.find((item) => item.hostId === input.hostId)?.name,
+      targetHost: ctx.toolMeta[toolCall.toolCallId]?.targetHost,
       providerName: spec.source?.type === 'mcp' ? spec.source.name : undefined,
       toolInfo: info,
       preview: approvalPreview,
@@ -376,6 +387,11 @@ function createToolApproval(ctx) {
     }
     return { type: 'denied', reason: result.reason || '用户拒绝了该操作' }
   }
+}
+
+function targetHostMetadata(ctx, toolCallId) {
+  const targetHost = ctx.scope === 'ops' ? ctx.toolMeta[toolCallId]?.targetHost : null
+  return targetHost ? { targetHost } : {}
 }
 
 function hasSensitiveRead(verdict) {
@@ -426,7 +442,8 @@ export async function runTurn(params) {
   const sessionMode = params.scope === 'terminal'
     ? (params.terminalPermission || DEFAULT_PRESET)
     : (params.permission || DEFAULT_PRESET)
-  const { hosts, policy } = await loadHostSummaries(params.hostIds, sessionMode)
+  // 全局助手的请求与历史 hostIds 都不再限定范围，也不把完整主机目录塞进上下文。
+  const { hosts, policy } = await loadHostSummaries(params.scope === 'terminal' ? params.hostIds : [], sessionMode)
 
   if (params.scope === 'terminal' && hosts.length !== 1) {
     throw new Error('终端 AI 必须绑定一个有效的目标主机')
@@ -452,7 +469,8 @@ export async function runTurn(params) {
     scope: params.scope || 'ops',
     terminalHostId: params.terminalHostId,
     terminalPermission: params.terminalPermission || DEFAULT_PRESET,
-    allowedHostIds: buildAllowedHostIds(params.hostIds),
+    allowedHostIds: buildAllowedHostIds(params.scope === 'terminal' ? params.hostIds : []),
+    usedHostIds: params.scope === 'terminal' ? undefined : params.usedHostIds,
     hosts,
     toolMeta,
     authorizedWrites: new Map(),
@@ -484,7 +502,7 @@ export async function runTurn(params) {
           toolInfo: event.toolInfo
         }
       }
-      emit({ type: 'tool_progress', ...event })
+      emit({ type: 'tool_progress', ...event, ...targetHostMetadata(ctx, event.toolCallId) })
     }
   }
 
@@ -551,6 +569,7 @@ export async function runTurn(params) {
       logger.warn('[ai-runtime] 上下文超限，强制压缩后重试')
       const forced = await compactMessages({
         messages: working,
+        scope: ctx.scope,
         model,
         contextLimit: effectiveContextLimit,
         force: true,
@@ -655,7 +674,8 @@ async function streamOnce({ model, system, messages, tools, ctx, maxSteps, toolM
             toolCallId: part.toolCallId,
             tool: part.toolName,
             input: part.input,
-            toolInfo: info
+            toolInfo: info,
+            ...targetHostMetadata(ctx, part.toolCallId)
           })
           break
         }
@@ -666,6 +686,7 @@ async function streamOnce({ model, system, messages, tools, ctx, maxSteps, toolM
             toolCallId: part.toolCallId,
             tool: part.toolName,
             output: part.output,
+            ...targetHostMetadata(ctx, part.toolCallId),
             toolInfo: toolInfo(ctx.toolDefinitionMap?.get(part.toolName))
           })
           awaitingModelAfterTool = { toolCallId: part.toolCallId, startedAt: Date.now() }
@@ -678,6 +699,7 @@ async function streamOnce({ model, system, messages, tools, ctx, maxSteps, toolM
             toolCallId: part.toolCallId,
             tool: part.toolName,
             error: String(part.error?.message || part.error),
+            ...targetHostMetadata(ctx, part.toolCallId),
             toolInfo: toolInfo(ctx.toolDefinitionMap?.get(part.toolName))
           })
           awaitingModelAfterTool = { toolCallId: part.toolCallId, startedAt: Date.now() }

@@ -10,7 +10,7 @@ export function availableAgentTools(tools = [], options = {}) {
     const requiresSelectedHosts = tool.requiresSelectedHosts === undefined
       ? tool.source?.type !== 'mcp'
       : tool.requiresSelectedHosts
-    if (requiresSelectedHosts && !options.hasSelectedHosts) return false
+    if (scope === 'terminal' && requiresSelectedHosts && !options.hasSelectedHosts) return false
     return true
   })
 }

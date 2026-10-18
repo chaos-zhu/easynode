@@ -65,7 +65,6 @@
               scope="ops"
               :tools="options.tools"
               :preset="settings.preset"
-              :selected-host-count="settings.hostIds.length"
               :plus-available="options.plusAvailable"
               :connected="connected"
             />
@@ -165,7 +164,7 @@
               <div ref="bodyRef" class="body_inner">
                 <div v-if="!state.messages.length" class="empty_state">
                   <el-icon class="empty_icon"><ChatDotRound /></el-icon>
-                  <p class="empty_title">选择一台或多台主机，我可以帮你排查问题、查看状态和执行运维操作</p>
+                  <p class="empty_title">直接描述问题或任务；需要操作服务器时，告诉我目标名称、地址或分组</p>
                 </div>
 
                 <MessageItem
@@ -244,8 +243,6 @@
                 />
               </el-select>
 
-              <HostSelector v-model="settings.hostIds" class="host_select" />
-
               <span class="footer_spacer" />
             </div>
           </footer>
@@ -269,7 +266,6 @@ import ChatSender from '../common/chat-sender.vue'
 import MessageItem from './message-item.vue'
 import ApprovalPrompt from './approval-prompt.vue'
 import ModeSwitcher from './mode-switcher.vue'
-import HostSelector from './host-selector.vue'
 import SessionList from './session-list.vue'
 import AssistantInfoPopover from './assistant-info-popover.vue'
 import { useAgentSession } from '@/composables/useAgentSession'
@@ -355,9 +351,7 @@ const windowStyle = computed(() => {
     height: `${ windowGeometry.height }px`
   }
 })
-const senderPlaceholder = computed(() => (settings.hostIds.length
-  ? '输入任务或者问题，Enter 发送'
-  : '描述问题，Enter 发送'))
+const senderPlaceholder = '输入任务或者问题，Enter 发送'
 
 // 后端 ready 事件之前也要有预设可选，否则首次打开是空下拉
 const presets = computed(() => (options.presets.length ? options.presets : PRESET_FALLBACK))
@@ -1023,11 +1017,6 @@ async function handleClearSessions() {
         width: 150px;
       }
 
-      .host_select {
-        flex: 0 1 150px;
-        min-width: 110px;
-      }
-
       .footer_spacer {
         flex: 1;
       }
@@ -1052,14 +1041,13 @@ async function handleClearSessions() {
   .agent_footer {
     .footer_controls {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr);
 
       .mode_control {
         grid-column: 1 / -1;
       }
 
-      .model_select,
-      .host_select {
+      .model_select {
         width: 100%;
         min-width: 0;
       }

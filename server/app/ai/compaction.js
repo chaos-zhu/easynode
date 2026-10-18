@@ -222,7 +222,9 @@ export async function compactMessages(params) {
     if (!model) throw new Error('缺少用于生成摘要的模型')
     const result = await generateText({
       model,
-      system: SUMMARY_PROMPT,
+      system: params.scope === 'ops'
+        ? `${ SUMMARY_PROMPT }\n\n全局助手额外保留：工具结果中已明确的主机名称、地址与 hostId 的对应关系，用户指定的单台/分组/全部范围及后续目标切换；不要把历史目标当作新任务的默认授权，不要编造缺失的 ID。`
+        : SUMMARY_PROMPT,
       prompt: text,
       maxOutputTokens: SUMMARY_MAX_TOKENS,
       abortSignal: signal

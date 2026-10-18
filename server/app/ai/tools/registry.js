@@ -20,9 +20,8 @@ const BUILTIN_LABELS = {
   read_output: '回读输出'
 }
 
-const SELECTED_HOST_TOOLS = new Set([
-  'host_list', 'host_status', 'script_list', 'run_script', 'exec_command', 'read_file', 'write_file', 'list_dir',
-  'read_output', 'terminal_command'
+const HOST_ARGUMENT_TOOLS = new Set([
+  'host_status', 'run_script', 'exec_command', 'read_file', 'write_file', 'list_dir', 'terminal_command'
 ])
 
 function builtinDefinition(spec) {
@@ -33,8 +32,8 @@ function builtinDefinition(spec) {
     scopes: spec.name === 'terminal_command'
       ? ['terminal']
       : (spec.name === 'read_output' ? ['ops', 'terminal'] : ['ops']),
-    requiresSelectedHosts: SELECTED_HOST_TOOLS.has(spec.name),
-    hostArg: SELECTED_HOST_TOOLS.has(spec.name) ? 'hostId' : null,
+    requiresSelectedHosts: ['terminal_command', 'read_output'].includes(spec.name),
+    hostArg: HOST_ARGUMENT_TOOLS.has(spec.name) ? 'hostId' : null,
     approvalPolicy: 'policy',
     execute: EXECUTORS[spec.name]
   }
@@ -44,16 +43,17 @@ export const BUILTIN_TOOL_DEFINITIONS = TOOL_SPECS
   .map(builtinDefinition)
   .filter((definition) => typeof definition.execute === 'function')
 
-function isAvailable(definition, ctx) {
-  if (!definition.scopes.includes(ctx.scope)) return false
-  if (definition.requiresSelectedHosts && !(ctx.allowedHostIds instanceof Set && ctx.allowedHostIds.size > 0)) return false
+export function isToolAvailable(definition, ctx) {
+  const scope = ctx.scope || 'ops'
+  if (!definition.scopes.includes(scope)) return false
+  if (scope === 'terminal' && definition.requiresSelectedHosts && !(ctx.allowedHostIds instanceof Set && ctx.allowedHostIds.size > 0)) return false
   return true
 }
 
 export async function loadToolDefinitions(ctx) {
   const names = new Set()
   return [...BUILTIN_TOOL_DEFINITIONS, ...await loadMcpDefinitions()].filter((definition) => {
-    if (!isAvailable(definition, ctx) || names.has(definition.name)) return false
+    if (!isToolAvailable(definition, ctx) || names.has(definition.name)) return false
     names.add(definition.name)
     return true
   })

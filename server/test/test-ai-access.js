@@ -4,7 +4,7 @@
  * 运行：node test/test-ai-access.js
  *
  * 覆盖三个曾被审查发现的越权口子：
- *   1. 模型先 host_list 拿到任意 hostId，再对会话范围外/受限主机下命令
+ *   1. 全局主机发现仍遵守主机策略，终端助手不能越过绑定范围
  *   2. cwd 被拼进 shell，用 JSON.stringify 转义挡不住 $(...) 展开
  *   3. 会话级"始终允许"粒度太粗，且能豁免掉 high 的强制确认
  */
@@ -28,7 +28,7 @@ const {
 } = await import(`${ originalCwd }/app/ai/host-access.js`)
 const { shellQuote, wrapCommand } = await import(`${ originalCwd }/app/ai/ssh.js`)
 const { grantKey, requestApproval, resolveApproval, clearSession } = await import(`${ originalCwd }/app/ai/approval.js`)
-const { HostListDB, ScheduledTaskDB } = await import(`${ originalCwd }/app/utils/db-class.js`)
+const { HostListDB, GroupDB, ScheduledTaskDB } = await import(`${ originalCwd }/app/utils/db-class.js`)
 const { Effect, Mode, strongerEffect } = await import(`${ originalCwd }/app/ai/policy.js`)
 const { normalizeMaxSteps, DEFAULT_MAX_STEPS, MAX_MAX_STEPS, deriveBaseURL } = await import(`${ originalCwd }/app/ai/provider.js`)
 const { getToolSpec, PlusPolicy, requiresPlus } = await import(`${ originalCwd }/app/ai/tools/spec.js`)
@@ -83,7 +83,11 @@ async function expectReject(label, promise, matcher) {
 }
 
 // 三台主机：不限制 / 只读上限 / 禁用 AI
-const open = await hostListDB.insertAsync({ name: '测试机', host: '10.0.0.1', port: 22 })
+const group = await new GroupDB().getInstance().insertAsync({ name: '香港分组' })
+const open = await hostListDB.insertAsync({
+  name: '测试机', host: '10.0.0.1', port: 22, group: group._id,
+  password: 'fixture-password', privateKey: 'fixture-private-key', credential: 'fixture-credential'
+})
 const restricted = await hostListDB.insertAsync({
   name: '生产机', host: '10.0.0.2', port: 22,
   aiPolicy: { enabled: true, maxEffect: Effect.READ, maxMode: Mode.REVIEW }
@@ -102,8 +106,8 @@ const panelTask = await scheduledTaskDB.insertAsync({
 console.log('\n========== 主机访问控制 ==========')
 
 {
-  // 未选主机是纯聊天模式，不能把空范围解释为所有主机。
-  const ctx = { sessionMode: Mode.AUTHORIZED, allowedHostIds: buildAllowedHostIds([]) }
+  // 未绑定的终端上下文必须拒绝主机操作，不能误用全局范围。
+  const ctx = { scope: 'terminal', sessionMode: Mode.AUTHORIZED, allowedHostIds: buildAllowedHostIds([]) }
 
   await expectReject('未选择主机时拒绝普通主机', resolveHostAccess(open._id, ctx, Effect.WRITE), /当前会话未授权/)
   await expectReject('未选择主机时拒绝受限主机', resolveHostAccess(restricted._id, ctx, Effect.READ), /当前会话未授权/)
@@ -118,7 +122,7 @@ console.log('\n========== 主机访问控制 ==========')
 }
 
 {
-  const ctx = { sessionMode: Mode.AUTHORIZED, allowedHostIds: buildAllowedHostIds([open._id, restricted._id, disabled._id]) }
+  const ctx = { scope: 'terminal', sessionMode: Mode.AUTHORIZED, allowedHostIds: buildAllowedHostIds([open._id, restricted._id, disabled._id]) }
 
   const access = await resolveHostAccess(open._id, ctx, Effect.WRITE)
   expect('范围内普通主机可访问', access.host.name, '测试机')
@@ -140,13 +144,13 @@ console.log('\n========== 主机访问控制 ==========')
 }
 
 {
-  const ctx = { sessionMode: Mode.AUTHORIZED, allowedHostIds: buildAllowedHostIds(['nope']) }
+  const ctx = { scope: 'terminal', sessionMode: Mode.AUTHORIZED, allowedHostIds: buildAllowedHostIds(['nope']) }
   await expectReject('不存在的范围内主机被拒绝', resolveHostAccess('nope', ctx, Effect.READ), /未找到/)
 }
 
 {
   // 会话已指定主机：这是最关键的一条 —— 模型不能靠 host_list 越界
-  const ctx = { sessionMode: Mode.AUTHORIZED, allowedHostIds: buildAllowedHostIds([open._id]) }
+  const ctx = { scope: 'terminal', sessionMode: Mode.AUTHORIZED, allowedHostIds: buildAllowedHostIds([open._id]) }
 
   const access = await resolveHostAccess(open._id, ctx, Effect.WRITE)
   expect('范围内主机可访问', access.host.name, '测试机')
@@ -158,41 +162,54 @@ console.log('\n========== 主机访问控制 ==========')
   )
 }
 
-console.log('\n========== 纯聊天模式 ==========')
+console.log('\n========== 全局主机发现 ==========')
 
 {
-  const noHostCtx = {
+  const ctx = {
     scope: 'ops',
     policy: { mode: Mode.AUTHORIZED, maxEffect: Effect.WRITE },
     sessionMode: Mode.AUTHORIZED,
-    allowedHostIds: buildAllowedHostIds([])
+    allowedHostIds: buildAllowedHostIds([]),
+    usedHostIds: new Set()
   }
-  const noHostTools = Object.keys(buildTools(noHostCtx))
-  expect('未选择主机时仍下发面板定时任务工具', noHostTools, [
-    'scheduled_task_list',
-    'scheduled_task_get',
-    'scheduled_task_create',
-    'scheduled_task_update',
-    'scheduled_task_delete'
-  ])
-  assert('未选择主机时仍明确禁止直接主机操作', describeAvailableTools(noHostCtx).includes('不能直接读取'))
-
-  const tasksWithoutHosts = await scheduledTaskList(noHostCtx, {})
-  expect('未选择主机仍能查询全部定时任务', tasksWithoutHosts.data.tasks.map(task => task.taskId), [panelTask._id])
-  const taskWithoutHosts = await scheduledTaskGet(noHostCtx, { taskId: panelTask._id })
-  expect('未选择主机仍能查看定时任务详情', taskWithoutHosts.data.id, panelTask._id)
-
-  const selectedCtx = {
-    ...noHostCtx,
-    allowedHostIds: buildAllowedHostIds([open._id])
+  const toolNames = Object.keys(buildTools(ctx))
+  for (const name of ['host_list', 'host_status', 'script_list', 'exec_command', 'write_file', 'read_output', 'scheduled_task_list']) {
+    assert(`全局助手无需预选即可使用 ${ name }`, toolNames.includes(name))
   }
-  assert('选择主机后恢复运维工具', Object.keys(buildTools(selectedCtx)).includes('host_list'))
-  assert('工具注册不按 Plus 状态裁剪写入工具', Object.keys(buildTools(selectedCtx)).includes('write_file'))
-  const listed = await hostList(selectedCtx, {})
-  expect('host_list 仅返回会话选择的主机', listed.data.hosts.map((host) => host.hostId), [open._id])
-  const tasksWithPartialSelection = await scheduledTaskList(selectedCtx, {})
-  expect('只选择部分目标主机仍能查询跨主机任务',
-    tasksWithPartialSelection.data.tasks.map(task => task.taskId), [panelTask._id])
+  assert('全局助手不开放终端命令', !toolNames.includes('terminal_command'))
+  assert('工具说明不再要求预选主机', !describeAvailableTools(ctx).includes('当前未选择目标主机'))
+
+  const allIds = [open._id, restricted._id, disabled._id].sort()
+  for (const selection of [[], [open._id], [disabled._id]]) {
+    ctx.allowedHostIds = buildAllowedHostIds(selection)
+    const listed = await hostList(ctx, {})
+    expect('旧选择不再限制全局目录', listed.data.hosts.map(host => host.hostId).sort(), allIds)
+    expect('禁用主机在目录标记不可操作', listed.data.hosts.find(host => host.hostId === disabled._id).aiEnabled, false)
+    assert('主机目录不暴露凭据字段', listed.data.hosts.every(host => !('password' in host) && !('privateKey' in host) && !('credential' in host)))
+  }
+  const matched = await hostList(ctx, { keyword: '生产' })
+  expect('按名称定位目标', matched.data.hosts.map(host => host.hostId), [restricted._id])
+  const byAddress = await hostList(ctx, { keyword: '10.0.0.1' })
+  expect('按地址定位目标', byAddress.data.hosts.map(host => host.hostId), [open._id])
+  expect('按分组定位目标', (await hostList(ctx, { keyword: '香港分组' })).data.hosts.map(host => host.hostId), [open._id])
+  expect('没有匹配返回空列表', (await hostList(ctx, { keyword: '不存在的机器' })).data.total, 0)
+  expect('仅查询目录不记录远端访问', ctx.usedHostIds.size, 0)
+
+  expect('全局访问不依赖旧选择', (await resolveHostAccess(open._id, ctx, Effect.WRITE)).host._id, open._id)
+  expect('跟踪实际通过访问校验的主机', [...ctx.usedHostIds], [open._id])
+  const access = await resolveHostAccess(restricted._id, ctx, Effect.READ)
+  expect('全局访问仍遵守主机模式上限', access.policy.mode, Mode.REVIEW)
+  await expectReject('全局访问仍禁止受限主机写入', resolveHostAccess(restricted._id, ctx, Effect.WRITE), /仅允许/)
+  await expectReject('全局访问仍禁止禁用 AI 主机', resolveHostAccess(disabled._id, ctx, Effect.READ), /禁止/)
+  await expectReject('全局访问仍拒绝缺少主机 ID', resolveHostAccess('', ctx, Effect.READ), /缺少/)
+  await expectReject('全局访问仍拒绝已删除主机', resolveHostAccess('deleted-host', ctx, Effect.READ), /未找到/)
+
+  expect('全局助手可查询跨主机面板任务', (await scheduledTaskList(ctx, {})).data.tasks.map(task => task.taskId), [panelTask._id])
+  expect('全局助手可查看面板任务', (await scheduledTaskGet(ctx, { taskId: panelTask._id })).data.id, panelTask._id)
+
+  const terminalCtx = { ...ctx, scope: 'terminal', allowedHostIds: buildAllowedHostIds([open._id]) }
+  expect('终端内置工具保持原范围', Object.keys(buildTools(terminalCtx)), ['read_output', 'terminal_command'])
+  await expectReject('终端不能因全局范围改动访问其他主机', resolveHostAccess(restricted._id, terminalCtx, Effect.READ), /未授权/)
 }
 
 console.log('\n========== shell 转义 ==========')

@@ -14,7 +14,6 @@ class _AgentComposer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final hosts = ref.watch(agentHostPoliciesProvider);
     return Material(
       color: context.colors.card,
       child: Container(
@@ -51,18 +50,6 @@ class _AgentComposer extends ConsumerWidget {
                           !state.conversation.running &&
                           state.models.isNotEmpty,
                       onTap: () => _pickModel(context, ref),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filledTonal(
-                    tooltip: l.tr('agent.hosts'),
-                    onPressed: state.conversation.running
-                        ? null
-                        : () => _pickHosts(context, ref, hosts, state.hostIds),
-                    icon: Badge(
-                      isLabelVisible: state.hostIds.isNotEmpty,
-                      label: Text('${state.hostIds.length}'),
-                      child: const Icon(Icons.dns_outlined),
                     ),
                   ),
                 ],
@@ -167,44 +154,6 @@ class _AgentComposer extends ConsumerWidget {
         () => ref.read(agentControllerProvider.notifier).setModel(result),
       );
     }
-  }
-
-  Future<void> _pickHosts(
-    BuildContext context,
-    WidgetRef ref,
-    List<AgentHostPolicy> hosts,
-    List<String> selected,
-  ) async {
-    final l = AppLocalizations.of(context);
-    final enabledIds = hosts
-        .where((host) => host.enabled)
-        .map((host) => host.hostId)
-        .toSet();
-    await showAgentMultiSelectionSheet<String>(
-      context: context,
-      title: l.tr('agent.selectHosts'),
-      icon: Icons.dns_outlined,
-      searchable: true,
-      searchHint: l.tr('agent.searchHosts'),
-      selected: selected.toSet().intersection(enabledIds),
-      onSelectionChanged: (result) {
-        ref.read(agentControllerProvider.notifier).setHosts(result.toList());
-      },
-      options: hosts
-          .map(
-            (host) => AgentSelectionOption(
-              value: host.hostId,
-              title: host.name,
-              subtitle: host.enabled
-                  ? host.address
-                  : l.tr('agent.hostDisabled'),
-              icon: Icons.dns_outlined,
-              enabled: host.enabled,
-              searchText: host.address,
-            ),
-          )
-          .toList(growable: false),
-    );
   }
 }
 

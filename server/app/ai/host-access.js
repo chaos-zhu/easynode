@@ -9,7 +9,7 @@ export class HostAccessError extends Error {}
 
 export async function resolveHostAccess(hostId, ctx, effect, { requireSelected = true } = {}) {
   if (!hostId) throw new HostAccessError('缺少 hostId，请先调用 host_list 获取')
-  if (requireSelected && (!(ctx.allowedHostIds instanceof Set) || !ctx.allowedHostIds.has(hostId))) {
+  if (requireSelected && ctx.scope !== 'ops' && (!(ctx.allowedHostIds instanceof Set) || !ctx.allowedHostIds.has(hostId))) {
     throw new HostAccessError('当前会话未授权访问该主机，请先选择目标主机')
   }
 
@@ -22,6 +22,7 @@ export async function resolveHostAccess(hostId, ctx, effect, { requireSelected =
     throw new HostAccessError(`主机「${ host.name }」仅允许 AI 读取，不能执行${ effect === 'delete' ? '删除' : '写入' }操作`)
   }
 
+  if (ctx.scope === 'ops' && requireSelected) ctx.usedHostIds?.add(hostId)
   return { host, policy }
 }
 

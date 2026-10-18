@@ -461,6 +461,7 @@ export async function loadForModel(id, options = {}) {
   if (options.model) {
     const result = await compactMessages({
       messages: all.slice(covered),
+      scope: session.scope || 'ops',
       model: options.model,
       contextLimit: options.contextLimit,
       previousSummary: usable ? compaction.summary : '',

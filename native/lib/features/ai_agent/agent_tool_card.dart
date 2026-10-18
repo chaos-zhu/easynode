@@ -147,6 +147,23 @@ class _AgentToolCardState extends State<AgentToolCard> {
                                   ],
                                 ],
                               ),
+                              if (part.targetHost != null) ...[
+                                const SizedBox(height: 2),
+                                Tooltip(
+                                  message: part.targetHost!.label,
+                                  child: Text(
+                                    l.trf('agent.targetHost', [
+                                      part.targetHost!.label,
+                                    ]),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: context.colors.primary,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ],
                               if (summary.isNotEmpty) ...[
                                 const SizedBox(height: 2),
                                 Text(

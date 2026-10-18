@@ -257,6 +257,33 @@ class AgentReasoningPart extends AgentMessagePart {
 
 enum AgentToolStatus { running, awaitingApproval, done, error, denied }
 
+class AgentTargetHost {
+  const AgentTargetHost({
+    required this.hostId,
+    required this.name,
+    required this.address,
+  });
+
+  final String hostId;
+  final String name;
+  final String address;
+
+  String get label {
+    final title = name.isNotEmpty ? name : address;
+    if (title.isEmpty) return hostId;
+    return address.isNotEmpty && address != title ? '$title · $address' : title;
+  }
+
+  static AgentTargetHost? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final hostId = value['hostId']?.toString().trim() ?? '';
+    final name = value['name']?.toString().trim() ?? '';
+    final address = value['address']?.toString().trim() ?? '';
+    if (hostId.isEmpty && name.isEmpty && address.isEmpty) return null;
+    return AgentTargetHost(hostId: hostId, name: name, address: address);
+  }
+}
+
 class AgentToolPart extends AgentMessagePart {
   const AgentToolPart({
     required this.toolCallId,
@@ -269,6 +296,7 @@ class AgentToolPart extends AgentMessagePart {
     this.risk,
     this.approval,
     this.toolInfo,
+    this.targetHost,
   });
 
   final String toolCallId;
@@ -281,6 +309,7 @@ class AgentToolPart extends AgentMessagePart {
   final Map<String, dynamic>? risk;
   final Map<String, dynamic>? approval;
   final Map<String, dynamic>? toolInfo;
+  final AgentTargetHost? targetHost;
 
   bool get isMcp => toolInfo?['source'] == 'mcp';
   String get displayName =>
@@ -299,6 +328,7 @@ class AgentToolPart extends AgentMessagePart {
     Map<String, dynamic>? risk,
     Map<String, dynamic>? approval,
     Map<String, dynamic>? toolInfo,
+    AgentTargetHost? targetHost,
   }) => AgentToolPart(
     toolCallId: toolCallId,
     tool: tool,
@@ -310,6 +340,7 @@ class AgentToolPart extends AgentMessagePart {
     risk: risk ?? this.risk,
     approval: approval ?? this.approval,
     toolInfo: toolInfo ?? this.toolInfo,
+    targetHost: targetHost ?? this.targetHost,
   );
 }
 
@@ -356,6 +387,7 @@ class AgentApproval {
     required this.createdAt,
     this.preview,
     this.hostName,
+    this.targetHost,
     this.effect,
     this.targets = const [],
     this.sensitiveDisclosure = false,
@@ -373,6 +405,7 @@ class AgentApproval {
   final int createdAt;
   final Map<String, dynamic>? preview;
   final String? hostName;
+  final AgentTargetHost? targetHost;
   final String? effect;
   final List<String> targets;
   final bool sensitiveDisclosure;
@@ -395,6 +428,7 @@ class AgentApproval {
     input: stringMap(event['input']),
     preview: event['preview'] is Map ? stringMap(event['preview']) : null,
     hostName: event['hostName']?.toString(),
+    targetHost: AgentTargetHost.fromJson(event['targetHost']),
     effect: event['effect']?.toString(),
     targets: event['targets'] is List
         ? (event['targets'] as List)

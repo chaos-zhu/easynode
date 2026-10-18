@@ -2,14 +2,10 @@
 
 import { dynamicTool, jsonSchema, tool } from 'ai'
 import { redactDeep } from '../redact.js'
-import { BUILTIN_TOOL_DEFINITIONS, toolInfo } from './registry.js'
+import { BUILTIN_TOOL_DEFINITIONS, isToolAvailable, toolInfo } from './registry.js'
 
 export function buildTools(ctx, definitions) {
-  const selectedHosts = ctx.allowedHostIds instanceof Set && ctx.allowedHostIds.size > 0
-  const available = (definitions || BUILTIN_TOOL_DEFINITIONS).filter((definition) => (
-    definition.scopes.includes(ctx.scope || 'ops')
-    && (!definition.requiresSelectedHosts || selectedHosts)
-  ))
+  const available = (definitions || BUILTIN_TOOL_DEFINITIONS).filter(definition => isToolAvailable(definition, ctx))
   return Object.fromEntries(available.map((definition) => {
     const config = {
       description: definition.description,
@@ -58,18 +54,11 @@ async function runTool(definition, ctx, input, options) {
 }
 
 export function describeAvailableTools(ctx) {
-  const selectedHosts = ctx.allowedHostIds instanceof Set && ctx.allowedHostIds.size > 0
-  const definitions = ctx.toolDefinitions || BUILTIN_TOOL_DEFINITIONS.filter((definition) => (
-    definition.scopes.includes(ctx.scope || 'ops')
-    && (!definition.requiresSelectedHosts || selectedHosts)
-  ))
+  const definitions = ctx.toolDefinitions || BUILTIN_TOOL_DEFINITIONS.filter(definition => isToolAvailable(definition, ctx))
   const lines = definitions.map((definition) => {
     const provider = definition.source?.type === 'mcp' ? `（MCP：${ definition.source.name }）` : ''
     return `- \`${ definition.name }\`${ provider }：${ definition.description }`
   })
-  if (!ctx.allowedHostIds?.size && ctx.scope !== 'terminal') {
-    lines.unshift('- 当前未选择目标主机，不能直接读取、枚举或操作 EasyNode 主机；面板级定时任务工具和不依赖目标主机的 MCP 工具仍可使用。')
-  }
   return lines.join('\n') || '- 当前没有可用工具。'
 }
 

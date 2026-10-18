@@ -130,10 +130,10 @@ async function executeRestrictedTool(tool, ctx, input, options) {
 
 export async function hostList(ctx, input) {
   const allowedHostIds = ctx.allowedHostIds instanceof Set ? [...ctx.allowedHostIds] : []
-  if (!allowedHostIds.length) return ok({ total: 0, hosts: [] })
+  if (ctx.scope !== 'ops' && !allowedHostIds.length) return ok({ total: 0, hosts: [] })
 
   const [hosts, groups, order] = await Promise.all([
-    hostListDB.findAsync({ _id: { $in: allowedHostIds } }),
+    hostListDB.findAsync(ctx.scope === 'ops' ? {} : { _id: { $in: allowedHostIds } }),
     groupDB.findAsync({}),
     getLayout(ORDER_DOMAIN.HOSTS)
   ])

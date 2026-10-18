@@ -161,6 +161,7 @@ AgentConversationState applyAgentEvent(
         event['toolCallId']?.toString() ?? '',
         (part) => part.copyWith(
           durationMs: intValue(event['durationMs']),
+          targetHost: AgentTargetHost.fromJson(event['targetHost']),
           toolInfo: event['toolInfo'] is Map
               ? stringMap(event['toolInfo'])
               : null,
@@ -176,6 +177,7 @@ AgentConversationState applyAgentEvent(
                     ? AgentToolStatus.denied
                     : AgentToolStatus.error,
                 error: event['error'].toString(),
+                targetHost: AgentTargetHost.fromJson(event['targetHost']),
                 toolInfo: event['toolInfo'] is Map
                     ? stringMap(event['toolInfo'])
                     : null,
@@ -183,6 +185,7 @@ AgentConversationState applyAgentEvent(
             : part.copyWith(
                 status: AgentToolStatus.done,
                 output: normalizeAgentToolOutput(event['output']),
+                targetHost: AgentTargetHost.fromJson(event['targetHost']),
                 clearError: true,
                 toolInfo: event['toolInfo'] is Map
                     ? stringMap(event['toolInfo'])
@@ -218,6 +221,7 @@ AgentConversationState applyAgentEvent(
           status: AgentToolStatus.awaitingApproval,
           risk: approval.risk,
           toolInfo: approval.toolInfo,
+          targetHost: approval.targetHost,
         ),
       );
       return updated.copyWith(
@@ -362,6 +366,8 @@ AgentConversationState _appendTool(
           ? AgentToolStatus.running
           : AgentToolStatus.awaitingApproval,
       risk: pending?.risk,
+      targetHost:
+          AgentTargetHost.fromJson(event['targetHost']) ?? pending?.targetHost,
       toolInfo: event['toolInfo'] is Map
           ? stringMap(event['toolInfo'])
           : pending?.toolInfo,
@@ -538,6 +544,7 @@ List<AgentMessage> messagesFromAgentSession(AgentSession session) {
                       'scope': meta['approvalScope'],
                       'cached': meta['approvalCached'],
                     },
+              targetHost: AgentTargetHost.fromJson(meta['targetHost']),
               toolInfo: meta['toolInfo'] is Map
                   ? stringMap(meta['toolInfo'])
                   : null,

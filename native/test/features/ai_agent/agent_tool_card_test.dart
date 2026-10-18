@@ -11,12 +11,21 @@ void main() {
   testWidgets('tool card uses status styling and custom expansion', (
     tester,
   ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 640);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
     const part = AgentToolPart(
       toolCallId: 'tool-1',
       tool: 'exec_command',
       input: {'command': 'uptime'},
       status: AgentToolStatus.done,
       output: {'stdout': 'all good'},
+      targetHost: AgentTargetHost(
+        hostId: 'host-1',
+        name: 'Production server with a long name',
+        address: '10.0.0.1:2222',
+      ),
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -39,6 +48,17 @@ void main() {
 
     expect(find.text('Run command'), findsOneWidget);
     expect(find.text('Completed'), findsOneWidget);
+    expect(
+      find.text(
+        'Target host: Production server with a long name · 10.0.0.1:2222',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byTooltip('Production server with a long name · 10.0.0.1:2222'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
     expect(find.byType(ExpansionTile), findsNothing);
     expect(find.text('all good'), findsNothing);
 

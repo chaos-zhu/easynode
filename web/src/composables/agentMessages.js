@@ -125,6 +125,8 @@ export function applyEvent(state, event) {
         toolCallId: event.toolCallId,
         tool: event.tool,
         toolInfo: event.toolInfo,
+        ...((event.targetHost || pendingApproval?.targetHost)
+          ? { targetHost: event.targetHost || pendingApproval.targetHost } : {}),
         input: scriptName ? { ...event.input, scriptName } : event.input,
         status: ToolStatus.RUNNING
       })
@@ -136,6 +138,7 @@ export function applyEvent(state, event) {
       if (!part) break
       if (event.durationMs !== undefined) part.durationMs = event.durationMs
       if (event.toolInfo) part.toolInfo = event.toolInfo
+      if (event.targetHost) part.targetHost = event.targetHost
       break
     }
 
@@ -153,6 +156,7 @@ export function applyEvent(state, event) {
       const part = findToolPart(state.messages, event.toolCallId)
       if (!part) break
       if (event.toolInfo) part.toolInfo = event.toolInfo
+      if (event.targetHost) part.targetHost = event.targetHost
       if (event.error) {
         part.status = ToolStatus.ERROR
         part.error = event.error
@@ -190,6 +194,7 @@ export function applyEvent(state, event) {
       if (part) {
         part.status = ToolStatus.AWAITING_APPROVAL
         part.risk = event.risk
+        if (event.targetHost) part.targetHost = event.targetHost
         if (event.tool === 'run_script' && event.input?.scriptName) {
           part.input = { ...part.input, scriptName: event.input.scriptName }
         }
@@ -202,6 +207,7 @@ export function applyEvent(state, event) {
         input: event.input,
         preview: event.preview,
         hostName: event.hostName,
+        ...(event.targetHost ? { targetHost: event.targetHost } : {}),
         providerName: event.providerName,
         effect: event.effect,
         mode: event.mode,
@@ -433,6 +439,7 @@ export function fromModelMessages(modelMessages = [], toolMeta = {}, turnMeta = 
             toolCallId: part.toolCallId,
             tool: part.toolName,
             toolInfo: meta.toolInfo,
+            ...(meta.targetHost ? { targetHost: meta.targetHost } : {}),
             input: part.toolName === 'run_script' && meta.scriptName
               ? { ...part.input, scriptName: meta.scriptName }
               : part.input,

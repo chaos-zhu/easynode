@@ -9,6 +9,7 @@ const testFiles = [
   'test-terminal-workspace.js',
   'test-terminal-appearance.mjs',
   'test-agent-messages.js',
+  'test-agent-session.js',
   'test-sticky-bottom.js',
   'test-host-sort.js',
   'test-ip-access.js',

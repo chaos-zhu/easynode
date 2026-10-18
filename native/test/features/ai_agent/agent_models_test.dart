@@ -2,6 +2,48 @@ import 'package:easynode_native/features/ai_agent/agent_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('target host metadata is optional and has readable fallbacks', () {
+    for (final value in [null, 'invalid', <String, dynamic>{}]) {
+      expect(AgentTargetHost.fromJson(value), isNull);
+    }
+    final target = AgentTargetHost.fromJson({
+      'hostId': 'host-1',
+      'name': ' Production ',
+      'address': '10.0.0.1:22',
+    })!;
+    expect(target.hostId, 'host-1');
+    expect(target.label, 'Production · 10.0.0.1:22');
+    expect(
+      AgentTargetHost.fromJson({'address': '10.0.0.1'})!.label,
+      '10.0.0.1',
+    );
+    expect(AgentTargetHost.fromJson({'hostId': 'host-1'})!.label, 'host-1');
+    const part = AgentToolPart(
+      toolCallId: 'tool-1',
+      tool: 'read_file',
+      input: {},
+    );
+    expect(
+      part.copyWith(targetHost: target).copyWith(durationMs: 10).targetHost,
+      same(target),
+    );
+  });
+
+  test('approval accepts resolved target and keeps legacy host name', () {
+    final legacy = AgentApproval.fromEvent({'hostName': 'Legacy host'});
+    expect(legacy.hostName, 'Legacy host');
+    expect(legacy.targetHost, isNull);
+    final approval = AgentApproval.fromEvent({
+      'hostName': 'Legacy host',
+      'targetHost': {
+        'hostId': 'host-1',
+        'name': 'Production',
+        'address': '10.0.0.1:22',
+      },
+    });
+    expect(approval.targetHost?.label, 'Production · 10.0.0.1:22');
+  });
+
   test('old server config defaults the native entry to enabled', () {
     final config = AgentProviderConfig.fromJson({
       'providerType': 'openai-compatible',

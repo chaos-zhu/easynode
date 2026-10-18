@@ -45,6 +45,7 @@ const suites = {
     'test-ai-session.js',
     'test-ai-compaction.js',
     'test-ai-access.js',
+    'test-ai-global-runtime.js',
     'test-ai-data.js',
     'test-ai-mcp.js'
   ]

@@ -20,6 +20,62 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('global composer sends without loading a host selector', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 640);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    SharedPreferences.setMockInitialValues({});
+    final storage = AppStorage(await SharedPreferences.getInstance());
+    final notifier = _FakeAgentStateNotifier(_TestAgentDeps(storage));
+    notifier.showReady();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          agentControllerProvider.overrideWith((ref) => notifier),
+          agentHostPoliciesProvider.overrideWith(
+            (ref) => throw StateError('Composer must not load host selection'),
+          ),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(
+            useMaterial3: true,
+            extensions: const [AppColorTheme.defaultLight],
+          ),
+          home: const Scaffold(body: AgentPanel(showHeader: false)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Target hosts'), findsNothing);
+    expect(find.byIcon(Icons.dns_outlined), findsNothing);
+    expect(
+      find.text(
+        'Describe a task or ask a question. For host operations, mention a host name, address, or group.',
+      ),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.byKey(const Key('agent-composer-input')),
+      'Hello',
+    );
+    await tester.pump();
+    await tester.tap(find.byTooltip('Send'));
+    await tester.pump();
+    expect(notifier.lastSent, 'Hello');
+    expect(tester.takeException(), isNull);
+  });
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('long conversation offers one-tap scrolling to the bottom', (
@@ -191,6 +247,11 @@ void main() {
         pendingApprovals: [
           AgentApproval(
             requestId: 'approval-1',
+            targetHost: const AgentTargetHost(
+              hostId: 'host-1',
+              name: 'Production',
+              address: '10.0.0.1:22',
+            ),
             toolCallId: 'tool-1',
             tool: 'exec_command',
             input: {
@@ -243,6 +304,10 @@ void main() {
     expect(find.byKey(const Key('agent-approval-dock')), findsOneWidget);
     expect(find.byType(AgentApprovalCard), findsOneWidget);
     expect(
+      find.text('Run Run command on Production · 10.0.0.1:22'),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const ValueKey('agent-approval-approval-1')),
       findsOneWidget,
     );
@@ -280,6 +345,22 @@ class _FakeAgentStateNotifier extends AgentStateNotifier {
 
   @override
   Future<void> open() async {}
+
+  String? lastSent;
+
+  void showReady() {
+    state = state.copyWith(
+      connection: AgentConnectionStatus.connected,
+      modelId: 'model-a',
+      models: ['model-a'],
+    );
+  }
+
+  @override
+  String? send(String input) {
+    lastSent = input;
+    return null;
+  }
 
   void showConversation(AgentConversationState conversation) {
     state = state.copyWith(conversation: conversation);

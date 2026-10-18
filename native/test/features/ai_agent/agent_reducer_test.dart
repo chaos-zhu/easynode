@@ -3,6 +3,105 @@ import 'package:easynode_native/features/ai_agent/agent_reducer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  const targetHost = {
+    'hostId': 'host-1',
+    'name': 'Production',
+    'address': '10.0.0.1:22',
+  };
+
+  for (final eventType in [
+    'tool_call',
+    'tool_progress',
+    'tool_result',
+    'approval_request',
+  ]) {
+    for (final fails
+        in (eventType == 'tool_result' ? [false, true] : [false])) {
+      test('retains target received on $eventType (failure: $fails)', () {
+        var state = applyAgentEvent(AgentConversationState.empty, const {
+          'type': 'turn_start',
+        });
+        state = applyAgentEvent(state, {
+          'type': 'tool_call',
+          'toolCallId': 'tool-1',
+          'tool': 'exec_command',
+          'input': {'hostId': 'untrusted-input', 'command': 'uptime'},
+          if (eventType == 'tool_call') 'targetHost': targetHost,
+        });
+        if (eventType != 'tool_call') {
+          state = applyAgentEvent(state, {
+            'type': eventType,
+            'toolCallId': 'tool-1',
+            'requestId': 'approval-1',
+            'targetHost': targetHost,
+            if (fails) 'error': 'operation failed',
+          });
+        }
+        var tool = state.messages.last.parts.single as AgentToolPart;
+        expect(tool.targetHost?.hostId, 'host-1');
+        expect(tool.targetHost?.label, 'Production · 10.0.0.1:22');
+        if (eventType == 'approval_request') {
+          expect(state.pendingApprovals.single.targetHost?.hostId, 'host-1');
+          state = applyAgentApprovalResponse(state, 'approval-1', true);
+        }
+        state = applyAgentEvent(state, const {
+          'type': 'tool_progress',
+          'toolCallId': 'tool-1',
+          'durationMs': 20,
+        });
+        state = applyAgentEvent(state, const {
+          'type': 'tool_result',
+          'toolCallId': 'tool-1',
+          'output': 'ok',
+        });
+        tool = state.messages.last.parts.single as AgentToolPart;
+        expect(tool.targetHost?.label, 'Production · 10.0.0.1:22');
+      });
+    }
+  }
+
+  for (final withTarget in [false, true]) {
+    test('history restores optional target metadata ($withTarget)', () {
+      final session = AgentSession.fromJson({
+        'id': 'history',
+        'hostIds': ['old-selection'],
+        'messages': [
+          {'role': 'user', 'content': 'check production'},
+          {
+            'role': 'assistant',
+            'content': [
+              {
+                'type': 'tool-call',
+                'toolCallId': 'tool-1',
+                'toolName': 'exec_command',
+                'input': {'hostId': 'host-1', 'command': 'uptime'},
+              },
+            ],
+          },
+          {
+            'role': 'tool',
+            'content': [
+              {
+                'type': 'tool-result',
+                'toolCallId': 'tool-1',
+                'output': {'type': 'text', 'value': 'ok'},
+              },
+            ],
+          },
+        ],
+        'toolMeta': {
+          'tool-1': {if (withTarget) 'targetHost': targetHost},
+        },
+      });
+      final tool =
+          conversationFromSession(session).messages.last.parts.single
+              as AgentToolPart;
+      expect(tool.status, AgentToolStatus.done);
+      expect(tool.targetHost?.hostId, withTarget ? 'host-1' : null);
+      expect(tool.targetHost?.address, withTarget ? '10.0.0.1:22' : null);
+    });
+  }
+
   test('reduces streaming reasoning, markdown text and usage', () {
     var state = AgentConversationState(
       messages: [createUserAgentMessage('inspect the host')],
@@ -47,6 +146,7 @@ void main() {
     state = applyAgentEvent(state, const {'type': 'turn_start'});
     state = applyAgentEvent(state, const {
       'type': 'approval_request',
+      'targetHost': targetHost,
       'requestId': 'approval-1',
       'toolCallId': 'tool-1',
       'tool': 'read_file',
@@ -64,6 +164,8 @@ void main() {
     var tool = state.messages.last.parts.single as AgentToolPart;
     expect(tool.status, AgentToolStatus.awaitingApproval);
     expect(state.pendingApprovals.single.requestId, 'approval-1');
+    expect(tool.targetHost?.label, 'Production · 10.0.0.1:22');
+    expect(state.pendingApprovals.single.targetHost?.hostId, 'host-1');
 
     state = applyAgentApprovalResponse(state, 'approval-1', true);
     tool = state.messages.last.parts.single as AgentToolPart;
@@ -78,6 +180,7 @@ void main() {
     tool = state.messages.last.parts.single as AgentToolPart;
     expect(tool.status, AgentToolStatus.done);
     expect(tool.output, 'ok');
+    expect(tool.targetHost?.hostId, 'host-1');
   });
 
   test('keeps MCP provider metadata through approval and tool events', () {

@@ -62,7 +62,6 @@ export function useAgentSession(config = {}) {
   const settings = reactive({
     modelId: localStorage.getItem(scope === 'terminal' ? 'terminalAgentModel' : 'agentModel') || '',
     preset: localStorage.getItem('agentMode') || DEFAULT_PRESET,
-    hostIds: scope === 'terminal' && terminalHostId ? [terminalHostId,] : [],
     terminalPermission: ['review', 'assist', 'authorized',].includes(savedTerminalPermission)
       ? savedTerminalPermission
       : DEFAULT_PRESET
@@ -165,9 +164,9 @@ export function useAgentSession(config = {}) {
 
       case 'turn_start':
         if (Array.isArray(event.availableToolMetadata)) {
-          const current = new Map(options.tools.map((tool) => [tool.name, tool]))
+          const current = new Map(options.tools.map((tool) => [tool.name, tool,]))
           for (const tool of event.availableToolMetadata) current.set(tool.name, tool)
-          options.tools = [...current.values()]
+          options.tools = [...current.values(),]
         }
         applyEvent(state, event)
         return
@@ -286,7 +285,7 @@ export function useAgentSession(config = {}) {
       input: content,
       modelId: settings.modelId,
       permission: settings.preset,
-      hostIds: scope === 'terminal' ? [terminalHostId,] : settings.hostIds,
+      ...(scope === 'terminal' ? { hostIds: [terminalHostId,] } : {}),
       scope,
       hostId: scope === 'terminal' ? terminalHostId : undefined,
       terminalPermission: scope === 'terminal' ? settings.terminalPermission : undefined,
@@ -409,7 +408,6 @@ export function useAgentSession(config = {}) {
     state.usage = { ...emptyUsage(), ...(data.usage || {}) }
     if (data.modelId && options.models.includes(data.modelId)) settings.modelId = data.modelId
     if (data.permission) settings.preset = data.permission
-    if (Array.isArray(data.hostIds)) settings.hostIds = [...data.hostIds,]
   }
 
   async function forkSession(turnIndex, messageIndex) {

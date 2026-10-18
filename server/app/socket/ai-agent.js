@@ -4,7 +4,8 @@
  * 复用 createSecureWs 的统一鉴权，与 /terminal、/sftp-v2 等保持一致。
  *
  * 客户端 → 服务端：
- *   ws_agent_run      发起一个 turn { sessionId?, input, modelId, permission, hostIds }
+ *   ws_agent_run      发起一个 turn { sessionId?, input, modelId, permission, scope }
+ *                     terminal 额外携带 hostIds、hostId 与终端上下文
  *                     只发本轮输入，历史由后端持有
  *   ws_agent_approve  回传审批结果 { requestId, approved, scope }
  *   ws_agent_stop     中断当前 turn
@@ -84,6 +85,8 @@ export default (httpServer) => {
     const operator = resolveOperator(socket)
     logger.info(`ai-agent websocket 已连接: ${ operator }`)
     const emit = createEmitter(socket)
+    // 只记录实际通过主机策略校验的全局目标，查询目录不会建立或释放 SSH。
+    const usedHostIds = new Set()
 
     // 连接建立后先告诉前端可用的模型与权限预设，避免前端再发一轮 HTTP
     Promise.all([listConfiguredModels(), listToolMetadata()])
@@ -103,9 +106,8 @@ export default (httpServer) => {
     socket.on('ws_agent_run', async (payload = {}) => {
       const { input, modelId, permission, hostIds, hostId, terminalContext, terminalPermission } = payload
       const scope = payload.scope === 'terminal' ? 'terminal' : 'ops'
-      // 目标主机必须由本次请求显式携带。不能在空数组或缺省时回退到
-      // 历史会话的 hostIds，否则用户取消选择主机后仍可能继续操作旧主机。
-      const selectedHostIds = Array.isArray(hostIds) ? hostIds : []
+      // 全局助手统一按面板范围工作，忽略旧客户端的选择；终端仍须显式绑定。
+      const selectedHostIds = scope === 'terminal' && Array.isArray(hostIds) ? hostIds : []
 
       if (active.get(socket.id)?.running || starting.has(socket.id)) {
         return emit({ type: 'error', message: '当前会话仍有任务在执行，请先停止' })
@@ -157,8 +159,7 @@ export default (httpServer) => {
       }
 
       const controller = new AbortController()
-      const targetHosts = selectedHostIds
-      active.set(socket.id, { controller, sessionId: session.id, running: true, hostIds: targetHosts, scope })
+      active.set(socket.id, { controller, sessionId: session.id, running: true, scope })
       starting.delete(socket.id)
 
       // 前端重连后把仍在挂起的审批重放一遍，否则用户看不到待确认项
@@ -182,6 +183,7 @@ export default (httpServer) => {
           modelId: modelId || session.modelId,
           permission: permission || session.permission || DEFAULT_PRESET,
           hostIds: selectedHostIds,
+          usedHostIds,
           scope,
           terminalHostId: scope === 'terminal' ? hostId : undefined,
           terminalPermission: scope === 'terminal' ? terminalPermission : undefined,
@@ -213,6 +215,10 @@ export default (httpServer) => {
         const entry = active.get(socket.id)
         if (entry?.controller === controller) active.delete(socket.id)
         releaseSessionRun(session.id, socket.id)
+        if (scope === 'ops' && (socket.disconnected || controller.signal.aborted)) {
+          releaseHosts(usedHostIds)
+          usedHostIds.clear()
+        }
       }
     })
 
@@ -248,7 +254,7 @@ export default (httpServer) => {
       }
       // agent 建立的 SSH 连接虽有空闲超时兜底，但用户关掉面板后没必要
       // 再占着连接，主动断开
-      if (entry?.scope !== 'terminal') releaseHosts(entry?.hostIds)
+      releaseHosts(usedHostIds)
       logger.info('ai-agent websocket 已断开')
     })
   })

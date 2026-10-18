@@ -304,18 +304,37 @@ expect('null 保持 null', normalizeToolOutput(null), null)
 console.log('\n========== 助手工具说明 ==========')
 
 {
+  const targetHost = { hostId: 'h1', name: '香港', address: '10.0.0.1:22' }
+  const input = { hostId: 'h1', command: 'uptime' }
+  const state = newState()
+  feed(state, [
+    { type: 'turn_start' },
+    { type: 'approval_request', requestId: 'approval-h1', toolCallId: 'target-call', tool: 'exec_command', input, targetHost },
+    { type: 'tool_call', toolCallId: 'target-call', tool: 'exec_command', input },
+    { type: 'tool_result', toolCallId: 'target-call', output: { stdout: 'ok' }, targetHost },
+  ])
+  expect('审批先到时工具卡仍继承实际目标', state.messages[0].parts[0].targetHost, targetHost)
+  expect('审批队列保留服务端目标信息', state.pendingApprovals[0].targetHost, targetHost)
+  const restored = fromModelMessages([
+    { role: 'assistant', content: [{ type: 'tool-call', toolCallId: 'target-call', toolName: 'exec_command', input },] },
+    { role: 'tool', content: [{ type: 'tool-result', toolCallId: 'target-call', output: { type: 'json', value: { stdout: 'ok' } } },] },
+  ], { 'target-call': { targetHost } })
+  expect('历史恢复目标与实时事件一致', restored[0].parts[0].targetHost, state.messages[0].parts[0].targetHost)
+}
+
+{
   const tools = [
     { name: 'host_status', effect: 'read', plusPolicy: 'free' },
     { name: 'exec_command', plusPolicy: 'by-effect' },
     { name: 'terminal_command', plusPolicy: 'by-effect' },
     { name: 'write_file', effect: 'write', plusPolicy: 'required' },
   ]
-  expect('未选择主机时运维助手不开放工具', availableAgentTools(tools, {
+  expect('全局助手无需选择主机即可展示运维工具', availableAgentTools(tools, {
     scope: 'ops',
     preset: 'authorized',
     hasSelectedHosts: false,
     plusAvailable: true
-  }), [])
+  }).map((tool) => tool.name), ['host_status', 'exec_command', 'write_file',])
   expect('审查模式展示完整工具集', availableAgentTools(tools, {
     scope: 'ops',
     preset: 'review',
@@ -340,14 +359,14 @@ console.log('\n========== 助手工具说明 ==========')
     name: 'mcp_github_search',
     plusPolicy: 'free',
     source: { type: 'mcp', name: 'GitHub' },
-    scopes: ['ops', 'terminal'],
+    scopes: ['ops', 'terminal',],
     requiresSelectedHosts: false
   }
-  expect('未选择主机仍展示全局 MCP 工具', availableAgentTools([mcpTool], {
+  expect('未选择主机仍展示全局 MCP 工具', availableAgentTools([mcpTool,], {
     scope: 'ops',
     hasSelectedHosts: false
   }).map((tool) => tool.name), ['mcp_github_search',])
-  expect('终端助手也展示全局 MCP 工具', availableAgentTools([mcpTool], {
+  expect('终端助手也展示全局 MCP 工具', availableAgentTools([mcpTool,], {
     scope: 'terminal',
     hasSelectedHosts: true
   }).map((tool) => tool.name), ['mcp_github_search',])

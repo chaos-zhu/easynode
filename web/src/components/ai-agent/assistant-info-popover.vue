@@ -22,7 +22,7 @@
       <div class="assistant_comparison">
         <section :class="{ 'is_current': scope === 'ops' }">
           <strong>EasyNode · 助手</strong>
-          <p>面向所选的一台或多台主机，通过独立 SSH / SFTP 查询状态、执行脚本和读写文件，不共享 Web 终端的当前目录与环境。</p>
+          <p>面向整个面板，按任务需要确定目标主机，通过独立 SSH / SFTP 查询状态、执行脚本和读写文件，不共享 Web 终端的当前目录与环境。</p>
         </section>
         <section :class="{ 'is_current': scope === 'terminal' }">
           <strong>终端助手 · 当前终端</strong>
@@ -121,13 +121,11 @@ const contextDescription = computed(() => {
   if (props.scope === 'terminal') {
     return `当前绑定终端：${ props.hostName || '当前主机' }`
   }
-  if (!props.selectedHostCount) return '当前未选择目标主机，可使用聊天和面板级工具'
-  return `当前已选择 ${ props.selectedHostCount } 台目标主机`
+  return '无需预选主机；仅在任务需要时查询和确定目标'
 })
 
 const emptyDescription = computed(() => {
   if (!props.connected || !props.tools.length) return '连接服务端后显示工具列表'
-  if (props.scope === 'ops' && !props.selectedHostCount) return '直接操作主机前需要选择目标主机'
   return '当前模式下暂无可用工具'
 })
 

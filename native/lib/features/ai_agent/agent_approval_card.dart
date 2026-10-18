@@ -90,7 +90,7 @@ class _AgentApprovalCardState extends ConsumerState<AgentApprovalCard> {
                       item.displayName,
                     ])
                   : l.trf('agent.approval.description', [
-                      item.hostName ?? '-',
+                      item.targetHost?.label ?? item.hostName ?? '-',
                       _toolLabel(l, item.tool),
                     ]),
             ),

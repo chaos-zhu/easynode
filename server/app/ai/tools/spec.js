@@ -45,8 +45,9 @@ export const TOOL_SPECS = [
     name: 'host_list',
     effect: Effect.READ,
     plusPolicy: PlusPolicy.FREE,
-    description: '列出本次会话已选择的目标主机，包含 hostId、名称、地址、分组与是否允许 AI 操作。'
-      + '只能在这些主机范围内执行后续操作。',
+    description: '按需查询面板主机目录，返回 hostId、名称、地址、分组与 AI 策略。'
+      + '仅在用户要求查看主机清单，或实际主机任务需要定位目标且上下文不足时调用；优先按关键词查询。'
+      + '普通问答、命令解释、脚本编写及不需要主机信息的面板任务不要调用。',
     inputSchema: z.object({
       keyword: z.string().optional().describe('按名称、地址或分组模糊筛选，留空返回全部')
     })

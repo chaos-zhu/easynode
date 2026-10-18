@@ -4,6 +4,9 @@
       <el-icon class="toggle_icon" :class="{ 'is_expanded': expanded }"><ArrowRight /></el-icon>
 
       <span class="tool_name">{{ toolLabel }}</span>
+      <span v-if="part.targetHost" class="target_host" :title="`${ part.targetHost.name } (${ part.targetHost.address })`">
+        {{ part.targetHost.name }} · {{ part.targetHost.address }}
+      </span>
       <span v-if="part.toolInfo?.source === 'mcp'" class="source_tag">MCP · {{ part.toolInfo.providerName }}</span>
 
       <code v-if="summary" class="tool_summary" :title="summary">{{ summary }}</code>
@@ -219,6 +222,17 @@ async function copyOutput() {
       &.is_expanded {
         transform: rotate(90deg);
       }
+    }
+
+    .target_host {
+      flex: 0 1 auto;
+      min-width: 0;
+      max-width: 40%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--el-text-color-secondary);
+      font-size: 12px;
     }
 
     .tool_name {

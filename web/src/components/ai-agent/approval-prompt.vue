@@ -9,7 +9,10 @@
     <div class="prompt_body">
       <p class="prompt_desc">
         <span>
-          <template v-if="item.hostName">
+          <template v-if="item.targetHost">
+            将在 <strong>{{ item.targetHost.name }}（{{ item.targetHost.address }}）</strong> 上
+          </template>
+          <template v-else-if="item.hostName">
             将在 <strong>{{ item.hostName }}</strong> 上
           </template>
           <template v-else-if="item.providerName || item.toolInfo?.providerName">

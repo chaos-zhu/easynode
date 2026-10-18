@@ -49,7 +49,6 @@ class AgentState {
     this.plusAvailable = false,
     this.modelId = '',
     this.mode = 'review',
-    this.hostIds = const [],
     this.sessions = const [],
     this.sessionsLoading = false,
   });
@@ -63,7 +62,6 @@ class AgentState {
   final bool plusAvailable;
   final String modelId;
   final String mode;
-  final List<String> hostIds;
   final List<AgentSessionSummary> sessions;
   final bool sessionsLoading;
 
@@ -82,7 +80,6 @@ class AgentState {
     bool? plusAvailable,
     String? modelId,
     String? mode,
-    List<String>? hostIds,
     List<AgentSessionSummary>? sessions,
     bool? sessionsLoading,
   }) => AgentState(
@@ -97,7 +94,6 @@ class AgentState {
     plusAvailable: plusAvailable ?? this.plusAvailable,
     modelId: modelId ?? this.modelId,
     mode: mode ?? this.mode,
-    hostIds: hostIds ?? this.hostIds,
     sessions: sessions ?? this.sessions,
     sessionsLoading: sessionsLoading ?? this.sessionsLoading,
   );
@@ -234,7 +230,6 @@ class AgentController {
       input: content,
       modelId: current.modelId,
       permission: current.mode,
-      hostIds: current.hostIds,
     );
     return null;
   }
@@ -265,10 +260,6 @@ class AgentController {
     _emit(_read().copyWith(mode: mode));
   }
 
-  void setHosts(List<String> hostIds) {
-    _emit(_read().copyWith(hostIds: List.unmodifiable(hostIds)));
-  }
-
   void newConversation() {
     if (_read().conversation.running) return;
     _emit(_read().copyWith(conversation: AgentConversationState.empty));
@@ -289,7 +280,6 @@ class AgentController {
               : current.modelId,
         ),
         mode: resolveAgentMode(session.permission, fallback: current.mode),
-        hostIds: session.hostIds,
       ),
     );
   }

@@ -217,7 +217,6 @@ class AgentStateNotifier extends StateNotifier<AgentState> {
       _controller.approve(id, approved, scope: scope);
   Future<void> setModel(String model) => _controller.setModel(model);
   Future<void> setMode(String mode) => _controller.setMode(mode);
-  void setHosts(List<String> hostIds) => _controller.setHosts(hostIds);
   void newConversation() => _controller.newConversation();
   Future<void> loadSession(String id) => _controller.loadSession(id);
   Future<void> renameSession(String id, String title) =>
