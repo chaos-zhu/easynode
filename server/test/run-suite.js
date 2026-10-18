@@ -11,6 +11,7 @@ const suites = {
     'test-scheduled-tasks.js',
     'test-order-service.js',
     'test-onekey-execution.js',
+    'test-onekey-records.js',
     'test-terminal-settings.js',
     'test-login-attempt-limiter.js',
     'test-login-ip-async.js',

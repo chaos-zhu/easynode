@@ -1,7 +1,7 @@
 <template>
   <div class="onekey_container data_page">
     <div class="data_page_toolbar">
-      <span class="data_page_summary">共 {{ recordList.length }} 条执行记录</span>
+      <span v-if="pendingRecord.length" class="data_page_summary">当前批次 {{ pendingRecord.length }} 条</span>
       <div class="toolbar_actions">
         <el-button
           v-if="!isExecuting"
@@ -20,7 +20,7 @@
         >
           {{ stoppingAll ? '停止中' : `停止执行（剩余 ${ timeRemaining } 秒）` }}
         </el-button>
-        <el-dropdown v-if="recordList.length" trigger="click">
+        <el-dropdown v-if="tableData.length || historyTotal" trigger="click">
           <el-button
             class="compact_more_btn"
             :icon="MoreFilled"
@@ -29,7 +29,16 @@
           />
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item :icon="Delete" :disabled="isExecuting" @click="handleRemoveAll">
+              <el-dropdown-item :disabled="!tableData.length" @click="setPageExpanded(!hasExpandedRows)">
+                {{ hasExpandedRows ? '折叠本页' : '展开本页' }}
+              </el-dropdown-item>
+              <el-dropdown-item
+                v-if="historyTotal"
+                :icon="Delete"
+                :disabled="isExecuting"
+                divided
+                @click="handleRemoveAll"
+              >
                 删除全部记录
               </el-dropdown-item>
             </el-dropdown-menu>
@@ -39,20 +48,30 @@
     </div>
     <div class="onekey_table_wrap data_table_wrap">
       <el-table
+        ref="recordTableRef"
         v-loading="loading"
         :data="tableData"
+        height="100%"
         :row-key="getRecordKey"
         :expand-row-keys="expandRows"
         empty-text="暂无执行记录"
+        @expand-change="handleExpandChange"
       >
         <el-table-column type="expand" width="48">
           <template #default="{ row }">
             <div
               :ref="element => setOutputContainer(element, getRecordKey(row))"
+              v-loading="outputDetails.get(getRecordKey(row))?.loading"
               class="detail_content_box"
               @scroll.passive="handleOutputScroll($event, getRecordKey(row))"
             >
-              {{ row.result || '暂无输出' }}
+              <div class="output_text">{{ getOutputText(row) }}</div>
+              <div v-if="!row.pending && outputDetails.get(getRecordKey(row))?.error" class="output_actions">
+                <el-button link type="primary" @click="loadRecordOutput(row, true)">重试加载</el-button>
+              </div>
+              <div v-else-if="!row.pending && outputDetails.get(getRecordKey(row))?.hasMore" class="output_actions">
+                <el-button link type="primary" @click="loadRecordOutput(row, true)">加载更多输出</el-button>
+              </div>
             </div>
           </template>
         </el-table-column>
@@ -135,6 +154,16 @@
           </template>
         </el-table-column>
       </el-table>
+    </div>
+    <div class="onekey_pagination">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="historyTotal"
+        :page-sizes="[20, 50, 100]"
+        layout="total, sizes, prev, pager, next"
+        @size-change="currentPage = 1"
+      />
     </div>
     <el-dialog
       v-model="formVisible"
@@ -233,7 +262,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch, nextTick, getCurrentInstance } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed, watch, nextTick, getCurrentInstance } from 'vue'
 import { ArrowDown, Delete, MoreFilled, Promotion, VideoPause } from '@element-plus/icons-vue'
 import { generateSocketInstance } from '@/utils'
 
@@ -252,6 +281,17 @@ const isClient = ref(false)
 const executionState = ref('idle')
 const stoppingAll = ref(false)
 const stoppingHostIds = ref(new Set())
+const recordTableRef = ref(null)
+const currentPage = ref(1)
+const pageSize = ref(20)
+const historyTotal = ref(0)
+const expandedRecordState = reactive(new Map())
+const outputDetails = reactive(new Map())
+let activeOutputLoads = 0
+let historyRequestId = 0
+let loadedPage = 0
+let loadedPageSize = 0
+let disposed = false
 const outputContainers = new Map()
 const outputFollowState = new Map()
 const OUTPUT_BOTTOM_THRESHOLD = 20
@@ -268,14 +308,75 @@ let scriptList = computed(() => $store.scriptList)
 let isExecuting = computed(() => executionState.value !== 'idle')
 const hasConfigHostList = computed(() => hostList.value.filter(item => item.isConfig))
 
-const tableData = computed(() => {
-  return pendingRecord.value.concat(recordList.value)
+const tableData = computed(() => pendingRecord.value.concat(recordList.value))
+// 同一批次的记录落库后会获得 id，使用批次和主机保持实时记录与历史记录的身份一致。
+const getRecordKey = row => row.batchId && row.hostId
+  ? `batch-${ row.batchId }-${ row.hostId }`
+  : row.id || `pending-${ row.startDate }-${ row.hostId }`
+const expandRows = computed(() => tableData.value
+  .filter(row => expandedRecordState.get(getRecordKey(row)) ?? row.pending)
+  .map(getRecordKey))
+const hasExpandedRows = computed(() => expandRows.value.length > 0)
+
+const handleExpandChange = (row, expandedRows) => {
+  const key = getRecordKey(row)
+  expandedRecordState.set(key, expandedRows.some(item => getRecordKey(item) === key))
+}
+
+const setPageExpanded = expanded => {
+  tableData.value.forEach(row => expandedRecordState.set(getRecordKey(row), expanded))
+}
+
+watch([currentPage, pageSize,], async () => {
+  await nextTick()
+  recordTableRef.value?.setScrollTop(0)
+  if (currentPage.value !== loadedPage || pageSize.value !== loadedPageSize) getOnekeyRecord()
 })
-const getRecordKey = row => row.id || row.hostId || `pending-${ row.startDate }`
-const expandRows = computed(() => {
-  let rows = tableData.value.filter(item => item.pending).map(getRecordKey)
-  return rows
-})
+
+const getOutputText = row => {
+  if (row.pending) return row.result || '暂无输出'
+  const detail = outputDetails.get(getRecordKey(row))
+  return detail?.result || (detail?.loading ? '加载中…' : detail?.error ? '输出加载失败' : '暂无输出')
+}
+
+const loadRecordOutput = async (row, append = false) => {
+  const key = getRecordKey(row)
+  if (!recordList.value.some(item => getRecordKey(item) === key)) return
+  if (!outputDetails.has(key)) {
+    outputDetails.set(key, { result: '', loading: false, error: false, nextOffset: 0, hasMore: false })
+  }
+  const detail = outputDetails.get(key)
+  if (detail.loading) return
+  detail.loading = true
+  detail.error = false
+  try {
+    const { data } = await $api.getOnekeyRecordOutput(row.id, { offset: append ? detail.nextOffset : 0 })
+    if (outputDetails.get(key) !== detail) return
+    detail.result = append ? detail.result + data.result : data.result
+    detail.nextOffset = data.nextOffset
+    detail.hasMore = data.hasMore
+  } catch {
+    if (outputDetails.get(key) === detail) detail.error = true
+  } finally {
+    detail.loading = false
+  }
+}
+
+const loadExpandedOutputs = () => {
+  if (disposed) return
+  const expanded = new Set(expandRows.value)
+  const missing = recordList.value.filter(row => expanded.has(getRecordKey(row)) && !outputDetails.has(getRecordKey(row)))
+  // 批量展开时限制并发；翻页后丢弃上一页的输出缓存和迟到的响应。
+  while (activeOutputLoads < 4 && missing.length) {
+    activeOutputLoads++
+    loadRecordOutput(missing.shift()).finally(() => {
+      activeOutputLoads--
+      loadExpandedOutputs()
+    })
+  }
+}
+
+watch([expandRows, recordList,], loadExpandedOutputs, { flush: 'post' })
 
 const setOutputContainer = (element, recordKey) => {
   if (element) outputContainers.set(recordKey, element)
@@ -318,6 +419,7 @@ watch(() => formData.hostIds, (val) => {
 })
 
 const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
+  currentPage.value = 1
   loading.value = true
   executionState.value = 'running'
   stoppingAll.value = false
@@ -346,6 +448,10 @@ const createExecShell = (hostIds = [], command = 'ls', timeout = 60) => {
     loading.value = false
     if (Array.isArray(result) && result.length > 0) {
       const nextPendingRecord = result.map(item => ({ ...item, pending: true }))
+      nextPendingRecord.forEach(row => {
+        const key = getRecordKey(row)
+        if (!expandedRecordState.has(key)) expandedRecordState.set(key, true)
+      })
       pendingRecord.value = nextPendingRecord
       nextTick(() => {
         scrollFollowingOutputs(nextPendingRecord)
@@ -487,6 +593,12 @@ onMounted(async () => {
   getOnekeyRecord()
 })
 
+onBeforeUnmount(() => {
+  disposed = true
+  historyRequestId++
+  outputDetails.clear()
+})
+
 let selectAllHost = (val) => {
   indeterminate.value = false
   if (val) {
@@ -522,13 +634,36 @@ let getStatusType = (status) => {
   }
 }
 
-let getOnekeyRecord = async () => {
+let getOnekeyRecord = async ({ page = currentPage.value } = {}) => {
+  const requestId = ++historyRequestId
   loading.value = true
-  let { data } = await $api.getOnekeyRecord()
-  recordList.value = data
-  pendingRecord.value = []
-  outputFollowState.clear()
-  loading.value = false
+  try {
+    const { data } = await $api.getOnekeyRecord({ page, pageSize: pageSize.value })
+    if (requestId !== historyRequestId) return false
+    loadedPage = data.page
+    loadedPageSize = data.pageSize
+    currentPage.value = data.page
+    historyTotal.value = data.total
+    recordList.value = data.items
+    if (!isExecuting.value) pendingRecord.value = []
+    const recordKeys = new Set(tableData.value.map(getRecordKey))
+    for (const state of [outputDetails, outputFollowState, outputContainers,]) {
+      for (const key of state.keys()) {
+        if (!recordKeys.has(key)) state.delete(key)
+      }
+    }
+    if (!data.total) {
+      for (const key of expandedRecordState.keys()) {
+        if (!recordKeys.has(key)) expandedRecordState.delete(key)
+      }
+    }
+    return true
+  } catch {
+    if (requestId === historyRequestId) $message.error('加载执行记录失败，请重试')
+    return false
+  } finally {
+    if (requestId === historyRequestId) loading.value = false
+  }
 }
 
 let addOnekey = () => {
@@ -546,7 +681,7 @@ function execOnekey() {
       if (hostIds.length === 0) {
         return $message.error('请选择主机')
       }
-      await getOnekeyRecord() // 获取新纪录前会清空 pendingRecord，所以需要获取一次最新的list
+      if (!await getOnekeyRecord({ page: 1 })) return
       createExecShell(hostIds, command, timeout)
       formVisible.value = false
     })
@@ -557,8 +692,10 @@ const clearFormInfo = () => {
 }
 
 const handleRemove = async (ids = []) => {
-  tableData.value.filter(item => ids.includes(item.id)).forEach(item => item.loading = true)
+  const removedRows = recordList.value.filter(item => ids.includes(item.id))
+  removedRows.forEach(item => item.loading = true)
   await $api.deleteOnekeyRecord(ids)
+  removedRows.forEach(row => expandedRecordState.delete(getRecordKey(row)))
   await getOnekeyRecord()
   $message.success('success')
 }
@@ -571,6 +708,8 @@ const handleRemoveAll = async () => {
   })
     .then(async () => {
       await $api.deleteOnekeyRecord('ALL')
+      expandedRecordState.clear()
+      outputDetails.clear()
       pendingRecord.value = []
       await getOnekeyRecord()
       $message.success('success')
@@ -581,8 +720,18 @@ const handleRemoveAll = async () => {
 
 <style lang="scss" scoped>
 .onekey_container {
+  overflow: hidden;
+
   .onekey_table_wrap {
-    flex: 0 1 auto;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .onekey_pagination {
+    display: flex;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    margin-top: 14px;
   }
 
   .instance_cell {
@@ -628,6 +777,13 @@ const handleRemoveAll = async () => {
     font-size: 13px;
     line-height: 1.55;
     white-space: pre-wrap;
+  }
+
+  .output_actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+    white-space: normal;
   }
 
   .select_host_wrap {
@@ -676,6 +832,24 @@ const handleRemoveAll = async () => {
       :deep(.el-textarea__inner) {
         font-family: var(--el-font-family-monospace, monospace);
       }
+    }
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .onekey_container .onekey_pagination {
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .onekey_container .data_page_toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px 0;
+
+    .toolbar_actions {
+      flex-wrap: wrap;
+      margin-left: 0;
     }
   }
 }

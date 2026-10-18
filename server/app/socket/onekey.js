@@ -5,6 +5,7 @@ import { shellThrottle } from '../utils/tools.js'
 import { createSecureWs } from '../utils/ws-tool.js'
 import { HostListDB, OnekeyDB } from '../utils/db-class.js'
 import { OnekeyExecutionState, execStatusEnum } from '../services/onekey-execution.js'
+import { invalidateOnekeyRecordOrder } from '../services/onekey-records.js'
 import { getConnectionOptions, handleProxyAndJumpHostConnection } from './terminal.js'
 
 const hostListDB = new HostListDB().getInstance()
@@ -32,6 +33,7 @@ async function finalizeRun(run) {
     let persisted = true
     try {
       await onekeyDB.insertAsync(run.state.results)
+      invalidateOnekeyRecordOrder()
     } catch (error) {
       persisted = false
       logger.error('onekey执行记录保存失败:', error.message)

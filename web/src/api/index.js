@@ -150,8 +150,11 @@ export default {
   deleteScriptGroup(id) {
     return axios({ url: `/script-group/${ id }`, method: 'delete' })
   },
-  getOnekeyRecord() {
-    return axios({ url: '/onekey', method: 'get' })
+  getOnekeyRecord(params) {
+    return axios({ url: '/onekey', method: 'get', params })
+  },
+  getOnekeyRecordOutput(id, params) {
+    return axios({ url: `/onekey/${ encodeURIComponent(id) }/output`, method: 'get', params })
   },
   deleteOnekeyRecord(ids) {
     return axios({ url: '/onekey', method: 'post', data: { ids } })

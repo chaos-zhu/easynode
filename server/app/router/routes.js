@@ -7,7 +7,7 @@ import { addGroupList, updateGroupList, removeGroup } from '../controller/group.
 import { getLocalScriptList, addScript, updateScriptList, removeScript, batchRemoveScript, importScript } from '../controller/scripts.js'
 import { addScriptGroup, removeScriptGroup, updateScriptGroup } from '../controller/script-group.js'
 import { getHostCatalog, getScriptCatalog, putHostOrder, putScriptOrder } from '../controller/catalog.js'
-import { getOnekeyRecord, removeOnekeyRecord } from '../controller/onekey.js'
+import { getOnekeyRecord, getOnekeyRecordOutput, removeOnekeyRecord } from '../controller/onekey.js'
 import { getLog, revokeAllLoginSessions, revokeLoginSid } from '../controller/sessionLog.js'
 import { getIpAccessRules, rejectLegacyIpAccessApi, saveIpAccessRules } from '../controller/ipAccess.js'
 import { getAIConfig, saveAIConfig, getAIModels, updateAIPreferences } from '../controller/chat.js'
@@ -285,6 +285,11 @@ const scriptGroup = [
 ]
 
 const onekey = [
+  {
+    method: 'get',
+    path: '/onekey/:id/output',
+    controller: getOnekeyRecordOutput
+  },
   {
     method: 'get',
     path: '/onekey',
