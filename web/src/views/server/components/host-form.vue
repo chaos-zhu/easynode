@@ -45,6 +45,19 @@
         </el-radio-group>
       </el-form-item>
       <div class="management_form_grid">
+        <el-form-item
+          v-if="!isBatchModify"
+          key="name"
+          label="名称"
+          prop="name"
+        >
+          <el-input
+            v-model="hostForm.name"
+            clearable
+            placeholder="用于识别实例"
+            autocomplete="off"
+          />
+        </el-form-item>
         <el-form-item key="group" label="分组" prop="group">
           <el-select
             v-model="hostForm.group"
@@ -59,19 +72,6 @@
               :value="item.id"
             />
           </el-select>
-        </el-form-item>
-        <el-form-item
-          v-if="!isBatchModify"
-          key="name"
-          label="名称"
-          prop="name"
-        >
-          <el-input
-            v-model="hostForm.name"
-            clearable
-            placeholder="用于识别实例"
-            autocomplete="off"
-          />
         </el-form-item>
       </div>
       <div key="instance_info" class="management_form_grid">

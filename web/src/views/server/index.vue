@@ -20,7 +20,7 @@
         <el-input
           v-if="hostList.length > 2"
           v-model="searchKeyword"
-          placeholder="搜索名称、用户名、IP 或标签"
+          placeholder="搜索名称、用户名、主机或标签"
           class="search_input"
           clearable
           spellcheck="false"
@@ -240,7 +240,7 @@ const columnConfig = {
   selection: { label: '选择', disabled: false },
   name: { label: '名称', disabled: false },
   username: { label: '用户名', disabled: false },
-  host: { label: 'IP', disabled: false },
+  host: { label: '主机', disabled: false },
   port: { label: '端口', disabled: false },
   authType: { label: '认证类型', disabled: false },
   proxyType: { label: '代理类型', disabled: false },

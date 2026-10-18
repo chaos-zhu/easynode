@@ -8,6 +8,7 @@
           max-height="50vh"
           class="dropdown_menu"
           :teleported="isMobileScreen"
+          @visible-change="handleHostDropdownVisibleChange"
         >
           <span class="link_text">连接<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
@@ -195,10 +196,12 @@
       </div>
     </div>
     <!-- 单窗口模式 -->
-    <div v-if="isSingleWindowMode" class="single_window_wrapper">
+    <div v-show="isSingleWindowMode" class="single_window_wrapper">
       <TerminalSingleWindow
         ref="singleWindowRef"
-        :terminal-tabs="terminalTabs"
+        :terminal-tabs="terminalPanels"
+        :terminal-instances="terminalInstances"
+        :active="isSingleWindowMode"
         :is-sync-all-session="isSyncAllSession"
         :is-plus-active="isPlusActive"
         :long-press-ctrl="longPressCtrl"
@@ -210,6 +213,7 @@
         @reset-long-press="resetLongPress"
         @suspend-terminal="handleSuspendTerminalSingleDone"
         @terminal-focus="handleSingleWindowTerminalFocus"
+        @terminal-target="setSingleTerminalTarget"
         @terminal-ai-input="handleTerminalAiInput"
       />
       <div
@@ -218,7 +222,7 @@
       >
         <div v-if="showTerminalAi" class="ai_resize_handle" @mousedown="startResizeTerminalAi"><div class="ai_resize_handle_line" /></div>
         <TerminalAiChat
-          v-if="terminalAiMounted && singleWindowAiHost"
+          v-if="isSingleWindowMode && terminalAiMounted && singleWindowAiHost"
           :key="singleWindowAiHost.key"
           :host="singleWindowAiHost"
           :terminal="() => singleWindowRef?.getFocusedTerminal?.()?.ref"
@@ -231,7 +235,7 @@
 
     <!-- 多窗口模式 -->
     <el-tabs
-      v-else
+      v-show="!isSingleWindowMode"
       v-model="activeTabIndex"
       type="border-card"
       tab-position="top"
@@ -311,7 +315,7 @@
             >
               <ServerStatus
                 ref="infoSideRef"
-                :visible="showInfoSide"
+                :visible="!isSingleWindowMode && showInfoSide"
                 :host-id="item.id"
               />
             </el-drawer>
@@ -319,7 +323,7 @@
             <div v-else :class="['tab_content_main_info_side', { 'show_info_side': showInfoSide }]">
               <ServerStatus
                 ref="infoSideRef"
-                :visible="showInfoSide"
+                :visible="!isSingleWindowMode && showInfoSide"
                 :host-id="item.id"
               />
             </div>
@@ -328,33 +332,39 @@
                 class="tab_content_main_terminals"
                 :class="getSplitContainerClass(item.key)"
               >
-                <TerminalWorkspaceBackground v-if="isActiveTerminalTab(index)" />
-                <template v-for="panelIndex in getTerminalCount(item.key)" :key="`${item.key}-${panelIndex}`">
+                <TerminalWorkspaceBackground v-if="!isSingleWindowMode && isActiveTerminalTab(index)" />
+                <template v-for="(panel, panelOffset) in getTerminalPanels(item.key)" :key="panel.key">
                   <div
                     class="terminal_item"
-                    :class="getSplitItemClass(item.key, panelIndex)"
-                    @click="setActiveSplit(item.key, panelIndex)"
+                    :class="getSplitItemClass(item.key, panelOffset + 1)"
+                    @click="setActiveSplit(item.key, panelOffset + 1)"
                   >
-                    <Terminal
-                      ref="terminalRefs"
-                      :host-obj="item"
-                      :long-press-ctrl="longPressCtrl"
-                      :long-press-alt="longPressAlt"
-                      :auto-focus="panelIndex === 1"
-                      :suppress-focus="showTerminalAi"
-                      :show-sftp-side="showSftpSide"
-                      @input-command="(cmd, uid) => terminalInput(cmd, uid)"
-                      @reset-long-press="resetLongPress"
-                      @tab-focus="handleTabFocus"
-                      @sync-path-to-sftp="(path) => handleSyncPathToSftp(path)"
-                      @request-suspend="() => handleSuspendTerminal(item, index)"
-                      @terminal-ai-input="(text) => handleTerminalAiInput(item, text)"
-                    />
+                    <Teleport
+                      :to="singleTerminalTargets[panel.key] || 'body'"
+                      :disabled="!isSingleWindowMode || !singleTerminalTargets[panel.key]"
+                    >
+                      <Terminal
+                        :ref="el => setTerminalInstance(panel.key, el)"
+                        :host-obj="panel"
+                        :long-press-ctrl="longPressCtrl"
+                        :long-press-alt="longPressAlt"
+                        :auto-focus="!isSingleWindowMode && isActiveTerminalTab(index) && panelOffset === 0"
+                        :suppress-focus="showTerminalAi"
+                        :is-single-window="isSingleWindowMode"
+                        :show-sftp-side="!isSingleWindowMode && showSftpSide"
+                        @input-command="(cmd, uid) => handlePanelInput(cmd, uid, panel)"
+                        @reset-long-press="resetLongPress"
+                        @tab-focus="uid => handlePanelFocus(uid, panel)"
+                        @sync-path-to-sftp="(path) => handleSyncPathToSftp(path)"
+                        @request-suspend="() => handleSuspendTerminal(item, index, { panelKey: panel.key })"
+                        @terminal-ai-input="(text) => handleTerminalAiInput(isSingleWindowMode ? panel : item, text)"
+                      />
+                    </Teleport>
                   </div>
                 </template>
               </div>
               <ServerStatusBar
-                v-if="statusBarEnabled && !showInfoSide"
+                v-if="!isSingleWindowMode && statusBarEnabled && !showInfoSide"
                 :host-id="item.id"
               />
             </div>
@@ -383,7 +393,7 @@
                 <div class="ai_resize_handle_line" />
               </div>
               <TerminalAiChat
-                v-if="terminalAiMounted"
+                v-if="!isSingleWindowMode && terminalAiMounted"
                 :host="item"
                 :terminal="() => getFocusedTerminalRefOfTab(index)"
                 :prefill="terminalAiPrefills[item.key] || ''"
@@ -402,7 +412,7 @@
               <SftpV2
                 ref="sftpRefs"
                 class="terminal_sftp_panel"
-                :init-connect="showSftpSide"
+                :init-connect="!isSingleWindowMode && showSftpSide"
                 :host-id="item.id"
                 @exec-script="handleExecScript"
               />
@@ -423,7 +433,7 @@
               <SftpV2
                 ref="sftpRefs"
                 class="terminal_sftp_panel"
-                :init-connect="showSftpSide"
+                :init-connect="!isSingleWindowMode && showSftpSide"
                 :host-id="item.id"
                 @exec-script="handleExecScript"
               />
@@ -472,6 +482,7 @@
 import {
   ref,
   reactive,
+  shallowReactive,
   computed,
   getCurrentInstance,
   watch,
@@ -485,6 +496,7 @@ import { terminalStatusList, terminalStatus } from '@/utils/enum'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useTerminalTabContextMenu } from '@/composables/useTerminalTabContextMenu'
 import Terminal from './terminal.vue'
+import { useTerminalPanels } from '@/composables/useTerminalPanels'
 import ServerStatus from './server-status.vue'
 import ServerStatusBar from './server-status-bar.vue'
 import HostForm from '../../server/components/host-form.vue'
@@ -513,7 +525,19 @@ const hostGroupAll = 'host-group-all-'
 const { isMobileScreen } = useMobileWidth()
 const { showMenu } = useContextMenu()
 const infoSideRef = ref(null)
-const terminalRefs = ref([])
+const terminalInstances = shallowReactive({})
+const singleTerminalTargets = shallowReactive({})
+const terminalTabs = computed(() => props.terminalTabs)
+const { panels: terminalPanels, getPanels: getTerminalPanels, resizePanels, removePanel } = useTerminalPanels(terminalTabs)
+const terminalRefs = computed(() => terminalPanels.value.map(panel => terminalInstances[panel.key]).filter(Boolean))
+const setTerminalInstance = (key, instance) => {
+  if (instance) terminalInstances[key] = instance
+  else delete terminalInstances[key]
+}
+const setSingleTerminalTarget = (key, element) => {
+  if (element) singleTerminalTargets[key] = element
+  else delete singleTerminalTargets[key]
+}
 // const sftpRefs = ref([])
 const activeTabIndex = ref(0)
 const isActiveTerminalTab = index => Number(activeTabIndex.value) === Number(index)
@@ -550,6 +574,7 @@ const scriptDropdownRef = ref(null)
 const scriptCascaderRef = ref(null)
 const hostGroupCascaderRef = ref(null)
 const hostDropdownRef = ref(null)
+let pendingHostFocusKey = null
 const singleWindowRef = ref(null)
 const showDockerDialog = ref(false)
 const sftpRefs = ref([])
@@ -562,6 +587,16 @@ const focusedUid = ref(null)
 
 const handleTabFocus = (uid) => {
   focusedUid.value = uid
+}
+
+const handlePanelFocus = (uid, panel) => {
+  handleTabFocus(uid)
+  if (isSingleWindowMode.value) singleWindowRef.value?.setFocusedTerminal(panel.key)
+}
+
+const handlePanelInput = (command, uid, panel) => {
+  if (isSingleWindowMode.value) singleWindowRef.value?.handleInputCommand(command, uid, panel.key)
+  else terminalInput(command, uid)
 }
 
 // ======================= 同步当前tab分屏状态 =======================
@@ -758,21 +793,17 @@ const getFocusedTerminalRefOfTab = (idx) => {
 }
 
 // ======================= 提供给模板使用的辅助函数 =======================
-const getTerminalCount = (tabKey) => {
-  const { h, v } = getSplitStatus(tabKey)
-  return (h ? 2 : 1) * (v ? 2 : 1)
-}
-
 const getSplitContainerClass = (tabKey) => {
   const { h, v } = getSplitStatus(tabKey)
-  if (h && v) return 'four_split'
+  const count = getTerminalPanels(tabKey).length
+  if (count <= 1) return 'single_split'
+  if (count > 2) return 'four_split'
   if (h) return 'horizontal_split'
   if (v) return 'vertical_split'
   return 'single_split'
 }
 
 const isPlusActive = computed(() => $store.isPlusActive)
-const terminalTabs = computed(() => props.terminalTabs)
 const terminalTabsLen = computed(() => props.terminalTabs.length)
 const hostList = computed(() => {
   if (!Array.isArray($store.hostList)) return []
@@ -859,8 +890,24 @@ const resetLongPress = () => {
   longPressAlt.value = false
 }
 
-const handleLinkHost = (hostDescObj) => {
+const handleHostDropdownVisibleChange = async (visible) => {
+  const targetKey = pendingHostFocusKey
+  pendingHostFocusKey = null
+  if (visible || !targetKey) return
+
+  // 等菜单释放焦点、标签页完成渲染后，再将输入焦点交给本次新建的终端。
+  await nextTick()
+  if (showTerminalAi.value || terminalTabs.value[activeTabIndex.value]?.key !== targetKey) return
+  if (isSingleWindowMode.value) {
+    singleWindowRef.value?.focusTerminal(getTerminalPanels(targetKey)[0]?.key)
+  } else {
+    getFirstTerminalRefOfTab(activeTabIndex.value)?.focusTab()
+  }
+}
+
+const handleLinkHost = async (hostDescObj) => {
   if (!hostDescObj) return // clearCheckedNodes二次触发change事件
+  const previousKey = terminalTabs.value.at(-1)?.key
   const id = Array.isArray(hostDescObj) ? hostDescObj.slice(-1)[0] : hostDescObj.id
   if (id.startsWith(hostGroupAll)) {
     const groupId = id.split(hostGroupAll)[1]
@@ -884,10 +931,11 @@ const handleLinkHost = (hostDescObj) => {
     // 正常新建连接，不恢复会话
     emit('add-host', host)
   }
-  setTimeout(() => {
-    hostGroupCascaderRef.value?.clearCheckedNodes()
-    hostDropdownRef.value?.handleClose()
-  }, 100)
+  const targetKey = terminalTabs.value.at(-1)?.key
+  pendingHostFocusKey = targetKey !== previousKey ? targetKey : null
+  await nextTick()
+  hostGroupCascaderRef.value?.clearCheckedNodes()
+  hostDropdownRef.value?.handleClose()
 }
 
 // 处理恢复会话下拉菜单显示/隐藏
@@ -1010,6 +1058,8 @@ const handleSyncPathToSftp = (path) => {
 const tabChange = async (index) => {
   activeTabIndex.value = Number(index)
   await $nextTick()
+  // 单窗口使用自己的面板焦点，隐藏标签的变更不能抢走它。
+  if (isSingleWindowMode.value) return
   const terminalRefsOfTab = getTerminalRefsOfTab(index)
   const targetTerminalRef = terminalRefsOfTab.find(item => item?.$?.uid === focusedUid.value) || terminalRefsOfTab[0]
   focusedUid.value = targetTerminalRef?.$?.uid || null
@@ -1019,12 +1069,21 @@ const tabChange = async (index) => {
 
 watch(
   terminalTabsLen,
-  () => {
-    let len = terminalTabsLen.value
-    // console.log('add tab:', len)
+  async (len, previousLength = 0) => {
     if (len > 0) {
       activeTabIndex.value = len - 1
-      tabChange(activeTabIndex.value)
+      if (isSingleWindowMode.value) {
+        // 新连接仍自动聚焦；删除面板时由单窗口保留或回退焦点。
+        if (len > previousLength) {
+          const key = terminalTabs.value[len - 1].key
+          await $nextTick()
+          if (isSingleWindowMode.value && terminalTabs.value.at(-1)?.key === key) {
+            singleWindowRef.value?.focusTerminal(getTerminalPanels(key)[0]?.key)
+          }
+        }
+      } else {
+        tabChange(activeTabIndex.value)
+      }
     }
   },
   {
@@ -1063,6 +1122,7 @@ const handleHorizontalScreen = () => {
   if (!key) return
   const status = splitStatusMap[key] || { h: false, v: false }
   splitStatusMap[key] = { ...status, h: !status.h }
+  resizePanels(key, (splitStatusMap[key].h ? 2 : 1) * (splitStatusMap[key].v ? 2 : 1))
   nextTick(() => {
     resizeTerminal()
     // 重新聚焦原先终端
@@ -1077,6 +1137,7 @@ const handleVerticalScreen = () => {
   if (!key) return
   const status = splitStatusMap[key] || { h: false, v: false }
   splitStatusMap[key] = { ...status, v: !status.v }
+  resizePanels(key, (splitStatusMap[key].h ? 2 : 1) * (splitStatusMap[key].v ? 2 : 1))
   nextTick(() => {
     resizeTerminal()
     // focusLastTerminalOfActive()
@@ -1129,8 +1190,9 @@ const handleInputCommand = async (command, type = 'input', useBase64 = false) =>
 }
 
 // 挂起终端
-const handleSuspendTerminal = async (item, index, { silent = false } = {}) => {
-  const terminalRef = getFirstTerminalRefOfTab(index)
+const handleSuspendTerminal = async (item, index, { silent = false, panelKey = null } = {}) => {
+  const terminalRef = panelKey ? terminalInstances[panelKey] : getFocusedTerminalRefOfTab(index)
+  const targetKey = panelKey || terminalRef?.getPanelKey?.()
   if (!terminalRef) {
     if (!silent) $message.error('获取终端引用失败')
     return false
@@ -1138,11 +1200,15 @@ const handleSuspendTerminal = async (item, index, { silent = false } = {}) => {
 
   const success = await terminalRef.suspendTerminal()
   if (success) {
-    // 更新标签状态
-    item.status = terminalStatus.SUSPENDED
     if (!silent) $message.success('终端已挂起')
-    // 立即关闭该tab
-    removeTab(index)
+    removePanel(item.key, targetKey)
+    // 只有最后一个分屏挂起后才关闭标签，其余分屏继续使用原来的 shell。
+    if (!getTerminalPanels(item.key).length) {
+      removeTab(index)
+    } else if (!isSingleWindowMode.value && isActiveTerminalTab(index) && focusedUid.value === terminalRef.$?.uid) {
+      setActiveSplit(item.key, 1)
+      tabChange(index)
+    }
     // 刷新挂起会话列表
     fetchSuspendedSessions()
     return true
@@ -1153,26 +1219,19 @@ const handleSuspendTerminal = async (item, index, { silent = false } = {}) => {
 
 // 挂起所有会话（仅对已连接的终端生效）
 const handleSuspendAllSessions = async () => {
-  const indicesToSuspend = terminalTabs.value
-    .map((tab, index) => ({ tab, index }))
-    .filter(({ tab }) => tab.status === terminalStatus.CONNECT_SUCCESS)
-    .map(({ index }) => index)
-    .reverse()
-
-  if (indicesToSuspend.length === 0) {
+  const targets = terminalPanels.value.filter(panel => panel.status === terminalStatus.CONNECT_SUCCESS)
+  if (!targets.length) {
     $message.warning('暂无可挂起的已连接会话')
     return
   }
-
   let successCount = 0
   let failCount = 0
-  for (const index of indicesToSuspend) {
-    const tab = terminalTabs.value[index]
-    if (!tab) continue
-
-    const ok = await handleSuspendTerminal(tab, index, { silent: true })
-    if (ok) successCount += 1
-    else failCount += 1
+  for (const panel of [...targets,].reverse()) {
+    const index = terminalTabs.value.findIndex(tab => tab.key === panel.tabKey)
+    if (index === -1) continue
+    const ok = await handleSuspendTerminal(terminalTabs.value[index], index, { silent: true, panelKey: panel.key })
+    if (ok) successCount++
+    else failCount++
   }
 
   if (successCount > 0) {
@@ -1215,19 +1274,17 @@ const handleTabContextMenu = (e, item, index) => {
 
 // 单窗口模式相关函数
 const handleCloseTerminalSingle = (terminalKey) => {
-  const tabIndex = terminalTabs.value.findIndex(tab => tab.key === terminalKey)
-  if (tabIndex !== -1) {
-    emit('removeTab', tabIndex)
+  const panel = terminalPanels.value.find(item => item.key === terminalKey)
+  if (!panel) return
+  removePanel(panel.tabKey, terminalKey)
+  if (!getTerminalPanels(panel.tabKey).length) {
+    const index = terminalTabs.value.findIndex(tab => tab.key === panel.tabKey)
+    if (index !== -1) emit('removeTab', index)
   }
 }
 
-// 单窗口模式下挂起完成后的处理（TerminalSingleWindow emit suspend-terminal 时触发）
 const handleSuspendTerminalSingleDone = (terminalKey) => {
-  const tabIndex = terminalTabs.value.findIndex(tab => tab.key === terminalKey)
-  if (tabIndex !== -1) {
-    emit('removeTab', tabIndex)
-  }
-  // 刷新挂起会话列表
+  handleCloseTerminalSingle(terminalKey)
   fetchSuspendedSessions()
 }
 
@@ -1239,6 +1296,13 @@ const fullScreenCb = async() => {
 
 watch(isSingleWindowMode, async() => {
   await $nextTick()
+  resizeTerminal()
+  if (isSingleWindowMode.value) {
+    const panel = terminalPanels.value.find(item => terminalInstances[item.key]?.$?.uid === focusedUid.value)
+    singleWindowRef.value?.focusTerminal(panel?.key || terminalPanels.value[0]?.key)
+  } else {
+    tabChange(activeTabIndex.value)
+  }
   if (document.fullscreenElement) fullScreenCb()
 })
 

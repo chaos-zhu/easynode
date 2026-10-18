@@ -363,80 +363,137 @@ async function handleProxyAndJumpHostConnection(options) {
 
 async function createTerminal(hostId, socket, targetSSHClient, isInteractiveShell = true, terminalSize = {}) {
   logger.info(`准备创建${ isInteractiveShell ? '交互式' : '非交互式' }终端：${ hostId }`)
-  return new Promise(async (resolve) => {
-    const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
-    if (!targetHostInfo) return socket.emit('create_fail', `查找hostId【${ hostId }】凭证信息失败`)
-    let { authType, host, port, username, name } = targetHostInfo
-    try {
-      let { authInfo: targetConnectionOptions } = await getConnectionOptions(hostId)
+  return new Promise((resolve) => {
+    let settled = false
+    let failed = false
+    let cancelled = false
+    let jumpSshClients = []
+    let targetConnectionOptions = null
+    let stream = null
 
-      // 使用通用的代理和跳板机连接处理函数
-      let jumpSshClients = []
+    const releaseResources = () => {
+      // 建连中的代理、跳板和 shell 可能在取消之后才返回，届时仍需回收。
+      for (const close of [
+        () => stream?.close(),
+        () => targetSSHClient.end(),
+        () => targetConnectionOptions?.sock?.destroy(),
+        ...jumpSshClients.map(client => () => client?.end())
+      ]) {
+        try { close() } catch { /* 已关闭的资源无需重复处理 */ }
+      }
+    }
+    const finish = (result = null) => {
+      if (settled) return
+      settled = true
+      failed = !result
+      if (isInteractiveShell) socket.off('disconnect', cancelConnection)
+      resolve(result)
+    }
+    const cancelConnection = () => {
+      cancelled = true
+      finish()
+      releaseResources()
+    }
+    const isCancelled = () => {
+      if (!failed && !cancelled && (!isInteractiveShell || socket.connected !== false)) return false
+      cancelConnection()
+      return true
+    }
+    if (isInteractiveShell) socket.once('disconnect', cancelConnection)
+
+    const connect = async () => {
+      let host
       try {
-        const result = await handleProxyAndJumpHostConnection({
+        if (isCancelled()) return
+        const targetHostInfo = await hostListDB.findOneAsync({ _id: hostId })
+        if (isCancelled()) return
+        if (!targetHostInfo) {
+          socket.emit('terminal_create_fail', `查找hostId【${ hostId }】凭证信息失败`)
+          finish()
+          return
+        }
+        const { authType, port, username, name } = targetHostInfo
+        host = targetHostInfo.host
+        const connection = await getConnectionOptions(hostId)
+        targetConnectionOptions = connection.authInfo
+        if (isCancelled()) return
+
+        const proxyResult = await handleProxyAndJumpHostConnection({
           hostInfo: targetHostInfo,
           targetConnectionOptions,
           socket,
           logPrefix: 'Terminal '
         })
-        jumpSshClients = result.jumpSshClients
-      } catch (proxyError) {
-        socket.emit('terminal_connect_fail', `代理连接失败: ${ proxyError.message }`)
-        return
-      }
+        jumpSshClients = proxyResult.jumpSshClients
+        if (isCancelled()) return
 
-      socket.emit('terminal_print_info', `准备连接目标终端: ${ name } - ${ host }`)
-      socket.emit('terminal_print_info', `连接信息: ssh ${ username }@${ host } -p ${ port }  ->  ${ authType }`)
-      logger.info('准备连接目标终端：', host)
-      logger.info('连接信息', { username, port, authType })
+        socket.emit('terminal_print_info', `准备连接目标终端: ${ name } - ${ host }`)
+        socket.emit('terminal_print_info', `连接信息: ssh ${ username }@${ host } -p ${ port }  ->  ${ authType }`)
+        logger.info('准备连接目标终端：', host)
+        logger.info('连接信息', { username, port, authType })
 
-      let closeNoticeFlag = false // 避免重复发送通知
-      targetSSHClient
-        .on('ready', async () => {
-          logger.info('终端连接成功：', host)
-          if (isInteractiveShell) {
+        let closeNoticeFlag = false
+        targetSSHClient
+          .on('ready', async () => {
+            if (isCancelled()) return
+            logger.info('终端连接成功：', host)
+            if (!isInteractiveShell) {
+              finish({ jumpSshClients, connectionOptions: targetConnectionOptions })
+              return
+            }
             sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录成功`)
             socket.emit('terminal_print_info', `终端连接成功: ${ name } - ${ host }`)
             socket.emit('terminal_connect_success', `终端连接成功：${ host }`)
-
             try {
-              let stream = await createInteractiveShell(socket, targetSSHClient, terminalSize)
-              // 返回连接配置，用于会话重连
-              resolve({ stream, jumpSshClients, connectionOptions: targetConnectionOptions })
-            } catch (shellError) {
-              logger.error('创建交互式终端失败:', host, shellError.message)
-              // 连接已经成功但创建shell失败，需要清理连接
-              targetSSHClient.end()
-              jumpSshClients?.forEach(sshClient => sshClient && sshClient.end())
+              stream = await createInteractiveShell(socket, targetSSHClient, terminalSize)
+              if (isCancelled()) return
+              finish({ stream, jumpSshClients, connectionOptions: targetConnectionOptions })
+            } catch (error) {
+              logger.error('创建交互式终端失败:', host, error.message)
+              finish()
+              releaseResources()
             }
-          } else {
-            resolve({ jumpSshClients, connectionOptions: targetConnectionOptions })
-          }
-        })
-        .on('close', (err) => {
-          if (closeNoticeFlag) return closeNoticeFlag = false
-          const closeReason = err ? '发生错误导致连接断开' : '正常断开连接'
-          logger.info(`终端连接断开(${ closeReason }): ${ host }`)
-          socket.emit('terminal_connect_close', { reason: closeReason })
-        })
-        .on('error', (err) => {
-          closeNoticeFlag = true
-          sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录失败`)
-          logger.error('连接终端失败:', host, err.message)
-          socket.emit('terminal_connect_fail', err.message)
-        })
-        .on('keyboard-interactive', function (name, instructions, instructionsLang, prompts, finish) {
-          finish([targetConnectionOptions[authType]])
-        })
-        .connect({
-          tryKeyboard: true,
-          ...targetConnectionOptions
-          // debug: (info) => console.log(info)
-        })
-    } catch (err) {
-      logger.error('创建终端失败: ', host, err.message)
-      socket.emit('terminal_create_fail', err.message)
+          })
+          .on('close', (err) => {
+            if (!settled) {
+              finish()
+              releaseResources()
+            }
+            if (cancelled) return
+            if (closeNoticeFlag) {
+              closeNoticeFlag = false
+              return
+            }
+            const closeReason = err ? '发生错误导致连接断开' : '正常断开连接'
+            logger.info(`终端连接断开(${ closeReason }): ${ host }`)
+            socket.emit('terminal_connect_close', { reason: closeReason })
+          })
+          .on('error', (err) => {
+            closeNoticeFlag = true
+            if (!cancelled) {
+              sendNoticeAsync('host_login', '终端登录', `别名: ${ name } \n IP：${ host } \n 端口：${ port } \n 状态: 登录失败`)
+              logger.error('连接终端失败:', host, err.message)
+              socket.emit('terminal_connect_fail', err.message)
+            }
+            if (!settled) {
+              finish()
+              releaseResources()
+            }
+          })
+          .on('keyboard-interactive', (name, instructions, instructionsLang, prompts, finishAuth) => {
+            finishAuth([targetConnectionOptions[authType]])
+          })
+          .connect({ tryKeyboard: true, ...targetConnectionOptions })
+      } catch (err) {
+        if (!cancelled) {
+          logger.error('创建终端失败: ', host, err.message)
+          socket.emit('terminal_create_fail', err.message)
+        }
+        finish()
+        releaseResources()
+      }
     }
+    connect()
   })
 }
 
@@ -451,7 +508,7 @@ function resumeSession(socket, session) {
   // 恢复会话状态
   const resumedSession = sessionManager.resumeSession(sessionId)
   if (!resumedSession) {
-    socket.emit('terminal_connect_fail', '恢复会话失败：SSH连接已断开')
+    socket.emit('terminal_resume_failed', '原会话已失效或无法恢复')
     return false
   }
 
@@ -509,6 +566,10 @@ function createServerIo(serverIo) {
     logger.info(`terminal websocket 已连接 - 当前连接数: ${ connectionCount }`)
 
     const { _id: userId } = await keyDB.findOneAsync({})
+    if (socket.connected === false) {
+      connectionCount--
+      return
+    }
     // 处理终端连接请求
     socket.on('ws_terminal', async ({ hostId, forceNew = false, resumeSessionId = null, rows, cols }) => {
       try {
@@ -526,8 +587,7 @@ function createServerIo(serverIo) {
             logger.info('恢复指定会话失败，创建新连接')
           } else {
             logger.warn(`会话 ${ resumeSessionId } 不存在或无权访问`)
-            socket.emit('terminal_connect_fail', '会话不存在或已过期')
-            return
+            socket.emit('terminal_resume_failed', '原会话不存在或已过期')
           }
         }
 
@@ -556,6 +616,13 @@ function createServerIo(serverIo) {
         }
 
         let { stream = null, jumpSshClients = [], connectionOptions = null } = result
+        if (socket.connected === false) {
+          stream?.close()
+          targetSSHClient.end()
+          jumpSshClients.forEach(client => client?.end())
+          connectionOptions?.sock?.destroy()
+          return
+        }
 
         // 创建会话并注册
         const session = sessionManager.createSession({

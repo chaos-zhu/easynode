@@ -31,14 +31,16 @@
         :sort-method="compareHostNames"
       >
         <template #default="scope">
-          <span v-if="scope.row.connectType !== 'rdp'" class="host_name">
-            <svg-icon name="icon-linux" class="icon" />
+          <button
+            type="button"
+            class="host_name"
+            :disabled="orderMode"
+            :title="orderMode ? undefined : '编辑实例'"
+            @click.stop="handleUpdate(scope.row)"
+          >
+            <svg-icon :name="scope.row.connectType === 'rdp' ? 'icon-Windows' : 'icon-linux'" class="icon" />
             {{ scope.row.name }}
-          </span>
-          <span v-else class="host_name">
-            <svg-icon name="icon-Windows" class="icon" />
-            {{ scope.row.name }}
-          </span>
+          </button>
         </template>
       </el-table-column>
       <el-table-column
@@ -50,7 +52,7 @@
       <el-table-column
         v-if="props.columnSettings.host"
         property="host"
-        label="IP"
+        label="主机"
         min-width="150"
       >
         <template #default="scope">
@@ -384,9 +386,31 @@ const formatProxyType = ({ proxyType, jumpHosts, proxyServer }) => {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dashed transparent;
+  background: none;
   color: var(--el-text-color-primary);
+  font: inherit;
   font-weight: 600;
   white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+
+  &:enabled:hover,
+  &:focus-visible {
+    color: var(--el-color-primary);
+    border-bottom-color: var(--el-color-primary-light-5);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    cursor: inherit;
+  }
 
   .icon {
     flex: 0 0 auto;

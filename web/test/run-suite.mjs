@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 const testDirectory = dirname(fileURLToPath(import.meta.url))
 const webDirectory = resolve(testDirectory, '..')
 const testFiles = [
+  'test-terminal-connection.js',
+  'test-terminal-workspace.js',
   'test-terminal-appearance.mjs',
   'test-agent-messages.js',
   'test-sticky-bottom.js',

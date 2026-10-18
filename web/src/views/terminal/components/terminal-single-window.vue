@@ -1,6 +1,6 @@
 <template>
   <div ref="containerRef" class="single_window_container">
-    <TerminalWorkspaceBackground />
+    <TerminalWorkspaceBackground v-if="props.active" />
     <div
       v-if="isPlusActive"
       class="terminal_panels_wrapper"
@@ -53,24 +53,12 @@
         </div>
 
         <!-- 终端内容区域 -->
-        <div class="terminal_content">
-          <Terminal
-            :ref="el => setTerminalRef(el, panel.terminal.key)"
-            :host-obj="panel.terminal"
-            :long-press-ctrl="longPressCtrl"
-            :long-press-alt="longPressAlt"
-            :auto-focus="focusedTerminalKey === panel.terminal.key"
-            :suppress-focus="props.suppressFocus"
-            :is-single-window="true"
-            @input-command="(cmd, uid) => handleInputCommand(cmd, uid, panel.terminal.key)"
-            @reset-long-press="resetLongPress"
-            @tab-focus="handleTabFocus"
-            @request-suspend="() => handleRequestSuspendSingle(panel.terminal)"
-            @terminal-ai-input="(text) => emit('terminal-ai-input', panel.terminal, text)"
-          />
-        </div>
+        <div
+          :ref="el => emit('terminal-target', panel.terminal.key, el)"
+          class="terminal_content"
+        />
         <ServerStatusBar
-          v-if="props.showStatusBar"
+          v-if="props.active && props.showStatusBar"
           :host-id="panel.terminal.id"
         />
         <el-dialog
@@ -108,7 +96,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 import { Close } from '@element-plus/icons-vue'
-import Terminal from './terminal.vue'
 import { terminalStatusList, terminalStatus } from '@/utils/enum'
 import ScriptInput from './script-input.vue'
 import PlusLimitTip from '@/components/common/PlusLimitTip.vue'
@@ -122,6 +109,11 @@ const props = defineProps({
     type: Array,
     required: true
   },
+  terminalInstances: {
+    type: Object,
+    required: true
+  },
+  active: { type: Boolean, default: true },
   isSyncAllSession: {
     type: Boolean,
     default: false
@@ -158,12 +150,16 @@ const containerRef = ref(null)
 const { proxy: { $message } } = getCurrentInstance()
 const { showMenu } = useContextMenu()
 
-const emit = defineEmits(['close-terminal', 'terminal-input', 'reset-long-press', 'suspend-terminal', 'terminal-ai-input', 'terminal-focus',])
+const emit = defineEmits(['close-terminal', 'terminal-input', 'reset-long-press', 'suspend-terminal', 'terminal-ai-input', 'terminal-focus', 'terminal-target',])
 
 // 响应式数据
 const focusedTerminalKey = ref(null)
 const maximizedTerminalKey = ref(null) // 新增：存储当前最大化的终端key
-const terminalRefs = ref({})
+const terminalRefs = computed(() => Object.fromEntries(
+  props.terminalTabs
+    .filter(tab => props.terminalInstances[tab.key])
+    .map(tab => [tab.key, props.terminalInstances[tab.key],])
+))
 const isDragging = ref(false)
 const dragInfo = ref(null)
 const panelSizes = ref({}) // 存储每个面板的大小信息
@@ -577,12 +573,6 @@ const getStatusColor = (status) => {
   return terminalStatusList.find(item => item.value === status)?.color || 'gray'
 }
 
-const setTerminalRef = (el, key) => {
-  if (el) {
-    terminalRefs.value[key] = el
-  }
-}
-
 // 事件处理
 const handleCloseTerminal = (terminalKey) => {
   // 如果关闭的是当前最大化的终端，重置最大化状态
@@ -653,11 +643,6 @@ const handleCloseAllSingle = () => {
   allKeys.forEach(key => handleCloseTerminal(key))
 }
 
-// 处理 Terminal 组件的 request-suspend 事件（终端内右键挂起）
-const handleRequestSuspendSingle = (terminalItem) => {
-  handleSuspendTerminalSingle(terminalItem)
-}
-
 const handleInputCommand = (cmd, uid, terminalKey) => {
   // 如果启用了同步所有会话，则同步输入到其他终端
   if (props.isSyncAllSession) {
@@ -671,19 +656,18 @@ const handleInputCommand = (cmd, uid, terminalKey) => {
   emit('terminal-input', cmd, uid, terminalKey)
 }
 
-const handleTabFocus = (uid) => {
-  // 通过uid找到对应的终端key
-  const terminal = props.terminalTabs.find(t =>
-    terminalRefs.value[t.key]?.$?.uid === uid
-  )
-  if (terminal) {
-    focusedTerminalKey.value = terminal.key
-    emit('terminal-focus', terminal)
-  }
+const setFocusedTerminal = (key) => {
+  const terminal = props.terminalTabs.find(item => item.key === key)
+  if (!terminal) return
+  focusedTerminalKey.value = key
+  emit('terminal-focus', terminal)
 }
 
-const resetLongPress = () => {
-  emit('reset-long-press')
+const focusTerminal = (key) => {
+  setFocusedTerminal(key)
+  nextTick(() => {
+    if (props.active && !props.suppressFocus) terminalRefs.value[key]?.focusTab()
+  })
 }
 
 // 拖拽相关
@@ -782,9 +766,10 @@ const handleCloseScriptInput = (panel) => {
   scriptInputStates.value[panel.terminal.key] = false
 }
 
-const handleExecCommand = (panel, command) => {
+const handleExecCommand = (panel, payload) => {
+  const { command, useBase64 = false } = typeof payload === 'string' ? { command: payload } : payload
   scriptInputStates.value[panel.terminal.key] = false
-  terminalRefs.value[panel.terminal.key].inputCommand(command, 'script')
+  terminalRefs.value[panel.terminal.key]?.inputCommand(command, 'script', useBase64)
 }
 
 const handleMouseUp = () => {
@@ -821,7 +806,7 @@ const handleToggleMaximize = (terminalKey) => {
 // 生命周期
 onMounted(() => {
   if (props.terminalTabs.length > 0) {
-    focusedTerminalKey.value = props.terminalTabs[0].key
+    setFocusedTerminal(props.terminalTabs[0].key)
   }
 })
 
@@ -831,43 +816,16 @@ onBeforeUnmount(() => {
 })
 
 // 监听终端变化
-watch(() => props.terminalTabs, (newTabs, oldTabs) => {
-  if (newTabs.length > 0 && !focusedTerminalKey.value) {
-    focusedTerminalKey.value = newTabs[0].key
+watch(() => props.terminalTabs.map(tab => tab.key), (keys, oldKeys = []) => {
+  if (!keys.includes(focusedTerminalKey.value)) {
+    focusedTerminalKey.value = null
+    if (keys.length) focusTerminal(keys[0])
   }
-
-  // 检查最大化的终端是否仍然存在
-  if (maximizedTerminalKey.value && !newTabs.find(tab => tab.key === maximizedTerminalKey.value)) {
-    maximizedTerminalKey.value = null
+  if (!keys.includes(maximizedTerminalKey.value) || keys.length < 2) maximizedTerminalKey.value = null
+  for (const key of Object.keys(scriptInputStates.value)) {
+    if (!keys.includes(key)) delete scriptInputStates.value[key]
   }
-
-  // 如果终端数量小于2，取消最大化状态
-  if (newTabs.length < 2 && maximizedTerminalKey.value) {
-    maximizedTerminalKey.value = null
-  }
-
-  // 清理已关闭终端的引用和脚本输入状态
-  Object.keys(terminalRefs.value).forEach(key => {
-    if (!newTabs.find(tab => tab.key === key)) {
-      delete terminalRefs.value[key]
-      delete scriptInputStates.value[key]
-    }
-  })
-
-  // 如果终端数量发生变化，重置面板大小并触发resize
-  if (oldTabs && newTabs.length !== oldTabs.length) {
-    // 重置面板大小到默认值
-    panelSizes.value = {}
-
-    // 延迟触发resize确保布局更新完成
-    nextTick(() => {
-      setTimeout(() => {
-        Object.values(terminalRefs.value).forEach(ref => {
-          ref?.handleResize()
-        })
-      }, 100)
-    })
-  }
+  if (keys.length !== oldKeys.length) panelSizes.value = {}
 }, { immediate: true })
 
 // 监听布局变化
@@ -921,7 +879,7 @@ watch(() => props.showStatusBar, () => {
 // 初始化 Tab 右键菜单 composable（单窗口模式下的 header 右键）
 // 注意：单窗口模式下 terminalTabs 是 prop（Array），需要包装为 getter
 const { handleTabContextMenu: _headerCtxMenu } = useTerminalTabContextMenu({
-  terminalTabs: { value: props.terminalTabs },
+  terminalTabs: () => props.terminalTabs,
   onSuspend: (item) => handleSuspendTerminalSingle(item),
   onSuspendAll: () => handleSuspendAllSessionsSingle(),
   // onCloseOther 的第二个参数是当前 tab item（由 composable 传入）
@@ -938,28 +896,25 @@ const handleHeaderContextMenu = (e, terminalItem, index) => {
 
 // 暴露方法
 defineExpose({
-  focusTerminal: (key) => {
-    focusedTerminalKey.value = key
-    nextTick(() => {
-      terminalRefs.value[key]?.focusTab()
-    })
-  },
+  focusTerminal,
+  setFocusedTerminal,
+  handleInputCommand,
   resizeTerminals: () => {
     Object.values(terminalRefs.value).forEach(ref => {
       ref?.handleResize()
     })
   },
-  inputCommandToTerminal: (command, type = 'input') => {
+  inputCommandToTerminal: (command, type = 'input', useBase64 = false) => {
     // 在单窗口模式下，向当前聚焦的终端输入命令
     if (focusedTerminalKey.value && terminalRefs.value[focusedTerminalKey.value]) {
       terminalRefs.value[focusedTerminalKey.value].focusTab()
-      terminalRefs.value[focusedTerminalKey.value].inputCommand(command, type)
+      terminalRefs.value[focusedTerminalKey.value].inputCommand(command, type, useBase64)
 
       // 如果启用了同步所有会话，则同步到其他终端
       if (props.isSyncAllSession) {
         Object.keys(terminalRefs.value).forEach(key => {
           if (key !== focusedTerminalKey.value && terminalRefs.value[key]) {
-            terminalRefs.value[key].inputCommand(command, type)
+            terminalRefs.value[key].inputCommand(command, type, useBase64)
           }
         })
       }
@@ -968,13 +923,13 @@ defineExpose({
       const firstKey = Object.keys(terminalRefs.value)[0]
       if (firstKey && terminalRefs.value[firstKey]) {
         terminalRefs.value[firstKey].focusTab()
-        terminalRefs.value[firstKey].inputCommand(command, type)
+        terminalRefs.value[firstKey].inputCommand(command, type, useBase64)
 
         // 如果启用了同步所有会话，则同步到其他终端
         if (props.isSyncAllSession) {
           Object.keys(terminalRefs.value).forEach(key => {
             if (key !== firstKey && terminalRefs.value[key]) {
-              terminalRefs.value[key].inputCommand(command, type)
+              terminalRefs.value[key].inputCommand(command, type, useBase64)
             }
           })
         }
@@ -982,7 +937,8 @@ defineExpose({
     }
   },
   getFocusedTerminal: () => {
-    const key = focusedTerminalKey.value || props.terminalTabs[0]?.key
+    const key = props.terminalTabs.some(item => item.key === focusedTerminalKey.value)
+      ? focusedTerminalKey.value : props.terminalTabs[0]?.key
     const terminal = props.terminalTabs.find((item) => item.key === key)
     return terminal ? { terminal, ref: terminalRefs.value[key] } : null
   }

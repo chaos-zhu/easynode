@@ -146,7 +146,12 @@ export default (httpServer) => {
     let jumpSshClients = []
     socket.on('ws_docker', async ({ hostId }) => {
       targetSSHClient = new SSHClient()
-      let { jumpSshClients: dockerJumpSshClients } = await createTerminal(hostId, socket, targetSSHClient, false)
+      const connection = await createTerminal(hostId, socket, targetSSHClient, false)
+      if (!connection) {
+        socket.emit('docker_connect_fail')
+        return
+      }
+      let { jumpSshClients: dockerJumpSshClients } = connection
       jumpSshClients.push(...dockerJumpSshClients)
       let { getDockerContainers = null, executeCommand: dockerExecuteCommand } = (await decryptAndExecuteAsync(path.join(currentDir, 'plus.js'))) || {}
       executeCommand = dockerExecuteCommand

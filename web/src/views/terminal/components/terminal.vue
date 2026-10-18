@@ -102,6 +102,8 @@ let terminalResizeEmitTimer = null
 let terminalFocusFrame = null
 let pendingTerminalSize = null
 let lastEmittedTerminalSize = null
+let resumePromptTimer = null
+let isUnmounted = false
 
 // 临时路径同步回调
 const tempPathSyncCallback = ref(null)
@@ -194,16 +196,49 @@ const getCommand = async () => {
   if (data) initCommand.value = data
 }
 
+const closeTerminalSocket = () => {
+  if (resumePromptTimer !== null) {
+    clearTimeout(resumePromptTimer)
+    resumePromptTimer = null
+  }
+  const currentSocket = socket.value
+  socket.value = null
+  socketConnected.value = false
+  currentSocket?.removeAllListeners()
+  currentSocket?.close()
+  for (const [requestId, request,] of aiCommandRequests.entries()) {
+    aiCommandRequests.delete(requestId)
+    clearTimeout(request.timeout)
+    request.resolve({ ok: false, error: '终端连接已断开，无法读取命令输出' })
+  }
+}
+
 const connectIO = () => {
+  if (isUnmounted) return
+  closeTerminalSocket()
   curStatus.value = CONNECTING
+  sessionId.value = null
   socket.value = generateSocketInstance('/terminal', {
-    forceNew: false,
+    forceNew: true,
+    autoConnect: false,
     reconnection: false,
     reconnectionAttempts: 0
   })
-  socket.value.on('connect', () => {
-    console.log('/terminal socket已连接：', hostId.value)
+  const currentSocket = socket.value
+  let sessionResumed = false
 
+  // 每个 socket 只注册一次监听，旧连接的回调不能操作新连接。
+  const onSocketEvent = (event, handler, once = false) => {
+    const listener = (...args) => {
+      if (isUnmounted || socket.value !== currentSocket) return
+      handler(...args)
+    }
+    if (once) currentSocket.once(event, listener)
+    else currentSocket.on(event, listener)
+  }
+
+  onSocketEvent('connect', () => {
+    console.log('/terminal socket已连接：', hostId.value)
     socketConnected.value = true
     const terminalSize = { rows: term.value.rows, cols: term.value.cols }
     lastEmittedTerminalSize = terminalSize
@@ -213,121 +248,100 @@ const connectIO = () => {
       terminalResizeEmitTimer = null
     }
 
-    // 检查是否是恢复会话
-    if (hostObj.value.resumeSessionId) {
-      // 恢复会话模式：直接尝试恢复
-      socket.value.emit('ws_terminal', {
-        hostId: hostId.value,
-        resumeSessionId: hostObj.value.resumeSessionId,
-        ...terminalSize
-      })
-    } else {
-      // 正常连接模式：forceNew=true，不自动恢复
-      socket.value.emit('ws_terminal', {
-        hostId: hostId.value,
-        forceNew: true,
-        ...terminalSize
-      })
-    }
-
-    // 接收会话ID
-    socket.value.on('session_created', ({ sessionId: sid }) => {
-      sessionId.value = sid
-      console.log('会话已创建:', sid)
+    // 一个 socket 只提交一次 SSH 创建/恢复请求，防止服务端建立多个 shell。
+    currentSocket.emit('ws_terminal', {
+      hostId: hostId.value,
+      ...(hostObj.value.resumeSessionId
+        ? { resumeSessionId: hostObj.value.resumeSessionId }
+        : { forceNew: true }),
+      ...terminalSize
     })
+  }, true)
 
-    // 处理恢复成功
-    socket.value.on('terminal_resumed', ({ sessionId: sid, bufferedOutput }) => {
-      sessionId.value = sid
-      curStatus.value = CONNECT_SUCCESS
-
-      // 回放缓存的输出
-      if (bufferedOutput) {
-        writeTerminalOutput(bufferedOutput)
-      }
-
-      writeTerminalOutput('\r\n\x1b[92m═══ 终端已从挂起状态恢复 ═══\x1b[0m\r\n')
-      socket.value.emit('resize', terminalSize)
-
-      // 自动发送回车以显示命令提示符
-      setTimeout(() => {
-        socket.value?.emit('input', '\r')
-      }, 100)
-    })
-
-    socket.value.on('terminal_connect_success', () => {
-      highlighter.value?.resetStreamState()
-      socket.value.on('output', (str) => {
-        // 如果有临时路径同步回调，先调用它
-        if (tempPathSyncCallback.value) {
-          tempPathSyncCallback.value(str)
-        }
-
-        if (props.isSingleWindow && !isPlusActive.value) return
-
-        // 保持 SSH 输出与 xterm.write 的原始顺序，避免首屏 resize 与延迟写入竞争。
-        writeTerminalOutput(str)
-      })
-      socket.value.on('terminal_ai_command_echo', ({ command }) => {
-        // 服务端执行的是带边界协议的包装命令；这里只展示原始命令。
-        if (command) {
-          writeTerminalOutput(`${ command }\r\n`)
-        }
-      })
-      socket.value.on('terminal_ai_command_progress', (payload = {}) => {
-        aiCommandRequests.get(payload.requestId)?.onProgress?.(payload)
-      })
-      socket.value.on('terminal_ai_command_result', (payload = {}) => {
-        const request = aiCommandRequests.get(payload.requestId)
-        if (!request) return
-        aiCommandRequests.delete(payload.requestId)
-        clearTimeout(request.timeout)
-        request.resolve(payload)
-      })
-      socket.value.on('terminal_connect_shell_success', () => {
-        curStatus.value = CONNECT_SUCCESS
-        if (initCommand.value) socket.value.emit('input', initCommand.value + '\n')
-      })
-
-      // socket.value.on('terminal_command_history', (data) => {
-      //   console.log(data)
-      //   commandHistoryList.value = data
-      // })
-    })
-
-    socket.value.on('terminal_print_info', (msg) => {
-      writeTerminalOutput(`${ msg }\r\n`)
-    })
-
-    socket.value.on('terminal_connect_close', () => {
-      curStatus.value = CONNECT_FAIL
-      writeTerminalOutput('\r\n\x1b[91m终端主动断开连接, 回车重新发起连接\x1b[0m')
-    })
-
-    socket.value.on('terminal_connect_fail', (message) => {
-      curStatus.value = CONNECT_FAIL
-      writeTerminalOutput(`\r\n\x1b[91m连接终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
-    })
-
-    socket.value.on('terminal_create_fail', (message) => {
-      curStatus.value = CONNECT_FAIL
-      writeTerminalOutput(`\r\n\x1b[91m创建终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
-    })
-
+  onSocketEvent('session_created', ({ sessionId: sid }) => {
+    sessionId.value = sid
+    console.log('会话已创建:', sid)
   })
 
-  socket.value.on('disconnect', (reason) => {
-    for (const [requestId, request,] of aiCommandRequests.entries()) {
-      aiCommandRequests.delete(requestId)
-      clearTimeout(request.timeout)
-      request.resolve({ ok: false, error: '终端连接已断开，无法读取命令输出' })
-    }
+  onSocketEvent('terminal_resume_failed', (message) => {
+    hostObj.value.resumeSessionId = null
+    sessionResumed = false
+    curStatus.value = CONNECTING
+    writeTerminalOutput(`\r\n\x1b[93m${ message }，正在重新创建终端...\x1b[0m\r\n`)
+    $notification({ title: '原终端会话无法恢复', message: `${ message }，正在重新创建终端`, type: 'warning' })
+  }, true)
+
+  onSocketEvent('terminal_resumed', ({ sessionId: sid, bufferedOutput }) => {
+    sessionResumed = true
+    sessionId.value = sid
+    curStatus.value = CONNECT_SUCCESS
+    if (bufferedOutput) writeTerminalOutput(bufferedOutput)
+    writeTerminalOutput('\r\n\x1b[92m═══ 终端已从挂起状态恢复 ═══\x1b[0m\r\n')
+    currentSocket.emit('resize', { rows: term.value.rows, cols: term.value.cols })
+
+    // 延迟回车只属于当前恢复的连接，重连/关闭后不能发送到新 shell。
+    resumePromptTimer = setTimeout(() => {
+      resumePromptTimer = null
+      if (socket.value === currentSocket && currentSocket.connected && curStatus.value === CONNECT_SUCCESS) {
+        currentSocket.emit('input', '\r')
+      }
+    }, 100)
+  }, true)
+
+  onSocketEvent('terminal_connect_success', () => {
+    highlighter.value?.resetStreamState()
+  }, true)
+
+  onSocketEvent('output', (str) => {
+    if (tempPathSyncCallback.value) tempPathSyncCallback.value(str)
+    if (props.isSingleWindow && !isPlusActive.value) return
+    writeTerminalOutput(str)
+  })
+
+  onSocketEvent('terminal_ai_command_echo', ({ command }) => {
+    // 服务端执行的是带边界协议的包装命令；这里只展示原始命令。
+    if (command) writeTerminalOutput(`${ command }\r\n`)
+  })
+  onSocketEvent('terminal_ai_command_progress', (payload = {}) => {
+    aiCommandRequests.get(payload.requestId)?.onProgress?.(payload)
+  })
+  onSocketEvent('terminal_ai_command_result', (payload = {}) => {
+    const request = aiCommandRequests.get(payload.requestId)
+    if (!request) return
+    aiCommandRequests.delete(payload.requestId)
+    clearTimeout(request.timeout)
+    request.resolve(payload)
+  })
+  onSocketEvent('terminal_connect_shell_success', () => {
+    curStatus.value = CONNECT_SUCCESS
+    // 恢复已有 shell 不重新初始化；恢复失败后新建的 shell 仍需执行初始化命令。
+    if (!sessionResumed && initCommand.value) currentSocket.emit('input', initCommand.value + '\n')
+  }, true)
+
+  onSocketEvent('terminal_print_info', (msg) => {
+    writeTerminalOutput(`${ msg }\r\n`)
+  })
+  onSocketEvent('terminal_connect_close', () => {
+    curStatus.value = CONNECT_FAIL
+    writeTerminalOutput('\r\n\x1b[91m终端主动断开连接, 回车重新发起连接\x1b[0m')
+  })
+  onSocketEvent('terminal_connect_fail', (message) => {
+    curStatus.value = CONNECT_FAIL
+    writeTerminalOutput(`\r\n\x1b[91m连接终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
+  })
+  onSocketEvent('terminal_create_fail', (message) => {
+    curStatus.value = CONNECT_FAIL
+    writeTerminalOutput(`\r\n\x1b[91m创建终端失败: ${ message }, 回车重新发起连接\x1b[0m`)
+  })
+
+  onSocketEvent('disconnect', (reason) => {
     console.warn('terminal websocket 连接断开:', reason)
     switch (reason) {
       case 'io server disconnect':
         reconnectTerminal(true, '服务端主动断开连接')
         break
-      case 'io client disconnect': // 客户端主动断开连接
+      case 'io client disconnect':
+        closeTerminalSocket()
         break
       case 'transport close':
         reconnectTerminal(true, '本地网络连接异常')
@@ -343,7 +357,7 @@ const connectIO = () => {
     }
   })
 
-  socket.value.on('connect_error', (err) => {
+  onSocketEvent('connect_error', (err) => {
     console.error('EasyNode服务端连接错误：', err)
     curStatus.value = CONNECT_FAIL
     writeTerminalOutput('\r\n\x1b[91mError: 连接失败,请检查EasyNode服务端是否正常, 回车重新发起连接\x1b[0m \r\n')
@@ -353,13 +367,15 @@ const connectIO = () => {
       type: 'error'
     })
   })
+
+  // 所有监听器就绪后再建立连接。
+  currentSocket.connect()
 }
 
 const reconnectTerminal = (isCommonTips = false, tips) => {
-  socket.value.removeAllListeners()
-  socket.value.close()
-  socket.value = null
-  socketConnected.value = false
+  if (isUnmounted) return
+  closeTerminalSocket()
+  curStatus.value = CONNECT_FAIL
   if (isCommonTips) {
     if (autoReconnect.value) {
       writeTerminalOutput(`\r\n\x1b[91m${ tips },自动重连中...\x1b[0m \r\n`)
@@ -907,6 +923,8 @@ const focusTab = () => {
 }
 
 const inputCommand = (command, type = 'input', useBase64 = false) => {
+  // SFTP/脚本输入只发送到已就绪的 shell，避免离线命令进入 Socket.IO 缓冲区。
+  if (!socket.value?.connected || curStatus.value !== CONNECT_SUCCESS) return
   if (type === 'script') {
     if (useBase64) {
       // 使用Base64管道模式执行
@@ -928,19 +946,18 @@ onMounted(async () => {
   createLocalTerminal()
   // SSH shell 创建前先确定真实行列数，避免首屏按默认 80×24 输出后再次 reflow。
   await nextTick()
+  if (isUnmounted) return
   fitTerminal()
   await getCommand()
+  if (isUnmounted) return
   connectIO()
   onData()
 })
 
 onBeforeUnmount(() => {
-  for (const [requestId, request,] of aiCommandRequests.entries()) {
-    aiCommandRequests.delete(requestId)
-    clearTimeout(request.timeout)
-    request.resolve({ ok: false, error: '终端已关闭，无法读取命令输出' })
-  }
-  socket.value?.close()
+  isUnmounted = true
+  closeTerminalSocket()
+  term.value?.dispose()
   terminalResizeObserver?.disconnect()
   if (terminalResizeFrame !== null) cancelAnimationFrame(terminalResizeFrame)
   if (terminalFocusFrame !== null) cancelAnimationFrame(terminalFocusFrame)
@@ -985,10 +1002,7 @@ const suspendTerminal = () => {
       curStatus.value = SUSPENDED
 
       // 断开WebSocket（不触发重连）
-      socket.value.removeAllListeners()
-      socket.value.disconnect()
-      socket.value = null
-      socketConnected.value = false
+      closeTerminalSocket()
 
       resolve(true)
     }
@@ -1117,7 +1131,8 @@ const executeManualCommand = (command) => {
 const isAiTerminalConnected = () => Boolean(socket.value?.connected && curStatus.value === CONNECT_SUCCESS)
 
 defineExpose({
-  getTabKey: () => props.hostObj.key,
+  getTabKey: () => props.hostObj.tabKey || props.hostObj.key,
+  getPanelKey: () => props.hostObj.key,
   focusTab,
   handleResize,
   inputCommand,
