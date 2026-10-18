@@ -478,10 +478,13 @@ export async function initializeScheduledTasks() {
   }
 }
 
-export async function disableScheduledTasksForScripts(scriptIds) {
-  const taskIds = await disableTasksReferencingScripts(scriptIds)
-  taskIds.forEach(cancelJob)
-  return taskIds
+export async function disableScheduledTasksForScripts(scriptIds, { onDisabled } = {}) {
+  return disableTasksReferencingScripts(scriptIds, {
+    onDisabled: taskId => {
+      cancelJob(taskId)
+      onDisabled?.(taskId)
+    }
+  })
 }
 
 export async function detachHostsFromScheduledTasks(hostIds) {

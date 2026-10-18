@@ -9,6 +9,7 @@ let terminalSettingsSaveQueue = Promise.resolve()
 const useStore = defineStore('global', {
   state: () => ({
     hostList: [],
+    panelTaskRevision: 0,
     hostCatalogLoaded: false,
     groupList: [],
     hostOrder: { schemaVersion: 1, revision: 0, sections: [], flatItemIds: [] },

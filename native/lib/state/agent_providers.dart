@@ -10,6 +10,10 @@ import '../features/servers/server_model.dart';
 import 'api_providers.dart';
 import 'auth_notifier.dart';
 import 'host_list_notifier.dart';
+import 'group_list_notifier.dart';
+import 'script_list_notifier.dart';
+import 'script_group_list_notifier.dart';
+import 'scheduled_task_notifier.dart';
 import 'storage_providers.dart';
 
 final agentRepositoryProvider = Provider<AgentRepository>((ref) {
@@ -193,6 +197,7 @@ class AgentStateNotifier extends StateNotifier<AgentState> {
     required AgentRepository repository,
     required AgentSocketClient socket,
     required AppStorage storage,
+    Future<void> Function(Set<String>)? onPanelDataChanged,
   }) : super(AgentState(modelId: storage.agentModel, mode: storage.agentMode)) {
     _controller = AgentController(
       repository: repository,
@@ -202,6 +207,7 @@ class AgentStateNotifier extends StateNotifier<AgentState> {
         if (mounted) state = next;
       },
       read: () => state,
+      onPanelDataChanged: onPanelDataChanged,
     );
   }
 
@@ -238,6 +244,34 @@ class AgentStateNotifier extends StateNotifier<AgentState> {
   }
 }
 
+/// Refreshes shared catalogs only after any pre-notification read has settled.
+final panelDataRefreshProvider = Provider<Future<void> Function(Set<String>)>((
+  ref,
+) {
+  return (domains) async {
+    await Future.wait([
+      if (domains.contains('hosts'))
+        ref.read(serverRepositoryProvider).settlePendingCatalog(),
+      if (domains.contains('scripts'))
+        ref.read(scriptRepositoryProvider).settlePendingCatalog(),
+    ]);
+    await Future.wait([
+      if (domains.contains('hosts')) ...[
+        ref.read(hostListProvider.notifier).refresh(throwOnError: true),
+        ref.read(groupListProvider.notifier).refresh(throwOnError: true),
+      ],
+      if (domains.contains('scripts')) ...[
+        ref.read(scriptListProvider.notifier).refresh(throwOnError: true),
+        ref.read(scriptGroupListProvider.notifier).refresh(throwOnError: true),
+      ],
+      if (domains.contains('scheduled_tasks'))
+        ref
+            .read(scheduledTaskListProvider.notifier)
+            .refresh(throwOnError: true),
+    ]);
+  };
+});
+
 final agentControllerProvider =
     StateNotifierProvider.autoDispose<AgentStateNotifier, AgentState>((ref) {
       final auth = ref.watch(authProvider);
@@ -251,6 +285,9 @@ final agentControllerProvider =
         certificateTrust: ref.watch(certificateTrustProvider),
       );
       return AgentStateNotifier(
+        onPanelDataChanged: (domains) async {
+          await ref.read(panelDataRefreshProvider)(domains);
+        },
         repository: ref.watch(agentRepositoryProvider),
         socket: socket,
         storage: ref.watch(appStorageProvider),

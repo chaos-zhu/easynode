@@ -506,6 +506,28 @@ console.log('\n========== 两条来路一致性 ==========')
   expect('事件流与历史还原形状一致', shape(streamed.messages), shape(restored))
 }
 
+{
+  const result = { type: 'panel_batch_result', status: 'partial', total: 2, completed: 1, results: [] }
+  const live = newState()
+  feed(live, [
+    { type: 'turn_start' },
+    { type: 'tool_call', toolCallId: 'batch', tool: 'script_batch_create', input: {} },
+    { type: 'tool_progress', toolCallId: 'batch', panelBatchResult: result },
+    { type: 'tool_result', toolCallId: 'batch', error: 'aborted' },
+    { type: 'aborted' },
+  ])
+  expect('中断错误不覆盖已完成批次', live.messages[0].parts[0].output, result)
+  expect('中断错误不覆盖批次状态', live.messages[0].parts[0].status, ToolStatus.DONE)
+  const restored = fromModelMessages([{ role: 'assistant', content: [{ type: 'tool-call', toolCallId: 'batch', toolName: 'script_batch_create', input: {} },] },], { batch: { panelBatchResult: result } })
+  expect('缺失工具消息仍保留批量结果', restored[0].parts[0].output, result)
+  const withError = fromModelMessages([
+    { role: 'assistant', content: [{ type: 'tool-call', toolCallId: 'batch', toolName: 'script_batch_create', input: {} },] },
+    { role: 'tool', content: [{ type: 'tool-result', toolCallId: 'batch', output: { type: 'error-text', value: 'aborted' } },] },
+  ], { batch: { panelBatchResult: result } })
+  expect('历史合成错误不覆盖批量结果', withError[0].parts[0].output, result)
+  expect('历史合成错误不覆盖完成状态', withError[0].parts[0].status, ToolStatus.DONE)
+}
+
 console.log('\n==================================')
 if (failed === 0) {
   console.log(`✅ 全部通过 (${ passed } 项)`)

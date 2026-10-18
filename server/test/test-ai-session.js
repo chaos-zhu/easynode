@@ -114,6 +114,26 @@ console.log('\n========== 消息完整性修复 ==========')
 
 console.log('\n========== 历史裁剪 ==========')
 
+// A stopped batch has a durable outcome even when the SDK drops/replaces its result.
+{
+  const batch = { type: 'panel_batch_result', status: 'partial', completed: 1, total: 2, results: [] }
+  const call = toolCallMsg('batch', 'script_batch_create')
+  const meta = { batch: { panelBatchResult: batch } }
+  for (const suffix of [[], [{ role: 'tool', content: [{ type: 'tool-result', toolCallId: 'batch', toolName: 'script_batch_create', output: { type: 'error-text', value: 'aborted' } }] }]]) {
+    const result = repairMessages([userMsg('保存脚本'), call, ...suffix], meta)
+    expect('中断批次恢复确切结果', result.messages[2].content[0].output, { type: 'json', value: batch })
+  }
+  const created = await store.createSession({ scope: 'ops' })
+  await store.appendTurn(created.id, { newMessages: [userMsg('保存脚本'), call], toolMeta: meta })
+  expect('批次结果保存在模型消息中', (await store.getSession(created.id)).messages[2].content[0].output.value, batch)
+  expect('下次模型上下文包含批次结果', (await store.loadForModel(created.id)).messages[2].content[0].output.value, batch)
+  const terminal = await store.createSession({ scope: 'terminal' })
+  await store.appendTurn(terminal.id, { newMessages: [userMsg('保存脚本'), call], toolMeta: meta })
+  expect('终端历史修复保持原行为', (await store.getSession(terminal.id)).messages[2].content[0].output.type, 'error-text')
+  await store.removeSession(created.id)
+  await store.removeSession(terminal.id)
+}
+
 // 裁剪必须落在整轮边界，不能把配对拦腰截断
 {
   const messages = []

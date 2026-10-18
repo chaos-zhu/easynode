@@ -34,7 +34,18 @@ class _AgentToolCardState extends State<AgentToolCard> {
         part.risk?['reason'] != null ||
         part.error != null ||
         part.output != null;
-    final summary = _toolSummary(part);
+    final batch =
+        part.output is Map &&
+            (part.output as Map)['type'] == 'panel_batch_result'
+        ? stringMap(part.output)
+        : null;
+    final summary = batch == null
+        ? _toolSummary(part)
+        : l.trf('agent.panel.summary', [
+            l.tr('agent.panel.${batch['status']}'),
+            batch['completed'],
+            batch['total'],
+          ]);
     return AnimatedContainer(
       key: ValueKey('agent-tool-${part.toolCallId}'),
       duration: const Duration(milliseconds: 180),
@@ -264,7 +275,9 @@ class _AgentToolCardState extends State<AgentToolCard> {
                             else if (part.output != null)
                               _DetailBlock(
                                 label: l.tr('agent.result'),
-                                text: _stringifyOutput(part.output),
+                                text: batch == null
+                                    ? _stringifyOutput(part.output)
+                                    : _panelResultText(l, batch),
                                 copyable: true,
                               ),
                           ],
@@ -394,6 +407,7 @@ String _toolLabel(AppLocalizations l, String tool) {
 
 String _toolSummary(AgentToolPart part) {
   final input = part.input;
+  if (input['items'] is List) return '${(input['items'] as List).length}';
   final known =
       (input['scriptName'] ??
               input['command'] ??
@@ -428,3 +442,15 @@ String _stringifyOutput(Object? output) {
   }
   return const JsonEncoder.withIndent('  ').convert(output);
 }
+
+String _panelResultText(AppLocalizations l, Map<String, dynamic> batch) => [
+  l.trf('agent.panel.summary', [
+    l.tr('agent.panel.${batch['status']}'),
+    batch['completed'],
+    batch['total'],
+  ]),
+  ...mapList(batch['results']).map(
+    (item) =>
+        '${item['name']} (${item['id']}): ${l.tr('agent.panel.${item['status']}')}${item['error'] == null ? '' : ' · ${item['error']}'}',
+  ),
+].join('\n');

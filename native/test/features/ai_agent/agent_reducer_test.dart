@@ -3,6 +3,77 @@ import 'package:easynode_native/features/ai_agent/agent_reducer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test(
+    'completed batch survives stop and incomplete historical tool messages',
+    () {
+      const result = {
+        'type': 'panel_batch_result',
+        'status': 'partial',
+        'completed': 1,
+        'total': 2,
+        'results': [],
+      };
+      var state = applyAgentEvent(AgentConversationState.empty, const {
+        'type': 'turn_start',
+      });
+      state = applyAgentEvent(state, const {
+        'type': 'tool_call',
+        'toolCallId': 'batch',
+        'tool': 'script_batch_create',
+        'input': {},
+      });
+      state = applyAgentEvent(state, const {
+        'type': 'tool_progress',
+        'toolCallId': 'batch',
+        'panelBatchResult': result,
+      });
+      state = applyAgentEvent(state, const {
+        'type': 'tool_result',
+        'toolCallId': 'batch',
+        'error': 'aborted',
+      });
+      state = applyAgentEvent(state, const {'type': 'aborted'});
+      final live = state.messages.last.parts.single as AgentToolPart;
+      expect(live.status, AgentToolStatus.done);
+      expect(live.output, result);
+      final historical =
+          conversationFromSession(
+                AgentSession.fromJson({
+                  'id': 'history',
+                  'messages': [
+                    {
+                      'role': 'assistant',
+                      'content': [
+                        {
+                          'type': 'tool-call',
+                          'toolCallId': 'batch',
+                          'toolName': 'script_batch_create',
+                          'input': {},
+                        },
+                      ],
+                    },
+                    {
+                      'role': 'tool',
+                      'content': [
+                        {
+                          'type': 'tool-result',
+                          'toolCallId': 'batch',
+                          'output': {'type': 'error-text', 'value': 'aborted'},
+                        },
+                      ],
+                    },
+                  ],
+                  'toolMeta': {
+                    'batch': {'panelBatchResult': result},
+                  },
+                }),
+              ).messages.single.parts.single
+              as AgentToolPart;
+      expect(historical.status, AgentToolStatus.done);
+      expect(historical.output, result);
+    },
+  );
+
   const targetHost = {
     'hostId': 'host-1',
     'name': 'Production',

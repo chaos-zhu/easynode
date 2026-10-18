@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../../core/storage/app_storage.dart';
 import 'agent_models.dart';
+import 'panel_catalog_refresh.dart';
 import 'agent_reducer.dart';
 import 'agent_repository.dart';
 import 'agent_socket_client.dart';
@@ -106,16 +107,28 @@ class AgentController {
     required AppStorage storage,
     required void Function(AgentState) emit,
     required AgentState Function() read,
+    Future<void> Function(Set<String>)? onPanelDataChanged,
   }) : _repository = repository,
        _socket = socket,
        _storage = storage,
        _emit = emit,
        _read = read {
+    _panelRefresh = PanelCatalogRefresh(
+      refresh: onPanelDataChanged ?? (_) async {},
+      onError: () => _emit(
+        _read().copyWith(
+          conversation: _read().conversation.copyWith(
+            notice: 'panel_refresh_failed',
+          ),
+        ),
+      ),
+    );
     _subscriptions.add(_socket.events.listen(_handleEvent));
     _subscriptions.add(_socket.connections.listen(_handleConnection));
     _subscriptions.add(_socket.errors.listen(_handleConnectionError));
   }
 
+  late final PanelCatalogRefresh _panelRefresh;
   final AgentRepository _repository;
   final AgentSocketClient _socket;
   final AppStorage _storage;
@@ -160,6 +173,10 @@ class AgentController {
   }
 
   void _handleEvent(Map<String, dynamic> event) {
+    if (event['type'] == 'panel_data_changed') {
+      _panelRefresh.schedule(event['domains']);
+      return;
+    }
     final current = _read();
     if (event['type'] == 'ready') {
       final models = (event['models'] is List)
@@ -363,6 +380,7 @@ class AgentController {
   }
 
   void dispose() {
+    _panelRefresh.dispose();
     for (final subscription in _subscriptions) {
       unawaited(subscription.cancel());
     }

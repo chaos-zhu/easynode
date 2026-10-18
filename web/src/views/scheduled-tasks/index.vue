@@ -649,6 +649,9 @@ function formatDuration(value) {
 }
 function formatBytes(value) { return value < 1024 ? `${ value } B` : `${ (value / 1024).toFixed(1) } KiB` }
 
+watch(() => $store.panelTaskRevision, () => {
+  loadTasks().catch(() => $message.warning('任务列表刷新失败，请手动刷新；面板操作结果不受影响。'))
+})
 loadTasks()
 watch(runDrawerVisible, async value => {
   if (!value) {

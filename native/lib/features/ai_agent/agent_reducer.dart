@@ -160,6 +160,10 @@ AgentConversationState applyAgentEvent(
         state,
         event['toolCallId']?.toString() ?? '',
         (part) => part.copyWith(
+          status: event['panelBatchResult'] is Map
+              ? AgentToolStatus.done
+              : null,
+          output: event['panelBatchResult'],
           durationMs: intValue(event['durationMs']),
           targetHost: AgentTargetHost.fromJson(event['targetHost']),
           toolInfo: event['toolInfo'] is Map
@@ -171,7 +175,11 @@ AgentConversationState applyAgentEvent(
       return _updateTool(
         state,
         event['toolCallId']?.toString() ?? '',
-        (part) => event['error'] != null
+        (part) =>
+            part.output is Map &&
+                (part.output as Map)['type'] == 'panel_batch_result'
+            ? part
+            : event['error'] != null
             ? part.copyWith(
                 status: part.status == AgentToolStatus.denied
                     ? AgentToolStatus.denied
@@ -524,7 +532,10 @@ List<AgentMessage> messagesFromAgentSession(AgentSession session) {
               toolCallId: id,
               tool: part['toolName']?.toString() ?? '',
               input: stringMap(part['input']),
-              status: meta['denied'] == true
+              output: meta['panelBatchResult'],
+              status: meta['panelBatchResult'] is Map
+                  ? AgentToolStatus.done
+                  : meta['denied'] == true
                   ? AgentToolStatus.denied
                   : AgentToolStatus.running,
               durationMs: meta['durationMs'] == null
@@ -590,7 +601,11 @@ List<AgentMessage> messagesFromAgentSession(AgentSession session) {
         final id = result['toolCallId']?.toString() ?? '';
         final original = toolParts[id];
         if (original == null) continue;
-        final normalized = normalizeAgentToolOutput(result['output']);
+        final savedBatch = stringMap(session.toolMeta[id])['panelBatchResult'];
+        final normalized =
+            savedBatch is Map && savedBatch['type'] == 'panel_batch_result'
+            ? savedBatch
+            : normalizeAgentToolOutput(result['output']);
         final isError = normalized is Map && normalized['__error'] == true;
         final updated = isError
             ? original.copyWith(

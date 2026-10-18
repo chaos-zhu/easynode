@@ -14,6 +14,7 @@
 
 import { z } from 'zod'
 import { Effect } from '../policy.js'
+import { PANEL_BATCH_SCHEMAS } from './panel-schema.js'
 
 export const PlusPolicy = {
   FREE: 'free',
@@ -40,7 +41,27 @@ const scheduledTaskScriptSchema = z.discriminatedUnion('type', [
   })
 ])
 
+const panelDescriptions = {
+  host_metadata_batch_update: '批量修改面板主机名称、已有分组、标签、到期时间、到期提醒和控制台 URL。只修改展示信息，不修改连接配置或 AI 策略。tagMode 支持 replace/add/remove，默认 replace；expired 为毫秒时间戳，null 清空。',
+  script_batch_create: '批量新建自定义脚本，只保存、不运行。可将内置脚本内容复制到新脚本，不能指定已有 ID。',
+  script_batch_update: '批量部分修改自定义脚本。内置脚本只读。引用此脚本的定时任务下次使用最新内容。',
+  script_batch_delete: '批量删除自定义脚本，同时禁用引用它们的定时任务。内置脚本不能删除。',
+  script_group_batch_create: '批量创建脚本分组。不能创建内置分组。',
+  script_group_batch_update: '批量重命名脚本分组。内置分组不能修改。',
+  script_group_batch_delete: '批量删除自定义脚本分组，组内脚本移入默认分组。默认和内置分组不能删除。'
+}
+
 export const TOOL_SPECS = [
+  ...Object.entries(PANEL_BATCH_SCHEMAS).map(([name, inputSchema]) => ({
+    name, inputSchema, effect: name.endsWith('_delete') ? Effect.DELETE : Effect.WRITE,
+    plusPolicy: PlusPolicy.REQUIRED,
+    description: `${ panelDescriptions[name] } 每批最多 50 项；使用查询工具返回的 ID，不猜测 ID；未提供字段保持不变。`
+  })),
+  {
+    name: 'script_get', effect: Effect.READ, plusPolicy: PlusPolicy.FREE,
+    description: '按脚本 ID 查看完整内容与引用它的定时任务。修改、复制已有脚本前按需读取；保存脚本不等于运行脚本。',
+    inputSchema: z.object({ scriptId: z.string().min(1) }).strict()
+  },
   {
     name: 'host_list',
     effect: Effect.READ,

@@ -35,6 +35,7 @@ import { loadForModel } from './session-store.js'
 import { writeAudit, ACTION } from './audit.js'
 import { HostListDB } from '../utils/db-class.js'
 import { requestTerminalDispatch } from './terminal-dispatch.js'
+import { PANEL_BATCH_SCHEMAS, preparePanelBatch, resolvePanelBatchAccess } from '../services/panel-batch.js'
 import { getScriptById } from '../services/script-library.js'
 import { classifyReadPath, stricterDataRisk } from './data-policy.js'
 import { buildWriteFilePreview } from './write-preview.js'
@@ -139,6 +140,31 @@ function createToolApproval(ctx) {
     let scriptHash = null
     let scheduledTaskHash = null
     let hostPolicies = []
+    let panelBatchHash = null
+
+    if (Object.hasOwn(PANEL_BATCH_SCHEMAS, toolCall.toolName)) {
+      try {
+        if (ctx.scope !== 'ops') throw new Error('面板管理工具仅供全局助手使用')
+        const batch = await preparePanelBatch(toolCall.toolName, input)
+        panelBatchHash = batch.fingerprint
+        approvalPreview = {
+          type: 'panel_batch', domain: batch.domain, action: batch.action,
+          items: batch.items.map(({ id, name, changed, group, members, affectedTasks, changes }) => ({
+            id, name, changed, group, members, affectedTasks,
+            changes: changes.map(change => change.diff ? { field: change.field, diff: change.diff } : change)
+          }))
+        }
+        approvalInput = { domain: batch.domain, action: batch.action, count: batch.items.length, targets: batch.items.map(item => item.name) }
+        targets = batch.items.map(item => item.name)
+        const access = await resolvePanelBatchAccess(batch, ctx)
+        effect = access.effect
+        risk = access.risk
+        reason = access.reason
+        hostPolicies = access.hostPolicies
+      } catch (error) {
+        return denyToolCall(ctx, toolCall, input, error.message, '面板批量管理')
+      }
+    }
 
     if (toolCall.toolName === 'run_script') {
       const script = await getScriptById(input.scriptId)
@@ -337,7 +363,8 @@ function createToolApproval(ctx) {
         approvedReadPath,
         sensitiveDisclosure,
         scriptHash,
-        scheduledTaskHash
+        scheduledTaskHash,
+        panelBatchHash
       })
       return 'not-applicable'
     }
@@ -381,7 +408,8 @@ function createToolApproval(ctx) {
         approvedReadPath,
         sensitiveDisclosure,
         scriptHash,
-        scheduledTaskHash
+        scheduledTaskHash,
+        panelBatchHash
       })
       return { type: 'approved' }
     }
@@ -407,6 +435,7 @@ function authorizePreparedCall(ctx, toolCallId, prepared) {
   if (prepared.approvedReadPath) ctx.approvedReads.set(toolCallId, prepared.approvedReadPath)
   if (prepared.sensitiveDisclosure) ctx.sensitiveOutputs.add(toolCallId)
   if (prepared.scriptHash) ctx.authorizedScripts.set(toolCallId, prepared.scriptHash)
+  if (prepared.panelBatchHash) ctx.authorizedPanelBatches.set(toolCallId, prepared.panelBatchHash)
   if (prepared.scheduledTaskHash) ctx.authorizedScheduledTasks.set(toolCallId, prepared.scheduledTaskHash)
 }
 
@@ -476,6 +505,7 @@ export async function runTurn(params) {
     authorizedWrites: new Map(),
     authorizedScripts: new Map(),
     authorizedScheduledTasks: new Map(),
+    authorizedPanelBatches: new Map(),
     approvedReads: new Map(),
     sensitiveOutputs: new Set(),
     mcpClients: createMcpClientManager(signal),

@@ -9,7 +9,10 @@
       </span>
       <span v-if="part.toolInfo?.source === 'mcp'" class="source_tag">MCP · {{ part.toolInfo.providerName }}</span>
 
-      <code v-if="summary" class="tool_summary" :title="summary">{{ summary }}</code>
+      <span v-if="part.output?.type === 'panel_batch_result'" class="tool_summary">
+        {{ batchStatus[part.output.status] }} · {{ part.output.completed }}/{{ part.output.total }}
+      </span>
+      <code v-else-if="summary" class="tool_summary" :title="summary">{{ summary }}</code>
 
       <span v-else class="tool_spacer" />
 
@@ -88,6 +91,8 @@ const props = defineProps({
 const expanded = ref(['error', 'denied',].includes(props.part.status))
 const isDark = computed(() => $store.isDark)
 
+const batchStatus = { success: '全部成功', partial: '部分成功', failed: '未完成' }
+
 const TOOL_LABELS = {
   host_list: '查询主机列表',
   host_status: '获取主机状态',
@@ -119,6 +124,7 @@ const summary = computed(() => {
   if (props.part.tool === 'host_status' && props.part.output?.name) {
     return `主机: ${ props.part.output.name }`
   }
+  if (Array.isArray(input.items)) return `${ input.items.length } 项`
   if (input.taskName) return `任务: ${ input.taskName }`
   if (input.taskId) return `任务: ${ input.taskId }`
   if (input.command) return input.command
@@ -147,6 +153,12 @@ watch(() => props.part.progressOutput, (output) => {
 const formattedOutput = computed(() => {
   const output = props.part.output
   if (output === null || output === undefined) return ''
+  if (output.type === 'panel_batch_result') {
+    const statuses = { completed: '已完成', unchanged: '无变化', failed: '失败', not_executed: '未执行' }
+    return `${ batchStatus[output.status] } · ${ output.completed }/${ output.total }\n` + output.results.map(item =>
+      `${ item.name } (${ item.id }): ${ statuses[item.status] || item.status }${ item.error ? ` · ${ item.error }` : '' }`
+    ).join('\n')
+  }
   // exec_command 的结果拼成终端风格，比看 JSON 直观得多
   if (typeof output === 'object' && ('stdout' in output || 'stderr' in output)) {
     const lines = []

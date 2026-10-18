@@ -3,6 +3,14 @@ import { EXECUTORS } from './executors.js'
 import { loadMcpDefinitions } from '../mcp/registry.js'
 
 const BUILTIN_LABELS = {
+  host_metadata_batch_update: '批量修改主机元数据',
+  script_get: '查看脚本',
+  script_batch_create: '批量新建脚本',
+  script_batch_update: '批量修改脚本',
+  script_batch_delete: '批量删除脚本',
+  script_group_batch_create: '批量新建脚本分组',
+  script_group_batch_update: '批量重命名脚本分组',
+  script_group_batch_delete: '批量删除脚本分组',
   host_list: '查询主机列表',
   host_status: '获取主机状态',
   script_list: '查询脚本库',

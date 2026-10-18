@@ -69,6 +69,37 @@ export function useAgentSession(config = {}) {
 
   const sessions = ref([])
   const historyNotice = ref('')
+  const panelDomains = new Set()
+  let panelRefreshTimer = null
+  let panelRefreshRunning = false
+  let panelDisposed = false
+
+  function schedulePanelRefresh(domains) {
+    if (scope !== 'ops' || panelDisposed) return
+    for (const domain of Array.isArray(domains) ? domains : []) {
+      if (['hosts', 'scripts', 'scheduled_tasks',].includes(domain)) panelDomains.add(domain)
+    }
+    if (!panelDomains.size || panelRefreshTimer || panelRefreshRunning) return
+    panelRefreshTimer = setTimeout(flushPanelRefresh, 100)
+  }
+
+  async function flushPanelRefresh() {
+    panelRefreshTimer = null
+    panelRefreshRunning = true
+    const domains = [...panelDomains,]
+    panelDomains.clear()
+    const jobs = []
+    if (domains.includes('hosts')) jobs.push(store.getHostCatalog())
+    if (domains.includes('scripts')) jobs.push(store.getScriptCatalog())
+    if (domains.includes('scheduled_tasks')) store.panelTaskRevision = (store.panelTaskRevision || 0) + 1
+    const results = await Promise.allSettled(jobs)
+    if (!panelDisposed && results.some(result => result.status === 'rejected')) {
+      historyNotice.value = '面板数据已发生变更，但列表刷新失败，请手动刷新；操作结果不受影响。'
+    }
+    panelRefreshRunning = false
+    schedulePanelRefresh([])
+  }
+
   const cancelledTerminalRequests = new Set()
   const activeTerminalRequests = new Set()
   const pendingTerminalCancellations = new Set()
@@ -154,6 +185,9 @@ export function useAgentSession(config = {}) {
 
   function handleEvent(event) {
     switch (event.type) {
+      case 'panel_data_changed':
+        schedulePanelRefresh(event.domains)
+        return
       case 'ready':
         applyModels(event.models, event.defaultModel)
         options.presets = event.presets || []
@@ -456,6 +490,9 @@ export function useAgentSession(config = {}) {
   }
 
   onBeforeUnmount(() => {
+    panelDisposed = true
+    clearTimeout(panelRefreshTimer)
+    panelDomains.clear()
     dismissPlusRequired()
     disconnect()
   })

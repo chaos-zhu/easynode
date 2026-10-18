@@ -30,6 +30,7 @@ part 'agent_composer.dart';
 part 'agent_message_view.dart';
 part 'agent_tool_card.dart';
 part 'agent_approval_card.dart';
+part 'agent_panel_batch.dart';
 part 'agent_markdown.dart';
 part 'agent_history_sheet.dart';
 
@@ -457,6 +458,7 @@ String _noticeText(AppLocalizations l, String notice) {
     'history_repaired' => l.trf('agent.notice.historyRepaired', [parts.last]),
     'compacted' => l.trf('agent.notice.compacted', [parts.last]),
     'pending_approvals' => l.trf('agent.notice.pendingApprovals', [parts.last]),
+    'panel_refresh_failed' => l.tr('agent.panel.refreshFailed'),
     'stream_error' => parts.skip(1).join(':'),
     _ => notice,
   };

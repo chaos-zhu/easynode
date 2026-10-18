@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto'
 import path, { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { HostListDB, GroupDB, ScriptGroupDB } from '../../utils/db-class.js'
+import { PANEL_BATCH_SCHEMAS, scriptReferences } from '../../services/panel-batch.js'
 import { getScriptById, listScripts } from '../../services/script-library.js'
 import { execCommand, withSftp, DEFAULT_TIMEOUT_MS } from '../ssh.js'
 import { fit, read as readOutput } from '../output-store.js'
@@ -155,13 +156,18 @@ export async function hostList(ctx, input) {
         port: host.port,
         username: host.username,
         group: groupName.get(host.group) || 'default',
+        groupId: host.group || 'default',
+        tag: host.tag || [],
+        expired: host.expired ?? null,
+        expiredNotify: host.expiredNotify === true,
+        consoleUrl: host.consoleUrl || '',
         aiEnabled: policy.enabled !== false,
         maxEffect: policy.maxEffect,
         maxMode: policy.maxMode
       }
     })
 
-  return ok({ total: items.length, hosts: items })
+  return ok({ total: items.length, hosts: items, groups: groups.map(group => ({ groupId: group._id, name: group.name })) })
 }
 
 // -------------------------------------------------------------- host_status
@@ -255,11 +261,20 @@ export async function scriptList(_ctx, input) {
       name: script.name,
       description: script.description || '',
       group: groupName.get(script.group) || script.group || 'default',
+      groupId: script.group || 'default',
       builtin: script.builtin === true,
       useBase64: script.useBase64 === true
     }))
 
-  return ok({ total: items.length, scripts: items })
+  return ok({ total: items.length, scripts: items, groups: groups.map(group => ({ groupId: group._id, name: group.name, builtin: group._id === 'builtin' })) })
+}
+
+export async function scriptGet(_ctx, input) {
+  const script = await getScriptById(input.scriptId)
+  if (!script) return fail('脚本不存在')
+  return ok({ scriptId: script.id, name: script.name, description: script.description || '',
+    command: script.command, groupId: script.group, builtin: script.builtin === true,
+    useBase64: script.useBase64 === true, affectedTasks: await scriptReferences(script.id) })
 }
 
 export async function runScript(ctx, input, options = {}) {
@@ -636,6 +651,9 @@ export async function terminalCommand(ctx, input, options = {}) {
 }
 
 export const EXECUTORS = {
+  ...Object.fromEntries(Object.keys(PANEL_BATCH_SCHEMAS).map(tool => [tool,
+    (ctx, input, options) => executeRestrictedTool(tool, ctx, input, options)])),
+  script_get: scriptGet,
   host_list: hostList,
   host_status: hostStatus,
   script_list: scriptList,

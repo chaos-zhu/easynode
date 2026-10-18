@@ -232,18 +232,24 @@ export async function setTaskRunState(id, state) {
   await taskDB.updateAsync({ _id: id }, { $set: { ...state, updatedAt: Date.now() } })
 }
 
-export async function disableTasksReferencingScripts(scriptIds) {
+export async function disableTasksReferencingScripts(scriptIds, { onDisabled } = {}) {
   const ids = new Set(Array.isArray(scriptIds) ? scriptIds : [])
   if (!ids.size) return []
   const tasks = await taskDB.findAsync({ 'script.type': 'library', 'script.scriptId': { $in: [...ids] } })
-  await Promise.all(tasks.map(task => taskDB.updateAsync({ _id: task._id }, {
-    $set: {
-      enabled: false,
-      disabledReason: '引用的脚本库脚本已删除',
-      updatedAt: Date.now()
-    }
-  })))
-  return tasks.map(task => task._id)
+  const disabledIds = []
+  for (const task of tasks) {
+    const result = await taskDB.updateAsync({ _id: task._id }, {
+      $set: {
+        enabled: false,
+        disabledReason: '引用的脚本库脚本已删除',
+        updatedAt: Date.now()
+      }
+    })
+    if (result.numAffected !== 1) throw new ScheduledTaskError(`定时任务已删除: ${ task._id }`)
+    disabledIds.push(task._id)
+    onDisabled?.(task._id)
+  }
+  return disabledIds
 }
 
 export async function detachHostsFromStoredTasks(hostIds) {

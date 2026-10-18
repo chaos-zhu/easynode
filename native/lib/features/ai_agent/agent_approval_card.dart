@@ -82,7 +82,9 @@ class _AgentApprovalCardState extends ConsumerState<AgentApprovalCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              item.isMcp
+              preview?['type'] == 'panel_batch'
+                  ? l.trf('agent.panel.approval', [_toolLabel(l, item.tool)])
+                  : item.isMcp
                   ? l.trf('agent.approval.providerDescription', [
                       item.providerName ??
                           item.toolInfo?['providerName']?.toString() ??
@@ -118,7 +120,9 @@ class _AgentApprovalCardState extends ConsumerState<AgentApprovalCard> {
                 ),
               ),
             ],
-            if (preview?['diff'] != null)
+            if (preview?['type'] == 'panel_batch')
+              AgentPanelBatchPreview(preview: preview!)
+            else if (preview?['diff'] != null)
               _DetailBlock(
                 label: l.tr('agent.approval.diff'),
                 text: preview!['diff'].toString(),

@@ -9,7 +9,10 @@
     <div class="prompt_body">
       <p class="prompt_desc">
         <span>
-          <template v-if="item.targetHost">
+          <template v-if="item.preview?.type === 'panel_batch'">
+            将修改面板数据，
+          </template>
+          <template v-else-if="item.targetHost">
             将在 <strong>{{ item.targetHost.name }}（{{ item.targetHost.address }}）</strong> 上
           </template>
           <template v-else-if="item.hostName">
@@ -28,7 +31,8 @@
         <span>批准后将把真实文件或命令输出发送给当前 AI Provider。</span>
       </div>
 
-      <div v-if="writePreview" class="write_preview">
+      <PanelBatchPreview v-if="item.preview?.type === 'panel_batch'" :preview="item.preview" />
+      <div v-else-if="writePreview" class="write_preview">
         <dl class="preview_meta">
           <div>
             <dt>操作</dt>
@@ -126,6 +130,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 import { CopyDocument, WarnTriangleFilled } from '@element-plus/icons-vue'
+import PanelBatchPreview from './panel-batch-preview.vue'
 import { copyText } from '@/utils/clipboard'
 
 const { proxy: { $store } } = getCurrentInstance()

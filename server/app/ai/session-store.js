@@ -58,8 +58,16 @@ function collectToolResultIds(message) {
  * @param {Array} messages
  * @returns {{ messages: Array, repaired: number }}
  */
-export function repairMessages(messages) {
+export function repairMessages(messages, toolMeta = {}) {
   if (!Array.isArray(messages)) return { messages: [], repaired: 0 }
+
+  // A stopped SDK stream may omit its final tool result even after panel writes.
+  // The executor records the exact batch outcome before returning to the SDK.
+  const batchOutput = (call) => {
+    if (!/^(host_metadata_batch_update|script_(group_)?batch_(create|update|delete))$/.test(call.toolName || '')) return null
+    const result = toolMeta[call.toolCallId]?.panelBatchResult
+    return result?.type === 'panel_batch_result' ? { type: 'json', value: result } : null
+  }
 
   const resolved = new Set()
   for (const message of messages) {
@@ -86,7 +94,7 @@ export function repairMessages(messages) {
         type: 'tool-result',
         toolCallId: call.toolCallId,
         toolName: call.toolName,
-        output: {
+        output: batchOutput(call) || {
           type: 'error-text',
           value: '该工具调用因会话中断未能完成，结果未知。如仍需要，请重新执行并确认当前实际状态。'
         }
@@ -103,6 +111,11 @@ export function repairMessages(messages) {
         if (part?.type !== 'tool-result') return false
         // 结果必须出现在对应的调用之后
         return seenCalls.has(part.toolCallId)
+      }).map(part => {
+        const known = batchOutput(part)
+        return known && ['error-text', 'error-json'].includes(part.output?.type)
+          ? { ...part, output: known }
+          : part
       })
       if (parts.length) output.push({ ...message, content: parts })
       else repaired += 1
@@ -484,7 +497,7 @@ export async function loadForModel(id, options = {}) {
   // 先修复、裁剪未被摘要覆盖的部分，最后才把摘要拼到最前面。
   // 顺序反过来的话，裁剪会从头开始丢，第一个被丢掉的就是摘要本身 ——
   // 花了一次模型调用生成的东西白费，而且模型会突然失忆
-  const repairedResult = repairMessages(all.slice(covered))
+  const repairedResult = repairMessages(all.slice(covered), session.scope === 'ops' ? session.toolMeta : {})
   const truncated = truncateHistory(repairedResult.messages)
 
   const messages = usable
@@ -564,7 +577,8 @@ export async function appendTurn(id, payload = {}) {
    */
   const covered = Math.min(session.compaction?.upTo || 0, (session.messages || []).length)
   const prefix = merged.slice(0, covered)
-  const { messages: repairedSuffix } = repairMessages(merged.slice(covered))
+  const toolMeta = { ...(session.toolMeta || {}), ...(payload.toolMeta || {}) }
+  const { messages: repairedSuffix } = repairMessages(merged.slice(covered), session.scope === 'ops' ? toolMeta : {})
 
   const repaired = [...prefix, ...repairedSuffix]
   const { messages: bounded, dropped } = truncateHistory(repaired)
@@ -587,7 +601,7 @@ export async function appendTurn(id, payload = {}) {
   Object.assign(update, {
     messages: bounded,
     turnMeta: [...existingTurnMeta, ...incomingTurnMeta].slice(droppedUserCount),
-    toolMeta: { ...(session.toolMeta || {}), ...(payload.toolMeta || {}) },
+    toolMeta,
     usage,
     updatedAt: Date.now()
   })

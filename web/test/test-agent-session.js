@@ -27,11 +27,16 @@ function harness(config = {}) {
     id: 'legacy-session', scope: config.scope || 'ops', hostId: config.hostId,
     hostIds: ['old-selection',], messages: [], modelId: 'fixture', permission: 'review'
   }
+  const refreshed = []
+  const store = { aiConfig: { models: ['fixture',] },
+    getHostCatalog: async () => { refreshed.push('hosts'); if (config.failRefresh) throw new Error('offline') },
+    getScriptCatalog: async () => { refreshed.push('scripts') }
+  }
   const dependencies = {
     ...Vue,
     ...messages,
     onBeforeUnmount: fn => cleanups.push(fn),
-    useStore: () => ({ aiConfig: { models: ['fixture',] } }),
+    useStore: () => store,
     generateSocketInstance: () => socket,
     $api: {
       getAgentSessionDetail: async () => ({ data: history }),
@@ -45,7 +50,7 @@ function harness(config = {}) {
   const session = effect.run(() => create(config))
   session.connect()
   socket.receive('connect')
-  return { session, socket, history, close() { cleanups.forEach(fn => fn()); effect.stop() } }
+  return { session, socket, history, refreshed, store, close() { cleanups.forEach(fn => fn()); effect.stop() } }
 }
 
 const global = harness()
@@ -87,3 +92,25 @@ try {
   terminal.close()
 }
 console.log('全局助手发送、旧历史与分支恢复、终端请求协议回归通过')
+
+for (const failRefresh of [false, true,]) {
+  const h = harness({ failRefresh })
+  try {
+    h.socket.receive('agent_event', { type: 'panel_data_changed', domains: ['hosts', 'scripts', 'unknown',] })
+    h.socket.receive('agent_event', { type: 'panel_data_changed', domains: ['hosts', 'scheduled_tasks',] })
+    await new Promise(resolve => setTimeout(resolve, 150))
+    assert.deepEqual(h.refreshed.sort(), ['hosts', 'scripts',])
+    assert.equal(h.store.panelTaskRevision, 1)
+    assert.equal(h.session.state.error, null)
+    assert.equal(h.session.historyNotice.value.includes('刷新失败'), failRefresh)
+    await h.session.loadSession('legacy-session')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    assert.equal(h.refreshed.length, 2, 'history must not refresh catalogs')
+  } finally { h.close() }
+}
+const isolated = harness({ scope: 'terminal', hostId: 'current-host' })
+isolated.socket.receive('agent_event', { type: 'panel_data_changed', domains: ['hosts',] })
+await new Promise(resolve => setTimeout(resolve, 150))
+assert.deepEqual(isolated.refreshed, [])
+isolated.close()
+console.log('面板变更通知定向刷新、合并、失败提示与历史隔离通过')

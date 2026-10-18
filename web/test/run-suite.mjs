@@ -10,6 +10,7 @@ const testFiles = [
   'test-terminal-appearance.mjs',
   'test-agent-messages.js',
   'test-agent-session.js',
+  'test-panel-batch-preview.js',
   'test-sticky-bottom.js',
   'test-host-sort.js',
   'test-ip-access.js',

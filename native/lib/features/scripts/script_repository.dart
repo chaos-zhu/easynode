@@ -93,6 +93,9 @@ abstract class ScriptRepository {
     groups: await fetchGroups(),
     order: const OrderLayout(schemaVersion: 1, revision: 0, sections: []),
   );
+
+  /// Waits for reads started before a mutation notice without reusing their data.
+  Future<void> settlePendingCatalog() async {}
   Future<OrderLayout> updateOrder(int revision, List<OrderChange> changes) =>
       throw UnsupportedError('Script ordering is not supported');
   Future<String> createScript(ScriptFormData form);
@@ -163,6 +166,15 @@ class ApiScriptRepository implements ScriptRepository {
 
   @override
   Future<ScriptCatalog> fetchCatalog() => _loadCatalog();
+
+  @override
+  Future<void> settlePendingCatalog() async {
+    try {
+      await _catalogRequest;
+    } catch (_) {
+      // The next refresh retries; an earlier read failure is not its result.
+    }
+  }
 
   @override
   Future<OrderLayout> updateOrder(

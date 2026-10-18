@@ -136,6 +136,10 @@ export function applyEvent(state, event) {
     case 'tool_progress': {
       const part = findToolPart(state.messages, event.toolCallId)
       if (!part) break
+      if (event.panelBatchResult) {
+        part.output = event.panelBatchResult
+        part.status = ToolStatus.DONE
+      }
       if (event.durationMs !== undefined) part.durationMs = event.durationMs
       if (event.toolInfo) part.toolInfo = event.toolInfo
       if (event.targetHost) part.targetHost = event.targetHost
@@ -157,6 +161,7 @@ export function applyEvent(state, event) {
       if (!part) break
       if (event.toolInfo) part.toolInfo = event.toolInfo
       if (event.targetHost) part.targetHost = event.targetHost
+      if (part.output?.type === 'panel_batch_result') break
       if (event.error) {
         part.status = ToolStatus.ERROR
         part.error = event.error
@@ -444,7 +449,8 @@ export function fromModelMessages(modelMessages = [], toolMeta = {}, turnMeta = 
               ? { ...part.input, scriptName: meta.scriptName }
               : part.input,
             // 结果由后面的 tool 消息填，填不上说明历史残缺
-            status: meta.denied ? ToolStatus.DENIED : ToolStatus.RUNNING,
+            status: meta.panelBatchResult ? ToolStatus.DONE : meta.denied ? ToolStatus.DENIED : ToolStatus.RUNNING,
+            ...(meta.panelBatchResult ? { output: meta.panelBatchResult } : {}),
             durationMs: meta.durationMs,
             risk: meta.risk && meta.risk !== 'normal'
               ? { level: meta.risk, reason: meta.riskReason, category: meta.riskCategory }
@@ -469,7 +475,10 @@ export function fromModelMessages(modelMessages = [], toolMeta = {}, turnMeta = 
         if (part.type !== 'tool-result') continue
         const target = toolParts.get(part.toolCallId)
         if (!target) continue
-        const normalized = normalizeToolOutput(part.output)
+        const savedBatch = toolMeta[part.toolCallId]?.panelBatchResult
+        const normalized = savedBatch?.type === 'panel_batch_result'
+          ? savedBatch
+          : normalizeToolOutput(part.output)
         if (normalized && typeof normalized === 'object' && normalized.__error) {
           target.status = target.status === ToolStatus.DENIED ? ToolStatus.DENIED : ToolStatus.ERROR
           target.error = String(normalized.value)
