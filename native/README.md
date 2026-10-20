@@ -1,5 +1,8 @@
 # EasyNode Native
 
+Windows / macOS 桌面端本地开发、签名配置和当前功能边界见
+[桌面开发说明](DESKTOP.md)。
+
 EasyNode 的 Flutter Native App，复用现有后端 (`/api/v1`)，在原生端上提供服务器列表、SSH 终端、SFTP 文件管理、脚本库、账户安全等能力。App 自身不打包后端地址，登录时由用户填写。
 
 ## 技术栈

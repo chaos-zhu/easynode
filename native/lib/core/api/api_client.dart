@@ -17,6 +17,7 @@ const _sensitiveDebugKeys = <String>{
   'apikey',
   'authorization',
   'cookie',
+  'ciphertext',
   'encryptedkey',
   'opnesshkeypassword',
   'password',
@@ -209,6 +210,13 @@ class ApiClient {
   String? _token;
   String? _publicKeyPem;
   Future<String>? _publicKeyRequest;
+
+  Future<String?> readSessionCookie() => _cookieStore.readCookieHeader();
+
+  Future<void> close() async {
+    _dio.close(force: true);
+    if (_cookieStore.isTransient) await _cookieStore.clear();
+  }
 
   void setToken(String? token) {
     _token = token;

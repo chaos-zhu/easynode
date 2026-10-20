@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 import '../../core/api/api_client.dart';
 import '../../core/api/api_result.dart';
 import '../../core/crypto/rsa_crypto.dart';
@@ -48,12 +50,21 @@ typedef ApiClientFactory =
 typedef LoginSuccessHandler =
     Future<void> Function(AuthSession session, String? passwordToSave);
 
+typedef LoginAuthenticatedHandler =
+    Future<void> Function(
+      AuthSession session,
+      String? passwordToSave,
+      ApiClient attemptClient,
+      String publicKeyPem,
+    );
+
 /// Orchestrates the native client login flow.
 class LoginController {
   LoginController({
     required ApiClientFactory apiClientFactory,
     RsaCrypto? rsa,
     ServerCertificateTrustStore? certificateTrust,
+    this.onAuthenticated,
   }) : _apiClientFactory = apiClientFactory,
        _rsa = rsa ?? RsaCrypto(),
        _certificateTrust = certificateTrust;
@@ -68,6 +79,7 @@ class LoginController {
   final ApiClientFactory _apiClientFactory;
   final RsaCrypto _rsa;
   final ServerCertificateTrustStore? _certificateTrust;
+  final LoginAuthenticatedHandler? onAuthenticated;
 
   Future<void> trustCertificate(PresentedServerCertificate certificate) async {
     final trust = _certificateTrust;
@@ -84,7 +96,7 @@ class LoginController {
     required String mfa2Token,
     required bool httpRiskAccepted,
     required bool savePassword,
-    LoginExpiry expiry = LoginExpiry.threeDays,
+    LoginExpiry expiry = LoginExpiry.thirtyDays,
   }) async {
     final String normalized;
     try {
@@ -112,9 +124,11 @@ class LoginController {
       );
     }
 
+    ApiClient? attemptClient;
     try {
       await _certificateTrust?.prepare(normalized);
       final api = _apiClientFactory(normalized);
+      attemptClient = api;
       final publicKey = await api.getPublicKey();
       final ciphertext = _rsa.encryptPassword(publicKey, password);
       final response = await api.postJson('/login', {
@@ -133,7 +147,9 @@ class LoginController {
       final data = response['data'];
       if (data is! Map ||
           data['token'] is! String ||
-          data['deviceId'] is! String) {
+          data['deviceId'] is! String ||
+          (data['token'] as String).isEmpty ||
+          (data['deviceId'] as String).isEmpty) {
         return const LoginResult(
           message: '服务端登录响应缺少必要字段',
           messageKey: 'login.errMissingFields',
@@ -146,7 +162,15 @@ class LoginController {
         deviceId: data['deviceId'] as String,
       );
       final onLoginSuccess = _onLoginSuccess;
-      if (onLoginSuccess != null) {
+      final authenticated = onAuthenticated;
+      if (authenticated != null) {
+        await authenticated(
+          session,
+          savePassword ? password : null,
+          api,
+          publicKey,
+        );
+      } else if (onLoginSuccess != null) {
         await onLoginSuccess(session, savePassword ? password : null);
       }
       return LoginResult(success: true, session: session);
@@ -154,8 +178,12 @@ class LoginController {
       return LoginResult(certificate: error.certificate);
     } on ApiFailure catch (error) {
       return LoginResult(message: error.message);
+    } on PlatformException {
+      return const LoginResult(messageKey: 'login.secureStorageFailed');
     } catch (error) {
       return LoginResult(message: error.toString());
+    } finally {
+      await attemptClient?.close();
     }
   }
 

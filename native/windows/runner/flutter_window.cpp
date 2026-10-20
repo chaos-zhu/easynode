@@ -62,6 +62,21 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   switch (message) {
+    case WM_GETMINMAXINFO: {
+      // Flutter dimensions are logical pixels. Include the native frame so
+      // the client area stays at least 900 x 640 at every display scale.
+      const UINT dpi = GetDpiForWindow(hwnd);
+      RECT minimum = {0, 0, MulDiv(900, dpi, 96), MulDiv(640, dpi, 96)};
+      AdjustWindowRectExForDpi(&minimum,
+                              static_cast<DWORD>(GetWindowLongPtr(hwnd, GWL_STYLE)),
+                              FALSE,
+                              static_cast<DWORD>(GetWindowLongPtr(hwnd, GWL_EXSTYLE)),
+                              dpi);
+      auto* info = reinterpret_cast<MINMAXINFO*>(lparam);
+      info->ptMinTrackSize.x = minimum.right - minimum.left;
+      info->ptMinTrackSize.y = minimum.bottom - minimum.top;
+      return 0;
+    }
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;

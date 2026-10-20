@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,12 +15,14 @@ import 'core/api/api_result.dart';
 import 'core/storage/app_storage.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/security/server_certificate_trust.dart';
+import 'core/ui/app_dialog.dart';
 import 'features/auth/auth_session.dart';
 import 'features/auth/login_controller.dart';
 import 'features/auth/login_page.dart';
 import 'features/auth/startup_connection_page.dart';
 import 'features/ai_agent/agent_overlay.dart';
 import 'features/shell/main_shell_page.dart';
+import 'features/shell/desktop_shell_page.dart';
 import 'l10n/app_localizations.dart';
 import 'state/api_access_notifier.dart';
 import 'state/auth_notifier.dart';
@@ -60,9 +63,18 @@ class EasyNodeApp extends StatelessWidget {
 
   final _Bootstrap _b;
 
-  static Future<Widget> bootstrap({ApiClientFactory? apiClientFactory}) async {
+  static Future<Widget> bootstrap({
+    ApiClientFactory? apiClientFactory,
+    FlutterSecureStorage? secureStorage,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    final secure = const FlutterSecureStorage();
+    // Ad-hoc local macOS builds use the encrypted login Keychain. The data
+    // protection Keychain requires a development/distribution signing team.
+    final secure =
+        secureStorage ??
+        const FlutterSecureStorage(
+          mOptions: MacOsOptions(useDataProtectionKeyChain: kReleaseMode),
+        );
     final secureWrapper = SecureAppStorage(secure);
     final appStorage = AppStorage(prefs);
     final cookieStore = SessionCookieStore(secureWrapper);
@@ -171,6 +183,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       GlobalKey<ScaffoldMessengerState>();
   var _ipAccessDeniedDialogShowing = false;
   late bool _startupConnectionPending;
+  bool _useBootstrapPassword = true;
   final AgentNavigationObserver _agentNavigationObserver =
       AgentNavigationObserver();
 
@@ -188,7 +201,8 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     _loginController = LoginController(
       apiClientFactory: _buildAnonymousApiClient,
       certificateTrust: ref.read(certificateTrustProvider),
-    )..onLoginSuccess(_onLoginSuccess);
+      onAuthenticated: _onLoginSuccess,
+    );
     // The restored client is constructed before ProviderScope exists. Bind
     // its session-failure handler once the global coordinator is available.
     ref
@@ -204,7 +218,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   ApiClient _buildAnonymousApiClient(String serverAddress, {String? token}) {
     return ApiClient(
       serverAddress: serverAddress,
-      cookieStore: ref.read(cookieStoreProvider),
+      cookieStore: SessionCookieStore.memory(),
       token: token,
       appVersion: widget.appVersion,
       certificateTrust: ref.read(certificateTrustProvider),
@@ -214,23 +228,35 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   Future<void> _onLoginSuccess(
     AuthSession session,
     String? passwordToSave,
+    ApiClient attemptClient,
+    String publicKeyPem,
   ) async {
-    // Public-key validation is part of the login flow, so errors still belong
-    // to LoginPage. Bind global session handling only after it succeeds.
-    final api = _buildAnonymousApiClient(
-      session.serverAddress,
+    final cookie = await attemptClient.readSessionCookie();
+    if (cookie == null || cookie == 'session=') {
+      throw ApiFailure('Missing session cookie');
+    }
+    final api = ApiClient(
+      serverAddress: session.serverAddress,
+      cookieStore: ref.read(cookieStoreProvider),
       token: session.token,
+      appVersion: widget.appVersion,
+      certificateTrust: ref.read(certificateTrustProvider),
+      onSessionFailure: _handleSessionFailure,
     );
-    final pubKey = await api.getPublicKey();
-    api.setOnSessionFailure(_handleSessionFailure);
-    await ref
-        .read(authProvider.notifier)
-        .signIn(
-          session: session,
-          apiClient: api,
-          publicKeyPem: pubKey,
-          passwordToSave: passwordToSave,
-        );
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .signIn(
+            session: session,
+            apiClient: api,
+            publicKeyPem: publicKeyPem,
+            passwordToSave: passwordToSave,
+            sessionCookie: cookie,
+          );
+    } catch (_) {
+      await api.close();
+      rethrow;
+    }
     ref.read(apiAccessProvider.notifier).reset();
   }
 
@@ -244,7 +270,10 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       next,
     ) {
       if (previous == true && !next) {
-        setState(() => _startupConnectionPending = false);
+        setState(() {
+          _startupConnectionPending = false;
+          _useBootstrapPassword = false;
+        });
         _navigatorKey.currentState?.popUntil((route) => route.isFirst);
       }
     });
@@ -284,16 +313,18 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       },
     );
 
+    final desktop = Platform.isMacOS || Platform.isWindows;
     final Widget home;
     if (auth.signedIn) {
-      home = const MainShellPage();
+      home = desktop ? const DesktopShellPage() : const MainShellPage();
     } else {
       home = LoginPage(
+        desktopLayout: desktop,
         controller: _loginController,
         initialServerAddress: appStorage.serverAddress,
         initialUsername: appStorage.username,
         initialSavePassword: appStorage.savePassword,
-        initialPassword: widget.initialPassword,
+        initialPassword: _useBootstrapPassword ? widget.initialPassword : '',
         initialAccounts: appStorage.savedLoginAccounts,
         loadSavedPassword: (account) => ref
             .read(secureStorageProvider)
@@ -365,7 +396,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       builder: (context, child) => Stack(
         children: [
           ?child,
-          if (auth.signedIn && !_startupConnectionPending)
+          if (!desktop && auth.signedIn && !_startupConnectionPending)
             AgentGlobalOverlay(
               navigationObserver: _agentNavigationObserver,
               navigatorKey: _navigatorKey,
@@ -402,9 +433,10 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     }
     _ipAccessDeniedDialogShowing = true;
     final l = AppLocalizations.of(dialogContext);
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: dialogContext,
       barrierDismissible: false,
+      closeOnPressEscape: false,
       builder: (dialogContext) => PopScope(
         canPop: false,
         child: AlertDialog(

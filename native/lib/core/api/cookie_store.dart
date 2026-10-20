@@ -5,7 +5,14 @@ import '../storage/secure_storage.dart';
 /// pair (token header + session cookie), so it must survive process restarts.
 class SessionCookieStore {
   SessionCookieStore(this._storage);
-  final SecureAppStorage _storage;
+
+  /// A login attempt must never read or overwrite the active account's cookie.
+  SessionCookieStore.memory() : _storage = null;
+
+  final SecureAppStorage? _storage;
+  String? _cookie;
+
+  bool get isTransient => _storage == null;
 
   /// Look for `session=...` inside a `Set-Cookie` header list and persist it.
   /// Other cookies are ignored; EasyNode does not use them.
@@ -13,12 +20,22 @@ class SessionCookieStore {
     for (final header in headers) {
       final firstPart = header.split(';').first.trim();
       if (firstPart.startsWith('session=')) {
-        await _storage.writeSessionCookie(firstPart);
+        final storage = _storage;
+        if (storage == null) {
+          _cookie = firstPart;
+        } else {
+          await storage.writeSessionCookie(firstPart);
+        }
         return;
       }
     }
   }
 
-  Future<String?> readCookieHeader() => _storage.readSessionCookie();
-  Future<void> clear() => _storage.deleteSessionCookie();
+  Future<String?> readCookieHeader() async =>
+      _storage == null ? _cookie : await _storage.readSessionCookie();
+
+  Future<void> clear() async {
+    _cookie = null;
+    await _storage?.deleteSessionCookie();
+  }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/ui/app_color_theme.dart';
+import '../../core/ui/app_dialog.dart';
 import '../../core/utils/jwt_expiry.dart';
 import '../../core/utils/validators.dart';
 import '../../core/security/server_certificate_trust.dart';
@@ -25,6 +26,7 @@ class LoginPage extends StatefulWidget {
     this.initialAccounts = const [],
     this.loadSavedPassword,
     this.onDeleteAccount,
+    this.desktopLayout = false,
   });
 
   final LoginController controller;
@@ -36,6 +38,7 @@ class LoginPage extends StatefulWidget {
   final Future<String?> Function(SavedLoginAccount account)? loadSavedPassword;
   final Future<void> Function(SavedLoginAccount account)? onDeleteAccount;
   final ValueChanged<AuthSession> onLoginSuccess;
+  final bool desktopLayout;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -50,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
   final FocusNode _userFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
 
-  LoginExpiry _expiry = LoginExpiry.threeDays;
+  LoginExpiry _expiry = LoginExpiry.thirtyDays;
   bool _savePassword = false;
   bool _httpRiskAccepted = false;
   bool _submitting = false;
@@ -66,7 +69,24 @@ class _LoginPageState extends State<LoginPage> {
     _pwdCtrl = TextEditingController(text: widget.initialPassword);
     _savePassword = widget.initialSavePassword;
     _savedAccounts = widget.initialAccounts.toList();
+    _serverCtrl.addListener(_resetHttpRisk);
+    if (_savePassword &&
+        widget.initialPassword.isEmpty &&
+        widget.loadSavedPassword != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _selectAccount(
+          SavedLoginAccount(
+            serverAddress: _serverCtrl.text,
+            username: _userCtrl.text,
+            savePassword: true,
+          ),
+        );
+      });
+    }
   }
+
+  void _resetHttpRisk() => _httpRiskAccepted = false;
 
   @override
   void didUpdateWidget(covariant LoginPage oldWidget) {
@@ -93,40 +113,59 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _showSavedAccounts() async {
+    if (_submitting) return;
     FocusManager.instance.primaryFocus?.unfocus();
     await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
     if (!mounted) return;
     final accounts = _savedAccounts.toList();
-    final selectedAccount = await showModalBottomSheet<SavedLoginAccount>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.34),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => FractionallySizedBox(
-          heightFactor: accounts.isEmpty ? 0.34 : 0.62,
-          child: _LoginHistorySheet(
-            accounts: accounts,
-            onSelect: (account) => Navigator.of(sheetContext).pop(account),
-            onDelete: (account) async {
-              final deleted = await _confirmDeleteAccount(account);
-              if (!deleted || !sheetContext.mounted) return;
-              setSheetState(() {
-                accounts.removeWhere(
-                  (item) =>
-                      item.matches(account.serverAddress, account.username),
-                );
-              });
-            },
-          ),
-        ),
-      ),
-    );
+    Widget history(BuildContext dialogContext, StateSetter setHistoryState) =>
+        _LoginHistorySheet(
+          desktopLayout: widget.desktopLayout,
+          accounts: accounts,
+          onSelect: (account) => Navigator.of(dialogContext).pop(account),
+          onDelete: (account) async {
+            final deleted = await _confirmDeleteAccount(account);
+            if (!deleted || !dialogContext.mounted) return;
+            setHistoryState(() {
+              accounts.removeWhere(
+                (item) => item.matches(account.serverAddress, account.username),
+              );
+            });
+          },
+        );
+    final selectedAccount = widget.desktopLayout
+        ? await showAppDialog<SavedLoginAccount>(
+            context: context,
+            builder: (dialogContext) => Dialog(
+              clipBehavior: Clip.antiAlias,
+              child: SizedBox(
+                width: 460,
+                height: MediaQuery.sizeOf(dialogContext).height * 0.65,
+                child: StatefulBuilder(
+                  builder: (context, setHistoryState) =>
+                      history(dialogContext, setHistoryState),
+                ),
+              ),
+            ),
+          )
+        : await showModalBottomSheet<SavedLoginAccount>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            barrierColor: Colors.black.withValues(alpha: 0.34),
+            builder: (sheetContext) => StatefulBuilder(
+              builder: (context, setSheetState) => FractionallySizedBox(
+                heightFactor: accounts.isEmpty ? 0.34 : 0.62,
+                child: history(sheetContext, setSheetState),
+              ),
+            ),
+          );
     if (!mounted || selectedAccount == null) return;
     await _selectAccount(selectedAccount);
   }
 
   Future<void> _selectAccount(SavedLoginAccount account) async {
+    if (_submitting) return;
     final selection = ++_accountSelection;
     setState(() {
       _httpRiskAccepted = false;
@@ -141,7 +180,19 @@ class _LoginPageState extends State<LoginPage> {
 
     final loader = widget.loadSavedPassword;
     if (!account.savePassword || loader == null) return;
-    final password = await loader(account);
+    final String? password;
+    try {
+      password = await loader(account);
+    } catch (_) {
+      if (mounted && selection == _accountSelection) {
+        setState(
+          () => _errorMessage = AppLocalizations.of(
+            context,
+          ).tr('login.secureStorageFailed'),
+        );
+      }
+      return;
+    }
     if (!mounted || selection != _accountSelection) return;
     if (_serverCtrl.text == account.serverAddress &&
         _userCtrl.text == account.username) {
@@ -151,7 +202,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<bool> _confirmDeleteAccount(SavedLoginAccount account) async {
     final l = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l.tr('login.deleteAccount')),
@@ -185,6 +236,7 @@ class _LoginPageState extends State<LoginPage> {
           (item) => item.matches(account.serverAddress, account.username),
         );
         if (isCurrent) {
+          _accountSelection++;
           _pwdCtrl.clear();
           _savePassword = false;
         }
@@ -211,6 +263,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _submit() async {
     if (_submitting) return;
+    _accountSelection++;
     setState(() {
       _submitting = true;
       _errorMessage = null;
@@ -218,52 +271,88 @@ class _LoginPageState extends State<LoginPage> {
 
     final l = AppLocalizations.of(context);
     try {
-      final result = await widget.controller.login(
-        serverAddress: _serverCtrl.text,
-        username: _userCtrl.text,
-        password: _pwdCtrl.text,
-        mfa2Token: _mfaCtrl.text,
-        httpRiskAccepted: _httpRiskAccepted,
-        savePassword: _savePassword,
-        expiry: _expiry,
-      );
+      while (mounted) {
+        final result = await widget.controller.login(
+          serverAddress: _serverCtrl.text,
+          username: _userCtrl.text,
+          password: _pwdCtrl.text,
+          mfa2Token: _mfaCtrl.text,
+          httpRiskAccepted: _httpRiskAccepted,
+          savePassword: _savePassword,
+          expiry: _expiry,
+        );
 
-      if (!mounted) return;
-      if (result.requiresHttpRiskConfirmation) {
-        setState(() => _submitting = false);
-        final accepted = await _confirmHttpRisk();
-        if (!mounted || accepted != true) return;
-        setState(() => _httpRiskAccepted = true);
-        await _submit();
-        return;
-      }
-      if (result.requiresCertificateConfirmation) {
-        setState(() => _submitting = false);
-        final certificate = result.certificate!;
-        final accepted = await _confirmCertificate(certificate);
-        if (!mounted || accepted != true) return;
-        try {
-          await widget.controller.trustCertificate(certificate);
-        } catch (error) {
-          if (mounted) setState(() => _errorMessage = error.toString());
+        if (!mounted) return;
+        if (result.requiresHttpRiskConfirmation) {
+          final accepted = await _confirmHttpRisk();
+          if (!mounted || accepted != true) return;
+          setState(() => _httpRiskAccepted = true);
+          continue;
+        }
+        if (result.requiresCertificateConfirmation) {
+          final certificate = result.certificate!;
+          final accepted = await _confirmCertificate(certificate);
+          if (!mounted || accepted != true) return;
+          try {
+            await widget.controller.trustCertificate(certificate);
+          } catch (error) {
+            if (mounted) setState(() => _errorMessage = error.toString());
+            return;
+          }
+          continue;
+        }
+        if (!result.success || result.session == null) {
+          setState(() => _errorMessage = _resolveErrorMessage(result, l));
           return;
         }
-        await _submit();
+        widget.onLoginSuccess(result.session!);
         return;
       }
-      if (!result.success || result.session == null) {
-        setState(() => _errorMessage = _resolveErrorMessage(result, l));
-        return;
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorMessage = l.tr('login.errLoginGeneric'));
       }
-      widget.onLoginSuccess(result.session!);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
   }
 
+  Future<void> _pasteMfa() async {
+    if (_submitting) return;
+    try {
+      if (!widget.desktopLayout) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+      }
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      if (!mounted) return;
+      final text = data?.text?.trim() ?? '';
+      if (!RegExp(r'^[0-9]{6}$').hasMatch(text)) {
+        setState(
+          () => _errorMessage = AppLocalizations.of(
+            context,
+          ).tr('login.pasteInvalid'),
+        );
+        return;
+      }
+      setState(() => _errorMessage = null);
+      _mfaCtrl.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    } on PlatformException {
+      if (!mounted) return;
+      setState(
+        () => _errorMessage = AppLocalizations.of(
+          context,
+        ).tr('login.pasteFailed'),
+      );
+    }
+  }
+
   Future<bool?> _confirmHttpRisk() {
     final l = AppLocalizations.of(context);
-    return showDialog<bool>(
+    return showAppDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l.tr('login.httpRiskTitle')),
@@ -285,9 +374,10 @@ class _LoginPageState extends State<LoginPage> {
   Future<bool?> _confirmCertificate(PresentedServerCertificate certificate) {
     final l = AppLocalizations.of(context);
     final previous = certificate.previousFingerprint;
-    return showDialog<bool>(
+    return showAppDialog<bool>(
       context: context,
       barrierDismissible: false,
+      closeOnPressEscape: false,
       builder: (dialogContext) => AlertDialog(
         title: Text(
           l.tr(
@@ -348,6 +438,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    if (widget.desktopLayout) return _buildDesktop(context);
     return Scaffold(
       backgroundColor: context.colors.canvas,
       resizeToAvoidBottomInset: true,
@@ -373,6 +464,7 @@ class _LoginPageState extends State<LoginPage> {
                         passwordFocus: _passwordFocus,
                         onShowSavedAccounts: _showSavedAccounts,
                         onSubmit: _submit,
+                        onPasteMfa: _pasteMfa,
                       ),
                       const SizedBox(height: 24),
                       _ExpiryPicker(
@@ -400,6 +492,108 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+
+  Widget _buildDesktop(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Scaffold(
+      backgroundColor: context.colors.canvas,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: (constraints.maxHeight - 48).clamp(
+                  0,
+                  double.infinity,
+                ),
+              ),
+              child: Center(
+                child: Container(
+                  key: const Key('desktop-login-card'),
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: context.colors.card,
+                    border: Border.all(color: context.colors.border),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: FocusTraversalGroup(
+                    policy: ReadingOrderTraversalPolicy(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _LoginHero(title: l.tr('app.title'), compact: true),
+                        const SizedBox(height: 24),
+                        ExcludeFocus(
+                          excluding: _submitting,
+                          child: AbsorbPointer(
+                            absorbing: _submitting,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _LoginFormCard(
+                                  serverCtrl: _serverCtrl,
+                                  userCtrl: _userCtrl,
+                                  passwordCtrl: _pwdCtrl,
+                                  mfaCtrl: _mfaCtrl,
+                                  serverFocus: _serverFocus,
+                                  userFocus: _userFocus,
+                                  passwordFocus: _passwordFocus,
+                                  onShowSavedAccounts: _showSavedAccounts,
+                                  onSubmit: _submit,
+                                  onPasteMfa: _pasteMfa,
+                                  desktopLayout: true,
+                                  enabled: !_submitting,
+                                ),
+                                const SizedBox(height: 20),
+                                _ExpiryPicker(
+                                  value: _expiry,
+                                  onChanged: (value) =>
+                                      setState(() => _expiry = value),
+                                ),
+                                const SizedBox(height: 4),
+                                _SavePasswordRow(
+                                  value: _savePassword,
+                                  onChanged: (value) =>
+                                      setState(() => _savePassword = value),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 12),
+                          _ErrorBox(message: _errorMessage!),
+                        ],
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 44,
+                          child: FilledButton(
+                            key: const Key('btn-login'),
+                            onPressed: _submitting ? null : _submit,
+                            child: _submitting
+                                ? const SizedBox.square(
+                                    dimension: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(l.tr('login.submit')),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _LoginFormCard extends StatelessWidget {
@@ -413,6 +607,9 @@ class _LoginFormCard extends StatelessWidget {
     required this.passwordFocus,
     required this.onShowSavedAccounts,
     required this.onSubmit,
+    required this.onPasteMfa,
+    this.desktopLayout = false,
+    this.enabled = true,
   });
 
   final TextEditingController serverCtrl;
@@ -424,21 +621,30 @@ class _LoginFormCard extends StatelessWidget {
   final FocusNode passwordFocus;
   final VoidCallback onShowSavedAccounts;
   final VoidCallback onSubmit;
+  final VoidCallback onPasteMfa;
+  final bool desktopLayout;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-      decoration: BoxDecoration(
-        color: context.colors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.border),
-      ),
+      padding: desktopLayout
+          ? EdgeInsets.zero
+          : const EdgeInsets.fromLTRB(16, 18, 16, 18),
+      decoration: desktopLayout
+          ? null
+          : BoxDecoration(
+              color: context.colors.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.colors.border),
+            ),
       child: Column(
         children: [
           _LoginTextField(
             fieldKey: const Key('field-server'),
+            enabled: enabled,
+            autofocus: desktopLayout,
             controller: serverCtrl,
             focusNode: serverFocus,
             label: l.tr('login.serverAddress'),
@@ -448,7 +654,7 @@ class _LoginFormCard extends StatelessWidget {
               key: const Key('btn-login-history'),
               tooltip: l.tr('login.savedAccounts'),
               onPressed: onShowSavedAccounts,
-              icon: const Icon(Icons.history, size: 20),
+              icon: const Icon(Icons.history, size: 16),
             ),
             keyboardType: TextInputType.url,
             textInputAction: TextInputAction.next,
@@ -457,6 +663,7 @@ class _LoginFormCard extends StatelessWidget {
           const SizedBox(height: 14),
           _LoginTextField(
             fieldKey: const Key('field-username'),
+            enabled: enabled,
             controller: userCtrl,
             focusNode: userFocus,
             label: l.tr('login.username'),
@@ -467,6 +674,7 @@ class _LoginFormCard extends StatelessWidget {
           const SizedBox(height: 14),
           _LoginTextField(
             fieldKey: const Key('field-password'),
+            enabled: enabled,
             controller: passwordCtrl,
             focusNode: passwordFocus,
             label: l.tr('login.password'),
@@ -478,10 +686,19 @@ class _LoginFormCard extends StatelessWidget {
           const SizedBox(height: 14),
           _LoginTextField(
             fieldKey: const Key('field-mfa'),
+            enabled: enabled,
             controller: mfaCtrl,
             label: l.tr('login.mfa'),
             icon: Icons.pin_outlined,
+            suffixIcon: IconButton(
+              key: const Key('btn-paste-mfa'),
+              tooltip: l.tr('login.pasteMfa'),
+              onPressed: enabled ? onPasteMfa : null,
+              icon: const Icon(Icons.content_paste, size: 16),
+            ),
             keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => onSubmit(),
           ),
         ],
       ),
@@ -502,6 +719,8 @@ class _LoginTextField extends StatelessWidget {
     this.onSubmitted,
     this.suffixIcon,
     this.obscureText = false,
+    this.enabled = true,
+    this.autofocus = false,
   });
 
   final Key fieldKey;
@@ -515,17 +734,23 @@ class _LoginTextField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final Widget? suffixIcon;
   final bool obscureText;
+  final bool enabled;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       key: fieldKey,
+      enabled: enabled,
+      autofocus: autofocus,
       controller: controller,
       focusNode: focusNode,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       onSubmitted: onSubmitted,
       obscureText: obscureText,
+      autocorrect: false,
+      enableSuggestions: !obscureText,
       style: TextStyle(
         color: context.colors.text,
         fontSize: 14,
@@ -572,11 +797,13 @@ class _LoginHistorySheet extends StatelessWidget {
     required this.accounts,
     required this.onSelect,
     required this.onDelete,
+    this.desktopLayout = false,
   });
 
   final List<SavedLoginAccount> accounts;
   final ValueChanged<SavedLoginAccount> onSelect;
   final ValueChanged<SavedLoginAccount> onDelete;
+  final bool desktopLayout;
 
   @override
   Widget build(BuildContext context) {
@@ -593,15 +820,17 @@ class _LoginHistorySheet extends StatelessWidget {
         ),
         child: Column(
           children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colors.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
+            if (!desktopLayout) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
+            ],
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
               child: Row(
@@ -823,15 +1052,73 @@ class _LoginBottomBar extends StatelessWidget {
 }
 
 class _LoginHero extends ConsumerWidget {
-  const _LoginHero({required this.title});
+  const _LoginHero({required this.title, this.compact = false});
 
   final String title;
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final info = ref.watch(packageInfoProvider).valueOrNull;
     final versionLabel = info == null ? '' : 'v${info.version}';
+    final version = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          versionLabel,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: context.colors.softMuted,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (versionLabel.isNotEmpty) ...[
+          const SizedBox(width: 4),
+          IconButton(
+            key: const Key('btn-login-project'),
+            tooltip: AppLocalizations.of(context).tr('login.project'),
+            onPressed: () => launchUrl(
+              Uri.parse('https://github.com/chaos-zhu/easynode'),
+              mode: LaunchMode.externalApplication,
+            ),
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            visualDensity: VisualDensity.compact,
+            icon: Icon(
+              Icons.open_in_new,
+              size: 14,
+              color: context.colors.softMuted,
+            ),
+          ),
+        ],
+      ],
+    );
+    if (compact) {
+      return Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset('assets/logo_v2_01.png', width: 44, height: 44),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: context.colors.text,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (versionLabel.isNotEmpty) version,
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -852,32 +1139,7 @@ class _LoginHero extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              versionLabel,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: context.colors.softMuted,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (versionLabel.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => launchUrl(
-                  Uri.parse('https://github.com/chaos-zhu/easynode'),
-                  mode: LaunchMode.externalApplication,
-                ),
-                child: Icon(
-                  Icons.open_in_new,
-                  size: 14,
-                  color: context.colors.softMuted,
-                ),
-              ),
-            ],
-          ],
-        ),
+        version,
       ],
     );
   }

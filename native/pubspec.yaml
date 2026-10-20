@@ -109,7 +109,9 @@ dependency_overrides:
 
 flutter:
   config:
-    enable-swift-package-manager: true
+    # The HarmonyOS package_info_plus fork has an invalid macOS Package.swift.
+    # Use the existing Apple Podfiles until that upstream manifest is fixed.
+    enable-swift-package-manager: false
   uses-material-design: true
   assets:
     - assets/logo_v2_01.png
