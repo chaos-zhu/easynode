@@ -68,8 +68,8 @@ class EasyNodeApp extends StatelessWidget {
     FlutterSecureStorage? secureStorage,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    // Ad-hoc local macOS builds use the encrypted login Keychain. The data
-    // protection Keychain requires a development/distribution signing team.
+    // Development macOS builds use the encrypted login Keychain. Release
+    // uses the data protection Keychain with its distribution signing team.
     final secure =
         secureStorage ??
         const FlutterSecureStorage(
@@ -83,16 +83,6 @@ class EasyNodeApp extends StatelessWidget {
     final appVersion = packageInfo.buildNumber.isEmpty
         ? packageInfo.version
         : '${packageInfo.version}+${packageInfo.buildNumber}';
-
-    var initialPassword = '';
-    if (appStorage.savePassword) {
-      initialPassword =
-          await secureWrapper.readPassword(
-            appStorage.serverAddress,
-            appStorage.username,
-          ) ??
-          '';
-    }
 
     AuthState initialAuthState = AuthState.empty;
     final token = await secureWrapper.readToken();
@@ -108,6 +98,7 @@ class EasyNodeApp extends StatelessWidget {
         deviceId != null &&
         deviceId.isNotEmpty;
 
+    var initialPassword = '';
     if (hasStoredLogin) {
       await certificateTrust.prepare(appStorage.serverAddress);
       final api =
@@ -130,6 +121,15 @@ class EasyNodeApp extends StatelessWidget {
         ),
         apiClient: api,
       );
+    } else if (appStorage.savePassword) {
+      // Restoring a session needs no password. If that session later expires,
+      // LoginPage loads the saved password when the login form is mounted.
+      initialPassword =
+          await secureWrapper.readPassword(
+            appStorage.serverAddress,
+            appStorage.username,
+          ) ??
+          '';
     }
 
     return EasyNodeApp._(
@@ -176,7 +176,8 @@ class _AppRoot extends ConsumerStatefulWidget {
   ConsumerState<_AppRoot> createState() => _AppRootState();
 }
 
-class _AppRootState extends ConsumerState<_AppRoot> {
+class _AppRootState extends ConsumerState<_AppRoot>
+    with WidgetsBindingObserver {
   late final LoginController _loginController;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey =
@@ -189,6 +190,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
 
   @override
   void dispose() {
+    if (Platform.isMacOS) WidgetsBinding.instance.removeObserver(this);
     _agentNavigationObserver.dispose();
     super.dispose();
   }
@@ -196,6 +198,18 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   @override
   void initState() {
     super.initState();
+    if (Platform.isMacOS) {
+      WidgetsBinding.instance.addObserver(this);
+      ref.listenManual<ThemeMode>(
+        themeModeProvider,
+        (_, mode) => _syncMacOSWindowTheme(),
+        fireImmediately: true,
+      );
+      ref.listenManual<AppThemePalette>(
+        colorThemeProvider,
+        (_, palette) => _syncMacOSWindowTheme(),
+      );
+    }
     // Only a session restored at launch needs the startup connection check.
     _startupConnectionPending = ref.read(authProvider).signedIn;
     _loginController = LoginController(
@@ -209,6 +223,35 @@ class _AppRootState extends ConsumerState<_AppRoot> {
         .read(authProvider)
         .apiClient
         ?.setOnSessionFailure(_handleSessionFailure);
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    if (ref.read(themeModeProvider) == ThemeMode.system) {
+      _syncMacOSWindowTheme();
+    }
+  }
+
+  Future<void> _syncMacOSWindowTheme() async {
+    final mode = ref.read(themeModeProvider);
+    final brightness = switch (mode) {
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.system =>
+        WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    };
+    final colors = ref.read(colorThemeProvider).colorsFor(brightness);
+    try {
+      await const MethodChannel('easynode/window').invokeMethod<void>(
+        'setTheme',
+        {'mode': mode.name, 'backgroundColor': colors.card.toARGB32()},
+      );
+    } on MissingPluginException catch (error) {
+      // A hot reload cannot install the native handler in an older runner.
+      debugPrint('Window theme requires a rebuilt macOS runner: $error');
+    } on PlatformException catch (error) {
+      debugPrint('Unable to update the macOS window theme: $error');
+    }
   }
 
   Future<void> _handleSessionFailure(ApiSessionFailure failure) {

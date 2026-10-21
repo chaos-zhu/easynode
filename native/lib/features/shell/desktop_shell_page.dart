@@ -8,9 +8,9 @@ import '../../l10n/app_localizations.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/package_info_provider.dart';
 import '../../state/theme_mode_notifier.dart';
+import '../servers/desktop_servers_page.dart';
 
-/// Desktop navigation only. Feature providers are deliberately not mounted
-/// until their desktop pages are implemented.
+/// Desktop navigation mounts only the implemented desktop feature pages.
 class DesktopShellPage extends ConsumerStatefulWidget {
   const DesktopShellPage({super.key});
 
@@ -112,10 +112,7 @@ class _DesktopShellPageState extends ConsumerState<DesktopShellPage> {
             Container(
               key: const Key('desktop-sidebar'),
               width: _collapsed ? 64 : 174,
-              decoration: BoxDecoration(
-                color: colors.card,
-                border: Border(right: BorderSide(color: colors.border)),
-              ),
+              color: colors.card,
               child: Column(
                 children: [
                   Expanded(
@@ -358,46 +355,47 @@ class _DesktopShellPageState extends ConsumerState<DesktopShellPage> {
                   color: colors.card,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        l.tr(_selected.labelKey),
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleLarge?.copyWith(color: colors.text),
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _selected.icon,
-                                size: 48,
-                                color: colors.softMuted,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                l.tr('desktop.comingSoon'),
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: colors.muted,
-                                  fontSize: 16,
+                child: _selected == _DesktopModule.servers
+                    ? const DesktopServersPage()
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              l.tr(_selected.labelKey),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(color: colors.text),
+                            ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _selected.icon,
+                                      size: 48,
+                                      color: colors.softMuted,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      l.tr('desktop.comingSoon'),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: colors.muted,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],

@@ -6,6 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class SecureAppStorage {
   SecureAppStorage(this._storage);
   final FlutterSecureStorage _storage;
+  String? _sessionCookie;
+  bool _sessionCookieLoaded = false;
 
   String _passwordKey(String serverAddress, String username) =>
       'password:$serverAddress:$username';
@@ -14,8 +16,15 @@ class SecureAppStorage {
     return _storage.read(key: _passwordKey(serverAddress, username));
   }
 
-  Future<void> writePassword(String serverAddress, String username, String password) {
-    return _storage.write(key: _passwordKey(serverAddress, username), value: password);
+  Future<void> writePassword(
+    String serverAddress,
+    String username,
+    String password,
+  ) {
+    return _storage.write(
+      key: _passwordKey(serverAddress, username),
+      value: password,
+    );
   }
 
   Future<void> deletePassword(String serverAddress, String username) {
@@ -23,13 +32,33 @@ class SecureAppStorage {
   }
 
   Future<String?> readToken() => _storage.read(key: 'token');
-  Future<void> writeToken(String token) => _storage.write(key: 'token', value: token);
+  Future<void> writeToken(String token) =>
+      _storage.write(key: 'token', value: token);
   Future<void> deleteToken() => _storage.delete(key: 'token');
 
-  Future<String?> readSessionCookie() => _storage.read(key: 'sessionCookie');
-  Future<void> writeSessionCookie(String value) =>
-      _storage.write(key: 'sessionCookie', value: value);
-  Future<void> deleteSessionCookie() => _storage.delete(key: 'sessionCookie');
+  /// Load once for this app session. REST and socket clients share this
+  /// wrapper, including writes made directly by the login coordinator.
+  Future<String?> readSessionCookie() async {
+    if (!_sessionCookieLoaded) {
+      _sessionCookie = await _storage.read(key: 'sessionCookie');
+      _sessionCookieLoaded = true;
+    }
+    return _sessionCookie;
+  }
+
+  Future<void> writeSessionCookie(String value) async {
+    if (_sessionCookieLoaded && _sessionCookie == value) return;
+    await _storage.write(key: 'sessionCookie', value: value);
+    _sessionCookie = value;
+    _sessionCookieLoaded = true;
+  }
+
+  Future<void> deleteSessionCookie() async {
+    // Stop sending the cookie immediately, even if persistence cleanup fails.
+    _sessionCookie = null;
+    _sessionCookieLoaded = true;
+    await _storage.delete(key: 'sessionCookie');
+  }
 
   /// Server-issued login deviceId for the active session. Kept around for the
   /// future `DELETE /api/v1/revoke-login/:deviceId` flow.

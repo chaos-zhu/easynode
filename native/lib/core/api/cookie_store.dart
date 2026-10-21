@@ -1,8 +1,8 @@
 import '../storage/secure_storage.dart';
 
-/// Persists the EasyNode `session` cookie in secure storage and rehydrates
-/// it on every request. The cookie is the second half of EasyNode's auth
-/// pair (token header + session cookie), so it must survive process restarts.
+/// Persists the EasyNode `session` cookie in secure storage. The shared
+/// SecureAppStorage wrapper reads it once and serves requests from memory;
+/// the persisted copy restores the token + cookie auth pair after a restart.
 class SessionCookieStore {
   SessionCookieStore(this._storage);
 
