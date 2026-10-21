@@ -30,6 +30,26 @@ const Map<String, String> stringsEn = {
   'desktop.servers.addConfig': 'Add instance configuration',
   'desktop.servers.more': 'More actions',
   'desktop.servers.groups': 'Manage groups',
+  'desktop.servers.listSettings.columnsTab': 'Table columns',
+  'desktop.servers.listSettings.displayTab': 'Display mode',
+  'desktop.servers.listSettings.columnsTitle': 'Visible fields',
+  'desktop.servers.listSettings.columnsHint':
+      'Choose which instance details to display',
+  'desktop.servers.listSettings.layoutTitle': 'List layout',
+  'desktop.servers.listSettings.layoutHint':
+      'Collapse by group or show all instances in a single list',
+  'desktop.servers.listSettings.selection': 'Selection',
+  'desktop.servers.listSettings.groupTitle': 'Group view',
+  'desktop.servers.listSettings.groupHint':
+      'Display instances in collapsible groups',
+  'desktop.servers.listSettings.listTitle': 'List view',
+  'desktop.servers.listSettings.listHint': 'Display all instances in one list',
+  'desktop.servers.listSettings.save': 'Save settings',
+  'desktop.servers.listSettings.saved': 'Settings saved',
+  'desktop.servers.listSettings.loadFailed':
+      'Could not load list settings. Please retry.',
+  'desktop.servers.listSettings.saveFailed':
+      'Could not save list settings. Please retry.',
   'desktop.servers.settings': 'List settings',
   'desktop.servers.order': 'Adjust order',
   'desktop.servers.import': 'Import instances',

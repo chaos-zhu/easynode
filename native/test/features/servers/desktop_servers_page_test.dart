@@ -8,6 +8,9 @@ import 'package:easynode_native/core/ui/desktop_select.dart';
 import 'package:easynode_native/features/order/order_layout.dart';
 import 'package:easynode_native/features/servers/desktop_server_form_dialog.dart';
 import 'package:easynode_native/features/servers/desktop_servers_page.dart';
+import 'package:easynode_native/features/servers/desktop_server_list_settings_dialog.dart';
+import 'package:easynode_native/features/servers/server_list_config.dart';
+import 'package:easynode_native/features/servers/server_list_config_repository.dart';
 import 'package:easynode_native/features/servers/server_form_data.dart';
 import 'package:easynode_native/features/servers/server_credential_model.dart';
 import 'package:easynode_native/features/servers/server_proxy_model.dart';
@@ -18,6 +21,7 @@ import 'package:easynode_native/features/settings/models/plus_info.dart';
 import 'package:easynode_native/l10n/app_localizations.dart';
 import 'package:easynode_native/state/api_providers.dart';
 import 'package:easynode_native/state/credential_list_notifier.dart';
+import 'package:easynode_native/state/desktop_server_list_config_provider.dart';
 import 'package:easynode_native/state/plus_info_notifier.dart';
 import 'package:easynode_native/state/proxy_list_notifier.dart';
 import 'package:flutter/material.dart';
@@ -50,6 +54,7 @@ class _Repository extends ServerRepository {
   final updates = <Map<String, dynamic>>[];
   final deletions = <String>[];
   int catalogReads = 0;
+  OrderLayout? order;
   String? saveError;
   String? deleteError;
 
@@ -59,16 +64,18 @@ class _Repository extends ServerRepository {
     return HostCatalog(
       hosts: await fetchHosts(),
       groups: await fetchGroups(),
-      order: OrderLayout(
-        schemaVersion: 1,
-        revision: 0,
-        sections: [
-          OrderSection(
-            groupId: 'default',
-            itemIds: hosts.map((host) => host.id).toList(),
+      order:
+          order ??
+          OrderLayout(
+            schemaVersion: 1,
+            revision: 0,
+            sections: [
+              OrderSection(
+                groupId: 'default',
+                itemIds: hosts.map((host) => host.id).toList(),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -112,6 +119,28 @@ class _Repository extends ServerRepository {
       throw StateError('Unexpected repository call: ${invocation.memberName}');
 }
 
+class _ListConfigRepository implements ServerListConfigRepository {
+  ServerListConfig config = const ServerListConfig();
+  final saves = <ServerListConfig>[];
+  bool failFetch = false;
+  bool failSave = false;
+  int reads = 0;
+
+  @override
+  Future<ServerListConfig> fetch() async {
+    reads++;
+    if (failFetch) throw ApiFailure('Settings unavailable');
+    return config;
+  }
+
+  @override
+  Future<void> save(ServerListConfig value) async {
+    saves.add(value);
+    if (failSave) throw ApiFailure('Save unavailable');
+    config = value;
+  }
+}
+
 class _Plus extends PlusInfoNotifier {
   @override
   Future<PlusInfo> build() async => PlusInfo.fromJson({'active': true});
@@ -139,8 +168,15 @@ class _Proxies extends ProxyListNotifier {
   ];
 }
 
-Future<void> _pumpPage(WidgetTester tester, _Repository repository) async {
-  tester.view.physicalSize = const Size(1280, 800);
+Future<void> _pumpPage(
+  WidgetTester tester,
+  _Repository repository, {
+  _ListConfigRepository? listConfig,
+  Size size = const Size(1280, 800),
+  double textScale = 1,
+  bool dark = false,
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -148,12 +184,26 @@ Future<void> _pumpPage(WidgetTester tester, _Repository repository) async {
     ProviderScope(
       overrides: [
         serverRepositoryProvider.overrideWithValue(repository),
+        serverListConfigRepositoryProvider.overrideWithValue(
+          listConfig ?? _ListConfigRepository(),
+        ),
         plusInfoProvider.overrideWith(_Plus.new),
         credentialListProvider.overrideWith(_Credentials.new),
         proxyListProvider.overrideWith(_Proxies.new),
       ],
       child: MaterialApp(
-        theme: ThemeData(extensions: const [AppColorTheme.defaultLight]),
+        theme: ThemeData(
+          brightness: dark ? Brightness.dark : Brightness.light,
+          extensions: [
+            dark ? AppColorTheme.defaultDark : AppColorTheme.defaultLight,
+          ],
+        ),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
         locale: const Locale('en'),
         localizationsDelegates: const [
           AppLocalizations.delegate,
@@ -170,6 +220,40 @@ Future<void> _pumpPage(WidgetTester tester, _Repository repository) async {
 }
 
 Finder _field(String name) => find.byKey(ValueKey('desktop-server-form-$name'));
+
+Future<void> _openListSettings(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('desktop-servers-more')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('List settings'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _toggleColumn(WidgetTester tester, String column) async {
+  final option = find.byKey(
+    ValueKey('desktop-server-list-settings-column-$column'),
+  );
+  await tester.ensureVisible(option);
+  await tester.tap(option);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _listMode(WidgetTester tester, String mode) async {
+  await tester.tap(
+    find.byKey(const Key('desktop-server-list-settings-tab-display')),
+  );
+  await tester.pumpAndSettle();
+  final option = find.byKey(
+    ValueKey('desktop-server-list-settings-mode-$mode'),
+  );
+  await tester.ensureVisible(option);
+  await tester.tap(option);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _saveListSettings(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('desktop-server-list-settings-save')));
+  await tester.pumpAndSettle();
+}
 
 Future<void> _add(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('desktop-servers-add')));
@@ -200,6 +284,273 @@ Future<void> _importKey(WidgetTester tester) async {
 }
 
 void main() {
+  group('list settings', () {
+    testWidgets('cancel discards both columns and display mode', (
+      tester,
+    ) async {
+      final settings = _ListConfigRepository();
+      await _pumpPage(
+        tester,
+        _Repository(withHost: true),
+        listConfig: settings,
+      );
+      await _openListSettings(tester);
+      await _toggleColumn(tester, 'username');
+      await _listMode(tester, 'list');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(settings.saves, isEmpty);
+      expect(find.text('root'), findsOneWidget);
+      expect(find.byKey(const Key('desktop-servers-list')), findsOneWidget);
+      await _openListSettings(tester);
+      await _saveListSettings(tester);
+      expect(settings.config.shows('username'), isTrue);
+      expect(settings.config.displayMode, 'group');
+    });
+
+    testWidgets('save applies preferences and a new page restores them', (
+      tester,
+    ) async {
+      final settings = _ListConfigRepository();
+      final repository = _Repository(withHost: true);
+      await _pumpPage(tester, repository, listConfig: settings);
+      await _openListSettings(tester);
+      await _toggleColumn(tester, 'username');
+      await _listMode(tester, 'list');
+      await _saveListSettings(tester);
+      expect(settings.saves, hasLength(1));
+      expect(find.byType(DesktopServerListSettingsDialog), findsNothing);
+      expect(find.text('root'), findsNothing);
+      expect(
+        find.byKey(const Key('desktop-servers-flat-list')),
+        findsOneWidget,
+      );
+      expect(repository.catalogReads, 1);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await _pumpPage(tester, repository, listConfig: settings);
+      expect(settings.reads, 2);
+      expect(find.text('root'), findsNothing);
+      expect(
+        find.byKey(const Key('desktop-servers-flat-list')),
+        findsOneWidget,
+      );
+      await _openListSettings(tester);
+      await _saveListSettings(tester);
+      expect(settings.config.shows('username'), isFalse);
+      expect(settings.config.displayMode, 'list');
+    });
+
+    testWidgets('failed save retains draft without changing the list', (
+      tester,
+    ) async {
+      final settings = _ListConfigRepository()..failSave = true;
+      await _pumpPage(
+        tester,
+        _Repository(withHost: true),
+        listConfig: settings,
+      );
+      await _openListSettings(tester);
+      await _toggleColumn(tester, 'username');
+      await _listMode(tester, 'list');
+      await _saveListSettings(tester);
+      expect(
+        find.text('Could not save list settings. Please retry.'),
+        findsOneWidget,
+      );
+      expect(find.byType(DesktopServerListSettingsDialog), findsOneWidget);
+      expect(settings.config.shows('username'), isTrue);
+      expect(settings.config.displayMode, 'group');
+      settings.failSave = false;
+      await _saveListSettings(tester);
+      expect(find.byType(DesktopServerListSettingsDialog), findsNothing);
+      expect(find.text('root'), findsNothing);
+      expect(
+        find.byKey(const Key('desktop-servers-flat-list')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+      'failed load keeps catalog usable and prevents saving defaults',
+      (tester) async {
+        final settings = _ListConfigRepository()..failFetch = true;
+        await _pumpPage(
+          tester,
+          _Repository(withHost: true),
+          listConfig: settings,
+        );
+        expect(find.text('Production'), findsOneWidget);
+        await _openListSettings(tester);
+        final save = tester.widget<FilledButton>(
+          find.byKey(const Key('desktop-server-list-settings-save')),
+        );
+        expect(save.onPressed, isNull);
+        expect(settings.saves, isEmpty);
+        settings.failFetch = false;
+        final retry = find.descendant(
+          of: find.byType(DesktopServerListSettingsDialog),
+          matching: find.text('Retry'),
+        );
+        await tester.tap(retry);
+        await tester.pumpAndSettle();
+        expect(settings.reads, 2);
+        await _toggleColumn(tester, 'username');
+        await _saveListSettings(tester);
+        expect(settings.config.shows('username'), isFalse);
+      },
+    );
+
+    testWidgets(
+      'hiding selection clears batch state; all columns may be hidden',
+      (tester) async {
+        final settings = _ListConfigRepository();
+        await _pumpPage(
+          tester,
+          _Repository(withHost: true),
+          listConfig: settings,
+        );
+        await tester.tap(find.byType(Checkbox).last);
+        await tester.pumpAndSettle();
+        expect(find.text('1 instances selected'), findsOneWidget);
+        await _openListSettings(tester);
+        for (final column in ServerListConfig.defaultColumns.entries) {
+          if (column.value) await _toggleColumn(tester, column.key);
+        }
+        await _saveListSettings(tester);
+        expect(find.byType(Checkbox), findsNothing);
+        expect(find.text('1 instances selected'), findsNothing);
+        expect(
+          find.byKey(const Key('desktop-server-actions-host-1')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+        await _openListSettings(tester);
+        await _toggleColumn(tester, 'selection');
+        await _saveListSettings(tester);
+        expect(find.byType(Checkbox), findsWidgets);
+        expect(find.text('1 instances selected'), findsNothing);
+        expect(
+          tester
+              .widgetList<Checkbox>(find.byType(Checkbox))
+              .every((box) => box.value == false),
+          isTrue,
+        );
+      },
+    );
+
+    testWidgets(
+      'flat view respects server order, displays optional fields and filters',
+      (tester) async {
+        final settings = _ListConfigRepository()
+          ..config = ServerListConfig.fromJson({
+            'columnSettings': {
+              'proxyType': true,
+              'expired': true,
+              'consoleUrl': true,
+            },
+            'displayMode': 'list',
+          });
+        final repository = _Repository(withHost: true);
+        repository.hosts.addAll([
+          ServerModel.fromJson({
+            'id': 'host-2',
+            'name': 'Staging VM',
+            'host': '10.0.0.3',
+            'group': 'staging',
+            'proxyType': 'proxyServer',
+            'proxyServer': 'proxy-1',
+            'expired': DateTime(2030, 5, 21).millisecondsSinceEpoch,
+            'consoleUrl': 'https://console.example.com',
+            'tag': ['ops'],
+          }),
+          ServerModel.fromJson({
+            'id': 'host-3',
+            'name': 'Via jump',
+            'host': '10.0.0.4',
+            'group': 'staging',
+            'proxyType': 'jumpHosts',
+            'jumpHosts': ['host-1'],
+          }),
+        ]);
+        repository.order = const OrderLayout(
+          schemaVersion: 1,
+          revision: 3,
+          sections: [
+            OrderSection(groupId: 'default', itemIds: ['host-1']),
+            OrderSection(groupId: 'staging', itemIds: ['host-2', 'host-3']),
+          ],
+          flatItemIds: ['host-2', 'host-3', 'host-1'],
+        );
+        await _pumpPage(tester, repository, listConfig: settings);
+        List<Key?> rowKeys() => tester
+            .widgetList<DataTable>(find.byType(DataTable))
+            .first
+            .rows
+            .map((row) => row.key)
+            .toList();
+        expect(rowKeys(), const [
+          ValueKey('host-2'),
+          ValueKey('host-3'),
+          ValueKey('host-1'),
+        ]);
+        expect(find.text('[socks5]Office proxy'), findsOneWidget);
+        expect(find.text('[Jump hosts]Production'), findsOneWidget);
+        expect(find.text('2030-05-21'), findsOneWidget);
+        expect(find.text('https://console.example.com'), findsOneWidget);
+        await tester.enterText(
+          find.byKey(const Key('desktop-servers-search')),
+          'ops',
+        );
+        await tester.pumpAndSettle();
+        expect(rowKeys(), const [ValueKey('host-2')]);
+        await tester.enterText(
+          find.byKey(const Key('desktop-servers-search')),
+          '',
+        );
+        await tester.pumpAndSettle();
+        await _openListSettings(tester);
+        await _listMode(tester, 'group');
+        await _saveListSettings(tester);
+        expect(
+          find.byKey(const Key('desktop-servers-flat-list')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const Key('desktop-server-table-default')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('desktop-server-table-staging')),
+          findsOneWidget,
+        );
+        expect(repository.catalogReads, 1);
+      },
+    );
+
+    testWidgets(
+      'settings scroll at minimum window size and enlarged text in dark theme',
+      (tester) async {
+        await _pumpPage(
+          tester,
+          _Repository(withHost: true),
+          size: const Size(900, 640),
+          textScale: 1.5,
+          dark: true,
+        );
+        await _openListSettings(tester);
+        await _toggleColumn(tester, 'tag');
+        await _listMode(tester, 'list');
+        await _saveListSettings(tester);
+        expect(
+          find.byKey(const Key('desktop-servers-flat-list')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
   group('private key file import', () {
     const channel = MethodChannel('miguelruivo.flutter.plugins.filepicker');
     const filesChannel = MethodChannel('easynode/files');

@@ -14,8 +14,13 @@ import '../../core/ui/desktop_management_dialog.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/api_providers.dart';
 import '../../state/desktop_server_catalog_provider.dart';
+import '../../state/desktop_server_list_config_provider.dart';
+import '../../state/proxy_list_notifier.dart';
 import 'desktop_server_form_dialog.dart';
+import 'desktop_server_list_settings_dialog.dart';
+import 'server_list_config.dart';
 import 'server_model.dart';
+import 'server_proxy_model.dart';
 import 'server_repository.dart';
 
 /// Desktop catalog and instance management; no SSH configuration is fetched.
@@ -48,6 +53,25 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
       ..showSnackBar(
         SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
       );
+  }
+
+  Future<void> _openListSettings() async {
+    final saved = await showAppDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const DesktopServerListSettingsDialog(),
+    );
+    if (saved != true || !mounted) return;
+    if (ref
+            .read(desktopServerListConfigProvider)
+            .valueOrNull
+            ?.shows('selection') ==
+        false) {
+      setState(_selectedIds.clear);
+    }
+    _notify(
+      AppLocalizations.of(context).tr('desktop.servers.listSettings.saved'),
+    );
   }
 
   Future<void> _openForm({ServerModel? server}) async {
@@ -165,11 +189,34 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
   @override
   Widget build(BuildContext context) {
     final catalog = ref.watch(desktopServerCatalogProvider);
+    final config = ref.watch(desktopServerListConfigProvider);
     final l = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _toolbar(catalog.valueOrNull),
+        if (config.hasError)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l.tr('desktop.servers.listSettings.loadFailed'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: context.colors.danger,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      ref.invalidate(desktopServerListConfigProvider),
+                  child: Text(l.tr('common.retry')),
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: catalog.when(
             skipLoadingOnRefresh: false,
@@ -185,7 +232,10 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
                 ),
               ],
             ),
-            data: _catalogBody,
+            data: (catalog) => _catalogBody(
+              catalog,
+              config.valueOrNull ?? const ServerListConfig(),
+            ),
           ),
         ),
       ],
@@ -260,7 +310,13 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
             DesktopDropdownMenu<String>(
               key: const Key('desktop-servers-more'),
               tooltip: l.tr('desktop.servers.more'),
-              onSelected: (_) => _comingSoon(),
+              onSelected: (value) {
+                if (value == 'settings') {
+                  _openListSettings();
+                } else {
+                  _comingSoon();
+                }
+              },
               items: [
                 _menuItem(
                   'groups',
@@ -300,7 +356,7 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
     setState(() => _query = '');
   }
 
-  Widget _catalogBody(HostCatalog catalog) {
+  Widget _catalogBody(HostCatalog catalog, ServerListConfig config) {
     final l = AppLocalizations.of(context);
     if (catalog.hosts.isEmpty) {
       return _message(
@@ -330,27 +386,51 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
     final sections = catalog.order.sections
         .where((section) => section.itemIds.any(hostById.containsKey))
         .toList();
+    final flatIds = {
+      ...catalog.order.flatItemIds,
+      ...sections.expand((section) => section.itemIds),
+      ...visibleHosts.map((host) => host.id),
+    };
     return Column(
       children: [
-        if (_selectedIds.isNotEmpty) _batchToolbar(),
+        if (config.shows('selection') && _selectedIds.isNotEmpty)
+          _batchToolbar(),
         Expanded(
-          child: ListView.builder(
-            key: const Key('desktop-servers-list'),
-            padding: const EdgeInsets.only(top: 12, bottom: 16),
-            itemCount: sections.length,
-            itemBuilder: (context, index) {
-              final section = sections[index];
-              return _group(
-                section.groupId,
-                groupById[section.groupId]?.displayName ??
-                    l.tr('servers.defaultGroup'),
-                section.itemIds
-                    .map((id) => hostById[id])
-                    .whereType<ServerModel>()
-                    .toList(),
-              );
-            },
-          ),
+          child: config.displayMode == 'list'
+              ? ListView(
+                  key: const Key('desktop-servers-flat-list'),
+                  padding: const EdgeInsets.only(top: 12, bottom: 16),
+                  children: [
+                    _serverTable(
+                      'flat',
+                      flatIds
+                          .map((id) => hostById[id])
+                          .whereType<ServerModel>()
+                          .toList(),
+                      catalog,
+                      config,
+                    ),
+                  ],
+                )
+              : ListView.builder(
+                  key: const Key('desktop-servers-list'),
+                  padding: const EdgeInsets.only(top: 12, bottom: 16),
+                  itemCount: sections.length,
+                  itemBuilder: (context, index) {
+                    final section = sections[index];
+                    return _group(
+                      section.groupId,
+                      groupById[section.groupId]?.displayName ??
+                          l.tr('servers.defaultGroup'),
+                      section.itemIds
+                          .map((id) => hostById[id])
+                          .whereType<ServerModel>()
+                          .toList(),
+                      catalog,
+                      config,
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -388,7 +468,13 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
     );
   }
 
-  Widget _group(String id, String name, List<ServerModel> hosts) {
+  Widget _group(
+    String id,
+    String name,
+    List<ServerModel> hosts,
+    HostCatalog catalog,
+    ServerListConfig config,
+  ) {
     final collapsed = _collapsedGroups.contains(id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -445,21 +531,29 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
             ),
           ),
         ),
-        if (!collapsed)
-          _ServerTable(
-            key: ValueKey('desktop-server-table-$id'),
-            hosts: hosts,
-            selectedIds: _selectedIds,
-            onSelection: (ids, selected) => setState(() {
-              selected ? _selectedIds.addAll(ids) : _selectedIds.removeAll(ids);
-            }),
-            onAction: _comingSoon,
-            onEdit: (server) => _openForm(server: server),
-            onDelete: _confirmDelete,
-          ),
+        if (!collapsed) _serverTable(id, hosts, catalog, config),
       ],
     );
   }
+
+  Widget _serverTable(
+    String id,
+    List<ServerModel> hosts,
+    HostCatalog catalog,
+    ServerListConfig config,
+  ) => _ServerTable(
+    key: ValueKey('desktop-server-table-$id'),
+    hosts: hosts,
+    allHosts: catalog.hosts,
+    config: config,
+    selectedIds: _selectedIds,
+    onSelection: (ids, selected) => setState(() {
+      selected ? _selectedIds.addAll(ids) : _selectedIds.removeAll(ids);
+    }),
+    onAction: _comingSoon,
+    onEdit: (server) => _openForm(server: server),
+    onDelete: _confirmDelete,
+  );
 
   Widget _message(
     IconData icon,
@@ -493,10 +587,12 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
   );
 }
 
-class _ServerTable extends StatefulWidget {
+class _ServerTable extends ConsumerStatefulWidget {
   const _ServerTable({
     super.key,
     required this.hosts,
+    required this.allHosts,
+    required this.config,
     required this.selectedIds,
     required this.onSelection,
     required this.onAction,
@@ -505,6 +601,8 @@ class _ServerTable extends StatefulWidget {
   });
 
   final List<ServerModel> hosts;
+  final List<ServerModel> allHosts;
+  final ServerListConfig config;
   final Set<String> selectedIds;
   final void Function(Iterable<String> ids, bool selected) onSelection;
   final VoidCallback onAction;
@@ -512,10 +610,10 @@ class _ServerTable extends StatefulWidget {
   final ValueChanged<ServerModel> onDelete;
 
   @override
-  State<_ServerTable> createState() => _ServerTableState();
+  ConsumerState<_ServerTable> createState() => _ServerTableState();
 }
 
-class _ServerTableState extends State<_ServerTable> {
+class _ServerTableState extends ConsumerState<_ServerTable> {
   final _horizontalController = ScrollController();
 
   @override
@@ -532,6 +630,129 @@ class _ServerTableState extends State<_ServerTable> {
       overflow: TextOverflow.ellipsis,
     ),
   );
+
+  Widget _cell(
+    ServerModel host,
+    String column,
+    List<ServerProxyModel> proxies,
+  ) {
+    final l = AppLocalizations.of(context);
+    switch (column) {
+      case 'name':
+        return SizedBox(
+          width: 180,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _ServerCellLink(
+              key: ValueKey('desktop-server-name-${host.id}'),
+              label: host.displayName,
+              tooltip: l.tr('desktop.servers.edit'),
+              icon: host.isWindows ? 'assets/windows.svg' : 'assets/linux.svg',
+              onPressed: () => widget.onEdit(host),
+            ),
+          ),
+        );
+      case 'username':
+        return _text(host.username, 90);
+      case 'host':
+        return SizedBox(
+          width: 150,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _ServerCellLink(
+              key: ValueKey('desktop-server-host-${host.id}'),
+              label: host.host.isEmpty ? '--' : host.host,
+              tooltip: l.tr('servers.copyHost'),
+              copy: true,
+              onPressed: host.host.isEmpty ? null : () => _copyHost(host.host),
+            ),
+          ),
+        );
+      case 'port':
+        return _text('${host.port}', 48);
+      case 'authType':
+        return _text(
+          l.tr(
+            'servers.auth.${host.authType == 'password' ? 'password' : 'privateKey'}',
+          ),
+          85,
+        );
+      case 'proxyType':
+        var label = '--';
+        if (host.proxyType == 'jumpHosts' && host.jumpHosts.isNotEmpty) {
+          final hosts = {
+            for (final item in widget.allHosts) item.id: item.displayName,
+          };
+          label =
+              '[${l.tr('servers.proxy.jumpHosts')}]${host.jumpHosts.map((id) => hosts[id] ?? 'Error').join('>>>')}';
+        } else if (host.proxyType == 'proxyServer') {
+          final proxy = proxies
+              .where((item) => item.id == host.proxyServer)
+              .firstOrNull;
+          if (proxy != null) label = '[${proxy.type}]${proxy.displayName}';
+        }
+        return _text(label, 150);
+      case 'expired':
+        final date = host.expiredAt;
+        return _text(
+          date == null
+              ? '--'
+              : '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+          110,
+        );
+      case 'consoleUrl':
+        if (host.consoleUrl.isEmpty) return _text('--', 180);
+        return SizedBox(
+          width: 180,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _ServerCellLink(
+              label: host.consoleUrl,
+              tooltip: l.tr('desktop.comingSoon'),
+              onPressed: widget.onAction,
+            ),
+          ),
+        );
+      case 'tag':
+        final colors = context.colors;
+        return SizedBox(
+          width: 140,
+          child: host.tag.isEmpty
+              ? const Text('--')
+              : SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final tag in host.tag)
+                        Container(
+                          margin: const EdgeInsets.only(right: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colors.success.withValues(alpha: .08),
+                            border: Border.all(
+                              color: colors.success.withValues(alpha: .3),
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            tag,
+                            style: TextStyle(
+                              color: colors.success,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 
   Future<void> _copyHost(String host) async {
     String message;
@@ -561,6 +782,16 @@ class _ServerTableState extends State<_ServerTable> {
       128.0,
       MediaQuery.textScalerOf(context).scale(90) + 30,
     );
+    final selection = widget.config.shows('selection');
+    final visibleColumns = ServerListConfig.defaultColumns.keys
+        .where((key) => key != 'selection' && widget.config.shows(key))
+        .toList();
+    final needsProxies =
+        widget.config.shows('proxyType') &&
+        widget.hosts.any((host) => host.proxyType == 'proxyServer');
+    final proxies = needsProxies
+        ? ref.watch(proxyListProvider).valueOrNull ?? const <ServerProxyModel>[]
+        : const <ServerProxyModel>[];
     final rowHeight = math.max(
       56.0,
       MediaQuery.textScalerOf(context).scale(36),
@@ -617,122 +848,36 @@ class _ServerTableState extends State<_ServerTable> {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(minWidth: constraints.maxWidth),
                     child: table(
-                      selection: true,
+                      selection: selection,
                       columns: [
-                        for (final key in [
-                          'name',
-                          'username',
-                          'host',
-                          'port',
-                          'authType',
-                          'tags',
-                        ])
-                          DataColumn(label: Text(l.tr('servers.field.$key'))),
+                        if (visibleColumns.isEmpty)
+                          const DataColumn(label: SizedBox.shrink()),
+                        for (final key in visibleColumns)
+                          DataColumn(
+                            label: Text(
+                              l.tr(
+                                'servers.field.${key == 'tag' ? 'tags' : key}',
+                              ),
+                            ),
+                          ),
                       ],
                       rows: [
                         for (final host in widget.hosts)
                           DataRow(
                             key: ValueKey(host.id),
-                            selected: widget.selectedIds.contains(host.id),
-                            onSelectChanged: (value) =>
-                                widget.onSelection([host.id], value ?? false),
+                            selected:
+                                selection &&
+                                widget.selectedIds.contains(host.id),
+                            onSelectChanged: selection
+                                ? (value) => widget.onSelection([
+                                    host.id,
+                                  ], value ?? false)
+                                : null,
                             cells: [
-                              DataCell(
-                                SizedBox(
-                                  width: 180,
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: _ServerCellLink(
-                                      key: ValueKey(
-                                        'desktop-server-name-${host.id}',
-                                      ),
-                                      label: host.displayName,
-                                      tooltip: l.tr('desktop.servers.edit'),
-                                      icon: host.isWindows
-                                          ? 'assets/windows.svg'
-                                          : 'assets/linux.svg',
-                                      onPressed: () => widget.onEdit(host),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              DataCell(_text(host.username, 90)),
-                              DataCell(
-                                SizedBox(
-                                  width: 150,
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: _ServerCellLink(
-                                      key: ValueKey(
-                                        'desktop-server-host-${host.id}',
-                                      ),
-                                      label: host.host.isEmpty
-                                          ? '--'
-                                          : host.host,
-                                      tooltip: l.tr('servers.copyHost'),
-                                      copy: true,
-                                      onPressed: host.host.isEmpty
-                                          ? null
-                                          : () => _copyHost(host.host),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              DataCell(_text('${host.port}', 48)),
-                              DataCell(
-                                _text(
-                                  l.tr(
-                                    'servers.auth.${host.authType == 'password' ? 'password' : 'privateKey'}',
-                                  ),
-                                  85,
-                                ),
-                              ),
-                              DataCell(
-                                SizedBox(
-                                  width: 140,
-                                  child: host.tag.isEmpty
-                                      ? const Text('--')
-                                      : SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          child: Row(
-                                            children: [
-                                              for (final tag in host.tag)
-                                                Container(
-                                                  margin: const EdgeInsets.only(
-                                                    right: 4,
-                                                  ),
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 6,
-                                                        vertical: 2,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: colors.success
-                                                        .withValues(alpha: .08),
-                                                    border: Border.all(
-                                                      color: colors.success
-                                                          .withValues(
-                                                            alpha: .3,
-                                                          ),
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          4,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    tag,
-                                                    style: TextStyle(
-                                                      color: colors.success,
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                ),
-                              ),
+                              if (visibleColumns.isEmpty)
+                                const DataCell(SizedBox.shrink()),
+                              for (final column in visibleColumns)
+                                DataCell(_cell(host, column, proxies)),
                             ],
                           ),
                       ],
@@ -761,7 +906,7 @@ class _ServerTableState extends State<_ServerTable> {
               rows: [
                 for (final host in widget.hosts)
                   DataRow(
-                    selected: widget.selectedIds.contains(host.id),
+                    selected: selection && widget.selectedIds.contains(host.id),
                     cells: [
                       DataCell(
                         SizedBox(
