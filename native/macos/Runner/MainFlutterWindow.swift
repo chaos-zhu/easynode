@@ -3,6 +3,7 @@ import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
   private var windowChannel: FlutterMethodChannel?
+  private var filesChannel: FlutterMethodChannel?
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
@@ -12,6 +13,20 @@ class MainFlutterWindow: NSWindow {
     self.center()
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+
+    let files = FlutterMethodChannel(
+      name: "easynode/files",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    files.setMethodCallHandler { call, result in
+      switch call.method {
+      case "getHomeDirectory":
+        result(NSHomeDirectoryForUser(NSUserName()) ?? NSHomeDirectory())
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    filesChannel = files
 
     let channel = FlutterMethodChannel(
       name: "easynode/window",

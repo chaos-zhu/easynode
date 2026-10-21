@@ -44,9 +44,44 @@ const Map<String, String> stringsEn = {
   'desktop.servers.loadFailed':
       'Failed to load instances. Check your connection and retry.',
   'desktop.servers.actions': 'Actions',
+  'desktop.servers.copyFailed':
+      'Could not copy the host address. Please retry.',
   'desktop.servers.connect': 'Connect',
   'desktop.servers.edit': 'Edit configuration',
   'desktop.servers.deleteInstance': 'Delete instance',
+  'desktop.form.noOptions': 'No options available',
+  'desktop.form.selectPlaceholder': 'Select an option',
+  'desktop.servers.form.consoleHint': 'Open the cloud service console directly',
+  'desktop.servers.form.connectType': 'Connection type',
+  'desktop.servers.form.nameHint': 'Name to identify this instance',
+  'desktop.servers.form.portRange': 'Port must be between 1 and 65535',
+  'desktop.servers.form.secretRequired':
+      'Enter a new password or private key when changing authentication.',
+  'desktop.servers.form.optionsFailed':
+      'Options are not loaded. Please wait or retry.',
+  'desktop.servers.form.saveChanges': 'Save changes',
+  'desktop.servers.form.create': 'Create instance',
+  'desktop.servers.form.importKey': 'Local private key…',
+  'desktop.servers.form.keyHint':
+      'Configure passphrase-protected keys in Credentials.',
+  'desktop.servers.form.commandHint': 'Run after connecting, e.g. sudo -i',
+  'desktop.servers.form.pickDate': 'Select expiry date',
+  'desktop.servers.form.clearDate': 'Clear expiry date',
+  'desktop.servers.form.expiryHint':
+      'Reminders 7/3/1 days before expiry. Requires an email on the server.',
+  'desktop.servers.form.keyReadFailed':
+      'Could not read the private key. Check file permissions and retry.',
+  'desktop.servers.form.keyEncodingFailed':
+      'The private key file is not valid UTF-8 text.',
+  'desktop.servers.form.filePickerFailed':
+      'Could not open the file picker. Please retry.',
+  'desktop.servers.form.filePermissionFailed':
+      'Could not open the file picker: the app is missing file access permissions.',
+  'desktop.servers.form.saveFailed':
+      'Could not save the instance. Please retry.',
+  'desktop.servers.form.created': 'Instance created',
+  'desktop.servers.form.deleted': 'Instance deleted',
+  'desktop.servers.form.operationFailed': 'Operation failed. Please retry.',
   'startup.storageFailedTitle': 'Unable to open local storage',
   'startup.storageFailedBody':
       'Check that this app can access your system secure storage, then try again.',

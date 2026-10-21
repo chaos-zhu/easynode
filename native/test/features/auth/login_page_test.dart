@@ -168,13 +168,27 @@ void main() {
     await tester.ensureVisible(byKey(const Key('field-password')));
     await tester.enterText(byKey(const Key('field-password')), 'secret');
     await tester.tap(byKey(const Key('btn-login')));
-    await tester.pumpAndSettle();
+    // Submission stays busy while the certificate decision is pending.
+    // Finish the dialog transition without waiting for its loading spinner.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('无法验证服务器证书'), findsOneWidget);
     expect(find.text('取消'), findsOneWidget);
     expect(find.text('信任此证书'), findsOneWidget);
     expect(find.text('仅本次继续'), findsNothing);
     expect(find.text(certificate.displayFingerprint), findsOneWidget);
+    expect(
+      tester.widget<FilledButton>(byKey(const Key('btn-login'))).onPressed,
+      isNull,
+    );
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(find.text('无法验证服务器证书'), findsNothing);
+    expect(
+      tester.widget<FilledButton>(byKey(const Key('btn-login'))).onPressed,
+      isNotNull,
+    );
   });
 
   testWidgets('opens login history from its icon and switches account', (

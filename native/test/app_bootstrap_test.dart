@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
 import 'package:easynode_native/core/api/api_client.dart';
@@ -9,6 +10,7 @@ import 'package:easynode_native/features/auth/auth_session.dart';
 import 'package:easynode_native/features/auth/login_page.dart';
 import 'package:easynode_native/features/auth/startup_connection_page.dart';
 import 'package:easynode_native/features/shell/main_shell_page.dart';
+import 'package:easynode_native/features/shell/desktop_shell_page.dart';
 
 import 'package:easynode_native/app.dart';
 import 'package:easynode_native/state/api_providers.dart';
@@ -76,6 +78,11 @@ void main() {
   ProviderContainer container(WidgetTester tester) =>
       ProviderScope.containerOf(tester.element(find.byType(WidgetsApp)));
 
+  // The app selects its shell by the host OS, not the test surface width.
+  Finder homeShell() => find.byType(
+    Platform.isMacOS || Platform.isWindows ? DesktopShellPage : MainShellPage,
+  );
+
   testWidgets(
     'offline startup remains on logo and preserves the saved session',
     (tester) async {
@@ -88,7 +95,7 @@ void main() {
       expect(auth.signedIn, isTrue);
       expect(auth.publicKeyPem, isNull);
       expect(find.byType(StartupConnectionPage), findsOneWidget);
-      expect(find.byType(MainShellPage), findsNothing);
+      expect(homeShell(), findsNothing);
       expect(find.text('正在连接服务器'), findsOneWidget);
       expect(container(tester).read(serverRepositoryProvider), isNotNull);
       expect(container(tester).read(settingsRepositoryProvider), isNotNull);
@@ -100,7 +107,7 @@ void main() {
         await const FlutterSecureStorage().read(key: 'token'),
         'saved-token',
       );
-      expect(find.byType(MainShellPage), findsNothing);
+      expect(homeShell(), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
@@ -111,10 +118,10 @@ void main() {
     final api = _StartupApi();
     await tester.pumpWidget((await bootstrap(tester, api))!);
     await tester.pump();
-    expect(find.byType(MainShellPage), findsNothing);
+    expect(homeShell(), findsNothing);
     api.attempts.single.complete();
     await tester.pump();
-    expect(find.byType(MainShellPage), findsOneWidget);
+    expect(homeShell(), findsOneWidget);
     expect(find.byType(StartupConnectionPage), findsNothing);
     // Let the shell's background update check finish before disposing it.
     await tester.pumpAndSettle();
@@ -197,7 +204,7 @@ void main() {
       await signIn;
       await tester.pump();
       expect(api.attempts, isEmpty);
-      expect(find.byType(MainShellPage), findsOneWidget);
+      expect(homeShell(), findsOneWidget);
       expect(find.byType(StartupConnectionPage), findsNothing);
       await tester.pumpAndSettle();
       await tester.pumpWidget(const SizedBox.shrink());

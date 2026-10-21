@@ -1,18 +1,24 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../core/api/api_result.dart';
 import '../../core/ui/app_color_theme.dart';
+import '../../core/ui/app_dialog.dart';
 import '../../core/ui/desktop_dropdown_menu.dart';
+import '../../core/ui/desktop_form_controls.dart';
+import '../../core/ui/desktop_management_dialog.dart';
 import '../../l10n/app_localizations.dart';
+import '../../state/api_providers.dart';
 import '../../state/desktop_server_catalog_provider.dart';
+import 'desktop_server_form_dialog.dart';
 import 'server_model.dart';
 import 'server_repository.dart';
 
-/// Desktop catalog presentation. Business actions remain placeholders until
-/// their respective implementation rounds; no SSH configuration is fetched.
+/// Desktop catalog and instance management; no SSH configuration is fetched.
 class DesktopServersPage extends ConsumerStatefulWidget {
   const DesktopServersPage({super.key});
 
@@ -33,14 +39,120 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
   }
 
   void _comingSoon() {
+    _notify(AppLocalizations.of(context).tr('desktop.comingSoon'));
+  }
+
+  void _notify(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).tr('desktop.comingSoon')),
-          duration: const Duration(seconds: 2),
-        ),
+        SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
       );
+  }
+
+  Future<void> _openForm({ServerModel? server}) async {
+    final catalog = ref.read(desktopServerCatalogProvider).valueOrNull;
+    if (catalog == null) return;
+    final changed = await showAppDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      closeOnPressEscape: false,
+      builder: (context) =>
+          DesktopServerFormDialog(catalog: catalog, server: server),
+    );
+    if (changed != true || !mounted) return;
+    ref.invalidate(desktopServerCatalogProvider);
+    _notify(
+      AppLocalizations.of(
+        context,
+      ).tr(server == null ? 'desktop.servers.form.created' : 'common.saved'),
+    );
+  }
+
+  Future<void> _confirmDelete(ServerModel server) async {
+    final l = AppLocalizations.of(context);
+    var deleting = false;
+    String? failure;
+    final deleted = await showAppDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => DesktopManagementDialog(
+          title: l.tr('desktop.servers.deleteInstance'),
+          width: 440,
+          busy: deleting,
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l.trf('servers.deleteConfirmBody', [server.displayName])),
+              if (failure != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    failure!,
+                    style: TextStyle(color: context.colors.danger),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: deleting
+                  ? null
+                  : () => Navigator.of(dialogContext).pop(),
+              child: Text(l.tr('common.cancel')),
+            ),
+            FilledButton(
+              key: const Key('desktop-server-delete-confirm'),
+              style: FilledButton.styleFrom(
+                backgroundColor: context.colors.danger,
+                foregroundColor: context.colors.card,
+              ),
+              onPressed: deleting
+                  ? null
+                  : () async {
+                      setDialogState(() {
+                        deleting = true;
+                        failure = null;
+                      });
+                      try {
+                        await ref
+                            .read(serverRepositoryProvider)
+                            .deleteHost(server.id);
+                        if (dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop(true);
+                        }
+                      } catch (error) {
+                        if (dialogContext.mounted) {
+                          setDialogState(() {
+                            deleting = false;
+                            failure = l.trf('servers.deleteFailed', [
+                              error is ApiFailure
+                                  ? error.message
+                                  : l.tr(
+                                      'desktop.servers.form.operationFailed',
+                                    ),
+                            ]);
+                          });
+                        }
+                      }
+                    },
+              child: deleting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l.tr('common.delete')),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (deleted != true || !mounted) return;
+    setState(() => _selectedIds.remove(server.id));
+    ref.invalidate(desktopServerCatalogProvider);
+    _notify(l.tr('desktop.servers.form.deleted'));
   }
 
   bool _matches(ServerModel host) => [
@@ -139,12 +251,8 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
             const SizedBox(width: 12),
             FilledButton.icon(
               key: const Key('desktop-servers-add'),
-              onPressed: _comingSoon,
-              style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
+              onPressed: catalog == null ? null : _openForm,
+              style: desktopButtonStyle(context, primary: true),
               icon: const Icon(Icons.add, size: 17),
               label: Text(l.tr('desktop.servers.add')),
             ),
@@ -200,7 +308,8 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
         l.tr('desktop.servers.empty'),
         actions: [
           FilledButton.icon(
-            onPressed: _comingSoon,
+            onPressed: _openForm,
+            style: desktopButtonStyle(context, primary: true),
             icon: const Icon(Icons.add, size: 16),
             label: Text(l.tr('desktop.servers.addConfig')),
           ),
@@ -345,6 +454,8 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
               selected ? _selectedIds.addAll(ids) : _selectedIds.removeAll(ids);
             }),
             onAction: _comingSoon,
+            onEdit: (server) => _openForm(server: server),
+            onDelete: _confirmDelete,
           ),
       ],
     );
@@ -389,12 +500,16 @@ class _ServerTable extends StatefulWidget {
     required this.selectedIds,
     required this.onSelection,
     required this.onAction,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final List<ServerModel> hosts;
   final Set<String> selectedIds;
   final void Function(Iterable<String> ids, bool selected) onSelection;
   final VoidCallback onAction;
+  final ValueChanged<ServerModel> onEdit;
+  final ValueChanged<ServerModel> onDelete;
 
   @override
   State<_ServerTable> createState() => _ServerTableState();
@@ -411,15 +526,28 @@ class _ServerTableState extends State<_ServerTable> {
 
   Widget _text(String value, double width) => SizedBox(
     width: width,
-    child: Tooltip(
-      message: value,
-      child: Text(
-        value.isEmpty ? '--' : value,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+    child: Text(
+      value.isEmpty ? '--' : value,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     ),
   );
+
+  Future<void> _copyHost(String host) async {
+    String message;
+    try {
+      await Clipboard.setData(ClipboardData(text: host));
+      message = 'servers.hostCopied';
+    } catch (_) {
+      message = 'desktop.servers.copyFailed';
+    }
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).tr(message))),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -512,38 +640,43 @@ class _ServerTableState extends State<_ServerTable> {
                               DataCell(
                                 SizedBox(
                                   width: 180,
-                                  child: Row(
-                                    children: [
-                                      SvgPicture.asset(
-                                        host.isWindows
-                                            ? 'assets/windows.svg'
-                                            : 'assets/linux.svg',
-                                        width: 17,
-                                        height: 17,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: _ServerCellLink(
+                                      key: ValueKey(
+                                        'desktop-server-name-${host.id}',
                                       ),
-                                      const SizedBox(width: 7),
-                                      Expanded(
-                                        child: Tooltip(
-                                          message: host.displayName,
-                                          child: Text(
-                                            host.displayName,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                      label: host.displayName,
+                                      tooltip: l.tr('desktop.servers.edit'),
+                                      icon: host.isWindows
+                                          ? 'assets/windows.svg'
+                                          : 'assets/linux.svg',
+                                      onPressed: () => widget.onEdit(host),
+                                    ),
                                   ),
                                 ),
-                                onTap: widget.onAction,
                               ),
                               DataCell(_text(host.username, 90)),
                               DataCell(
-                                _text(host.host, 150),
-                                onTap: widget.onAction,
+                                SizedBox(
+                                  width: 150,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: _ServerCellLink(
+                                      key: ValueKey(
+                                        'desktop-server-host-${host.id}',
+                                      ),
+                                      label: host.host.isEmpty
+                                          ? '--'
+                                          : host.host,
+                                      tooltip: l.tr('servers.copyHost'),
+                                      copy: true,
+                                      onPressed: host.host.isEmpty
+                                          ? null
+                                          : () => _copyHost(host.host),
+                                    ),
+                                  ),
+                                ),
                               ),
                               DataCell(_text('${host.port}', 48)),
                               DataCell(
@@ -636,15 +769,21 @@ class _ServerTableState extends State<_ServerTable> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              TextButton.icon(
-                                onPressed: widget.onAction,
-                                icon: const Icon(Icons.link, size: 16),
-                                label: Text(l.tr('desktop.servers.connect')),
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
+                              Flexible(
+                                child: TextButton.icon(
+                                  onPressed: widget.onAction,
+                                  icon: const Icon(Icons.link, size: 16),
+                                  label: Text(
+                                    l.tr('desktop.servers.connect'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  minimumSize: Size.zero,
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                    ),
+                                    minimumSize: Size.zero,
+                                  ),
                                 ),
                               ),
                               DesktopDropdownMenu<String>(
@@ -653,7 +792,10 @@ class _ServerTableState extends State<_ServerTable> {
                                 ),
                                 tooltip: l.tr('desktop.servers.actions'),
                                 buttonSize: const Size(30, 32),
-                                onSelected: (_) => widget.onAction(),
+                                onSelected: (value) {
+                                  if (value == 'edit') widget.onEdit(host);
+                                  if (value == 'delete') widget.onDelete(host);
+                                },
                                 items: [
                                   DesktopDropdownItem(
                                     value: 'edit',
@@ -681,6 +823,90 @@ class _ServerTableState extends State<_ServerTable> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Text-only table actions matching Web's name and copyable host cells.
+class _ServerCellLink extends StatelessWidget {
+  const _ServerCellLink({
+    super.key,
+    required this.label,
+    required this.tooltip,
+    required this.onPressed,
+    this.icon,
+    this.copy = false,
+  });
+
+  final String label;
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final String? icon;
+  final bool copy;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    bool highlighted(Set<WidgetState> states) =>
+        states.contains(WidgetState.hovered) ||
+        states.contains(WidgetState.focused);
+    return Tooltip(
+      message: tooltip,
+      waitDuration: const Duration(milliseconds: 500),
+      child: TextButton(
+        onPressed: onPressed,
+        style: ButtonStyle(
+          minimumSize: const WidgetStatePropertyAll(Size.zero),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(vertical: 3),
+          ),
+          alignment: Alignment.centerLeft,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          mouseCursor: WidgetStatePropertyAll(
+            copy ? SystemMouseCursors.copy : SystemMouseCursors.click,
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (states) => highlighted(states) ? colors.accent : colors.text,
+          ),
+          textStyle: WidgetStateProperty.resolveWith(
+            (states) => TextStyle(
+              fontSize: 13,
+              fontWeight: copy ? FontWeight.w400 : FontWeight.w600,
+              decoration: highlighted(states)
+                  ? TextDecoration.underline
+                  : TextDecoration.none,
+              decorationStyle: TextDecorationStyle.dashed,
+              decorationColor: colors.accent.withValues(alpha: .5),
+            ),
+          ),
+          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+          side: WidgetStateProperty.resolveWith(
+            (states) => BorderSide(
+              color: states.contains(WidgetState.focused)
+                  ? colors.accent
+                  : Colors.transparent,
+            ),
+          ),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+          ),
+          animationDuration: const Duration(milliseconds: 180),
+          splashFactory: NoSplash.splashFactory,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              SvgPicture.asset(icon!, width: 17, height: 17),
+              const SizedBox(width: 7),
+            ],
+            Flexible(
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
       ),
     );
   }
