@@ -1,5 +1,23 @@
 [
   {
+    "version": "v3.8.4",
+    "date": "2026-10-21",
+    "nativeVersion": "native-v1.3.2",
+    "nativeReleaseUrl": "https://github.com/chaos-zhu/easynode/releases",
+    "iosReleaseUrl": "https://apps.apple.com/th/app/easynode-terminal/id6777670133",
+    "ohosReleaseUrl": "",
+    "features": [
+      "升级 Node.js 运行时修复安全漏洞"
+    ],
+    "nativeFeatures": [
+      "接入 AI 主机信息、脚本及脚本分组批量管理，支持变更预览、授权确认与结果展示",
+      "AI 操作完成后自动刷新相关列表",
+      "移除全局 AI 助手主机预选，展示实际操作目标",
+      "优化启动连接检查与登录会话恢复",
+      "修复登录成功后重复显示启动连接页的问题"
+    ]
+  },
+  {
     "version": "v3.8.3",
     "date": "2026-10-18",
     "nativeVersion": "native-v1.3.2",

@@ -4,6 +4,9 @@
 * 探针接入
 * 支持csv模板特定格式导入
 
+## [3.8.4](https://github.com/chaos-zhu/easynode/releases) (2026-10-21)
+* 升级 Node.js 运行时修复安全漏洞
+
 ## [native-v1.3.2](https://github.com/chaos-zhu/easynode/releases) (2026-10-18)
 * 接入 AI 主机信息、脚本及脚本分组批量管理，支持变更预览、授权确认与结果展示
 * AI 操作完成后自动刷新相关列表
