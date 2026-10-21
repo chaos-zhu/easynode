@@ -17,14 +17,18 @@ import 'package:easynode_native/features/servers/server_proxy_model.dart';
 import 'package:easynode_native/features/servers/server_group_model.dart';
 import 'package:easynode_native/features/servers/server_model.dart';
 import 'package:easynode_native/features/servers/server_repository.dart';
+import 'package:easynode_native/features/servers/server_group_repository.dart';
+import 'package:easynode_native/features/servers/desktop_server_order_view.dart';
 import 'package:easynode_native/features/settings/models/plus_info.dart';
 import 'package:easynode_native/l10n/app_localizations.dart';
 import 'package:easynode_native/state/api_providers.dart';
 import 'package:easynode_native/state/credential_list_notifier.dart';
 import 'package:easynode_native/state/desktop_server_list_config_provider.dart';
+import 'package:easynode_native/state/desktop_server_group_provider.dart';
 import 'package:easynode_native/state/plus_info_notifier.dart';
 import 'package:easynode_native/state/proxy_list_notifier.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,10 +57,34 @@ class _Repository extends ServerRepository {
   final creates = <Map<String, dynamic>>[];
   final updates = <Map<String, dynamic>>[];
   final deletions = <String>[];
+  final groups = <ServerGroupModel>[
+    const ServerGroupModel(id: 'default', name: 'Default'),
+    const ServerGroupModel(id: 'staging', name: 'Staging'),
+  ];
+  final orderWrites = <({int revision, List<OrderChange> changes})>[];
+  ApiFailure? orderError;
   int catalogReads = 0;
   OrderLayout? order;
   String? saveError;
   String? deleteError;
+
+  OrderLayout get layout =>
+      order ??
+      OrderLayout(
+        schemaVersion: 1,
+        revision: 0,
+        sections: [
+          for (final group in groups)
+            OrderSection(
+              groupId: group.id,
+              itemIds: hosts
+                  .where((host) => host.group == group.id)
+                  .map((host) => host.id)
+                  .toList(),
+            ),
+        ],
+        flatItemIds: hosts.map((host) => host.id).toList(),
+      );
 
   @override
   Future<HostCatalog> fetchCatalog() async {
@@ -64,18 +92,7 @@ class _Repository extends ServerRepository {
     return HostCatalog(
       hosts: await fetchHosts(),
       groups: await fetchGroups(),
-      order:
-          order ??
-          OrderLayout(
-            schemaVersion: 1,
-            revision: 0,
-            sections: [
-              OrderSection(
-                groupId: 'default',
-                itemIds: hosts.map((host) => host.id).toList(),
-              ),
-            ],
-          ),
+      order: layout,
     );
   }
 
@@ -83,10 +100,45 @@ class _Repository extends ServerRepository {
   Future<List<ServerModel>> fetchHosts() async => [...hosts];
 
   @override
-  Future<List<ServerGroupModel>> fetchGroups() async => const [
-    ServerGroupModel(id: 'default', name: 'Default'),
-    ServerGroupModel(id: 'staging', name: 'Staging'),
-  ];
+  Future<List<ServerGroupModel>> fetchGroups() async => [...groups];
+
+  @override
+  Future<OrderLayout> updateOrder(
+    int revision,
+    List<OrderChange> changes,
+  ) async {
+    orderWrites.add((revision: revision, changes: changes));
+    if (orderError != null) throw orderError!;
+    final previous = layout;
+    var sections = [...previous.sections];
+    var flat = [...previous.flatItemIds];
+    for (final change in changes) {
+      if (change.scope == 'groups') {
+        sections = [
+          for (final id in change.orderedIds)
+            sections.firstWhere((s) => s.groupId == id),
+        ];
+      } else if (change.scope == 'groupItems') {
+        sections = [
+          for (final section in sections)
+            section.groupId == change.groupId
+                ? OrderSection(
+                    groupId: section.groupId,
+                    itemIds: change.orderedIds,
+                  )
+                : section,
+        ];
+      } else if (change.scope == 'flat') {
+        flat = [...change.orderedIds];
+      }
+    }
+    return order = OrderLayout(
+      schemaVersion: 1,
+      revision: revision + 1,
+      sections: sections,
+      flatItemIds: flat,
+    );
+  }
 
   @override
   Future<String> createHost(ServerFormData form) async {
@@ -117,6 +169,50 @@ class _Repository extends ServerRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw StateError('Unexpected repository call: ${invocation.memberName}');
+}
+
+class _Groups implements ServerGroupRepository {
+  _Groups(this.catalog);
+  final _Repository catalog;
+  final creates = <String>[];
+  final renames = <String, String>{};
+  final deletes = <String>[];
+  String? error;
+
+  @override
+  Future<void> create(String name) async {
+    creates.add(name);
+    if (error != null) throw ApiFailure(error!);
+    catalog.groups.add(
+      ServerGroupModel(id: 'group-${creates.length}', name: name),
+    );
+  }
+
+  @override
+  Future<void> rename(String id, String name) async {
+    if (error != null) throw ApiFailure(error!);
+    renames[id] = name;
+    catalog.groups[catalog.groups.indexWhere((g) => g.id == id)] =
+        ServerGroupModel(id: id, name: name);
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    deletes.add(id);
+    if (error != null) throw ApiFailure(error!);
+    catalog.groups.removeWhere((g) => g.id == id);
+    for (var i = 0; i < catalog.hosts.length; i++) {
+      final host = catalog.hosts[i];
+      if (host.group == id) {
+        catalog.hosts[i] = ServerModel.fromJson({
+          'id': host.id,
+          'name': host.name,
+          'host': host.host,
+          'group': 'default',
+        });
+      }
+    }
+  }
 }
 
 class _ListConfigRepository implements ServerListConfigRepository {
@@ -172,6 +268,7 @@ Future<void> _pumpPage(
   WidgetTester tester,
   _Repository repository, {
   _ListConfigRepository? listConfig,
+  _Groups? groupRepository,
   Size size = const Size(1280, 800),
   double textScale = 1,
   bool dark = false,
@@ -184,6 +281,9 @@ Future<void> _pumpPage(
     ProviderScope(
       overrides: [
         serverRepositoryProvider.overrideWithValue(repository),
+        desktopServerGroupRepositoryProvider.overrideWithValue(
+          groupRepository ?? _Groups(repository),
+        ),
         serverListConfigRepositoryProvider.overrideWithValue(
           listConfig ?? _ListConfigRepository(),
         ),
@@ -220,6 +320,76 @@ Future<void> _pumpPage(
 }
 
 Finder _field(String name) => find.byKey(ValueKey('desktop-server-form-$name'));
+
+Future<void> _menu(WidgetTester tester, String label) async {
+  await tester.tap(find.byKey(const Key('desktop-servers-more')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _groupSave(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('desktop-group-form-save')));
+  await tester.pumpAndSettle();
+}
+
+_Repository _orderFixture() {
+  final repository = _Repository(withHost: true);
+  repository.hosts.addAll([
+    ServerModel.fromJson({
+      'id': 'host-2',
+      'name': 'Backup',
+      'host': '10.0.0.3',
+      'group': 'default',
+    }),
+    ServerModel.fromJson({
+      'id': 'host-3',
+      'name': 'Stage VM',
+      'host': '10.0.0.4',
+      'group': 'staging',
+    }),
+  ]);
+  repository.order = const OrderLayout(
+    schemaVersion: 1,
+    revision: 7,
+    sections: [
+      OrderSection(groupId: 'default', itemIds: ['host-1', 'host-2']),
+      OrderSection(groupId: 'staging', itemIds: ['host-3']),
+    ],
+    flatItemIds: ['host-3', 'host-1', 'host-2'],
+  );
+  return repository;
+}
+
+Future<void> _dragRowBelow(
+  WidgetTester tester,
+  String first,
+  String second,
+) async {
+  final firstRow = find.byKey(ValueKey(first));
+  final secondRow = find.byKey(ValueKey(second));
+  final start = tester.getTopLeft(firstRow) + const Offset(25, 24);
+  final end =
+      tester.getTopLeft(secondRow) +
+      Offset(25, tester.getSize(secondRow).height / 2);
+  final gesture = await tester.startGesture(
+    start,
+    kind: PointerDeviceKind.mouse,
+  );
+  await tester.pump(const Duration(milliseconds: 100));
+  await gesture.moveTo(start + const Offset(0, 20));
+  await tester.pump(const Duration(milliseconds: 250));
+  expect(find.byKey(const ValueKey('app-order-drag-proxy')), findsOneWidget);
+  for (var step = 1; step <= 8; step++) {
+    await gesture.moveTo(
+      Offset.lerp(start + const Offset(0, 20), end, step / 8)!,
+    );
+    await tester.pump(const Duration(milliseconds: 40));
+  }
+  await tester.pump(const Duration(milliseconds: 300));
+  await gesture.up();
+  await tester.pumpAndSettle();
+}
 
 Future<void> _openListSettings(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('desktop-servers-more')));
@@ -284,6 +454,449 @@ Future<void> _importKey(WidgetTester tester) async {
 }
 
 void main() {
+  group('group management', () {
+    testWidgets(
+      'creates a trimmed name, edits the default and refreshes the catalog',
+      (tester) async {
+        final repository = _Repository(withHost: true);
+        final groups = _Groups(repository);
+        await _pumpPage(tester, repository, groupRepository: groups);
+        await _menu(tester, 'Manage groups');
+        expect(
+          find.byKey(const Key('desktop-group-delete-default')),
+          findsNothing,
+        );
+        await tester.tap(find.byKey(const Key('desktop-group-add')));
+        await tester.pumpAndSettle();
+        await _groupSave(tester);
+        expect(find.text('Enter a group name'), findsOneWidget);
+        expect(groups.creates, isEmpty);
+        await tester.enterText(
+          find.byKey(const Key('desktop-group-name')),
+          '  Operations  ',
+        );
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+        expect(groups.creates, ['Operations']);
+        expect(
+          find.byKey(const Key('desktop-group-row-group-1')),
+          findsOneWidget,
+        );
+        expect(repository.catalogReads, 2);
+
+        await tester.tap(find.byKey(const Key('desktop-group-edit-default')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('desktop-group-name')),
+          'Production group',
+        );
+        await _groupSave(tester);
+        expect(groups.renames, {'default': 'Production group'});
+        expect(repository.catalogReads, 3);
+        await tester.tap(find.text('Close'));
+        await tester.pumpAndSettle();
+        expect(find.text('Production group'), findsOneWidget);
+      },
+    );
+
+    testWidgets('failed group create preserves input and retries', (
+      tester,
+    ) async {
+      final repository = _Repository();
+      final groups = _Groups(repository)..error = 'Group save unavailable';
+      await _pumpPage(tester, repository, groupRepository: groups);
+      await _menu(tester, 'Manage groups');
+      await tester.tap(find.byKey(const Key('desktop-group-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('desktop-group-name')),
+        'Operations',
+      );
+      await _groupSave(tester);
+      expect(find.text('Group save unavailable'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const Key('desktop-group-name')))
+            .controller!
+            .text,
+        'Operations',
+      );
+      expect(repository.catalogReads, 1);
+      groups.error = null;
+      await _groupSave(tester);
+      expect(find.byKey(const Key('desktop-group-name')), findsNothing);
+      expect(find.text('Operations'), findsOneWidget);
+    });
+
+    testWidgets(
+      'delete warns, supports cancel and retry, and moves instances to default',
+      (tester) async {
+        final repository = _Repository();
+        repository.hosts.add(
+          ServerModel.fromJson({
+            'id': 'host-1',
+            'name': 'Stage VM',
+            'host': '10.0.0.2',
+            'group': 'staging',
+          }),
+        );
+        final groups = _Groups(repository);
+        await _pumpPage(tester, repository, groupRepository: groups);
+        await _menu(tester, 'Manage groups');
+        await tester.tap(find.byKey(const Key('desktop-group-delete-staging')));
+        await tester.pumpAndSettle();
+        expect(
+          find.text(
+            'Delete group “Staging”? Its instances will move to the default group.',
+          ),
+          findsOneWidget,
+        );
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+        expect(groups.deletes, isEmpty);
+        groups.error = 'Delete unavailable';
+        await tester.tap(find.byKey(const Key('desktop-group-delete-staging')));
+        await tester.pumpAndSettle();
+        await _groupSave(tester);
+        expect(find.text('Delete unavailable'), findsOneWidget);
+        expect(repository.hosts.single.group, 'staging');
+        groups.error = null;
+        await _groupSave(tester);
+        expect(repository.hosts.single.group, 'default');
+        expect(
+          find.byKey(const Key('desktop-group-row-staging')),
+          findsNothing,
+        );
+        await tester.tap(find.text('Close'));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('desktop-server-table-default')),
+          findsOneWidget,
+        );
+        expect(find.text('Stage VM'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'group drag is a draft until saved and cancellation restores order',
+      (tester) async {
+        final repository = _orderFixture();
+        await _pumpPage(tester, repository);
+        await _menu(tester, 'Manage groups');
+        await tester.tap(find.byKey(const Key('desktop-group-order-cancel')));
+        await tester.pumpAndSettle();
+        await _dragRowBelow(
+          tester,
+          'desktop-group-row-default',
+          'desktop-group-row-staging',
+        );
+        expect(repository.orderWrites, isEmpty);
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('desktop-group-row-staging')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('desktop-group-row-default')))
+                .dy,
+          ),
+        );
+        await tester.tap(find.byKey(const Key('desktop-group-order-cancel')));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('desktop-group-row-default')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('desktop-group-row-staging')))
+                .dy,
+          ),
+        );
+        await tester.tap(find.byKey(const Key('desktop-group-order-cancel')));
+        await tester.pumpAndSettle();
+        await _dragRowBelow(
+          tester,
+          'desktop-group-row-default',
+          'desktop-group-row-staging',
+        );
+        repository.orderError = ApiFailure('Offline');
+        await tester.tap(find.byKey(const Key('desktop-group-order-save')));
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Could not save order. Please retry.'),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('desktop-group-order-save')),
+          findsOneWidget,
+        );
+        repository.orderError = null;
+        await tester.tap(find.byKey(const Key('desktop-group-order-save')));
+        await tester.pumpAndSettle();
+        expect(repository.orderWrites.last.revision, 7);
+        expect(repository.orderWrites.last.changes.single.toJson(), {
+          'scope': 'groups',
+          'orderedIds': ['staging', 'default'],
+        });
+        expect(repository.catalogReads, 2);
+        expect(find.byKey(const Key('desktop-group-order-save')), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'group dialogs fit minimum window with enlarged text and dark theme',
+      (tester) async {
+        await _pumpPage(
+          tester,
+          _Repository(withHost: true),
+          size: const Size(900, 640),
+          textScale: 1.5,
+          dark: true,
+        );
+        await _menu(tester, 'Manage groups');
+        await tester.tap(find.byKey(const Key('desktop-group-add')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('desktop-group-order-cancel')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
+  group('instance ordering', () {
+    for (final mode in ['group', 'list']) {
+      testWidgets(
+        '$mode drag saves only its own scope and retains the other order',
+        (tester) async {
+          final repository = _orderFixture();
+          final settings = _ListConfigRepository()
+            ..config = ServerListConfig(displayMode: mode);
+          await _pumpPage(tester, repository, listConfig: settings);
+          await tester.tap(find.byType(Checkbox).last);
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.byKey(const Key('desktop-servers-search')),
+            'Production',
+          );
+          await tester.pumpAndSettle();
+          await _menu(tester, 'Adjust order');
+          expect(find.byType(DesktopServerOrderView), findsOneWidget);
+          expect(find.byType(Checkbox), findsNothing);
+          expect(
+            find.byKey(const Key('desktop-server-actions-host-1')),
+            findsNothing,
+          );
+          expect(find.text('1 instances selected'), findsNothing);
+          final first = mode == 'group' ? 'host-1' : 'host-3';
+          final second = mode == 'group' ? 'host-2' : 'host-1';
+          await _dragRowBelow(
+            tester,
+            'desktop-server-order-row-$first',
+            'desktop-server-order-row-$second',
+          );
+          expect(repository.orderWrites, isEmpty);
+          await tester.tap(find.byKey(const Key('desktop-server-order-save')));
+          await tester.pumpAndSettle();
+          final write = repository.orderWrites.single;
+          expect(write.revision, 7);
+          if (mode == 'group') {
+            expect(
+              write.changes.map((c) => c.scope),
+              everyElement('groupItems'),
+            );
+            expect(write.changes.first.toJson(), {
+              'scope': 'groupItems',
+              'groupId': 'default',
+              'orderedIds': ['host-2', 'host-1'],
+            });
+            expect(repository.order!.flatItemIds, [
+              'host-3',
+              'host-1',
+              'host-2',
+            ]);
+          } else {
+            expect(write.changes.single.toJson(), {
+              'scope': 'flat',
+              'orderedIds': ['host-1', 'host-3', 'host-2'],
+            });
+            expect(repository.order!.sections.first.itemIds, [
+              'host-1',
+              'host-2',
+            ]);
+          }
+          expect(find.byType(DesktopServerOrderView), findsNothing);
+          expect(find.text('Order saved'), findsOneWidget);
+          expect(repository.catalogReads, 2);
+          expect(
+            tester
+                .widget<TextField>(
+                  find.byKey(const Key('desktop-servers-search')),
+                )
+                .controller!
+                .text,
+            isEmpty,
+          );
+        },
+      );
+    }
+
+    testWidgets('cancel discards drag and failed save keeps draft for retry', (
+      tester,
+    ) async {
+      final repository = _orderFixture();
+      await _pumpPage(tester, repository);
+      await _menu(tester, 'Adjust order');
+      await _dragRowBelow(
+        tester,
+        'desktop-server-order-row-host-1',
+        'desktop-server-order-row-host-2',
+      );
+      await tester.tap(find.byKey(const Key('desktop-server-order-cancel')));
+      await tester.pumpAndSettle();
+      expect(repository.orderWrites, isEmpty);
+      await _menu(tester, 'Adjust order');
+      expect(
+        tester
+            .getTopLeft(
+              find.byKey(const Key('desktop-server-order-row-host-1')),
+            )
+            .dy,
+        lessThan(
+          tester
+              .getTopLeft(
+                find.byKey(const Key('desktop-server-order-row-host-2')),
+              )
+              .dy,
+        ),
+      );
+      await _dragRowBelow(
+        tester,
+        'desktop-server-order-row-host-1',
+        'desktop-server-order-row-host-2',
+      );
+      repository.orderError = ApiFailure('Offline');
+      await tester.tap(find.byKey(const Key('desktop-server-order-save')));
+      await tester.pumpAndSettle();
+      expect(find.text('Could not save order. Please retry.'), findsOneWidget);
+      expect(find.byType(DesktopServerOrderView), findsOneWidget);
+      repository.orderError = null;
+      await tester.tap(find.byKey(const Key('desktop-server-order-save')));
+      await tester.pumpAndSettle();
+      expect(repository.orderWrites.last.changes.first.orderedIds, [
+        'host-2',
+        'host-1',
+      ]);
+      expect(find.byType(DesktopServerOrderView), findsNothing);
+    });
+
+    testWidgets('revision conflict reloads catalog and leaves ordering mode', (
+      tester,
+    ) async {
+      final repository = _orderFixture()
+        ..orderError = ApiFailure('Changed', statusCode: 409);
+      await _pumpPage(tester, repository);
+      await _menu(tester, 'Adjust order');
+      await tester.tap(find.byKey(const Key('desktop-server-order-save')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DesktopServerOrderView), findsNothing);
+      expect(repository.catalogReads, 2);
+      expect(find.textContaining('another client'), findsOneWidget);
+    });
+
+    testWidgets(
+      'ordering fits minimum window, enlarged text, and hidden columns',
+      (tester) async {
+        final settings = _ListConfigRepository()
+          ..config = ServerListConfig(
+            displayMode: 'list',
+            columnSettings: {
+              for (final column in ServerListConfig.defaultColumns.keys)
+                column: false,
+            },
+          );
+        await _pumpPage(
+          tester,
+          _orderFixture(),
+          listConfig: settings,
+          size: const Size(900, 640),
+          textScale: 1.5,
+          dark: true,
+        );
+        await _menu(tester, 'Adjust order');
+        expect(
+          find.byKey(const Key('desktop-server-order-row-host-1')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('dragging near the viewport edge scrolls a long list', (
+      tester,
+    ) async {
+      final repository = _Repository();
+      repository.hosts.addAll(
+        List.generate(
+          35,
+          (i) => ServerModel.fromJson({
+            'id': 'host-$i',
+            'name': 'Host $i',
+            'host': '10.0.0.$i',
+            'group': 'default',
+          }),
+        ),
+      );
+      final settings = _ListConfigRepository()
+        ..config = const ServerListConfig(displayMode: 'list');
+      await _pumpPage(
+        tester,
+        repository,
+        listConfig: settings,
+        size: const Size(900, 640),
+      );
+      await _menu(tester, 'Adjust order');
+      final scroll = tester.state<ScrollableState>(
+        find
+            .descendant(
+              of: find.byKey(const Key('desktop-server-order-scroll')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      final start =
+          tester.getTopLeft(
+            find.byKey(const Key('desktop-server-order-row-host-0')),
+          ) +
+          const Offset(25, 24);
+      final gesture = await tester.startGesture(
+        start,
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      for (var step = 1; step <= 12; step++) {
+        await gesture.moveTo(
+          Offset.lerp(start, const Offset(41, 610), step / 12)!,
+        );
+        await tester.pump(const Duration(milliseconds: 40));
+      }
+      for (var tick = 0; tick < 10; tick++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(scroll.position.pixels, greaterThan(0));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('desktop-server-order-save')));
+      await tester.pumpAndSettle();
+      final saved = repository.orderWrites.single.changes.single.orderedIds;
+      expect(saved.indexOf('host-0'), greaterThan(0));
+      expect(saved, unorderedEquals(repository.hosts.map((host) => host.id)));
+    });
+  });
+
   group('list settings', () {
     testWidgets('cancel discards both columns and display mode', (
       tester,
