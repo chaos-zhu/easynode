@@ -856,8 +856,12 @@ class _DesktopSftpPanelState extends ConsumerState<DesktopSftpPanel> {
             )
           else ...[
             _pathBar(state),
-            if (state.loadingDirectory)
-              const LinearProgressIndicator(minHeight: 2),
+            SizedBox(
+              height: 2,
+              child: state.loadingDirectory
+                  ? const LinearProgressIndicator(minHeight: 2)
+                  : null,
+            ),
             if (state.lastError != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),

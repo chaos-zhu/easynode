@@ -323,7 +323,7 @@ class _DesktopTerminalPageState extends ConsumerState<DesktopTerminalPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _toolbar(tab, preferences),
+              if (tab != null) _toolbar(tab, preferences),
               if (settingsState.hasError)
                 Container(
                   color: context.colors.warning.withValues(alpha: .10),

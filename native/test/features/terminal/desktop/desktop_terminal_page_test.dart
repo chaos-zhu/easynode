@@ -240,6 +240,14 @@ void main() {
       expect(workspace.tabs, isEmpty);
       expect(connections, isEmpty);
       expect(find.byType(DesktopTerminalPaneView), findsNothing);
+      expect(find.byKey(const Key('terminal-toolbar')), findsNothing);
+      workspace.open(host('one'));
+      await tester.pump();
+      expect(find.byKey(const Key('terminal-toolbar')), findsOneWidget);
+      workspace.closeAll();
+      await tester.pump();
+      expect(find.byKey(const Key('terminal-toolbar')), findsNothing);
+      expect(find.text('Recent connections'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
@@ -306,6 +314,8 @@ void main() {
     tester,
   ) async {
     await mount(tester);
+    workspace.open(host('two'));
+    await tester.pump();
     await tester.tap(
       find.descendant(
         of: find.byKey(const Key('terminal-toolbar')),
@@ -321,8 +331,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('terminal-catalog-one')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
-    expect(workspace.tabs.single.server.id, 'one');
-    expect(connections.single.connects, 1);
+    expect(workspace.tabs.map((tab) => tab.server.id), ['two', 'one']);
+    expect(connections.last.connects, 1);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -377,6 +387,8 @@ void main() {
           },
         }),
       );
+      workspace.open(host('one'));
+      await tester.pump();
       await tester.tap(
         find.descendant(
           of: find.byKey(const Key('terminal-toolbar')),
@@ -408,8 +420,8 @@ void main() {
       await tester.tap(find.text('Connect all'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
-      expect(workspace.tabs.map((tab) => tab.server.id), ['two', 'one']);
-      expect(connections, hasLength(2));
+      expect(workspace.tabs.map((tab) => tab.server.id), ['one', 'two', 'one']);
+      expect(connections, hasLength(3));
       expect(tester.takeException(), isNull);
       await mouse.removePointer();
       await tester.pumpWidget(const SizedBox.shrink());
@@ -460,6 +472,7 @@ void main() {
   testWidgets(
     'long connect menu scrolls with the wheel and Escape dismisses it',
     (tester) async {
+      workspace.open(host('one'));
       await mount(
         tester,
         hostCatalog: HostCatalog.fromJson({
@@ -504,7 +517,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
       expect(root, findsNothing);
-      expect(workspace.tabs, isEmpty);
+      expect(workspace.tabs.single.server.id, 'one');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },

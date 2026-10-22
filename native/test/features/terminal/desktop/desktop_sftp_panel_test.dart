@@ -111,6 +111,16 @@ void main() {
       await tester.pump();
       expect(manager.opened, ['/srv']);
       expect(find.text('notes.txt'), findsOneWidget);
+      final fileRect = tester.getRect(find.text('notes.txt'));
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      manager.state.update(loadingDirectory: true);
+      await tester.pump();
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(tester.getRect(find.text('notes.txt')), fileRect);
+      manager.state.update(loadingDirectory: false);
+      await tester.pump();
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(tester.getRect(find.text('notes.txt')), fileRect);
       expect(find.text('Favorites'), findsNothing);
       expect(find.byTooltip('Transfers'), findsNothing);
       expect(
