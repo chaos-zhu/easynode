@@ -24,6 +24,8 @@ services:
     depends_on:
       easynode-guacd:
         condition: service_healthy
+      watchtower:
+        condition: service_healthy
     networks:
       - easynode-network
     labels:
@@ -40,6 +42,7 @@ services:
       interval: 5s
       timeout: 2s
       retries: 10
+      start_period: 10s
     networks:
       - easynode-network
     labels:
@@ -54,6 +57,13 @@ services:
     command: --schedule "0 */5 * * * *" --label-enable # 每5分钟检测一次更新
     environment:
       - TZ=Asia/Shanghai
+      # - DOCKER_API_VERSION=1.40 # 如果 watchtower 启动失败，启用这个环境变量
+    healthcheck:
+      test: ["CMD", "/watchtower", "--health-check"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
 
 networks:
   easynode-network:
