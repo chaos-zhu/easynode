@@ -50,14 +50,13 @@ services:
 
   watchtower:
     container_name: easynode-watchtower
-    image: docker.cnb.cool/chaoszhu/easynode/watchtower:latest # cnb加速
+    image: docker.cnb.cool/chaoszhu/easynode/watchtower:latest # 同步 nickfedor/watchtower:latest，默认自动协商 Docker API
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --schedule "0 */5 * * * *" --label-enable # 每5分钟检测一次更新
     environment:
       - TZ=Asia/Shanghai
-      # - DOCKER_API_VERSION=1.40 # 如果 watchtower 启动失败，启用这个环境变量
     healthcheck:
       test: ["CMD", "/watchtower", "--health-check"]
       interval: 5s
