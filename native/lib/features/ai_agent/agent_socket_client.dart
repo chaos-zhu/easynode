@@ -176,6 +176,39 @@ class AgentSocketClient {
     );
   }
 
+  void runTerminal({
+    required String input,
+    required String modelId,
+    required String permission,
+    required String hostId,
+    required String hostName,
+    String? sessionId,
+  }) {
+    _socket?.emit('ws_agent_run', {
+      if (sessionId != null && sessionId.isNotEmpty) 'sessionId': sessionId,
+      'input': input.trim(),
+      'modelId': modelId,
+      'permission': permission,
+      'scope': 'terminal',
+      'hostId': hostId,
+      'hostIds': [hostId],
+      'terminalPermission': permission,
+      'terminalContext': {
+        'hostName': hostName,
+        'capturedAt': DateTime.now().millisecondsSinceEpoch,
+        'output': '',
+      },
+    });
+  }
+
+  void terminalProgress(String requestId, Map<String, dynamic> progress) =>
+      _socket?.emit('ws_terminal_command_progress', {
+        'requestId': requestId,
+        ...progress,
+      });
+  void terminalResult(String requestId, Map<String, dynamic> result) => _socket
+      ?.emit('ws_terminal_command_result', {'requestId': requestId, ...result});
+
   void stop() => _socket?.emit('ws_agent_stop');
 
   void approve(

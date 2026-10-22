@@ -14,6 +14,10 @@ import 'editor/editor_language.dart';
 
 enum SftpConnectionStatus { disconnected, connecting, connected, error }
 
+class SftpTransferCancelled implements Exception {
+  const SftpTransferCancelled();
+}
+
 class SftpConnectTimeoutException implements Exception {
   const SftpConnectTimeoutException();
 
@@ -445,6 +449,7 @@ class SftpSessionManager extends ChangeNotifier {
     String remotePath,
     File localFile, {
     void Function(int received, int? total)? onProgress,
+    bool Function()? shouldCancel,
   }) async {
     final state = activeSession;
     if (state == null) {
@@ -466,6 +471,7 @@ class SftpSessionManager extends ChangeNotifier {
     try {
       var received = 0;
       await for (final chunk in remote.read()) {
+        if (shouldCancel?.call() == true) throw const SftpTransferCancelled();
         sink.add(chunk);
         received += chunk.length;
         onProgress?.call(received, total);
@@ -475,6 +481,47 @@ class SftpSessionManager extends ChangeNotifier {
       await sink.close();
       await remote.close();
     }
+  }
+
+  /// Desktop transfers stream local files, including directory uploads, and
+  /// leave ownership of task progress/cancellation with the caller.
+  Future<void> uploadToRemoteFile(
+    String remotePath,
+    File localFile, {
+    void Function(int sent, int total)? onProgress,
+    bool Function()? shouldCancel,
+  }) async {
+    final state = activeSession;
+    final connection = state == null ? null : _connections[state.server.id];
+    if (connection == null) throw StateError('No active SFTP connection');
+    await _ensureRemoteDirectory(connection.sftp, parentPath(remotePath));
+    if (shouldCancel?.call() == true) throw const SftpTransferCancelled();
+    final total = await localFile.length();
+    final remote = await connection.sftp.open(
+      remotePath,
+      mode:
+          SftpFileOpenMode.write |
+          SftpFileOpenMode.create |
+          SftpFileOpenMode.truncate,
+    );
+    try {
+      var sent = 0;
+      await for (final chunk in localFile.openRead()) {
+        if (shouldCancel?.call() == true) throw const SftpTransferCancelled();
+        await remote.writeBytes(Uint8List.fromList(chunk), offset: sent);
+        sent += chunk.length;
+        onProgress?.call(sent, total);
+      }
+    } finally {
+      await remote.close();
+    }
+  }
+
+  Future<void> ensureRemoteDirectory(String path) async {
+    final state = activeSession;
+    final connection = state == null ? null : _connections[state.server.id];
+    if (connection == null) throw StateError('No active SFTP connection');
+    await _ensureRemoteDirectory(connection.sftp, path);
   }
 
   /// Returns the size of [remotePath] via SFTP stat.
@@ -531,6 +578,11 @@ class SftpSessionManager extends ChangeNotifier {
   }
 
   Future<void> writeTextFile(String remotePath, String content) async {
+    await writeFileBytes(remotePath, Uint8List.fromList(utf8.encode(content)));
+  }
+
+  /// Binary-safe writer used by the desktop editor to preserve file encoding.
+  Future<void> writeFileBytes(String remotePath, Uint8List bytes) async {
     final state = activeSession;
     if (state == null) {
       throw StateError('No active SFTP session');
@@ -539,11 +591,7 @@ class SftpSessionManager extends ChangeNotifier {
     if (connection == null) {
       throw StateError('No active SFTP connection');
     }
-    await _writeRemoteFile(
-      connection.sftp,
-      remotePath,
-      Uint8List.fromList(utf8.encode(content)),
-    );
+    await _writeRemoteFile(connection.sftp, remotePath, bytes);
   }
 
   Future<Uint8List> zipEntries(List<SftpFileEntry> entries) async {
@@ -779,6 +827,22 @@ class SftpSessionManager extends ChangeNotifier {
       state.showHidden,
     );
     return entries.where((entry) => entry.isDirectory).toList(growable: false);
+  }
+
+  /// Follows a symbolic link to distinguish directories from editable files.
+  Future<bool> isRemoteDirectory(String path) async {
+    final state = activeSession;
+    final connection = state == null ? null : _connections[state.server.id];
+    if (connection == null) throw StateError('No active SFTP connection');
+    return (await connection.sftp.stat(path)).isDirectory;
+  }
+
+  /// Lists another directory without changing the visible browser location.
+  Future<List<SftpFileEntry>> listEntriesAt(String path) async {
+    final state = activeSession;
+    final connection = state == null ? null : _connections[state.server.id];
+    if (connection == null) throw StateError('No active SFTP connection');
+    return _listDirectory(connection.sftp, path, true);
   }
 
   Future<void> goParent() async {

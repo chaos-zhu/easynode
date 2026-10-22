@@ -1,7 +1,8 @@
 part of 'agent_panel.dart';
 
 class AgentHistorySheet extends ConsumerWidget {
-  const AgentHistorySheet({super.key});
+  const AgentHistorySheet({super.key, this.showCloseButton = false});
+  final bool showCloseButton;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,6 +32,12 @@ class AgentHistorySheet extends ConsumerWidget {
                 },
                 icon: const Icon(Icons.add),
               ),
+              if (showCloseButton)
+                IconButton(
+                  tooltip: l.tr('common.close'),
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
             ],
           ),
         ),

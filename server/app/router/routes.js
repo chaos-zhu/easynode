@@ -1,5 +1,5 @@
 import { getSSHList, addSSH, updateSSH, removeSSH, getCommand, decryptPrivateKey, getRdpToken } from '../controller/ssh.js'
-import { getSftpFavorites } from '../controller/sftp.js'
+import { getSftpFavorites, addSftpFavorite, removeSftpFavorite } from '../controller/sftp.js'
 import { addHost, updateHost, batchUpdateHost, removeHost, importHost, updateLastConnectTime } from '../controller/host.js'
 import { login, getpublicKey, updatePwd, getEasynodeVersion, getMFA2Status, getMFA2Code, enableMFA2, disableMFA2, getPlusInfo, getPlusDiscount, getPlusConf, updatePlusKey, getPlusDevices, releasePlusDevice } from '../controller/user.js'
 import { getNotifyConfig, updateNotifyConfig, getNotifyList, updateNotifyList } from '../controller/notify.js'
@@ -509,7 +509,9 @@ const sftp = [
     method: 'get',
     path: '/sftp/favorites/:hostId',
     controller: getSftpFavorites
-  }
+  },
+  { method: 'post', path: '/sftp/favorites/:hostId', controller: addSftpFavorite },
+  { method: 'delete', path: '/sftp/favorites/:hostId', controller: removeSftpFavorite }
 ]
 
 export default [].concat(

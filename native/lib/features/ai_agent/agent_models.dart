@@ -197,6 +197,7 @@ class AgentSessionSummary {
 
 class AgentSession {
   AgentSession({
+    this.hostId = '',
     required this.id,
     required this.title,
     required this.scope,
@@ -209,6 +210,7 @@ class AgentSession {
     required this.usage,
   });
 
+  final String hostId;
   final String id;
   final String title;
   final String scope;
@@ -221,6 +223,7 @@ class AgentSession {
   final AgentUsage usage;
 
   factory AgentSession.fromJson(Map<String, dynamic> json) => AgentSession(
+    hostId: json['hostId']?.toString() ?? '',
     id: (json['id'] ?? json['_id'] ?? '').toString(),
     title: json['title']?.toString() ?? '',
     scope: json['scope']?.toString() ?? 'ops',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/ui/app_color_theme.dart';
+import '../../core/ui/desktop_popover.dart';
 import '../../l10n/app_localizations.dart';
 import 'agent_feedback.dart';
 import 'agent_ui_tokens.dart';
@@ -31,21 +32,115 @@ Future<T?> showAgentSingleSelectionSheet<T>({
   required T? selected,
   bool searchable = false,
   String? searchHint,
-}) => showModalBottomSheet<T>(
-  context: context,
-  isScrollControlled: true,
-  useSafeArea: true,
-  backgroundColor: Colors.transparent,
-  builder: (_) => _AgentSelectionSheet<T>(
-    title: title,
-    icon: icon,
-    options: options,
-    selected: selected == null ? <T>{} : {selected},
-    searchable: searchable,
-    searchHint: searchHint,
-    multiple: false,
-  ),
-);
+  bool desktopPopover = false,
+}) {
+  if (desktopPopover) {
+    return showDesktopPopover<T>(
+      context: context,
+      width: 300,
+      maxHeight: 360,
+      builder: (_) => _AgentSelectionPopover<T>(
+        options: options,
+        selected: selected,
+        searchable: searchable,
+        searchHint: searchHint,
+      ),
+    );
+  }
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _AgentSelectionSheet<T>(
+      title: title,
+      icon: icon,
+      options: options,
+      selected: selected == null ? <T>{} : {selected},
+      searchable: searchable,
+      searchHint: searchHint,
+      multiple: false,
+    ),
+  );
+}
+
+class _AgentSelectionPopover<T> extends StatefulWidget {
+  const _AgentSelectionPopover({
+    required this.options,
+    required this.selected,
+    required this.searchable,
+    this.searchHint,
+  });
+  final List<AgentSelectionOption<T>> options;
+  final T? selected;
+  final bool searchable;
+  final String? searchHint;
+  @override
+  State<_AgentSelectionPopover<T>> createState() =>
+      _AgentSelectionPopoverState<T>();
+}
+
+class _AgentSelectionPopoverState<T> extends State<_AgentSelectionPopover<T>> {
+  String _query = '';
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: const EdgeInsets.all(6),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.searchable)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: TextField(
+              autofocus: true,
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                hintText: widget.searchHint,
+                isDense: true,
+                prefixIcon: const Icon(Icons.search, size: 16),
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (value) =>
+                  setState(() => _query = value.toLowerCase()),
+            ),
+          ),
+        for (final option in widget.options.where(
+          (o) => '${o.title} ${o.searchText}'.toLowerCase().contains(_query),
+        ))
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: option.value == widget.selected
+                  ? context.colors.accent
+                  : context.colors.text,
+              alignment: Alignment.centerLeft,
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            onPressed: option.enabled
+                ? () => Navigator.pop(context, option.value)
+                : null,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    option.title,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+                if (option.value == widget.selected)
+                  const Icon(Icons.check, size: 14),
+              ],
+            ),
+          ),
+      ],
+    ),
+  );
+}
 
 Future<void> showAgentMultiSelectionSheet<T>({
   required BuildContext context,

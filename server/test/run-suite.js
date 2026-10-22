@@ -20,6 +20,7 @@ const suites = {
     'test-ping-output.js',
     'test-free-output.js',
     'test-sftp-cache-path.js',
+    'test-sftp-favorites.js',
     'test-rsync-command.js',
     'test-cookie-config.js',
     'test-rest-api-auth.js',

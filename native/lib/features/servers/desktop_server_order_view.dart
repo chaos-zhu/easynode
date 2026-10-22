@@ -131,10 +131,8 @@ class _DesktopServerOrderViewState
                 (sum, c) => sum + DesktopServerCell.columnWidth(c) + 32,
               ),
         );
-        return Scrollbar(
-          controller: _horizontal,
-          thumbVisibility: true,
-          notificationPredicate: (n) => n.metrics.axis == Axis.horizontal,
+        return ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: SingleChildScrollView(
             controller: _horizontal,
             scrollDirection: Axis.horizontal,

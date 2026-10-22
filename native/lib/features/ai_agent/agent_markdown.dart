@@ -107,6 +107,16 @@ class _CodeBlock extends StatelessWidget {
                 ),
               ),
             ),
+            if (context
+                    .dependOnInheritedWidgetOfExactType<AgentTerminalActions>()
+                case final actions?)
+              IconButton(
+                tooltip: AppLocalizations.of(
+                  context,
+                ).tr('desktop.terminal.send'),
+                onPressed: () => actions.execute(code),
+                icon: const Icon(Icons.play_arrow_outlined, size: 17),
+              ),
             IconButton(
               tooltip: AppLocalizations.of(context).tr('common.copy'),
               onPressed: () => Clipboard.setData(ClipboardData(text: code)),

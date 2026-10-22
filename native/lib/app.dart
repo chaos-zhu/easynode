@@ -389,6 +389,9 @@ class _AppRootState extends ConsumerState<_AppRoot>
     return MaterialApp(
       title: 'EasyNode',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: desktop
+          ? const MaterialScrollBehavior().copyWith(scrollbars: false)
+          : null,
       navigatorKey: _navigatorKey,
       navigatorObservers: [_agentNavigationObserver],
       scaffoldMessengerKey: _messengerKey,

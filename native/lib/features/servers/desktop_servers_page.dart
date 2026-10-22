@@ -27,7 +27,8 @@ import 'server_repository.dart';
 
 /// Desktop catalog and instance management; no SSH configuration is fetched.
 class DesktopServersPage extends ConsumerStatefulWidget {
-  const DesktopServersPage({super.key});
+  const DesktopServersPage({super.key, this.onConnect});
+  final ValueChanged<ServerModel>? onConnect;
 
   @override
   ConsumerState<DesktopServersPage> createState() => _DesktopServersPageState();
@@ -723,6 +724,17 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
       selected ? _selectedIds.addAll(ids) : _selectedIds.removeAll(ids);
     }),
     onAction: _comingSoon,
+    onConnect: (server) {
+      if (server.isWindows) {
+        _comingSoon();
+      } else if (!server.canConnect) {
+        _openForm(server: server);
+      } else if (widget.onConnect != null) {
+        widget.onConnect!(server);
+      } else {
+        _comingSoon();
+      }
+    },
     onEdit: (server) => _openForm(server: server),
     onDelete: _confirmDelete,
   );
@@ -768,6 +780,7 @@ class _ServerTable extends ConsumerStatefulWidget {
     required this.selectedIds,
     required this.onSelection,
     required this.onAction,
+    required this.onConnect,
     required this.onEdit,
     required this.onDelete,
   });
@@ -778,6 +791,7 @@ class _ServerTable extends ConsumerStatefulWidget {
   final Set<String> selectedIds;
   final void Function(Iterable<String> ids, bool selected) onSelection;
   final VoidCallback onAction;
+  final ValueChanged<ServerModel> onConnect;
   final ValueChanged<ServerModel> onEdit;
   final ValueChanged<ServerModel> onDelete;
 
@@ -860,15 +874,13 @@ class _ServerTableState extends ConsumerState<_ServerTable> {
         children: [
           Expanded(
             child: LayoutBuilder(
-              builder: (context, constraints) => Scrollbar(
-                controller: _horizontalController,
-                thumbVisibility: true,
-                notificationPredicate: (notification) =>
-                    notification.metrics.axis == Axis.horizontal,
+              builder: (context, constraints) => ScrollConfiguration(
+                behavior: ScrollConfiguration.of(
+                  context,
+                ).copyWith(scrollbars: false),
                 child: SingleChildScrollView(
                   controller: _horizontalController,
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.only(bottom: 10),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(minWidth: constraints.maxWidth),
                     child: table(
@@ -949,7 +961,7 @@ class _ServerTableState extends ConsumerState<_ServerTable> {
                             children: [
                               Flexible(
                                 child: TextButton.icon(
-                                  onPressed: widget.onAction,
+                                  onPressed: () => widget.onConnect(host),
                                   icon: const Icon(Icons.link, size: 16),
                                   label: Text(
                                     l.tr('desktop.servers.connect'),

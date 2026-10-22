@@ -11,17 +11,21 @@ Future<T?> showDesktopPopover<T>({
   required WidgetBuilder builder,
   double? width,
   double maxHeight = 280,
+  Offset? position,
+  bool shrinkWrapWidth = false,
 }) {
   final navigator = Navigator.of(context, rootNavigator: true);
   final overlay = navigator.overlay!.context.findRenderObject()! as RenderBox;
   final trigger = context.findRenderObject()! as RenderBox;
-  final anchor =
-      trigger.localToGlobal(Offset.zero, ancestor: overlay) & trigger.size;
+  final anchor = position == null
+      ? trigger.localToGlobal(Offset.zero, ancestor: overlay) & trigger.size
+      : position & Size.zero;
   return navigator.push<T>(
     _DesktopPopoverRoute<T>(
       anchor: anchor,
       width: width ?? anchor.width,
       maxHeight: maxHeight,
+      shrinkWrapWidth: shrinkWrapWidth,
       builder: builder,
       themes: InheritedTheme.capture(from: context, to: navigator.context),
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
@@ -35,6 +39,7 @@ class _DesktopPopoverRoute<T> extends PopupRoute<T> {
     required this.anchor,
     required this.width,
     required this.maxHeight,
+    required this.shrinkWrapWidth,
     required this.builder,
     required this.themes,
     required this.barrierLabel,
@@ -47,6 +52,7 @@ class _DesktopPopoverRoute<T> extends PopupRoute<T> {
   final Rect anchor;
   final double width;
   final double maxHeight;
+  final bool shrinkWrapWidth;
   final WidgetBuilder builder;
   final CapturedThemes themes;
   final bool reduceMotion;
@@ -84,6 +90,7 @@ class _DesktopPopoverRoute<T> extends PopupRoute<T> {
               width,
               maxHeight,
               MediaQuery.paddingOf(context) + const EdgeInsets.all(8),
+              shrinkWrapWidth,
             ),
             child: FadeTransition(
               opacity: animation.drive(CurveTween(curve: Curves.easeOutCubic)),
@@ -116,11 +123,18 @@ class _DesktopPopoverRoute<T> extends PopupRoute<T> {
 }
 
 class _PopoverLayout extends SingleChildLayoutDelegate {
-  const _PopoverLayout(this.anchor, this.width, this.maxHeight, this.padding);
+  const _PopoverLayout(
+    this.anchor,
+    this.width,
+    this.maxHeight,
+    this.padding,
+    this.shrinkWrapWidth,
+  );
   final Rect anchor;
   final double width;
   final double maxHeight;
   final EdgeInsets padding;
+  final bool shrinkWrapWidth;
   static const gap = 6.0;
 
   @override
@@ -132,7 +146,7 @@ class _PopoverLayout extends SingleChildLayoutDelegate {
     final below = constraints.maxHeight - padding.bottom - anchor.bottom - gap;
     final above = anchor.top - padding.top - gap;
     return BoxConstraints(
-      minWidth: panelWidth,
+      minWidth: shrinkWrapWidth ? 0 : panelWidth,
       maxWidth: panelWidth,
       maxHeight: math.min(maxHeight, math.max(0, math.max(below, above))),
     );
@@ -171,5 +185,6 @@ class _PopoverLayout extends SingleChildLayoutDelegate {
       anchor != oldDelegate.anchor ||
       width != oldDelegate.width ||
       maxHeight != oldDelegate.maxHeight ||
-      padding != oldDelegate.padding;
+      padding != oldDelegate.padding ||
+      shrinkWrapWidth != oldDelegate.shrinkWrapWidth;
 }

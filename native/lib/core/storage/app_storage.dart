@@ -49,6 +49,20 @@ class AppStorage {
 
   final SharedPreferences _prefs;
 
+  String get terminalAgentModel =>
+      _prefs.getString('desktop.terminal.agent.model') ?? '';
+  String get terminalAgentMode =>
+      _prefs.getString('desktop.terminal.agent.mode') ?? 'review';
+  Future<void> setTerminalAgentModel(String value) =>
+      _prefs.setString('desktop.terminal.agent.model', value);
+  Future<void> setTerminalAgentMode(String value) =>
+      _prefs.setString('desktop.terminal.agent.mode', value);
+
+  String get desktopTerminalPreferences =>
+      _prefs.getString('desktop.terminal.preferences.v1') ?? '';
+  Future<void> setDesktopTerminalPreferences(String value) =>
+      _prefs.setString('desktop.terminal.preferences.v1', value);
+
   static const _keyServerAddress = 'serverAddress';
   static const _keyUsername = 'username';
   static const _keySavePassword = 'savePassword';

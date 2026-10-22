@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/storage/app_storage.dart';
 import '../features/ai_agent/agent_controller.dart';
+import '../features/ai_agent/terminal_agent_binding.dart';
 import '../features/ai_agent/agent_mcp_models.dart';
 import '../features/ai_agent/agent_models.dart';
 import '../features/ai_agent/agent_repository.dart';
@@ -197,9 +198,20 @@ class AgentStateNotifier extends StateNotifier<AgentState> {
     required AgentRepository repository,
     required AgentSocketClient socket,
     required AppStorage storage,
+    TerminalAgentBinding? terminalBinding,
     Future<void> Function(Set<String>)? onPanelDataChanged,
-  }) : super(AgentState(modelId: storage.agentModel, mode: storage.agentMode)) {
+  }) : super(
+         AgentState(
+           modelId: terminalBinding == null
+               ? storage.agentModel
+               : storage.terminalAgentModel,
+           mode: terminalBinding == null
+               ? storage.agentMode
+               : storage.terminalAgentMode,
+         ),
+       ) {
     _controller = AgentController(
+      terminalBinding: terminalBinding,
       repository: repository,
       socket: socket,
       storage: storage,

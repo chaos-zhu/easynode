@@ -52,6 +52,7 @@ class ServerModel {
     required this.expired,
     required this.isConfig,
     required this.aiPolicy,
+    this.lastConnectTime,
   });
 
   final String id;
@@ -74,6 +75,7 @@ class ServerModel {
   final bool expired;
   final bool isConfig;
   final ServerAiPolicy aiPolicy;
+  final DateTime? lastConnectTime;
 
   factory ServerModel.fromJson(Map<String, dynamic> json) {
     final id = (json['id'] ?? json['_id'] ?? '').toString();
@@ -121,6 +123,7 @@ class ServerModel {
       expired: json['expired'] == true,
       isConfig: json['isConfig'] == true,
       aiPolicy: ServerAiPolicy.fromJson(json['aiPolicy']),
+      lastConnectTime: _parseDate(json['lastConnectTime']),
     );
   }
 

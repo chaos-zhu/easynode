@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../../core/storage/app_storage.dart';
 import 'agent_models.dart';
+import 'terminal_agent_binding.dart';
 import 'panel_catalog_refresh.dart';
 import 'agent_reducer.dart';
 import 'agent_repository.dart';
@@ -107,6 +108,7 @@ class AgentController {
     required AppStorage storage,
     required void Function(AgentState) emit,
     required AgentState Function() read,
+    this.terminalBinding,
     Future<void> Function(Set<String>)? onPanelDataChanged,
   }) : _repository = repository,
        _socket = socket,
@@ -128,6 +130,10 @@ class AgentController {
     _subscriptions.add(_socket.errors.listen(_handleConnectionError));
   }
 
+  final TerminalAgentBinding? terminalBinding;
+  final _cancelledTerminalRequests = <String>{};
+  final _activeTerminalRequests = <String>{};
+  bool _disposed = false;
   late final PanelCatalogRefresh _panelRefresh;
   final AgentRepository _repository;
   final AgentSocketClient _socket;
@@ -173,6 +179,15 @@ class AgentController {
   }
 
   void _handleEvent(Map<String, dynamic> event) {
+    if (event['type'] == 'terminal_command_request' &&
+        terminalBinding != null) {
+      unawaited(_executeTerminalCommand(event));
+      return;
+    }
+    if (event['type'] == 'terminal_command_cancel' && terminalBinding != null) {
+      unawaited(_cancelTerminalCommand(event['requestId']?.toString() ?? ''));
+      return;
+    }
     if (event['type'] == 'panel_data_changed') {
       _panelRefresh.schedule(event['domains']);
       return;
@@ -214,7 +229,9 @@ class AgentController {
     if (_read().sessionsLoading) return;
     _emit(_read().copyWith(sessionsLoading: true));
     try {
-      final sessions = await _repository.getSessions();
+      final sessions = terminalBinding == null
+          ? await _repository.getSessions()
+          : await _repository.getTerminalSessions(terminalBinding!.hostId);
       _emit(_read().copyWith(sessions: sessions, sessionsLoading: false));
     } catch (error) {
       _emit(_read().copyWith(sessionsLoading: false));
@@ -229,6 +246,9 @@ class AgentController {
     if (!current.connected) return 'agent_not_connected';
     if (current.modelId.isEmpty) return 'agent_model_required';
     if (current.conversation.running) return 'agent_running';
+    if (terminalBinding != null && !terminalBinding!.isConnected()) {
+      return 'desktop.terminal.notConnected';
+    }
     _emit(
       current.copyWith(
         conversation: current.conversation.copyWith(
@@ -242,6 +262,17 @@ class AgentController {
         ),
       ),
     );
+    if (terminalBinding != null) {
+      _socket.runTerminal(
+        input: content,
+        modelId: current.modelId,
+        permission: current.mode,
+        sessionId: current.conversation.sessionId,
+        hostId: terminalBinding!.hostId,
+        hostName: terminalBinding!.hostName,
+      );
+      return null;
+    }
     _socket.run(
       sessionId: current.conversation.sessionId,
       input: content,
@@ -251,7 +282,51 @@ class AgentController {
     return null;
   }
 
-  void stop() => _socket.stop();
+  void stop() {
+    _socket.stop();
+    for (final requestId in [..._activeTerminalRequests]) {
+      unawaited(_cancelTerminalCommand(requestId));
+    }
+  }
+
+  Future<void> _executeTerminalCommand(Map<String, dynamic> event) async {
+    final binding = terminalBinding!;
+    final id = event['requestId']?.toString() ?? '';
+    _activeTerminalRequests.add(id);
+    Map<String, dynamic> result;
+    try {
+      result = event['hostId'] != binding.hostId
+          ? {'ok': false, 'error': '终端命令目标不匹配'}
+          : await binding.execute(event['command']?.toString() ?? '', id, (
+              progress,
+            ) {
+              if (!_disposed && !_cancelledTerminalRequests.contains(id)) {
+                _socket.terminalProgress(id, progress);
+              }
+            });
+    } catch (error) {
+      result = {'ok': false, 'error': error.toString()};
+    }
+    _activeTerminalRequests.remove(id);
+    if (!_disposed && !_cancelledTerminalRequests.remove(id)) {
+      _socket.terminalResult(id, result);
+    }
+  }
+
+  Future<void> _cancelTerminalCommand(String id) async {
+    if (_cancelledTerminalRequests.contains(id)) return;
+    _cancelledTerminalRequests.add(id);
+    final result = await terminalBinding!.cancel(id);
+    if (!_disposed && result['ok'] != true) {
+      _emit(
+        _read().copyWith(
+          conversation: _read().conversation.copyWith(
+            error: result['error']?.toString(),
+          ),
+        ),
+      );
+    }
+  }
 
   void approve(String requestId, bool approved, {String scope = 'once'}) {
     _socket.approve(requestId, approved: approved, scope: scope);
@@ -267,13 +342,21 @@ class AgentController {
   }
 
   Future<void> setModel(String model) async {
-    await _storage.setAgentModel(model);
+    if (terminalBinding == null) {
+      await _storage.setAgentModel(model);
+    } else {
+      await _storage.setTerminalAgentModel(model);
+    }
     _emit(_read().copyWith(modelId: model));
   }
 
   Future<void> setMode(String mode) async {
     if (!const {'review', 'assist', 'authorized'}.contains(mode)) return;
-    await _storage.setAgentMode(mode);
+    if (terminalBinding == null) {
+      await _storage.setAgentMode(mode);
+    } else {
+      await _storage.setTerminalAgentMode(mode);
+    }
     _emit(_read().copyWith(mode: mode));
   }
 
@@ -285,7 +368,12 @@ class AgentController {
   Future<void> loadSession(String id) async {
     if (_read().conversation.running) return;
     final session = await _repository.getSession(id);
-    if (session.scope != 'ops') throw StateError('Not an ops session');
+    if (session.scope != (terminalBinding == null ? 'ops' : 'terminal') ||
+        terminalBinding != null &&
+            session.hostId != terminalBinding!.hostId &&
+            !session.hostIds.contains(terminalBinding!.hostId)) {
+      throw StateError('Assistant session scope does not match');
+    }
     final current = _read();
     _emit(
       current.copyWith(
@@ -321,7 +409,11 @@ class AgentController {
   }
 
   Future<void> clearSessions() async {
-    await _repository.clearSessions();
+    if (terminalBinding == null) {
+      await _repository.clearSessions();
+    } else {
+      await _repository.clearTerminalSessions(terminalBinding!.hostId);
+    }
     newConversation();
     await refreshSessions();
   }
@@ -380,6 +472,10 @@ class AgentController {
   }
 
   void dispose() {
+    _disposed = true;
+    for (final id in _activeTerminalRequests) {
+      unawaited(terminalBinding!.cancel(id));
+    }
     _panelRefresh.dispose();
     for (final subscription in _subscriptions) {
       unawaited(subscription.cancel());

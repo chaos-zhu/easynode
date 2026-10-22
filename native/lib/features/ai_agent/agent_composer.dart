@@ -5,11 +5,13 @@ class _AgentComposer extends ConsumerWidget {
     required this.controller,
     required this.state,
     required this.onSend,
+    this.desktopLayout = false,
   });
 
   final TextEditingController controller;
   final AgentState state;
   final VoidCallback onSend;
+  final bool desktopLayout;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,26 +32,32 @@ class _AgentComposer extends ConsumerWidget {
                 key: const Key('agent-composer-options'),
                 children: [
                   Expanded(
-                    child: _ComposerPickerButton(
-                      icon: Icons.shield_outlined,
-                      label: _modeLabel(l, state.mode),
-                      tooltip: l.tr('agent.selectMode'),
-                      enabled: !state.conversation.running,
-                      onTap: () => _pickMode(context, ref),
+                    child: Builder(
+                      builder: (anchor) => _ComposerPickerButton(
+                        desktopLayout: desktopLayout,
+                        icon: Icons.shield_outlined,
+                        label: _modeLabel(l, state.mode),
+                        tooltip: l.tr('agent.selectMode'),
+                        enabled: !state.conversation.running,
+                        onTap: () => _pickMode(anchor, ref),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _ComposerPickerButton(
-                      icon: Icons.memory_outlined,
-                      label: state.modelId.isEmpty
-                          ? l.tr('agent.model')
-                          : state.modelId,
-                      tooltip: l.tr('agent.selectModel'),
-                      enabled:
-                          !state.conversation.running &&
-                          state.models.isNotEmpty,
-                      onTap: () => _pickModel(context, ref),
+                    child: Builder(
+                      builder: (anchor) => _ComposerPickerButton(
+                        desktopLayout: desktopLayout,
+                        icon: Icons.memory_outlined,
+                        label: state.modelId.isEmpty
+                            ? l.tr('agent.model')
+                            : state.modelId,
+                        tooltip: l.tr('agent.selectModel'),
+                        enabled:
+                            !state.conversation.running &&
+                            state.models.isNotEmpty,
+                        onTap: () => _pickModel(anchor, ref),
+                      ),
                     ),
                   ),
                 ],
@@ -61,15 +69,20 @@ class _AgentComposer extends ConsumerWidget {
                 minLines: 1,
                 maxLines: 5,
                 textInputAction: TextInputAction.newline,
+                style: desktopLayout ? const TextStyle(fontSize: 13) : null,
                 decoration: InputDecoration(
                   hintText: l.tr('agent.inputHint'),
                   filled: true,
-                  fillColor: context.colors.chip,
+                  fillColor: desktopLayout
+                      ? context.colors.card
+                      : context.colors.chip,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(
-                      AgentUiTokens.radiusMedium,
+                      desktopLayout ? 4 : AgentUiTokens.radiusMedium,
                     ),
-                    borderSide: BorderSide.none,
+                    borderSide: desktopLayout
+                        ? BorderSide(color: context.colors.border)
+                        : BorderSide.none,
                   ),
                   suffixIcon: state.conversation.running
                       ? IconButton(
@@ -106,6 +119,7 @@ class _AgentComposer extends ConsumerWidget {
     final current = ref.read(agentControllerProvider);
     final result = await showAgentSingleSelectionSheet<String>(
       context: context,
+      desktopPopover: desktopLayout,
       title: l.tr('agent.selectMode'),
       icon: Icons.shield_outlined,
       selected: current.mode,
@@ -133,6 +147,7 @@ class _AgentComposer extends ConsumerWidget {
     final current = ref.read(agentControllerProvider);
     final result = await showAgentSingleSelectionSheet<String>(
       context: context,
+      desktopPopover: desktopLayout,
       title: l.tr('agent.selectModel'),
       icon: Icons.memory_outlined,
       selected: current.modelId,
@@ -164,9 +179,11 @@ class _ComposerPickerButton extends StatelessWidget {
     required this.tooltip,
     required this.enabled,
     required this.onTap,
+    this.desktopLayout = false,
   });
 
   final IconData icon;
+  final bool desktopLayout;
   final String label;
   final String tooltip;
   final bool enabled;
@@ -176,13 +193,22 @@ class _ComposerPickerButton extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
     message: tooltip,
     child: Material(
-      color: context.colors.chip,
-      borderRadius: BorderRadius.circular(AgentUiTokens.radiusSmall),
+      color: desktopLayout ? context.colors.card : context.colors.chip,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          desktopLayout ? 4 : AgentUiTokens.radiusSmall,
+        ),
+        side: desktopLayout
+            ? BorderSide(color: context.colors.border)
+            : BorderSide.none,
+      ),
       child: InkWell(
         onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(AgentUiTokens.radiusSmall),
+        borderRadius: BorderRadius.circular(
+          desktopLayout ? 4 : AgentUiTokens.radiusSmall,
+        ),
         child: SizedBox(
-          height: 40,
+          height: desktopLayout ? 28 : 40,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
@@ -210,7 +236,9 @@ class _ComposerPickerButton extends StatelessWidget {
                   ),
                 ),
                 Icon(
-                  Icons.keyboard_arrow_up_rounded,
+                  desktopLayout
+                      ? Icons.keyboard_arrow_down
+                      : Icons.keyboard_arrow_up_rounded,
                   size: 18,
                   color: context.colors.muted,
                 ),

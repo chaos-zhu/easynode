@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
@@ -14,6 +15,7 @@ import 'package:re_highlight/re_highlight.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/ui/app_color_theme.dart';
+import '../../core/ui/app_dialog.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/agent_providers.dart';
 import '../settings/ai_agent_settings_page.dart';
@@ -38,9 +40,20 @@ final Highlight _agentHighlighter = Highlight()
   ..registerLanguages(builtinAllLanguages);
 
 class AgentPanel extends ConsumerStatefulWidget {
-  const AgentPanel({super.key, this.showHeader = true});
+  const AgentPanel({
+    super.key,
+    this.showHeader = true,
+    this.prefill,
+    this.terminalHostName,
+    this.onClose,
+    this.desktopLayout = false,
+  });
 
   final bool showHeader;
+  final bool desktopLayout;
+  final ValueListenable<String>? prefill;
+  final String? terminalHostName;
+  final VoidCallback? onClose;
 
   @override
   ConsumerState<AgentPanel> createState() => _AgentPanelState();
@@ -60,11 +73,24 @@ class _AgentPanelState extends ConsumerState<AgentPanel> {
   void initState() {
     super.initState();
     _scroll.addListener(_handleScroll);
+    widget.prefill?.addListener(_applyPrefill);
+    _applyPrefill();
     Future.microtask(() => ref.read(agentControllerProvider.notifier).open());
+  }
+
+  void _applyPrefill() {
+    final text = widget.prefill?.value ?? '';
+    if (text.isNotEmpty) {
+      _draft.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
   }
 
   @override
   void dispose() {
+    widget.prefill?.removeListener(_applyPrefill);
     _draft.dispose();
     _transcriptFocus.dispose();
     _scroll.removeListener(_handleScroll);
@@ -149,7 +175,12 @@ class _AgentPanelState extends ConsumerState<AgentPanel> {
             },
           ),
         ),
-        _AgentComposer(controller: _draft, state: state, onSend: _send),
+        _AgentComposer(
+          controller: _draft,
+          state: state,
+          onSend: _send,
+          desktopLayout: widget.desktopLayout,
+        ),
       ],
     );
   }
@@ -163,6 +194,8 @@ class _AgentPanelState extends ConsumerState<AgentPanel> {
       Positioned.fill(
         child: state.conversation.messages.isEmpty
             ? _AgentEmptyState(
+                desktopLayout: widget.desktopLayout,
+                terminalHostName: widget.terminalHostName,
                 connected: state.connected,
                 connecting:
                     state.connection == AgentConnectionStatus.connecting,
@@ -239,7 +272,7 @@ class _AgentPanelState extends ConsumerState<AgentPanel> {
   Widget _buildHeader(BuildContext context, AgentState state) {
     final l = AppLocalizations.of(context);
     return Container(
-      height: 52,
+      height: widget.desktopLayout ? 42 : 52,
       padding: const EdgeInsets.only(left: 4, right: 4),
       decoration: BoxDecoration(
         color: context.colors.card,
@@ -255,12 +288,19 @@ class _AgentPanelState extends ConsumerState<AgentPanel> {
           Expanded(
             child: Text(
               state.conversation.title.isEmpty
-                  ? l.tr('agent.title')
+                  ? (widget.terminalHostName == null
+                        ? l.tr('agent.title')
+                        : l.trf('desktop.terminal.aiTitle', [
+                            widget.terminalHostName!,
+                          ]))
                   : state.conversation.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontWeight: FontWeight.w800,
+                fontSize: widget.desktopLayout ? 13 : null,
+                fontWeight: widget.desktopLayout
+                    ? FontWeight.w600
+                    : FontWeight.w800,
                 color: context.colors.text,
               ),
             ),
@@ -292,16 +332,12 @@ class _AgentPanelState extends ConsumerState<AgentPanel> {
           ),
           IconButton(
             tooltip: l.tr('agent.settings'),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const AiAgentSettingsPage(),
-              ),
-            ),
+            onPressed: () => _showSettings(context),
             icon: const Icon(Icons.settings_outlined),
           ),
           IconButton(
             tooltip: l.tr('common.close'),
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: widget.onClose ?? () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.close),
           ),
         ],
@@ -406,6 +442,28 @@ class _AgentPanelState extends ConsumerState<AgentPanel> {
       return;
     }
     if (!context.mounted) return;
+    if (widget.desktopLayout) {
+      final container = ProviderScope.containerOf(context);
+      await showAppDialog<void>(
+        context: context,
+        builder: (_) => UncontrolledProviderScope(
+          container: container,
+          child: Dialog(
+            backgroundColor: context.colors.card,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: SizedBox(
+              width: 500,
+              height: MediaQuery.sizeOf(context).height * .7,
+              child: const AgentHistorySheet(showCloseButton: true),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -414,6 +472,31 @@ class _AgentPanelState extends ConsumerState<AgentPanel> {
       builder: (_) => const FractionallySizedBox(
         heightFactor: 0.78,
         child: AgentHistorySheet(),
+      ),
+    );
+  }
+
+  Future<void> _showSettings(BuildContext context) async {
+    if (!widget.desktopLayout) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const AiAgentSettingsPage()),
+      );
+      return;
+    }
+    final container = ProviderScope.containerOf(context);
+    await showAppDialog<void>(
+      context: context,
+      builder: (_) => UncontrolledProviderScope(
+        container: container,
+        child: Dialog(
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          child: SizedBox(
+            width: 900,
+            height: MediaQuery.sizeOf(context).height * .8,
+            child: const AiAgentSettingsPage(desktopLayout: true),
+          ),
+        ),
       ),
     );
   }
@@ -505,10 +588,14 @@ class _AgentNotice extends StatelessWidget {
 
 class _AgentEmptyState extends StatelessWidget {
   const _AgentEmptyState({
+    this.desktopLayout = false,
+    this.terminalHostName,
     required this.connected,
     required this.connecting,
     required this.onRetry,
   });
+  final String? terminalHostName;
+  final bool desktopLayout;
   final bool connected;
   final bool connecting;
   final VoidCallback onRetry;
@@ -516,44 +603,100 @@ class _AgentEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.auto_awesome_outlined,
-              size: 44,
-              color: context.colors.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l.tr('agent.empty.title'),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: context.colors.text,
+    if (desktopLayout && terminalHostName != null) {
+      return SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 48),
+          child: Column(
+            children: [
+              Icon(
+                Icons.chat_bubble_outline,
+                size: 32,
+                color: context.colors.muted,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              connected ? l.tr('agent.empty.body') : l.tr('agent.connecting'),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: context.colors.muted),
-            ),
-            if (!connected && !connecting) ...[
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: Text(l.tr('agent.reconnect')),
+              const SizedBox(height: 12),
+              Text(
+                l.trf('desktop.terminal.aiScope', [terminalHostName!]),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: context.colors.text),
               ),
+              const SizedBox(height: 6),
+              Text(
+                l.tr('desktop.terminal.aiOutput'),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: context.colors.muted),
+              ),
+              if (!connected && !connecting) ...[
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh, size: 14),
+                  label: Text(l.tr('agent.reconnect')),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
+      );
+    }
+    final content = Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.auto_awesome_outlined,
+            size: 44,
+            color: context.colors.primary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l.tr('agent.empty.title'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: context.colors.text,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            connected
+                ? (terminalHostName == null
+                      ? l.tr('agent.empty.body')
+                      : l.trf('desktop.terminal.aiBody', [terminalHostName!]))
+                : l.tr('agent.connecting'),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: context.colors.muted),
+          ),
+          if (!connected && !connecting) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: Text(l.tr('agent.reconnect')),
+            ),
+          ],
+        ],
       ),
     );
+    return Center(
+      child: terminalHostName == null
+          ? content
+          : SingleChildScrollView(child: content),
+    );
   }
+}
+
+/// Optional terminal action, shared by every Markdown code block in the panel.
+class AgentTerminalActions extends InheritedWidget {
+  const AgentTerminalActions({
+    super.key,
+    required this.execute,
+    required super.child,
+  });
+  final ValueChanged<String> execute;
+  @override
+  bool updateShouldNotify(AgentTerminalActions oldWidget) =>
+      execute != oldWidget.execute;
 }

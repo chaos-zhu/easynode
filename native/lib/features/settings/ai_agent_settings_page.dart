@@ -15,7 +15,8 @@ part 'ai_agent_settings_widgets.dart';
 part 'ai_agent_host_policy_widgets.dart';
 
 class AiAgentSettingsPage extends ConsumerStatefulWidget {
-  const AiAgentSettingsPage({super.key});
+  const AiAgentSettingsPage({super.key, this.desktopLayout = false});
+  final bool desktopLayout;
 
   @override
   ConsumerState<AiAgentSettingsPage> createState() =>
@@ -87,6 +88,24 @@ class _AiAgentSettingsPageState extends ConsumerState<AiAgentSettingsPage>
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
+        automaticallyImplyLeading: !widget.desktopLayout,
+        toolbarHeight: widget.desktopLayout ? 48 : null,
+        titleTextStyle: widget.desktopLayout
+            ? TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: context.colors.text,
+              )
+            : null,
+        actions: widget.desktopLayout
+            ? [
+                IconButton(
+                  tooltip: l.tr('common.close'),
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, size: 18),
+                ),
+              ]
+            : null,
         backgroundColor: context.colors.canvas,
         elevation: 0,
         scrolledUnderElevation: 0,

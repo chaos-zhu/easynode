@@ -275,6 +275,36 @@ class ApiClient {
     return _request(() => _dio.post(path, data: data));
   }
 
+  /// Authenticated binary resources use the same cookie and certificate path.
+  Future<Uint8List> getBytes(String path) async {
+    Uint8List? bytes;
+    await _request(() async {
+      final response = await _dio.get<List<int>>(
+        path,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      bytes = Uint8List.fromList(response.data ?? const []);
+      return Response(
+        requestOptions: response.requestOptions,
+        data: <String, dynamic>{},
+      );
+    });
+    return bytes!;
+  }
+
+  Future<Map<String, dynamic>> uploadFile(
+    String path,
+    Uint8List bytes,
+    String filename,
+  ) => _request(
+    () => _dio.post(
+      path,
+      data: FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: filename),
+      }),
+    ),
+  );
+
   Future<Map<String, dynamic>> postJsonWithReceiveTimeout(
     String path,
     Map<String, dynamic> data,

@@ -100,6 +100,23 @@ class AgentRepository {
   Future<void> deleteMcpServer(String id) =>
       _api.deleteJson('/agent/mcp-servers/$id');
 
+  Future<List<AgentSessionSummary>> getTerminalSessions(String hostId) async {
+    final response = await _api.getJson(
+      '/agent-sessions',
+      queryParameters: {'scope': 'terminal', 'hostId': hostId},
+    );
+    return mapList(
+      response['data'],
+    ).map(AgentSessionSummary.fromJson).toList(growable: false);
+  }
+
+  Future<void> clearTerminalSessions(String hostId) async {
+    await _api.deleteJson(
+      '/agent-sessions',
+      queryParameters: {'scope': 'terminal', 'hostId': hostId},
+    );
+  }
+
   Future<List<AgentSessionSummary>> getSessions() async {
     final response = await _api.getJson(
       '/agent-sessions',
