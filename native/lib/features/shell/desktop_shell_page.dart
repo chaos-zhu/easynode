@@ -4,6 +4,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/ui/app_color_theme.dart';
 import '../../core/ui/app_dialog.dart';
+import '../../core/ui/desktop_management.dart';
+import '../../state/agent_providers.dart';
+import '../../state/storage_providers.dart';
+import '../batch/desktop_batch_page.dart';
+import '../scheduled_tasks/desktop_scheduled_tasks_page.dart';
+import '../scripts/desktop_scripts_page.dart';
+import '../settings/desktop_credentials_page.dart';
+import '../settings/desktop_settings_page.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/auth_notifier.dart';
 import '../../state/package_info_provider.dart';
@@ -40,13 +48,14 @@ enum _DesktopModule {
 class _DesktopShellPageState extends ConsumerState<DesktopShellPage> {
   _DesktopModule _selected = _DesktopModule.servers;
   bool _collapsed = false;
-  bool _terminalMounted = false;
+  final _visited = <_DesktopModule>{_DesktopModule.servers};
+  bool _aiPreferenceBusy = false;
   bool _fullscreen = false;
 
   void _select(_DesktopModule module) {
     setState(() {
       _selected = module;
-      if (module == _DesktopModule.terminal) _terminalMounted = true;
+      _visited.add(module);
     });
     if (module == _DesktopModule.terminal) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,6 +70,53 @@ class _DesktopShellPageState extends ConsumerState<DesktopShellPage> {
       });
     }
   }
+
+  void _settings(DesktopSettingsSection section) {
+    ref.read(desktopSettingsSectionProvider.notifier).state = section;
+    _select(_DesktopModule.settings);
+  }
+
+  Future<void> _toggleAssistant() async {
+    setState(() => _aiPreferenceBusy = true);
+    try {
+      final enabled = await ref
+          .read(agentRepositoryProvider)
+          .setNativeAgentEnabled(!ref.read(nativeAgentEnabledProvider));
+      await ref.read(appStorageProvider).setNativeAgentEnabledCache(enabled);
+      ref.invalidate(agentSettingsProvider);
+    } catch (e) {
+      if (mounted) managementNotice(context, managementError(e));
+    } finally {
+      if (mounted) setState(() => _aiPreferenceBusy = false);
+    }
+  }
+
+  Widget _page(_DesktopModule module) => switch (module) {
+    _DesktopModule.servers => DesktopServersPage(onConnect: _connect),
+    _DesktopModule.terminal => DesktopTerminalPage(
+      onFullscreenChanged: (value) {
+        if (mounted) setState(() => _fullscreen = value);
+      },
+    ),
+    _DesktopModule.credentials => const DesktopCredentialsPage(),
+    _DesktopModule.scripts => const DesktopScriptsPage(),
+    _DesktopModule.batch => const DesktopBatchPage(),
+    _DesktopModule.scheduledTasks => const DesktopScheduledTasksPage(),
+    _DesktopModule.settings => const DesktopSettingsPage(),
+    _ => Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(module.icon, size: 48, color: context.colors.softMuted),
+          const SizedBox(height: 16),
+          Text(
+            AppLocalizations.of(context).tr('desktop.comingSoon'),
+            style: TextStyle(color: context.colors.muted, fontSize: 16),
+          ),
+        ],
+      ),
+    ),
+  };
 
   void _connect(ServerModel server) {
     _select(_DesktopModule.terminal);
@@ -136,6 +192,7 @@ class _DesktopShellPageState extends ConsumerState<DesktopShellPage> {
     final colors = context.colors;
     // The authenticated shell owns the workspace, including the first list-to-terminal connection.
     ref.watch(desktopTerminalWorkspaceProvider);
+    final aiEnabled = ref.watch(nativeAgentEnabledProvider);
     return Scaffold(
       backgroundColor: colors.canvas,
       body: SafeArea(
@@ -267,15 +324,23 @@ class _DesktopShellPageState extends ConsumerState<DesktopShellPage> {
                                       ),
                                       child: Text(l.tr('desktop.toggleTheme')),
                                     ),
-                                    Tooltip(
-                                      message: l.tr('desktop.comingSoon'),
-                                      child: MenuItemButton(
-                                        key: const Key('desktop-ai'),
-                                        trailingIcon: const Icon(
-                                          Icons.visibility_outlined,
-                                          size: 18,
-                                        ),
-                                        child: Text(l.tr('desktop.showAI')),
+                                    MenuItemButton(
+                                      key: const Key('desktop-ai'),
+                                      onPressed: _aiPreferenceBusy
+                                          ? null
+                                          : _toggleAssistant,
+                                      trailingIcon: const Icon(
+                                        Icons.smart_toy_outlined,
+                                        size: 18,
+                                      ),
+                                      child: Text(
+                                        aiEnabled
+                                            ? mx(
+                                                context,
+                                                '隐藏 AI 助手',
+                                                'Hide AI assistant',
+                                              )
+                                            : l.tr('desktop.showAI'),
                                       ),
                                     ),
                                     MenuItemButton(
@@ -374,10 +439,7 @@ class _DesktopShellPageState extends ConsumerState<DesktopShellPage> {
                                       borderRadius: BorderRadius.circular(8),
                                       onTap: () {
                                         controller.close();
-                                        setState(
-                                          () => _selected =
-                                              _DesktopModule.settings,
-                                        );
+                                        _settings(DesktopSettingsSection.plus);
                                       },
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(
@@ -410,69 +472,18 @@ class _DesktopShellPageState extends ConsumerState<DesktopShellPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: IndexedStack(
-                  index: _selected == _DesktopModule.servers
-                      ? 0
-                      : _selected == _DesktopModule.terminal
-                      ? 1
-                      : 2,
+                  index: _selected.index,
                   children: [
-                    ExcludeFocus(
-                      excluding: _selected != _DesktopModule.servers,
-                      child: DesktopServersPage(onConnect: _connect),
-                    ),
-                    if (_terminalMounted)
-                      ExcludeFocus(
-                        excluding: _selected != _DesktopModule.terminal,
-                        child: TickerMode(
-                          enabled: _selected == _DesktopModule.terminal,
-                          child: DesktopTerminalPage(
-                            onFullscreenChanged: (value) {
-                              if (mounted) setState(() => _fullscreen = value);
-                            },
-                          ),
-                        ),
-                      )
-                    else
-                      const SizedBox.shrink(),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            l.tr(_selected.labelKey),
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(color: colors.text),
-                          ),
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _selected.icon,
-                                    size: 48,
-                                    color: colors.softMuted,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    l.tr('desktop.comingSoon'),
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: colors.muted,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
+                    for (final module in _DesktopModule.values)
+                      _visited.contains(module)
+                          ? ExcludeFocus(
+                              excluding: _selected != module,
+                              child: TickerMode(
+                                enabled: _selected == module,
+                                child: _page(module),
                               ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                            )
+                          : const SizedBox.shrink(),
                   ],
                 ),
               ),

@@ -19,6 +19,7 @@ import '../../core/ui/app_dialog.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/agent_providers.dart';
 import '../settings/ai_agent_settings_page.dart';
+import '../settings/desktop_ai_settings.dart';
 import 'agent_controller.dart';
 import 'agent_feedback.dart';
 import 'agent_models.dart';
@@ -494,7 +495,10 @@ class _AgentPanelState extends ConsumerState<AgentPanel> {
           child: SizedBox(
             width: 900,
             height: MediaQuery.sizeOf(context).height * .8,
-            child: const AiAgentSettingsPage(desktopLayout: true),
+            child: const SingleChildScrollView(
+              padding: EdgeInsets.all(24),
+              child: DesktopAiSettings(),
+            ),
           ),
         ),
       ),

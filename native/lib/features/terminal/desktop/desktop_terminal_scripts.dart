@@ -4,34 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/ui/app_color_theme.dart';
 import '../../../core/ui/app_dialog.dart';
 import '../../../core/ui/desktop_form_controls.dart';
-import '../../../core/ui/desktop_management_dialog.dart';
-import '../../../core/ui/desktop_select.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../state/api_providers.dart';
 import '../../../state/plus_info_notifier.dart';
 import '../../scripts/script_model.dart';
 import '../../scripts/script_repository.dart';
+import '../../scripts/desktop_script_dialogs.dart';
+import '../../../state/desktop_script_catalog_provider.dart';
+export '../../../state/desktop_script_catalog_provider.dart'
+    show desktopTerminalScriptCatalogProvider;
 import 'terminal_widgets.dart';
-import 'terminal_text_prompt.dart';
-import 'terminal_catalog_order.dart';
 
-final desktopTerminalScriptCatalogProvider =
-    FutureProvider.autoDispose<ScriptCatalog>((ref) async {
-      final catalog = await ref.watch(scriptRepositoryProvider).fetchCatalog();
-      return ScriptCatalog(
-        groups: orderTerminalItems(
-          catalog.groups,
-          catalog.order.sections.map((s) => s.groupId),
-          (g) => g.id,
-        ),
-        scripts: orderTerminalItems(
-          catalog.scripts,
-          catalog.order.sections.expand((s) => s.itemIds),
-          (s) => s.id,
-        ),
-        order: catalog.order,
-      );
-    });
 typedef DesktopScriptSend = void Function(String command, bool base64);
 
 class DesktopTerminalScripts extends ConsumerStatefulWidget {
@@ -141,7 +123,7 @@ class _DesktopTerminalScriptsState
                   false,
                   () => showAppDialog<void>(
                     context: context,
-                    builder: (_) => const _ScriptGroupsDialog(),
+                    builder: (_) => const DesktopScriptGroupsDialog(),
                   ),
                   icon: Icons.settings_outlined,
                 ),
@@ -534,267 +516,10 @@ Future<void> editDesktopTerminalScript(
 }) => showAppDialog<void>(
   context: context,
   barrierDismissible: false,
-  builder: (_) => _ScriptDialog(
+  builder: (_) => DesktopScriptDialog(
     script: script,
     command: command,
     group: group,
     base64: base64,
   ),
 );
-
-class _ScriptDialog extends ConsumerStatefulWidget {
-  const _ScriptDialog({
-    this.script,
-    this.command,
-    this.group,
-    this.base64 = false,
-  });
-  final ScriptModel? script;
-  final String? command, group;
-  final bool base64;
-  @override
-  ConsumerState<_ScriptDialog> createState() => _ScriptDialogState();
-}
-
-class _ScriptDialogState extends ConsumerState<_ScriptDialog> {
-  final _form = GlobalKey<FormState>();
-  late final _name = TextEditingController(text: widget.script?.name);
-  late final _description = TextEditingController(
-    text: widget.script?.description,
-  );
-  late final _command = TextEditingController(
-    text: widget.script?.command ?? widget.command,
-  );
-  late String _group =
-      widget.script?.group ??
-      (widget.group == 'builtin' ? 'default' : widget.group ?? 'default');
-  late bool _base64 = widget.script?.useBase64 ?? widget.base64;
-  bool _saving = false;
-  String? _error;
-  @override
-  void dispose() {
-    _name.dispose();
-    _description.dispose();
-    _command.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    if (_saving || !_form.currentState!.validate()) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      final data = ScriptFormData(
-        id: widget.script?.id,
-        name: _name.text.trim(),
-        description: _description.text.trim(),
-        command: _command.text,
-        group: _group,
-        useBase64: _base64,
-      );
-      final repo = ref.read(scriptRepositoryProvider);
-      if (data.isEdit) {
-        await repo.updateScript(data);
-      } else {
-        await repo.createScript(data);
-      }
-      ref.invalidate(desktopTerminalScriptCatalogProvider);
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final groups =
-        ref.watch(desktopTerminalScriptCatalogProvider).valueOrNull?.groups ??
-        [];
-    Widget field(
-      String label,
-      TextEditingController controller, {
-      int lines = 1,
-      bool required = false,
-    }) => Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 12)),
-          const SizedBox(height: 7),
-          TextFormField(
-            controller: controller,
-            maxLines: lines,
-            enabled: !_saving,
-            style: TextStyle(
-              fontSize: 13,
-              fontFamily: lines > 1 ? 'monospace' : null,
-            ),
-            validator: required
-                ? (v) => v == null || v.trim().isEmpty
-                      ? dt(context, 'required')
-                      : null
-                : null,
-            decoration: desktopInputDecoration(context),
-          ),
-        ],
-      ),
-    );
-    return DesktopManagementDialog(
-      title: dt(context, widget.script == null ? 'newScript' : 'editScript'),
-      busy: _saving,
-      width: 750,
-      body: Form(
-        key: _form,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            field(dt(context, 'scriptName'), _name, required: true),
-            field(dt(context, 'description'), _description),
-            DesktopSelect(
-              options: {
-                for (final g in groups)
-                  if (g.id != 'builtin') g.id: g.name,
-              },
-              values: [_group],
-              onSelected: (v) => setState(() => _group = v),
-              enabled: !_saving,
-            ),
-            const SizedBox(height: 14),
-            field(dt(context, 'command'), _command, lines: 9, required: true),
-            CheckboxListTile(
-              value: _base64,
-              onChanged: _saving ? null : (v) => setState(() => _base64 = v!),
-              title: const Text('Base64'),
-              dense: true,
-              controlAffinity: ListTileControlAffinity.leading,
-            ),
-            if (_error != null)
-              Text(_error!, style: TextStyle(color: context.colors.danger)),
-          ],
-        ),
-      ),
-      actions: [
-        OutlinedButton(
-          onPressed: _saving ? null : () => Navigator.pop(context),
-          child: Text(dt(context, 'cancel')),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _save,
-          child: Text(dt(context, 'save')),
-        ),
-      ],
-    );
-  }
-}
-
-class _ScriptGroupsDialog extends ConsumerWidget {
-  const _ScriptGroupsDialog();
-  Future<void> _mutate(
-    BuildContext context,
-    WidgetRef ref, {
-    String? id,
-    String name = '',
-  }) async {
-    final value = await terminalTextPrompt(
-      context,
-      title: dt(context, 'groups'),
-      value: name,
-    );
-    if (value == null || !context.mounted) return;
-    try {
-      final form = ScriptGroupFormData(id: id, name: value);
-      final repo = ref.read(scriptRepositoryProvider);
-      if (id == null) {
-        await repo.createGroup(form);
-      } else {
-        await repo.updateGroup(form);
-      }
-      ref.invalidate(desktopTerminalScriptCatalogProvider);
-    } catch (e) {
-      if (context.mounted) terminalNotice(context, e.toString());
-    }
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final groups =
-        ref.watch(desktopTerminalScriptCatalogProvider).valueOrNull?.groups ??
-        [];
-    return DesktopManagementDialog(
-      title: dt(context, 'groups'),
-      body: Column(
-        children: [
-          for (final group in groups)
-            ListTile(
-              dense: true,
-              title: Text(group.name),
-              trailing: group.id == 'default' || group.id == 'builtin'
-                  ? null
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: () => _mutate(
-                            context,
-                            ref,
-                            id: group.id,
-                            name: group.name,
-                          ),
-                          icon: const Icon(Icons.edit_outlined, size: 16),
-                        ),
-                        IconButton(
-                          onPressed: () async {
-                            final confirm = await showAppDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: Text(dt(context, 'deleteGroup')),
-                                content: Text(group.name),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: Text(dt(context, 'cancel')),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    child: Text(dt(context, 'delete')),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm != true || !context.mounted) return;
-                            try {
-                              await ref
-                                  .read(scriptRepositoryProvider)
-                                  .deleteGroup(group.id);
-                              ref.invalidate(
-                                desktopTerminalScriptCatalogProvider,
-                              );
-                            } catch (e) {
-                              if (context.mounted) {
-                                terminalNotice(context, e.toString());
-                              }
-                            }
-                          },
-                          icon: const Icon(Icons.delete_outline, size: 16),
-                        ),
-                      ],
-                    ),
-            ),
-        ],
-      ),
-      actions: [
-        OutlinedButton(
-          onPressed: () => _mutate(context, ref),
-          child: Text(dt(context, 'addGroup')),
-        ),
-      ],
-    );
-  }
-}

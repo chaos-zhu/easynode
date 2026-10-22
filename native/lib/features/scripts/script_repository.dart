@@ -102,6 +102,8 @@ abstract class ScriptRepository {
   Future<String> updateScript(ScriptFormData form);
   Future<String> deleteScript(String id);
   Future<String> batchDeleteScripts(List<String> ids);
+  Future<int> importScripts(List<Map<String, dynamic>> scripts) =>
+      throw UnsupportedError('Script import is not supported');
   Future<String> createGroup(ScriptGroupFormData form);
   Future<String> updateGroup(ScriptGroupFormData form);
   Future<String> deleteGroup(String id);
@@ -190,6 +192,15 @@ class ApiScriptRepository implements ScriptRepository {
     return OrderLayout.fromJson(
       data.map((key, value) => MapEntry(key.toString(), value)),
     );
+  }
+
+  @override
+  Future<int> importScripts(List<Map<String, dynamic>> scripts) async {
+    final response = await _api.postJson('/import-script', {
+      'scripts': scripts,
+    });
+    final data = response['data'];
+    return data is Map ? (data['len'] as num?)?.toInt() ?? 0 : 0;
   }
 
   @override

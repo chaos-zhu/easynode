@@ -442,8 +442,9 @@ class _AppRootState extends ConsumerState<_AppRoot>
       builder: (context, child) => Stack(
         children: [
           ?child,
-          if (!desktop && auth.signedIn && !_startupConnectionPending)
+          if (auth.signedIn && !_startupConnectionPending)
             AgentGlobalOverlay(
+              desktopLayout: desktop,
               navigationObserver: _agentNavigationObserver,
               navigatorKey: _navigatorKey,
             ),

@@ -14,6 +14,8 @@ class DesktopManagementDialog extends StatelessWidget {
     this.busy = false,
     this.width = 680,
     this.topAligned = false,
+    this.topInsetFraction = .03,
+    this.bodyPadding = const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
   });
 
   final String title;
@@ -22,6 +24,8 @@ class DesktopManagementDialog extends StatelessWidget {
   final bool busy;
   final double width;
   final bool topAligned;
+  final double topInsetFraction;
+  final EdgeInsets bodyPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +36,9 @@ class DesktopManagementDialog extends StatelessWidget {
         alignment: topAligned ? Alignment.topCenter : null,
         insetPadding: EdgeInsets.symmetric(
           horizontal: 12,
-          vertical: topAligned ? MediaQuery.sizeOf(context).height * .03 : 24,
+          vertical: topAligned
+              ? MediaQuery.sizeOf(context).height * topInsetFraction
+              : 24,
         ),
         constraints: BoxConstraints(maxWidth: width),
         backgroundColor: colors.card,
@@ -98,13 +104,7 @@ class DesktopManagementDialog extends StatelessWidget {
                 ),
               ),
               Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 14,
-                  ),
-                  child: body,
-                ),
+                child: SingleChildScrollView(padding: bodyPadding, child: body),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(

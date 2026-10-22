@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ui/app_color_theme.dart';
+import '../../core/ui/desktop_management.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/agent_providers.dart';
 import '../../state/storage_providers.dart';
@@ -40,11 +41,13 @@ class AgentGlobalOverlay extends ConsumerStatefulWidget {
     required this.navigationObserver,
     required this.navigatorKey,
     this.compactPageBuilder,
+    this.desktopLayout = false,
   });
 
   final AgentNavigationObserver navigationObserver;
   final GlobalKey<NavigatorState> navigatorKey;
   final WidgetBuilder? compactPageBuilder;
+  final bool desktopLayout;
 
   @override
   ConsumerState<AgentGlobalOverlay> createState() => _AgentGlobalOverlayState();
@@ -52,6 +55,7 @@ class AgentGlobalOverlay extends ConsumerStatefulWidget {
 
 class _AgentGlobalOverlayState extends ConsumerState<AgentGlobalOverlay> {
   bool _panelOpen = false;
+  bool _desktopOpened = false;
   late String _side;
   late double _yFraction;
   double? _dragX;
@@ -71,7 +75,7 @@ class _AgentGlobalOverlayState extends ConsumerState<AgentGlobalOverlay> {
   @override
   Widget build(BuildContext context) {
     final enabled = ref.watch(nativeAgentEnabledProvider);
-    if (enabled) {
+    if (enabled && (!widget.desktopLayout || _desktopOpened)) {
       // Keeping this provider watched here lets an active turn continue while
       // its panel is closed. It is disposed with the authenticated overlay.
       ref.watch(agentKeepAliveProvider);
@@ -224,14 +228,28 @@ class _AgentGlobalOverlayState extends ConsumerState<AgentGlobalOverlay> {
 
   Future<void> _openPanel() async {
     if (_panelOpen) return;
-    setState(() => _panelOpen = true);
+    setState(() {
+      _panelOpen = true;
+      _desktopOpened = true;
+    });
     final navigator = widget.navigatorKey.currentState;
     if (navigator == null) {
       if (mounted) setState(() => _panelOpen = false);
       return;
     }
     try {
-      if (MediaQuery.sizeOf(context).width < AgentUiTokens.compactBreakpoint) {
+      if (widget.desktopLayout) {
+        final overlayContext = navigator.overlay?.context;
+        if (overlayContext == null) return;
+        await showManagementDrawer<void>(
+          overlayContext,
+          (context) => AgentPanel(
+            desktopLayout: true,
+            onClose: () => Navigator.pop(context),
+          ),
+        );
+      } else if (MediaQuery.sizeOf(context).width <
+          AgentUiTokens.compactBreakpoint) {
         await navigator.push<void>(
           MaterialPageRoute<void>(
             fullscreenDialog: true,

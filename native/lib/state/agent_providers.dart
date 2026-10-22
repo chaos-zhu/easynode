@@ -9,6 +9,9 @@ import '../features/ai_agent/agent_repository.dart';
 import '../features/ai_agent/agent_socket_client.dart';
 import '../features/servers/server_model.dart';
 import 'api_providers.dart';
+import 'desktop_script_catalog_provider.dart';
+import 'desktop_server_catalog_provider.dart';
+import 'desktop_scheduled_task_revision_provider.dart';
 import 'auth_notifier.dart';
 import 'host_list_notifier.dart';
 import 'group_list_notifier.dart';
@@ -281,6 +284,18 @@ final panelDataRefreshProvider = Provider<Future<void> Function(Set<String>)>((
             .read(scheduledTaskListProvider.notifier)
             .refresh(throwOnError: true),
     ]);
+    // Mobile refreshes must not initialize unvisited desktop catalogs.
+    if (domains.contains('hosts') && ref.exists(desktopServerCatalogProvider)) {
+      ref.invalidate(desktopServerCatalogProvider);
+    }
+    if (domains.contains('scripts') &&
+        ref.exists(desktopTerminalScriptCatalogProvider)) {
+      ref.invalidate(desktopTerminalScriptCatalogProvider);
+    }
+    if (domains.contains('scheduled_tasks') &&
+        ref.exists(desktopScheduledTaskRevisionProvider)) {
+      ref.read(desktopScheduledTaskRevisionProvider.notifier).state++;
+    }
   };
 });
 

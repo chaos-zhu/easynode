@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../core/ui/app_color_theme.dart';
 import '../../../core/ui/app_dialog.dart';
 import '../../../core/ui/desktop_management_dialog.dart';
+import '../../../core/ui/desktop_management.dart';
 import '../../../core/ui/desktop_popover.dart';
 import '../../../state/desktop_server_catalog_provider.dart';
 import '../../scripts/script_model.dart';
@@ -1045,7 +1046,7 @@ class _DesktopTerminalPageState extends ConsumerState<DesktopTerminalPage> {
               ..sort(
                 (a, b) => b.lastConnectTime!.compareTo(a.lastConnectTime!),
               );
-        return SingleChildScrollView(
+        return Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1058,85 +1059,46 @@ class _DesktopTerminalPageState extends ConsumerState<DesktopTerminalPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              if (recent.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(50),
-                  child: Center(
-                    child: Text(
-                      dt(context, 'noRecent'),
-                      style: TextStyle(color: context.colors.muted),
-                    ),
-                  ),
-                ),
-              if (recent.isNotEmpty)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columnSpacing: 24,
-                    headingRowHeight: 40,
-                    dataRowMinHeight: 44,
-                    dataRowMaxHeight: 44,
-                    columns: [
-                      for (final key in [
-                        'name',
-                        'sshCommand',
-                        'lastConnected',
-                        'action',
-                      ])
-                        DataColumn(
-                          label: Text(
-                            dt(context, key),
-                            style: const TextStyle(fontSize: 12),
+              Expanded(
+                child: ManagementTable(
+                  empty: dt(context, 'noRecent'),
+                  columns: [
+                    ManagementColumn(dt(context, 'name'), width: 180),
+                    ManagementColumn(dt(context, 'sshCommand'), width: 320),
+                    ManagementColumn(dt(context, 'lastConnected'), width: 180),
+                    ManagementColumn.actions(dt(context, 'action'), width: 120),
+                  ],
+                  rows: [
+                    for (final server in recent)
+                      [
+                        Text(
+                          server.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SelectableText(
+                          'ssh ${server.username}@${server.host} -p ${server.port}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontFamily: 'monospace',
                           ),
                         ),
-                    ],
-                    rows: [
-                      for (final server in recent)
-                        DataRow(
-                          cells: [
-                            DataCell(
-                              SizedBox(
-                                width: 150,
-                                child: Text(
-                                  server.displayName,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              SelectableText(
-                                'ssh ${server.username}@${server.host} -p ${server.port}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                DateFormat(
-                                  'yyyy-MM-dd HH:mm:ss',
-                                ).format(server.lastConnectTime!.toLocal()),
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                            DataCell(
-                              TextButton(
-                                onPressed: () => _connect(server),
-                                child: Text(
-                                  dt(
-                                    context,
-                                    server.canConnect ? 'connect' : 'configure',
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          DateFormat(
+                            'yyyy-MM-dd HH:mm:ss',
+                          ).format(server.lastConnectTime!.toLocal()),
                         ),
-                    ],
-                  ),
+                        ManagementLink(
+                          label: dt(
+                            context,
+                            server.canConnect ? 'connect' : 'configure',
+                          ),
+                          onPressed: () => _connect(server),
+                        ),
+                      ],
+                  ],
                 ),
+              ),
             ],
           ),
         );

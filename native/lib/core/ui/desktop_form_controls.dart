@@ -10,6 +10,7 @@ InputDecoration desktopInputDecoration(
   String? hint,
   String? helper,
   String? error,
+  double controlHeight = desktopFormControlHeight,
 }) {
   final colors = context.colors;
   OutlineInputBorder border(Color color) => OutlineInputBorder(
@@ -26,10 +27,13 @@ InputDecoration desktopInputDecoration(
     errorMaxLines: 3,
     errorStyle: TextStyle(color: colors.danger, fontSize: 12),
     isDense: true,
-    constraints: const BoxConstraints(minHeight: desktopFormControlHeight),
+    constraints: BoxConstraints(minHeight: controlHeight),
     filled: true,
     fillColor: colors.card,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    contentPadding: EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: (controlHeight - 20) / 2,
+    ),
     border: border(colors.border),
     enabledBorder: border(colors.border),
     disabledBorder: border(colors.border),

@@ -23,6 +23,8 @@ void main() {
     required AppStorage storage,
     required AgentNavigationObserver observer,
     bool enabled = true,
+    bool desktopLayout = false,
+    VoidCallback? onKeepAlive,
     WidgetBuilder? compactPageBuilder,
   }) {
     final navigatorKey = GlobalKey<NavigatorState>();
@@ -30,7 +32,10 @@ void main() {
       overrides: [
         appStorageProvider.overrideWithValue(storage),
         nativeAgentEnabledProvider.overrideWithValue(enabled),
-        agentKeepAliveProvider.overrideWithValue(true),
+        agentKeepAliveProvider.overrideWith((ref) {
+          onKeepAlive?.call();
+          return true;
+        }),
       ],
       child: MaterialApp(
         navigatorKey: navigatorKey,
@@ -63,6 +68,7 @@ void main() {
                 navigationObserver: observer,
                 navigatorKey: navigatorKey,
                 compactPageBuilder: compactPageBuilder,
+                desktopLayout: desktopLayout,
               ),
             ],
           ),
@@ -70,6 +76,26 @@ void main() {
       ),
     );
   }
+
+  testWidgets('desktop entry does not start an AI connection before opening', (
+    tester,
+  ) async {
+    final prefs = await storage();
+    final observer = AgentNavigationObserver();
+    addTearDown(observer.dispose);
+    var starts = 0;
+    await tester.pumpWidget(
+      app(
+        storage: prefs,
+        observer: observer,
+        desktopLayout: true,
+        onKeepAlive: () => starts++,
+      ),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('agent-global-entry')), findsOneWidget);
+    expect(starts, 0);
+  });
 
   testWidgets('shows entry when enabled and hides it for popup routes', (
     tester,

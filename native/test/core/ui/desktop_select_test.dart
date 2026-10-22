@@ -15,6 +15,10 @@ Future<void> _pump(
   WidgetTester tester, {
   bool multiple = false,
   bool enabled = true,
+  bool selectAll = false,
+  bool clearable = false,
+  bool allowCreate = false,
+  int? maxVisibleTags,
   Map<String, String> options = _options,
   List<String> initial = const ['a'],
   Alignment alignment = Alignment.center,
@@ -67,6 +71,10 @@ Future<void> _pump(
                     descriptions: const {'b': 'SSH key'},
                     values: selected,
                     enabled: enabled,
+                    selectAll: selectAll,
+                    clearable: clearable,
+                    allowCreate: allowCreate,
+                    maxVisibleTags: maxVisibleTags,
                     placeholder: 'Choose',
                     onSelected: update,
                     onRemoved: multiple
@@ -90,6 +98,87 @@ Future<void> _open(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'creatable select filters, deduplicates and keeps collapsed tags editable',
+    (tester) async {
+      List<String>? result;
+      await _pump(
+        tester,
+        multiple: true,
+        allowCreate: true,
+        maxVisibleTags: 1,
+        clearable: true,
+        onChanged: (value) => result = value,
+      );
+      await _open(tester);
+      final query = find.byKey(const Key('desktop-select-create'));
+      await tester.enterText(query, 'Delta');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(result, ['a', 'Delta']);
+      expect(find.text('+ 1'), findsOneWidget);
+      await tester.enterText(query, 'Alpha');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(result, ['a', 'Delta']);
+      await tester.enterText(query, 'bet');
+      await tester.pumpAndSettle();
+      expect(_option('a'), findsNothing);
+      expect(_option('b'), findsOneWidget);
+      await tester.tap(_option('b'));
+      await tester.pumpAndSettle();
+      expect(result, ['a', 'Delta', 'b']);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.text('+ 2'), findsOneWidget);
+      await _open(tester);
+      expect(tester.widget<TextField>(query).controller!.text, isEmpty);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Clear selection'));
+      await tester.pumpAndSettle();
+      expect(result, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'multi-select header tracks partial selection, selects all and clears',
+    (tester) async {
+      List<String>? result;
+      await _pump(
+        tester,
+        multiple: true,
+        selectAll: true,
+        clearable: true,
+        onChanged: (values) => result = values,
+      );
+      await _open(tester);
+      expect(
+        tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+        isNull,
+      );
+      await tester.tap(find.byType(CheckboxListTile));
+      await tester.pumpAndSettle();
+      expect(result, ['a', 'b', 'c']);
+      expect(
+        tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+        isTrue,
+      );
+      await tester.tap(find.byType(CheckboxListTile));
+      await tester.pumpAndSettle();
+      expect(result, isEmpty);
+      await tester.tap(_option('b'));
+      await tester.pumpAndSettle();
+      expect(result, ['b']);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.cancel_outlined));
+      await tester.pumpAndSettle();
+      expect(result, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
   testWidgets(
     'mouse selection returns the option and closes the anchored panel',
     (tester) async {
