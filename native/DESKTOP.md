@@ -3,7 +3,8 @@
 桌面端与移动端共用 `native` 工程、Material 3、Riverpod 和登录协议。
 通过操作系统选择桌面页面，不根据窗口宽度切换到移动端。实例列表读取服务端目录，
 终端页支持本地 SSH、SFTP、状态监控及嵌入式 Docker、AI；凭据、脚本、批量指令、
-定时任务和系统设置使用独立桌面布局，RDP 与文件对传页面继续占位。
+定时任务和系统设置使用独立桌面布局；文件对传复用双 SFTP 面板，RDP 使用随应用
+打包的 FreeRDP 引擎，每个连接显示为 EasyNode 独立窗口。
 只有用户打开连接或对应辅助面板后才建立连接；全局 AI 使用桌面抽屉，首次打开前
 不建立 AI 会话连接，不运行移动端更新检查。
 
@@ -179,6 +180,57 @@ Windows 的最小尺寸按当前屏幕 DPI 换算，并计入系统窗口边框�
 - 全局 AI 复用原有对话与审批功能，桌面使用右侧抽屉，首次打开后允许后台任务继续。
   终端 AI 继续绑定独立 PTY，移动端全局 AI 保持原来的默认布局与连接时机。
 
+## 文件对传与远程桌面
+
+文件对传左右浏览器复用 `DesktopSftpPanel`，各自持有独立 SFTP 会话；同一实例可在两侧
+打开不同目录，也不会影响终端里的 SFTP。选中源文件后选择方向，确认预览即通过现有
+`/file-transfer` Socket.IO 创建 Rsync 任务，沿用服务端 Plus 功能控制、传输选项和任务管理。
+任务支持查看进度、取消、失败重试、删除和清空；切换菜单或关闭桌面端不取消服务端任务。
+源服务器需能直连目标服务器，服务端当前文件对传执行路径不使用本地代理/跳板机。
+
+远程桌面页使用 Web 的连接菜单与 150×150 会话卡片；实例列表中的 Windows 连接也进入此页。
+每个实例启动独立的 EasyNode FreeRDP SDL3 窗口，点击已连接卡片唤起窗口，关闭卡片断开连接；
+失败卡片可点击重试。分辨率、画质和剪贴板开关应用于新连接。切换菜单保留窗口，退出登录或
+关闭 EasyNode 清理连接。使用本地 RDP 协议，不访问 guacd；支持直连和既有 HTTP/SOCKS、
+SSH 跳板配置。主机身份检查沿用 FreeRDP 的证书确认 UI，不设置 `cert:ignore`。
+
+需同步更新并重启服务端：新增 `POST /native/rdp-connection`，先检查 Plus 和 RDP 主机类型，
+再使用现有 RSA 临时密钥 + AES-GCM 协议返回凭据与拓扑。旧 SSH 接口拒绝 RDP 主机取参。
+密码只通过内存管道发送给引擎，不进入命令行、环境变量或 `.rdp` 文件。
+FreeRDP 证书记录保存在 EasyNode Application Support 的 `rdp/` 下，与系统 SSH 钥匙串无关。
+
+### 首次准备本地 RDP 引擎
+
+引擎源代码固定为 FreeRDP 3.32.2 并校验 SHA-256。构建脚本添加 EasyNode 窗口控制与
+内存凭据管道，保留上游图形、输入和剪贴板实现。引擎、动态库和开源许可证打包到应用中，
+用户机器无需另外安装远程桌面客户端。
+
+macOS（在 `native/` 下）：
+
+```sh
+brew install cmake ninja sdl3 sdl3_ttf openssl@3 cjson
+bash tools/rdp/build-macos.sh
+flutter run -d macos
+```
+
+这次开发机器已完成引擎构建；完整重新运行 Flutter 即可由 Xcode 嵌入，hot reload 不会复制
+原生引擎。`flutter clean` 会移除 `build/rdp`，之后需重新运行引擎构建脚本。
+引擎依赖使用当前开发机的 Homebrew 库和系统版本，仅用于当前架构的本地调试；正式分发前
+需按支持的最低 macOS 版本和 CPU 架构准备依赖，不能直接把本机产物视为通用发行包。
+Xcode 复制后使用应用签名身份重签引擎；Release helper 继承应用沙箱权限。
+
+Windows（Windows 主机，Visual Studio C++、CMake、Python 3.9+、已 bootstrap 的 vcpkg）：
+
+```powershell
+$env:VCPKG_ROOT = 'C:\src\vcpkg'
+powershell -ExecutionPolicy Bypass -File tools/rdp/build-windows.ps1
+flutter run -d windows
+```
+
+默认 x64；ARM64 使用对应 vcpkg triplet 并与 Flutter 架构保持一致。Windows 构建与实际连接
+验证仍后置。两端 Release 构建缺少引擎时会明确报错；Debug 可以开发其他模块，RDP 连接会
+提示引擎尚未准备。具体变更、依赖和后续发行事项见 `tools/rdp/README.md`。
+
 ## 后续
 
 后续为终端、SFTP、状态监控和每级跳板机统一接入 SSH 主机指纹校验。
@@ -187,7 +239,7 @@ Windows 的最小尺寸按当前屏幕 DPI 换算，并计入系统窗口边框�
 
 逐项迁移 Web 功能时继续按业务域拆分 Riverpod 状态和 Repository。
 业务数据以服务端为来源，本地偏好与系统安全存储分离；暂不新增本地数据库。
-RDP 与文件对传页面另行实现；批量指令和定时任务已按 Web 路径由服务端执行。
+文件对传、批量指令和定时任务按 Web 路径由服务端执行；SSH、SFTP 和 RDP 连接在本机发起。
 
 ## 检查
 
@@ -404,3 +456,26 @@ API Key 链接同行，模型选择和获取按钮同行，支持输入创建、
 Plus 设备刷新与释放，以及激活后最小窗口的中英文和文字缩放。
 `flutter analyze --no-pub` 无问题，`flutter test --no-pub` 全量 363 项通过。
 未构建、启动或操作 App；视觉与真实服务交互由用户验收，Windows 验证继续后置。
+
+2026-10-22：实现文件对传与本地远程桌面。文件对传复用左右独立的桌面 SFTP 浏览器，
+选择文件后通过服务端现有 `/file-transfer` 创建和管理 Rsync 任务，沿用 Plus 限制。
+远程桌面接入随应用打包的 FreeRDP 3.32.2 SDL3 引擎，每个实例使用 EasyNode 独立窗口，
+支持唤起、关闭、失败重试、分辨率、画质和剪贴板配置；取参接口采用临时 RSA/AES-GCM
+加密并检查 Plus，代理/跳板复用本地传输层。密码通过内存管道发送，证书记录使用独立
+应用目录。新增两端引擎准备与嵌入脚本；macOS 引擎已编译并完成动态库路径和签名检查。
+回归修复最小窗口双 SFTP 面板的计数栏溢出，以及 RDP 转发关闭时写入流的释放顺序。
+新增 14 项 Flutter 回归，涵盖传输协议、双面板隔离与实际提交、Plus 限制、RDP 加密取参、
+独立窗口生命周期、窗口卡片、转发双向数据与关闭。`flutter analyze` 无问题，
+`flutter test` 全量 377 项通过；服务端新增 2 项测试与改动文件 ESLint 通过。
+未构建、启动或操作 EasyNode App，未连接真实服务器；只编译了本地 RDP 引擎依赖。
+真实交互与视觉效果等待用户验收，Windows 构建和连接验证继续后置。本轮未提交 Git。
+
+2026-10-22：对照 Web 继续调整文件对传与远程桌面布局。文件对传采用带底边框的
+工具栏、展开式选项区、带连接状态的服务器选择栏、16px 双栏间距和 40px 方向按钮；
+任务弹窗采用 80% 窗口宽度、居中的分段状态筛选、按状态着色的任务卡片、紧凑操作、
+进度与分列详情。服务器选择可清空，左右连接保持独立。远程桌面新建连接右对齐，
+分辨率、画质和剪贴板收进连接设置，卡片按 Web 使用 150px 尺寸、4px 圆角、主色边框
+及悬停底色；复用 Element Plus 的 Monitor/List 图标及空状态插图。RDP 仍使用独立
+本地窗口。共用按钮的桌面尺寸和前后图标均为可选参数，现有调用保持默认行为。
+扩充回归覆盖连接设置传参、单侧清空、任务筛选和详情展开；`flutter analyze` 无问题，
+`flutter test` 全量 378 项通过。未构建或启动 App，视觉效果等待用户验收。

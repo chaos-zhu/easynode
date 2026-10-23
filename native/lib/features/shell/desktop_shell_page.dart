@@ -8,6 +8,9 @@ import '../../core/ui/desktop_management.dart';
 import '../../state/agent_providers.dart';
 import '../../state/storage_providers.dart';
 import '../batch/desktop_batch_page.dart';
+import '../file_transfer/desktop_file_transfer_page.dart';
+import '../rdp/desktop_rdp_page.dart';
+import '../rdp/desktop_rdp_workspace.dart';
 import '../scheduled_tasks/desktop_scheduled_tasks_page.dart';
 import '../scripts/desktop_scripts_page.dart';
 import '../settings/desktop_credentials_page.dart';
@@ -98,29 +101,23 @@ class _DesktopShellPageState extends ConsumerState<DesktopShellPage> {
         if (mounted) setState(() => _fullscreen = value);
       },
     ),
+    _DesktopModule.files => const DesktopFileTransferPage(),
+    _DesktopModule.rdp => const DesktopRdpPage(),
     _DesktopModule.credentials => const DesktopCredentialsPage(),
     _DesktopModule.scripts => const DesktopScriptsPage(),
     _DesktopModule.batch => const DesktopBatchPage(),
     _DesktopModule.scheduledTasks => const DesktopScheduledTasksPage(),
     _DesktopModule.settings => const DesktopSettingsPage(),
-    _ => Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(module.icon, size: 48, color: context.colors.softMuted),
-          const SizedBox(height: 16),
-          Text(
-            AppLocalizations.of(context).tr('desktop.comingSoon'),
-            style: TextStyle(color: context.colors.muted, fontSize: 16),
-          ),
-        ],
-      ),
-    ),
   };
 
   void _connect(ServerModel server) {
-    _select(_DesktopModule.terminal);
-    ref.read(desktopTerminalWorkspaceProvider).open(server);
+    if (server.isWindows) {
+      _select(_DesktopModule.rdp);
+      ref.read(desktopRdpWorkspaceProvider).open(server);
+    } else {
+      _select(_DesktopModule.terminal);
+      ref.read(desktopTerminalWorkspaceProvider).open(server);
+    }
   }
 
   bool _signingOut = false;
@@ -192,6 +189,7 @@ class _DesktopShellPageState extends ConsumerState<DesktopShellPage> {
     final colors = context.colors;
     // The authenticated shell owns the workspace, including the first list-to-terminal connection.
     ref.watch(desktopTerminalWorkspaceProvider);
+    ref.watch(desktopRdpWorkspaceProvider);
     final aiEnabled = ref.watch(nativeAgentEnabledProvider);
     return Scaffold(
       backgroundColor: colors.canvas,

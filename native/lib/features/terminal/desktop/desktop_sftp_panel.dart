@@ -32,12 +32,12 @@ class DesktopSftpPanel extends ConsumerStatefulWidget {
     super.key,
     required this.server,
     required this.manager,
-    required this.onExecCommand,
+    this.onExecCommand,
     this.pathRequest,
   });
   final ServerModel server;
   final SftpSessionManager manager;
-  final ValueChanged<String> onExecCommand;
+  final ValueChanged<String>? onExecCommand;
   final ValueListenable<String?>? pathRequest;
   @override
   ConsumerState<DesktopSftpPanel> createState() => _DesktopSftpPanelState();
@@ -407,10 +407,10 @@ class _DesktopSftpPanelState extends ConsumerState<DesktopSftpPanel> {
           Icons.star_outline,
         ),
         TerminalMenuAction('path', _t('copyPath'), Icons.content_copy),
-        if (entry.isDirectory)
+        if (entry.isDirectory && widget.onExecCommand != null)
           TerminalMenuAction('terminal', _t('cdTerminal'), Icons.terminal),
       ],
-      if (compose)
+      if (compose && widget.onExecCommand != null)
         for (final command in [
           'up',
           'restart',
@@ -490,7 +490,7 @@ class _DesktopSftpPanelState extends ConsumerState<DesktopSftpPanel> {
         case 'path':
           await Clipboard.setData(ClipboardData(text: path));
         case 'terminal':
-          widget.onExecCommand('cd -- ${_quote(path)}');
+          widget.onExecCommand?.call('cd -- ${_quote(path)}');
         case 'delete':
           if (await _confirm(
             '${_t('deleteConfirm')} (${entries.map((e) => e.name).join(', ')})',
@@ -510,7 +510,7 @@ class _DesktopSftpPanelState extends ConsumerState<DesktopSftpPanel> {
             };
             if (!['down', 'stop', 'rebuild', 'upgrade'].contains(verb) ||
                 await _confirm(command)) {
-              widget.onExecCommand(command);
+              widget.onExecCommand?.call(command);
             }
           }
       }
@@ -890,11 +890,17 @@ class _DesktopSftpPanelState extends ConsumerState<DesktopSftpPanel> {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               child: Row(
                 children: [
-                  Text(
-                    '${entries.length} ${_t('items')} · ${state.selectedNames.length} ${_t('selected')}',
-                    style: TextStyle(fontSize: 11, color: context.colors.muted),
+                  Expanded(
+                    child: Text(
+                      '${entries.length} ${_t('items')} · ${state.selectedNames.length} ${_t('selected')}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.colors.muted,
+                      ),
+                    ),
                   ),
-                  const Spacer(),
                   if (state.hasSelection)
                     TerminalToolButton(
                       icon: Icons.download_outlined,

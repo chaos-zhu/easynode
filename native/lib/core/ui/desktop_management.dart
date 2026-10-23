@@ -274,15 +274,45 @@ class ManagementButton extends StatelessWidget {
     this.primary = false,
     this.danger = false,
     this.icon,
+    this.leading,
+    this.trailing,
+    this.height,
   });
   final String label;
   final VoidCallback? onPressed;
   final bool primary, danger;
   final IconData? icon;
+  final Widget? leading, trailing;
+
+  /// Element-style toolbar sizes (24 / 32 / 40). Omit for existing forms.
+  final double? height;
   @override
-  Widget build(BuildContext context) => OutlinedButton(
-    onPressed: onPressed,
-    style: !danger
+  Widget build(BuildContext context) {
+    final sizeStyle = height == null
+        ? null
+        : ButtonStyle(
+            minimumSize: WidgetStatePropertyAll(Size(0, height!)),
+            padding: WidgetStatePropertyAll(
+              EdgeInsets.symmetric(
+                horizontal: height == 24
+                    ? 8
+                    : height == 40
+                    ? 20
+                    : 15,
+                vertical: 4,
+              ),
+            ),
+            textStyle: WidgetStatePropertyAll(
+              TextStyle(
+                fontSize: height == 24 ? 12 : 14,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            shape: WidgetStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            ),
+          );
+    final baseStyle = !danger
         ? desktopButtonStyle(context, primary: primary)
         : desktopButtonStyle(context).copyWith(
             foregroundColor: WidgetStateProperty.resolveWith(
@@ -299,15 +329,21 @@ class ManagementButton extends StatelessWidget {
             overlayColor: WidgetStatePropertyAll(
               context.colors.danger.withValues(alpha: .12),
             ),
-          ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null) ...[Icon(icon, size: 16), const SizedBox(width: 6)],
-        Flexible(child: Text(label, textAlign: TextAlign.center)),
-      ],
-    ),
-  );
+          );
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: sizeStyle?.merge(baseStyle) ?? baseStyle,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[Icon(icon, size: 16), const SizedBox(width: 6)],
+          if (leading != null) ...[leading!, const SizedBox(width: 6)],
+          Flexible(child: Text(label, textAlign: TextAlign.center)),
+          if (trailing != null) ...[const SizedBox(width: 6), trailing!],
+        ],
+      ),
+    );
+  }
 }
 
 class ManagementLink extends StatelessWidget {

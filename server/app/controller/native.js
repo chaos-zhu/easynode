@@ -3,6 +3,8 @@ import path, { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { RSADecryptAsync } from '../utils/encrypt.js'
 import decryptAndExecuteAsync from '../utils/decrypt-file.js'
+import { RuntimeState } from '../utils/runtime-state.js'
+import { nativeRdpPayload } from '../utils/native-rdp-payload.js'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
@@ -68,6 +70,9 @@ async function getNativeSshConnection({ request, res }) {
     const tempKey = Buffer.from(tempKeyText, 'base64')
     const { getConnectionOptions } = await import('../socket/terminal.js')
     const { authInfo, name, hostInfo } = await getConnectionOptions(hostId)
+    if (hostInfo.connectType === 'rdp') {
+      return res.fail({ msg: 'use /native/rdp-connection for RDP hosts' })
+    }
     const payload = {
       ...normalizeNativeAuthPayload(hostId, name, authInfo),
       ...await buildNativeTopology(hostInfo)
@@ -81,6 +86,27 @@ async function getNativeSshConnection({ request, res }) {
   }
 }
 
-export {
-  getNativeSshConnection
+async function getNativeRdpConnection({ request, res }) {
+  try {
+    const state = new RuntimeState().getInstance()
+    const plusActive = Boolean(state.getDecryptKey()) && !state.getPlusKicked()
+    // Check before loading credentials as well as when constructing the payload.
+    if (!plusActive) return res.fail({ msg: '远程桌面为Plus功能' })
+    const { hostId, encryptedKey } = request.body || {}
+    if (!hostId || !encryptedKey) return res.fail({ msg: 'missing params' })
+    const tempKey = Buffer.from(await RSADecryptAsync(encryptedKey), 'base64')
+    if (tempKey.length !== 32) return res.fail({ msg: 'invalid temporary key' })
+    const { getConnectionOptions } = await import('../socket/terminal.js')
+    const connection = await getConnectionOptions(hostId)
+    const payload = {
+      ...nativeRdpPayload(hostId, connection, plusActive),
+      ...await buildNativeTopology(connection.hostInfo)
+    }
+    return res.success({ data: encryptJsonForNative(payload, tempKey), msg: 'success' })
+  } catch (error) {
+    logger.error('getNativeRdpConnection error:', error.message)
+    return res.fail({ msg: error.message || 'native RDP connection failed' })
+  }
 }
+
+export { getNativeSshConnection, getNativeRdpConnection }

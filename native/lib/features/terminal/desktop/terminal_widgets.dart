@@ -20,6 +20,8 @@ class TerminalIcon extends StatelessWidget {
   final Color? color;
   static final _assets = {
     Icons.memory: 'cpu',
+    Icons.desktop_windows_outlined: 'monitor',
+    Icons.format_list_bulleted: 'list',
     Icons.link: 'connection',
     Icons.developer_board_outlined: 'memory',
     Icons.fullscreen: 'maximize',

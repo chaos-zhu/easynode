@@ -16,7 +16,7 @@ import { getAgentMcpServers, addAgentMcpServer, editAgentMcpServer, removeAgentM
 import { getProxyList, addProxy, updateProxy, removeProxy } from '../controller/proxy.js'
 import { getServerListConfig, saveServerListConfig } from '../controller/server-list-config.js'
 import { getSuspendedSessions, getTerminalSessionConfig, updateTerminalSessionConfig } from '../controller/terminal.js'
-import { getNativeSshConnection } from '../controller/native.js'
+import { getNativeSshConnection, getNativeRdpConnection } from '../controller/native.js'
 import {
   addScheduledTask,
   clearScheduledTaskRunsController,
@@ -484,6 +484,7 @@ const terminal = [
 ]
 
 const native = [
+  { method: 'post', path: '/native/rdp-connection', controller: getNativeRdpConnection },
   {
     method: 'post',
     path: '/native/ssh-connection',

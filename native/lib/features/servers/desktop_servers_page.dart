@@ -725,9 +725,7 @@ class _DesktopServersPageState extends ConsumerState<DesktopServersPage> {
     }),
     onAction: _comingSoon,
     onConnect: (server) {
-      if (server.isWindows) {
-        _comingSoon();
-      } else if (!server.canConnect) {
+      if (!server.canConnect) {
         _openForm(server: server);
       } else if (widget.onConnect != null) {
         widget.onConnect!(server);

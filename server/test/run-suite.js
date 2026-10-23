@@ -7,6 +7,7 @@ const serverDirectory = resolve(testDirectory, '..')
 
 const suites = {
   default: [
+    'test-native-rdp-payload.js',
     'test-terminal-lifecycle.js',
     'test-scheduled-tasks.js',
     'test-order-service.js',
@@ -27,6 +28,7 @@ const suites = {
     'test-ws-comprehensive.js'
   ],
   security: [
+    'test-native-rdp-payload.js',
     'test-login-attempt-limiter.js',
     'test-login-ip-async.js',
     'test-auth-session.js',

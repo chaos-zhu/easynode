@@ -13,6 +13,7 @@ Future<T?> showDesktopPopover<T>({
   double maxHeight = 280,
   Offset? position,
   bool shrinkWrapWidth = false,
+  bool dropdown = false,
 }) {
   final navigator = Navigator.of(context, rootNavigator: true);
   final overlay = navigator.overlay!.context.findRenderObject()! as RenderBox;
@@ -26,6 +27,7 @@ Future<T?> showDesktopPopover<T>({
       width: width ?? anchor.width,
       maxHeight: maxHeight,
       shrinkWrapWidth: shrinkWrapWidth,
+      dropdown: dropdown,
       builder: builder,
       themes: InheritedTheme.capture(from: context, to: navigator.context),
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
@@ -40,6 +42,7 @@ class _DesktopPopoverRoute<T> extends PopupRoute<T> {
     required this.width,
     required this.maxHeight,
     required this.shrinkWrapWidth,
+    required this.dropdown,
     required this.builder,
     required this.themes,
     required this.barrierLabel,
@@ -53,6 +56,7 @@ class _DesktopPopoverRoute<T> extends PopupRoute<T> {
   final double width;
   final double maxHeight;
   final bool shrinkWrapWidth;
+  final bool dropdown;
   final WidgetBuilder builder;
   final CapturedThemes themes;
   final bool reduceMotion;
@@ -91,6 +95,7 @@ class _DesktopPopoverRoute<T> extends PopupRoute<T> {
               maxHeight,
               MediaQuery.paddingOf(context) + const EdgeInsets.all(8),
               shrinkWrapWidth,
+              dropdown,
             ),
             child: FadeTransition(
               opacity: animation.drive(CurveTween(curve: Curves.easeOutCubic)),
@@ -101,17 +106,30 @@ class _DesktopPopoverRoute<T> extends PopupRoute<T> {
                     end: Offset.zero,
                   ).chain(CurveTween(curve: Curves.easeOutCubic)),
                 ),
-                child: Material(
-                  color: colors.card,
-                  surfaceTintColor: Colors.transparent,
-                  elevation: 6,
-                  shadowColor: Colors.black.withValues(alpha: .16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    side: BorderSide(color: colors.border),
+                child: CustomPaint(
+                  foregroundPainter: dropdown
+                      ? _DropdownArrow(
+                          anchor: anchor,
+                          viewport: MediaQuery.sizeOf(context),
+                          padding:
+                              MediaQuery.paddingOf(context) +
+                              const EdgeInsets.all(8),
+                          color: colors.card,
+                          border: colors.border,
+                        )
+                      : null,
+                  child: Material(
+                    color: colors.card,
+                    surfaceTintColor: Colors.transparent,
+                    elevation: 6,
+                    shadowColor: Colors.black.withValues(alpha: .16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(dropdown ? 4 : 6),
+                      side: BorderSide(color: colors.border),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: builder(context),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: builder(context),
                 ),
               ),
             ),
@@ -129,13 +147,15 @@ class _PopoverLayout extends SingleChildLayoutDelegate {
     this.maxHeight,
     this.padding,
     this.shrinkWrapWidth,
+    this.dropdown,
   );
   final Rect anchor;
   final double width;
   final double maxHeight;
   final EdgeInsets padding;
   final bool shrinkWrapWidth;
-  static const gap = 6.0;
+  final bool dropdown;
+  double get gap => dropdown ? 12 : 6;
 
   @override
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
@@ -159,7 +179,7 @@ class _PopoverLayout extends SingleChildLayoutDelegate {
         ? below
         : anchor.top - gap - childSize.height;
     return Offset(
-      anchor.left
+      (dropdown ? anchor.center.dx - childSize.width / 2 : anchor.left)
           .clamp(
             padding.left,
             math.max(
@@ -186,5 +206,66 @@ class _PopoverLayout extends SingleChildLayoutDelegate {
       width != oldDelegate.width ||
       maxHeight != oldDelegate.maxHeight ||
       padding != oldDelegate.padding ||
-      shrinkWrapWidth != oldDelegate.shrinkWrapWidth;
+      shrinkWrapWidth != oldDelegate.shrinkWrapWidth ||
+      dropdown != oldDelegate.dropdown;
+}
+
+/// Element dropdown pointer follows the trigger even when the menu is clamped
+/// against a window edge. Ordinary form popovers retain their existing style.
+class _DropdownArrow extends CustomPainter {
+  const _DropdownArrow({
+    required this.anchor,
+    required this.viewport,
+    required this.padding,
+    required this.color,
+    required this.border,
+  });
+  final Rect anchor;
+  final Size viewport;
+  final EdgeInsets padding;
+  final Color color, border;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final layout = _PopoverLayout(
+      anchor,
+      size.width,
+      size.height,
+      padding,
+      false,
+      true,
+    );
+    final offset = layout.getPositionForChild(viewport, size);
+    final x = (anchor.center.dx - offset.dx)
+        .clamp(10.0, math.max(10.0, size.width - 10))
+        .toDouble();
+    final below = offset.dy >= anchor.bottom;
+    final edge = below ? 0.0 : size.height;
+    final direction = below ? -1.0 : 1.0;
+    final fill = Path()
+      ..moveTo(x - 6, edge - direction)
+      ..lineTo(x, edge + direction * 6)
+      ..lineTo(x + 6, edge - direction)
+      ..close();
+    canvas.drawPath(fill, Paint()..color = color);
+    final outline = Path()
+      ..moveTo(x - 6, edge)
+      ..lineTo(x, edge + direction * 6)
+      ..lineTo(x + 6, edge);
+    canvas.drawPath(
+      outline,
+      Paint()
+        ..color = border
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_DropdownArrow old) =>
+      anchor != old.anchor ||
+      viewport != old.viewport ||
+      padding != old.padding ||
+      color != old.color ||
+      border != old.border;
 }

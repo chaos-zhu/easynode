@@ -106,3 +106,17 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+# Our own FreeRDP SDL3 helper, prepared once with tools/rdp/build-windows.ps1.
+# Release must never silently ship without the requested local RDP engine.
+set(EASYNODE_RDP_BUNDLE "${CMAKE_CURRENT_SOURCE_DIR}/../build/rdp/windows/bundle")
+install(CODE "
+  if(EXISTS \"${EASYNODE_RDP_BUNDLE}/easynode-rdp.exe\")
+    file(INSTALL DESTINATION \"${CMAKE_INSTALL_PREFIX}/rdp\" TYPE DIRECTORY
+      FILES \"${EASYNODE_RDP_BUNDLE}/\")
+  elseif(CMAKE_INSTALL_CONFIG_NAME STREQUAL \"Release\")
+    message(FATAL_ERROR \"Run tools/rdp/build-windows.ps1 before packaging Release\")
+  else()
+    message(WARNING \"RDP engine not prepared: run tools/rdp/build-windows.ps1\")
+  endif()
+" COMPONENT Runtime)
