@@ -47,7 +47,10 @@ Windows 的最小尺寸按当前屏幕 DPI 换算，并计入系统窗口边框�
 - Release 保留 App Sandbox、网络客户端权限和 Keychain 权限，使用数据保护
   Keychain；允许读写用户在文件选择器中主动选择的文件或目录，用于私钥导入、终端导出
   和 SFTP 上传下载。
-  正式分发前需要配置开发团队、稳定 Bundle ID 和签名。
+  macOS Bundle ID 为 `io.github.chaoszhu.easynode.macos`，Release 使用相同团队
+  `5BQLRCF2QW` 的 Apple Development 签名并启用 Hardened Runtime。
+  官网 DMG 需使用 Developer ID Application 并公证，步骤见
+  [macOS 打包说明](tools/macos/README.md)。从旧模板 Bundle ID 升级不自动迁移本地偏好和凭据。
   Debug/Profile 与 Release 的 Keychain 后端不同，本阶段不迁移开发会话。
 - 所有模式都通过 `flutter_secure_storage` 存储秘密；存储失败时提示重试，
   不降级到 SharedPreferences 或明文文件。
@@ -479,3 +482,13 @@ Plus 设备刷新与释放，以及激活后最小窗口的中英文和文字缩
 本地窗口。共用按钮的桌面尺寸和前后图标均为可选参数，现有调用保持默认行为。
 扩充回归覆盖连接设置传参、单侧清空、任务筛选和详情展开；`flutter analyze` 无问题，
 `flutter test` 全量 378 项通过。未构建或启动 App，视觉效果等待用户验收。
+
+2026-10-23：开始 macOS 安装包流程。配置正式 macOS Bundle ID、与 iOS 相同的 Team、
+Release 开发签名与 Hardened Runtime；新增构建、架构/系统版本/签名校验、DMG、
+Developer ID 及可选公证流程。修复 RDP 文本许可证放在 Helpers 导致 Release 签名失败，
+移至 Resources；打包副本移除 SDK 的开发机 rpath 后重新签名。
+本机 arm64 Release 构建与开发签名 DMG 生成成功，签名和镜像校验通过，未启动 App。
+当前依赖最低 macOS 27.0，仅用于开发验证；正式发布仍需兼容目标系统的依赖、
+Developer ID Application 证书和公证凭据。本机现有证书为 Apple Development，Xcode
+的 Developer ID 创建入口处于禁用状态。Flutter 分析及 378 项测试通过，另有 5 项
+打包预检测试通过。步骤见 `tools/macos/README.md`。
