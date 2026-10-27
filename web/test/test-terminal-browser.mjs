@@ -139,11 +139,56 @@ try {
   await page.goto(`${ url }?single=true`)
   await page.waitForFunction(() => window.terminalFixture?.sockets.length === 3 && window.terminalFixture.sockets.every(s => s.sent.some(m => m.event === 'input')))
   await assertSingleLayout(3)
+  await page.evaluate(() => {
+    const store = window.terminalFixture.store
+    store.scriptList = [{ id: 'focus-script', name: 'Focus script', command: 'echo fixture-script', group: 'default' },]
+    store.scriptGroupList = [{ id: 'default', name: 'Fixture scripts' },]
+    store.menuSetting.scriptLibrary = true
+  })
+  const assertScriptFocus = async (terminal, socketIndex) => {
+    for (const cascader of [false, true,]) {
+      await page.evaluate(value => { window.terminalFixture.store.menuSetting.scriptLibraryCascader = value }, cascader)
+      await terminal.locator('.xterm-screen').click()
+      await page.locator('.left_menu .link_text').filter({ hasText: '脚本库' }).click()
+      if (cascader) await page.getByText('Fixture scripts', { exact: true }).hover()
+      const before = await page.evaluate(index => window.terminalFixture.sockets[index].sent.length, socketIndex)
+      await page.getByText('Focus script', { exact: true }).click()
+      await page.waitForFunction(({ index, before }) => window.terminalFixture.sockets[index].sent.slice(before)
+        .some(message => message.event === 'input' && message.payload.startsWith('echo fixture-script')), { index: socketIndex, before })
+      await page.locator('.el-dropdown__popper:visible').waitFor({ state: 'hidden' })
+      await page.waitForFunction(element => element === document.activeElement, await terminal.locator('.xterm-helper-textarea').elementHandle())
+      const counts = await page.evaluate(() => window.terminalFixture.sockets.map(socket => socket.sent.length))
+      await page.keyboard.type('after-script')
+      await page.waitForFunction(index => window.terminalFixture.sockets[index].sent.filter(message => message.event === 'input')
+        .map(message => message.payload).join('').endsWith('after-script'), socketIndex)
+      const syncEnabled = await page.locator('.el-switch').filter({ hasText: '同步' }).evaluate(element => element.classList.contains('is-checked'))
+      if (!syncEnabled) {
+        assert.deepEqual(await page.evaluate(({ counts, index }) => window.terminalFixture.sockets
+          .map((socket, i) => i === index ? false : socket.sent.slice(counts[i]).some(message => message.event === 'input')), { counts, index: socketIndex }),
+        counts.map(() => false), 'Typing after script execution must stay in the original terminal')
+      }
+    }
+  }
+  const syncSwitch = page.locator('.el-switch').filter({ hasText: '同步' })
+  const hostB = page.locator('.single_window_wrapper .terminal_panel').filter({ hasText: 'Host B' })
+  await assertScriptFocus(hostB, 1)
+  await syncSwitch.click()
+  await assertScriptFocus(hostB, 1)
+  await syncSwitch.click()
+  await modeSwitch.click()
+  await page.getByRole('tab', { name: 'Host B', exact: true }).click()
+  await assertScriptFocus(page.locator('#pane-1 .terminal_tab_container'), 1)
+  await syncSwitch.click()
+  await assertScriptFocus(page.locator('#pane-1 .terminal_tab_container'), 1)
+  await syncSwitch.click()
+  await page.locator('[title="左右分屏"]:visible').click()
+  await page.waitForFunction(() => window.terminalFixture.sockets.length === 4 && window.terminalFixture.sockets[3].sent.some(message => message.event === 'input'))
+  await assertScriptFocus(page.locator('#pane-1 .terminal_tab_container').last(), 3)
   await page.evaluate(() => window.terminalFixture.unmount())
   await page.waitForTimeout(50)
   assert.deepEqual(await page.evaluate(() => window.terminalFixture.errors), [])
   assert.deepEqual(pageErrors, [])
-  console.log('真实浏览器 / Element Plus / xterm：三主机布局、后台标签关闭、模式切换、分屏挂起、键盘输入及卸载通过')
+  console.log('真实浏览器 / Element Plus / xterm：终端布局、会话关闭与挂起、脚本菜单焦点恢复、分屏和同步输入及卸载通过')
 } finally {
   await browser?.close()
   await server.close()

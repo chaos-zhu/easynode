@@ -81,6 +81,7 @@
           max-height="50vh"
           class="dropdown_menu"
           :teleported="isMobileScreen"
+          @visible-change="handleScriptDropdownVisibleChange"
         >
           <span class="link_text">脚本库<el-icon class="link_icon"><arrow-down /></el-icon></span>
           <template #dropdown>
@@ -572,6 +573,8 @@ const longPressCtrl = ref(false)
 const longPressAlt = ref(false)
 const scriptDropdownRef = ref(null)
 const scriptCascaderRef = ref(null)
+let scriptDropdownVisible = false
+let pendingScriptFocus = null
 const hostGroupCascaderRef = ref(null)
 const hostDropdownRef = ref(null)
 let pendingHostFocusKey = null
@@ -981,6 +984,22 @@ const handleResumeSessionFromDropdown = (session) => {
   resumeSessionDropdownRef.value?.handleClose()
 }
 
+const getScriptTargetTerminal = () => isSingleWindowMode.value
+  ? singleWindowRef.value?.getFocusedTerminal()?.ref
+  : getFocusedTerminalRefOfTab(activeTabIndex.value)
+
+const handleScriptDropdownVisibleChange = async (visible) => {
+  scriptDropdownVisible = visible
+  if (visible) return
+  const target = pendingScriptFocus
+  pendingScriptFocus = null
+  if (!target) return
+
+  // 菜单关闭会恢复触发器焦点，等它释放焦点后再交还给执行脚本的终端。
+  await nextTick()
+  if (!showTerminalAi.value && getScriptTargetTerminal() === target) target.focusTab()
+}
+
 // scriptDescObj: 脚本库对象、脚本命令或者包含command和useBase64的对象
 const handleExecScript = async (scriptDescObj) => {
   if (!scriptDescObj) return // clearCheckedNodes二次触发change事件
@@ -1003,6 +1022,7 @@ const handleExecScript = async (scriptDescObj) => {
     }
   }
   if (!command) return $message.warning('未找到对应的脚本')
+  pendingScriptFocus = getScriptTargetTerminal()
 
   if (!isSyncAllSession.value) {
     // 不同步时，使用 handleInputCommand（会处理分屏同步）
@@ -1022,10 +1042,9 @@ const handleExecScript = async (scriptDescObj) => {
   }
 
   await $nextTick()
-  setTimeout(() => {
-    scriptCascaderRef.value?.clearCheckedNodes()
-    scriptDropdownRef.value?.handleClose()
-  }, 100)
+  scriptCascaderRef.value?.clearCheckedNodes()
+  scriptDropdownRef.value?.handleClose()
+  if (!scriptDropdownVisible) handleScriptDropdownVisibleChange(false)
 }
 
 const terminalInput = (command, uid) => {

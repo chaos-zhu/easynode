@@ -25,13 +25,15 @@ const app = createApp({
 })
 app.use(ElementPlus)
 app.component('SvgIcon', { render: () => h('span', '◇') })
-app.config.globalProperties.$store = reactive({
+const store = reactive({
   effectiveTerminalSettings: settings,
   terminalSettings: settings,
   isPlusActive: true,
   hostList: [], orderedHostSections: [], scriptList: [], scriptGroupList: [], suspendedSessions: [], menuSetting: {},
   getSuspendedSessions() {}
 })
+app.config.globalProperties.$store = store
+window.terminalFixture.store = store
 app.config.globalProperties.$api = { getCommand: async () => ({ data: 'echo initialized' }) }
 app.config.globalProperties.$notification = () => {}
 app.config.globalProperties.$message = { success() {}, error() {}, warning() {} }
