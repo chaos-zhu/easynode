@@ -16,7 +16,7 @@
 
 import { AgentSessionDB } from '../utils/db-class.js'
 import { buildSummaryMessages, compactMessages } from './compaction.js'
-import { DEFAULT_PRESET } from './policy.js'
+import { normalizeMode } from './policy.js'
 
 const agentSessionDB = new AgentSessionDB().getInstance()
 
@@ -203,7 +203,7 @@ function normalizeTurnUsage(usage) {
 function normalize(record) {
   if (!record) return null
   const { _id, ...rest } = record
-  return { id: _id, ...rest }
+  return { id: _id, ...rest, permission: normalizeMode(rest.permission) }
 }
 
 export async function createSession(input = {}) {
@@ -214,7 +214,7 @@ export async function createSession(input = {}) {
     hostId: input.hostId || '',
     hostIds: Array.isArray(input.hostIds) ? input.hostIds : [],
     modelId: input.modelId || '',
-    permission: input.permission || DEFAULT_PRESET,
+    permission: normalizeMode(input.permission),
     messages: [],
     // 与用户消息按轮次一一对应。时间与 Token 用量不塞进 ModelMessage，
     // 避免非标准字段进入模型 provider；旧会话没有该字段时按未知信息兼容。
@@ -249,7 +249,7 @@ export async function listSessions(filter = {}) {
       hostId: record.hostId || '',
       hostIds: record.hostIds || [],
       modelId: record.modelId,
-      permission: record.permission,
+      permission: normalizeMode(record.permission),
       messageCount: (record.messages || []).length,
       usage: record.usage,
       createdAt: record.createdAt,
@@ -262,7 +262,7 @@ export async function updateSession(id, patch = {}) {
   const allowed = ['title', 'hostIds', 'modelId', 'permission']
   const update = {}
   for (const key of allowed) {
-    if (patch[key] !== undefined) update[key] = patch[key]
+    if (patch[key] !== undefined) update[key] = key === 'permission' ? normalizeMode(patch[key]) : patch[key]
   }
   if (!Object.keys(update).length) return getSession(id)
   update.updatedAt = Date.now()
@@ -352,7 +352,7 @@ export async function forkSession(id, turnIndex, messageIndex) {
     hostId: session.hostId || '',
     hostIds: [...(session.hostIds || [])],
     modelId: session.modelId || '',
-    permission: session.permission || DEFAULT_PRESET,
+    permission: normalizeMode(session.permission),
     messages: retainedMessages.map((message) => structuredClone(message)),
     turnMeta: retainedTurnMeta,
     toolMeta: Object.fromEntries(
@@ -599,6 +599,7 @@ export async function appendTurn(id, payload = {}) {
   }
 
   Object.assign(update, {
+    permission: normalizeMode(payload.permission ?? session.permission),
     messages: bounded,
     turnMeta: [...existingTurnMeta, ...incomingTurnMeta].slice(droppedUserCount),
     toolMeta,

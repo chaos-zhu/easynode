@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../ai/agent_mode.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SavedLoginAccount {
@@ -52,11 +54,13 @@ class AppStorage {
   String get terminalAgentModel =>
       _prefs.getString('desktop.terminal.agent.model') ?? '';
   String get terminalAgentMode =>
-      _prefs.getString('desktop.terminal.agent.mode') ?? 'review';
+      normalizeAgentMode(_prefs.getString('desktop.terminal.agent.mode'));
   Future<void> setTerminalAgentModel(String value) =>
       _prefs.setString('desktop.terminal.agent.model', value);
-  Future<void> setTerminalAgentMode(String value) =>
-      _prefs.setString('desktop.terminal.agent.mode', value);
+  Future<void> setTerminalAgentMode(String value) => _prefs.setString(
+    'desktop.terminal.agent.mode',
+    normalizeAgentMode(value),
+  );
 
   String get desktopTerminalPreferences =>
       _prefs.getString('desktop.terminal.preferences.v1') ?? '';
@@ -200,9 +204,9 @@ class AppStorage {
   Future<void> setAgentModel(String value) =>
       _prefs.setString(_keyAgentModel, value);
 
-  String get agentMode => _prefs.getString(_keyAgentMode) ?? 'review';
+  String get agentMode => normalizeAgentMode(_prefs.getString(_keyAgentMode));
   Future<void> setAgentMode(String value) =>
-      _prefs.setString(_keyAgentMode, value);
+      _prefs.setString(_keyAgentMode, normalizeAgentMode(value));
 
   String get agentEntrySide =>
       _prefs.getString(_keyAgentEntrySide) == 'left' ? 'left' : 'right';

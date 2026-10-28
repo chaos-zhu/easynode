@@ -93,7 +93,7 @@ try {
   for (const hostIds of [undefined, [], [open._id], [disabled._id]]) {
     const session = await createSession({ scope: 'ops', hostIds: [disabled._id] })
     const query = call('host_list', { keyword: '生产' })
-    const command = call('exec_command', { hostId: restricted._id, command: 'uptime' })
+    const command = call('exec_command', { hostId: restricted._id, command: 'cat /etc/shadow' })
     const { result, events, usedHostIds } = await turn({ sessionId: session.id, hostIds }, [query, command, '用户拒绝，已停止'])
     assert.ok(events.find(event => event.type === 'turn_start').availableTools.includes('host_list'))
     assert.ok(!events.find(event => event.type === 'turn_start').availableTools.includes('terminal_command'))
@@ -101,7 +101,7 @@ try {
     assert.deepEqual(listing.output.hosts.map(host => host.hostId), [restricted._id])
     const approval = events.find(event => event.type === 'approval_request')
     assert.deepEqual(approval.targetHost, targetHost)
-    assert.equal(approval.mode, 'review')
+    assert.equal(approval.mode, 'assist')
     assert.deepEqual(result.toolMeta[command.id].targetHost, targetHost)
     assert.deepEqual([...usedHostIds], [restricted._id])
     assert.equal(result.toolMeta[command.id].approved, false)
@@ -142,8 +142,8 @@ try {
   const task = await tasks.insertAsync({ name: 'Referencing task', enabled: true, hostIds: [open._id],
     script: { type: 'library', scriptId: script._id } })
   const update = changes => call('script_batch_update', { items: [{ scriptId: script._id, changes }] })
-  const runUpdate = async (mutation, approve = false) => turn({
-    sessionId: (await createSession({ scope: 'ops' })).id, permission: 'authorized'
+  const runUpdate = async (mutation, approve = false, permission = 'authorized') => turn({
+    sessionId: (await createSession({ scope: 'ops' })).id, permission
   }, [mutation, '完成'], approve)
   definition.plusPolicy = 'free'
   definition.execute = (ctx, input, options) => executeAuthorizedPanelBatch(definition.name, ctx, input, options, () => {})
@@ -179,13 +179,18 @@ try {
     // Host maxMode must still require confirmation in an authorized session.
     await hostDB.updateAsync({ _id: open._id }, { $set: { aiPolicy: { maxMode: 'review' } } })
     const clamped = await runUpdate(update({ command: 'echo safe' }))
-    assert.equal(clamped.events.find(event => event.type === 'approval_request').mode, 'review')
+    assert.equal(clamped.events.find(event => event.type === 'approval_request').mode, 'assist')
     assert.equal((await scripts.findOneAsync({ _id: script._id })).command, 'systemctl restart sshd')
     await hostDB.updateAsync({ _id: open._id }, { $unset: { aiPolicy: true } })
     const safe = await runUpdate(update({ command: 'echo safe' }))
     assert.ok(!safe.events.some(event => event.type === 'approval_request'))
     assert.equal(safe.events.find(event => event.type === 'tool_result').output.status, 'success')
     assert.equal((await tasks.findOneAsync({ _id: task._id })).enabled, true)
+
+    const fullBatch = await runUpdate(update({ command: 'systemctl restart sshd' }), false, 'full_access')
+    assert.ok(!fullBatch.events.some(event => event.type === 'approval_request'))
+    assert.equal(fullBatch.events.find(event => event.type === 'tool_result').output.status, 'success')
+    assert.equal((await scripts.findOneAsync({ _id: script._id })).command, 'systemctl restart sshd')
 
     // Saving an unreferenced script does not execute it or inherit host policies.
     await tasks.removeAsync({ _id: task._id })
@@ -226,6 +231,142 @@ try {
     assert.equal(created.events.find(event => event.type === 'tool_result').output.status, 'success')
     runtime.clearDecryptKey()
   }
+
+  // Run the real approval pipeline with isolated executors and an in-memory SFTP transport.
+  // No model, SSH host, or external MCP service is contacted.
+  const { createHash } = await import('node:crypto')
+  const { Readable } = await import('node:stream')
+  const { default: ssh2 } = await import('ssh2')
+  const { disconnectAll } = await import('../app/ai/ssh.js')
+  const { AESEncryptAsync } = await import('../app/utils/encrypt.js')
+  const { buildWriteFilePreviewWithSftp } = await import('../app/ai/write-preview.js')
+  const keyDb = new KeyDB().getInstance()
+  if (!await keyDb.findOneAsync({})) await keyDb.insertAsync({ commonKey: 'fixture-only-key' })
+  await hostDB.updateAsync({ _id: open._id }, { $set: { authType: 'password', password: await AESEncryptAsync('fixture') } })
+  const originalSsh = { connect: ssh2.Client.prototype.connect, sftp: ssh2.Client.prototype.sftp, end: ssh2.Client.prototype.end }
+  const fileContent = Buffer.from('token=full-access-fixture-secret')
+  let changedPath = false
+  let realpathCalls = 0
+  const sftp = {
+    realpath(pathname, cb) {
+      realpathCalls += 1
+      cb(null, changedPath && realpathCalls > 1 ? '/root/.ssh/id_ed25519' : pathname)
+    },
+    stat(_pathname, cb) { cb(null, { size: fileContent.length, mode: 0o100600, isDirectory: () => false }) },
+    createReadStream() { return Readable.from([fileContent]) },
+    end() {}
+  }
+  ssh2.Client.prototype.connect = function() { queueMicrotask(() => this.emit('ready')); return this }
+  ssh2.Client.prototype.sftp = function(cb) { cb(null, sftp) }
+  ssh2.Client.prototype.end = function() { return this }
+  const replacedDefinitions = []
+  const executions = []
+  function replaceExecutor(name, inspect = () => {}) {
+    const spec = BUILTIN_TOOL_DEFINITIONS.find(item => item.name === name)
+    replacedDefinitions.push([spec, { ...spec }])
+    spec.plusPolicy = 'free'
+    spec.execute = async (ctx, input, options) => {
+      await inspect(ctx, input, options)
+      executions.push(name)
+      return { ok: true, data: { executed: name } }
+    }
+  }
+  const mcp = {
+    name: 'mcp__fixture__probe', source: { type: 'mcp', name: 'Fixture', id: 'fixture' },
+    scopes: ['ops', 'terminal'], approvalPolicy: 'always', plusPolicy: 'free', hostArg: null,
+    description: 'Fixture MCP tool', inputSchema: { type: 'object', properties: {} },
+    execute: async () => { executions.push('mcp'); return { ok: true, data: { executed: 'mcp' } } }
+  }
+  BUILTIN_TOOL_DEFINITIONS.push(mcp)
+  const fullTurn = async (mutation, extra = {}) => turn({
+    sessionId: (await createSession({ scope: 'ops', permission: 'full_access' })).id,
+    permission: 'full_access', ...extra
+  }, [mutation, '完成'])
+  const noApproval = result => assert.ok(!result.events.some(event => event.type === 'approval_request'))
+  try {
+    // Plus remains mandatory even when approval would be automatic.
+    const deniedPlus = await fullTurn(call('write_file', { hostId: open._id, path: '/etc/config', content: 'new' }))
+    assert.ok(deniedPlus.events.some(event => event.type === 'tool_requires_plus'))
+    noApproval(deniedPlus)
+    replaceExecutor('exec_command')
+    replaceExecutor('terminal_command')
+    replaceExecutor('run_script', (ctx, input, options) => {
+      assert.equal(ctx.authorizedScripts.get(options.toolCallId), createHash('sha256').update('systemctl restart sshd').digest('hex'))
+    })
+    replaceExecutor('write_file', async (ctx, input, options) => {
+      const snapshot = await buildWriteFilePreviewWithSftp(sftp, input.hostId, input)
+      assert.equal(ctx.authorizedWrites.get(options.toolCallId), snapshot.snapshotHash)
+    })
+    replaceExecutor('scheduled_task_create', (ctx, input, options) => {
+      assert.ok(ctx.authorizedScheduledTasks.get(options.toolCallId))
+    })
+    for (const command of ['uptime', 'touch /tmp/test', 'rm /tmp/test', 'systemctl restart sshd', 'echo "$(date)"']) {
+      const result = await fullTurn(call('exec_command', { hostId: open._id, command }))
+      noApproval(result)
+      assert.equal(result.events.find(event => event.type === 'tool_result').output.executed, 'exec_command')
+    }
+    for (const permission of ['assist', 'authorized', 'full_access']) {
+      const before = executions.length
+      const denied = await fullTurn(call('exec_command', { hostId: open._id, command: 'rm -rf /' }), { permission })
+      assert.ok(denied.events.some(event => event.type === 'tool_denied' && event.permanent))
+      noApproval(denied)
+      assert.equal(executions.length, before)
+      const external = await fullTurn(call(mcp.name, {}), { permission })
+      assert.equal(external.events.some(event => event.type === 'approval_request'), permission !== 'full_access')
+      if (permission === 'full_access') assert.equal(external.events.find(event => event.type === 'tool_result').output.executed, 'mcp')
+    }
+    const read = await fullTurn(call('read_file', { hostId: open._id, path: '/etc/shadow' }))
+    noApproval(read)
+    assert.equal(read.events.find(event => event.type === 'tool_result').output.content, fileContent.toString())
+    // The automatic grant is still bound to the actual path, not just the input string.
+    changedPath = true
+    realpathCalls = 0
+    const changed = await fullTurn(call('read_file', { hostId: open._id, path: '/etc/shadow' }))
+    assert.match(changed.events.find(event => event.type === 'tool_result').output.error, /真实路径/)
+    changedPath = false
+    const write = await fullTurn(call('write_file', { hostId: open._id, path: '/etc/config', content: 'updated' }))
+    noApproval(write)
+    assert.equal(write.events.find(event => event.type === 'tool_result').output.executed, 'write_file')
+    const fixtureScript = await scripts.insertAsync({ name: 'High risk fixture', command: 'systemctl restart sshd', group: 'default' })
+    const scriptResult = await fullTurn(call('run_script', { hostId: open._id, scriptId: fixtureScript._id }))
+    noApproval(scriptResult)
+    assert.equal(scriptResult.events.find(event => event.type === 'tool_result').output.executed, 'run_script')
+    const ceilingHost = await hostDB.insertAsync({ name: '授权上限', host: '10.0.0.4', authType: 'password', password: await AESEncryptAsync('fixture'), aiPolicy: { maxMode: 'authorized' } })
+    const scheduledInput = { name: 'Mixed hosts', hostIds: [open._id, ceilingHost._id], cron: '0 2 * * *',
+      enabled: false, script: { type: 'inline', command: 'systemctl restart sshd' } }
+    const mixed = await fullTurn(call('scheduled_task_create', scheduledInput))
+    assert.ok(mixed.events.some(event => event.type === 'approval_request'), JSON.stringify(mixed.events.filter(event => event.type === 'tool_denied')))
+    assert.equal(mixed.events.find(event => event.type === 'approval_request').mode, 'authorized')
+    assert.equal(mixed.events.find(event => event.type === 'policy_clamped').mode, 'authorized')
+    assert.equal(mixed.events.find(event => event.type === 'policy_clamped').toolCallId,
+      mixed.events.find(event => event.type === 'approval_request').toolCallId)
+    const unrestricted = await fullTurn(call('scheduled_task_create', { ...scheduledInput, hostIds: [open._id] }))
+    noApproval(unrestricted)
+    assert.equal(unrestricted.events.find(event => event.type === 'tool_result').output.executed, 'scheduled_task_create')
+    for (const host of [restricted, disabled]) {
+      const before = executions.length
+      const blocked = await fullTurn(call('exec_command', { hostId: host._id, command: 'touch /tmp/test' }))
+      assert.ok(blocked.events.some(event => event.type === 'tool_denied'))
+      noApproval(blocked)
+      assert.equal(executions.length, before)
+    }
+    const terminalParams = { scope: 'terminal', hostIds: [ceilingHost._id], terminalHostId: ceilingHost._id,
+      terminalPermission: 'full_access', terminalContext: { output: '', hostName: ceilingHost.name } }
+    const clampedMcp = await fullTurn(call(mcp.name, {}), terminalParams)
+    assert.equal(clampedMcp.events.find(event => event.type === 'turn_start').policy.mode, 'authorized')
+    assert.equal(clampedMcp.events.find(event => event.type === 'approval_request').mode, 'authorized')
+    const fullTerminal = await fullTurn(call('terminal_command', { hostId: open._id, command: 'systemctl restart sshd' }), {
+      ...terminalParams, hostIds: [open._id], terminalHostId: open._id
+    })
+    noApproval(fullTerminal)
+    assert.equal(fullTerminal.events.find(event => event.type === 'tool_result').output.executed, 'terminal_command')
+  } finally {
+    disconnectAll()
+    Object.assign(ssh2.Client.prototype, originalSsh)
+    for (const [spec, original] of replacedDefinitions) Object.assign(spec, original)
+    BUILTIN_TOOL_DEFINITIONS.splice(BUILTIN_TOOL_DEFINITIONS.indexOf(mcp), 1)
+  }
+  console.log('完全访问、MCP、敏感读写授权、脚本指纹、多主机上限及终端模式回归通过')
 
   const terminal = await createSession({ scope: 'terminal', hostId: open._id, hostIds: [open._id] })
   const attempt = call('terminal_command', { hostId: restricted._id, command: 'uptime' })

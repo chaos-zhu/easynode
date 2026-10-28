@@ -25,6 +25,7 @@ import {
   Mode,
   isEffectAllowed,
   needsApproval,
+  normalizeMode,
   resolveEffectivePolicy,
   strongerEffect
 } from './policy.js'
@@ -79,6 +80,12 @@ async function loadHostSummaries(hostIds, sessionMode) {
     effect: summaries.some((item) => item.maxEffect === Effect.READ)
   }
   policy.enabled = summaries.some((item) => item.enabled)
+  // 终端会话绑定单台主机，MCP 等无 hostArg 的工具也遵守该主机模式上限。
+  if (summaries.length === 1) {
+    policy.mode = summaries[0].mode
+    policy.preset = policy.mode
+    policy.maxEffect = summaries[0].maxEffect
+  }
   return { hosts: summaries, policy }
 }
 
@@ -350,11 +357,18 @@ function createToolApproval(ctx) {
     }
 
     const effectivePolicies = hostPolicies.length ? hostPolicies.map(item => item.policy) : [hostPolicy]
-    const shouldApprove = spec.approvalPolicy === 'always' || effectivePolicies.some(policy => needsApproval({
+    const effectiveMode = effectivePolicies.some(policy => policy.mode === Mode.ASSIST)
+      ? Mode.ASSIST
+      : (effectivePolicies.some(policy => policy.mode === Mode.AUTHORIZED) ? Mode.AUTHORIZED : Mode.FULL_ACCESS)
+    if (effectiveMode !== ctx.sessionMode) {
+      ctx.emit({ type: 'policy_clamped', toolCallId: toolCall.toolCallId,
+        mode: effectiveMode, hostName: hostName || ctx.hosts[0]?.name || '' })
+    }
+    const shouldApprove = effectivePolicies.some(policy => needsApproval({
       mode: policy.mode,
       effect,
       risk,
-      hostOperation: Boolean(hostId || hostPolicies.length)
+      approvalPolicy: spec.approvalPolicy
     }))
 
     if (!shouldApprove) {
@@ -374,9 +388,7 @@ function createToolApproval(ctx) {
       toolName: toolCall.toolName,
       toolCallId: toolCall.toolCallId,
       input: approvalInput,
-      mode: effectivePolicies.some(policy => policy.mode === Mode.REVIEW)
-        ? Mode.REVIEW
-        : (effectivePolicies.some(policy => policy.mode === Mode.ASSIST) ? Mode.ASSIST : Mode.AUTHORIZED),
+      mode: effectiveMode,
       effect,
       targets,
       riskLevel: risk,
@@ -468,9 +480,9 @@ function denyToolCall(ctx, toolCall, input, reason, category) {
 export async function runTurn(params) {
   const { sessionId, userId, userMessage, signal, emit } = params
 
-  const sessionMode = params.scope === 'terminal'
+  const sessionMode = normalizeMode(params.scope === 'terminal'
     ? (params.terminalPermission || DEFAULT_PRESET)
-    : (params.permission || DEFAULT_PRESET)
+    : (params.permission || DEFAULT_PRESET))
   // 全局助手的请求与历史 hostIds 都不再限定范围，也不把完整主机目录塞进上下文。
   const { hosts, policy } = await loadHostSummaries(params.scope === 'terminal' ? params.hostIds : [], sessionMode)
 
@@ -497,7 +509,7 @@ export async function runTurn(params) {
     sessionMode,
     scope: params.scope || 'ops',
     terminalHostId: params.terminalHostId,
-    terminalPermission: params.terminalPermission || DEFAULT_PRESET,
+    terminalPermission: sessionMode,
     allowedHostIds: buildAllowedHostIds(params.scope === 'terminal' ? params.hostIds : []),
     usedHostIds: params.scope === 'terminal' ? undefined : params.usedHostIds,
     hosts,

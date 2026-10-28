@@ -35,9 +35,16 @@ void main() {
     });
 
     test('keeps valid history mode and rejects unknown modes', () {
-      expect(resolveAgentMode('authorized', fallback: 'review'), 'authorized');
-      expect(resolveAgentMode('legacy', fallback: 'assist'), 'assist');
-      expect(resolveAgentMode('legacy', fallback: 'legacy'), 'review');
+      expect(resolveAgentMode('authorized'), 'authorized');
+      expect(resolveAgentMode('legacy'), 'assist');
+      expect(resolveAgentMode('review'), 'assist');
+      expect(resolveAgentMode('full_access'), 'full_access');
+      expect(const AgentState().mode, 'assist');
+      expect(const AgentState().presets.map((p) => p.key), [
+        'assist',
+        'authorized',
+        'full_access',
+      ]);
     });
   });
 

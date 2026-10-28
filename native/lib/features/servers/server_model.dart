@@ -1,8 +1,10 @@
+import '../../core/ai/agent_mode.dart';
+
 class ServerAiPolicy {
   const ServerAiPolicy({
     this.enabled = true,
     this.maxEffect = 'write',
-    this.maxMode = 'authorized',
+    this.maxMode = defaultAgentHostMode,
   });
 
   final bool enabled;
@@ -18,9 +20,7 @@ class ServerAiPolicy {
     return ServerAiPolicy(
       enabled: json['enabled'] != false,
       maxEffect: const {'read', 'write'}.contains(effect) ? effect! : 'write',
-      maxMode: const {'review', 'assist', 'authorized'}.contains(mode)
-          ? mode!
-          : 'authorized',
+      maxMode: normalizeAgentMode(mode ?? defaultAgentHostMode),
     );
   }
 }

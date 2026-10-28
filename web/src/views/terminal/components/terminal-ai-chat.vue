@@ -187,21 +187,12 @@
       />
       <div class="footer_controls">
         <ModeSwitcher :model-value="settings.terminalPermission" :presets="presets" @change="setTerminalPermission" />
-        <el-select
+        <ModelSelect
           :model-value="settings.modelId"
-          size="small"
-          class="model_select"
-          placeholder="选择模型"
+          :models="options.models"
           filterable
           @update:model-value="setModel"
-        >
-          <el-option
-            v-for="model in options.models"
-            :key="model"
-            :label="model"
-            :value="model"
-          />
-        </el-select>
+        />
       </div>
     </footer>
   </section>
@@ -215,6 +206,7 @@ import ChatSender from '@/components/common/chat-sender.vue'
 import MessageItem from '@/components/ai-agent/message-item.vue'
 import ApprovalPrompt from '@/components/ai-agent/approval-prompt.vue'
 import ModeSwitcher from '@/components/ai-agent/mode-switcher.vue'
+import ModelSelect from '@/components/ai-agent/model-select.vue'
 import SessionList from '@/components/ai-agent/session-list.vue'
 import AssistantInfoPopover from '@/components/ai-agent/assistant-info-popover.vue'
 import { useAgentSession } from '@/composables/useAgentSession'
@@ -598,6 +590,5 @@ onBeforeUnmount(() => {
 
   .chat_footer { border-top: 1px solid var(--el-border-color); border-bottom: 0; }
   .footer_controls { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
-  .model_select { width: 150px; }
 }
 </style>

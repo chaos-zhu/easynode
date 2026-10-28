@@ -33,6 +33,6 @@ void main() {
     expect(policies.single.address, '10.0.0.8:2222');
     expect(policies.single.enabled, isFalse);
     expect(policies.single.maxEffect, 'read');
-    expect(policies.single.maxMode, 'review');
+    expect(policies.single.maxMode, 'assist');
   });
 }

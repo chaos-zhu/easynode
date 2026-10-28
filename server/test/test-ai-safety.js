@@ -1,7 +1,7 @@
 /** AI Agent 命令分类与执行模式矩阵测试。 */
 
 import { classifyCommand, primaryReason } from '../app/ai/safety.js'
-import { Effect, Mode, Risk, needsApproval, resolveEffectivePolicy } from '../app/ai/policy.js'
+import { Effect, Mode, Risk, needsApproval, normalizeMode, normalizeHostPolicy, resolveEffectivePolicy } from '../app/ai/policy.js'
 
 global.logger = { warn() {}, info() {}, error() {} }
 
@@ -248,19 +248,19 @@ const clamped = resolveEffectivePolicy(Mode.AUTHORIZED, {
 })
 expect('主机收紧模式与操作范围', [clamped.mode, clamped.maxEffect], [Mode.ASSIST, Effect.READ])
 expect('主机收紧状态', clamped.clamped, { mode: true, effect: true })
-expect('主机不能放宽审查模式', resolveEffectivePolicy(Mode.REVIEW, {
+expect('主机不能放宽审查模式', resolveEffectivePolicy('review', {
   maxEffect: Effect.WRITE,
   maxMode: Mode.AUTHORIZED
-}).mode, Mode.REVIEW)
+}).mode, Mode.ASSIST)
 expect('主机可禁用 Agent', resolveEffectivePolicy(Mode.ASSIST, { enabled: false }).enabled, false)
 
 const approve = (mode, effect, risk, hostOperation = false) => (
   needsApproval({ mode, effect, risk, hostOperation })
 )
-expect('审查：本地元数据读取自动', approve(Mode.REVIEW, Effect.READ, Risk.NORMAL), false)
-expect('审查：主机普通读取审批', approve(Mode.REVIEW, Effect.READ, Risk.NORMAL, true), true)
-expect('审查：普通写入审批', approve(Mode.REVIEW, Effect.WRITE, Risk.NORMAL, true), true)
-expect('审查：普通删除审批', approve(Mode.REVIEW, Effect.DELETE, Risk.NORMAL, true), true)
+expect('审查：本地元数据读取自动', approve('review', Effect.READ, Risk.NORMAL), false)
+expect('旧审查：主机普通读取按协助自动执行', approve('review', Effect.READ, Risk.NORMAL, true), false)
+expect('审查：普通写入审批', approve('review', Effect.WRITE, Risk.NORMAL, true), true)
+expect('审查：普通删除审批', approve('review', Effect.DELETE, Risk.NORMAL, true), true)
 expect('协助：普通读取自动', approve(Mode.ASSIST, Effect.READ, Risk.NORMAL, true), false)
 expect('协助：普通写入审批', approve(Mode.ASSIST, Effect.WRITE, Risk.NORMAL), true)
 expect('协助：普通删除审批', approve(Mode.ASSIST, Effect.DELETE, Risk.NORMAL), true)
@@ -269,8 +269,24 @@ expect('授权：普通写入自动', approve(Mode.AUTHORIZED, Effect.WRITE, Ris
 expect('授权：高危读取审批', approve(Mode.AUTHORIZED, Effect.READ, Risk.HIGH), true)
 expect('授权：普通删除自动', approve(Mode.AUTHORIZED, Effect.DELETE, Risk.NORMAL), false)
 expect('授权：高危删除审批', approve(Mode.AUTHORIZED, Effect.DELETE, Risk.HIGH), true)
+for (const mode of [undefined, 'review', 'invalid']) {
+  expect(`旧或无效模式 ${ mode } 回退协助`, normalizeMode(mode), Mode.ASSIST)
+}
+expect('未配置主机上限允许完全访问', resolveEffectivePolicy(Mode.FULL_ACCESS).mode, Mode.FULL_ACCESS)
+expect('已有授权上限不被放宽', resolveEffectivePolicy(Mode.FULL_ACCESS, { maxMode: Mode.AUTHORIZED }).mode, Mode.AUTHORIZED)
+expect('旧主机审查上限映射协助', normalizeHostPolicy({ maxMode: 'review' }).maxMode, Mode.ASSIST)
+expect('无效主机上限回退协助', normalizeHostPolicy({ maxMode: 'invalid' }).maxMode, Mode.ASSIST)
+for (const effect of Object.values(Effect)) {
+  for (const risk of [Risk.NORMAL, Risk.HIGH]) {
+    expect(`完全访问 ${ effect }/${ risk } 自动执行`, approve(Mode.FULL_ACCESS, effect, risk), false)
+  }
+}
+for (const mode of Object.values(Mode)) {
+  expect(`${ mode } MCP 审批`, needsApproval({ mode, approvalPolicy: 'always', risk: Risk.NORMAL }), mode !== Mode.FULL_ACCESS)
+  expect(`${ mode } 永久拒绝不发起审批`, approve(mode, Effect.DELETE, Risk.DENY), false)
+}
 const unknownStatic = classifyCommand('future-cli deploy app')
-expect('审查：未知静态命令审批', approve(Mode.REVIEW,
+expect('审查：未知静态命令审批', approve('review',
   unknownStatic.effect, unknownStatic.risk, true), true)
 expect('协助：未知静态命令审批', approve(Mode.ASSIST,
   unknownStatic.effect, unknownStatic.risk, true), true)

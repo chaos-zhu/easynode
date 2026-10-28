@@ -1,4 +1,14 @@
+import 'package:flutter/painting.dart';
+
 abstract final class AgentUiTokens {
+  static const authorizedColor = Color(0xFFE6A23C);
+  static const fullAccessColor = Color(0xFFF28B8B);
+  static Color? modeColor(String mode) => switch (mode) {
+    'authorized' => authorizedColor,
+    'full_access' => fullAccessColor,
+    _ => null,
+  };
+
   static const compactBreakpoint = 720.0;
   static const entrySize = 56.0;
   static const entryHorizontalInset = 0.0;

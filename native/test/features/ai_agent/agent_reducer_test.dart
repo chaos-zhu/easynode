@@ -3,6 +3,54 @@ import 'package:easynode_native/features/ai_agent/agent_reducer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('clamp notice ends with its call and preserves unrelated notices', () {
+    const clamp = {
+      'type': 'policy_clamped',
+      'toolCallId': 'limited-call',
+      'mode': 'assist',
+      'hostName': 'Production',
+    };
+    var state = applyAgentEvent(AgentConversationState.empty, clamp);
+    state = applyAgentEvent(state, const {
+      'type': 'tool_result',
+      'toolCallId': 'other-call',
+    });
+    expect(state.notice, 'policy_clamped:assist:Production');
+    state = applyAgentEvent(state, const {
+      'type': 'tool_result',
+      'toolCallId': 'limited-call',
+    });
+    expect(state.notice, isNull);
+    expect(state.policyNoticeToolCallId, isEmpty);
+
+    state = applyAgentEvent(state, clamp);
+    state = applyAgentEvent(state, const {
+      'type': 'history_repaired',
+      'count': 2,
+    });
+    state = applyAgentEvent(state, const {
+      'type': 'tool_result',
+      'toolCallId': 'limited-call',
+    });
+    state = applyAgentEvent(state, const {'type': 'finish'});
+    expect(state.notice, 'history_repaired:2');
+  });
+
+  for (final type in ['turn_start', 'finish', 'aborted', 'stopped', 'error']) {
+    test('$type clears legacy clamp notice without a call ID', () {
+      final clamped = applyAgentEvent(AgentConversationState.empty, const {
+        'type': 'policy_clamped',
+        'mode': 'assist',
+        'hostName': 'Production',
+      });
+      final state = applyAgentEvent(clamped, {
+        'type': type,
+        'policy': {'mode': 'full_access'},
+      });
+      expect(state.notice, isNull);
+    });
+  }
+
   test(
     'completed batch survives stop and incomplete historical tool messages',
     () {

@@ -90,7 +90,7 @@ const open = await hostListDB.insertAsync({
 })
 const restricted = await hostListDB.insertAsync({
   name: '生产机', host: '10.0.0.2', port: 22,
-  aiPolicy: { enabled: true, maxEffect: Effect.READ, maxMode: Mode.REVIEW }
+  aiPolicy: { enabled: true, maxEffect: Effect.READ, maxMode: 'review' }
 })
 const disabled = await hostListDB.insertAsync({
   name: '禁用机', host: '10.0.0.3', port: 22,
@@ -137,7 +137,7 @@ console.log('\n========== 主机访问控制 ==========')
   const readonlyAccess = await resolveHostAccess(restricted._id, ctx, Effect.READ)
   expect('受限主机仍放行只读工具', readonlyAccess.host.name, '生产机')
   expect('受限主机操作范围被压到只读', readonlyAccess.policy.maxEffect, Effect.READ)
-  expect('受限主机模式被压到审查', readonlyAccess.policy.mode, Mode.REVIEW)
+  expect('受限主机旧审查上限兼容为协助', readonlyAccess.policy.mode, Mode.ASSIST)
 
   await expectReject('禁用 AI 的主机被拒绝', resolveHostAccess(disabled._id, ctx, 'host_status'), /禁止/)
   await expectReject('缺少 hostId 被拒绝', resolveHostAccess('', ctx, 'host_status'), /缺少 hostId/)
@@ -198,7 +198,7 @@ console.log('\n========== 全局主机发现 ==========')
   expect('全局访问不依赖旧选择', (await resolveHostAccess(open._id, ctx, Effect.WRITE)).host._id, open._id)
   expect('跟踪实际通过访问校验的主机', [...ctx.usedHostIds], [open._id])
   const access = await resolveHostAccess(restricted._id, ctx, Effect.READ)
-  expect('全局访问仍遵守主机模式上限', access.policy.mode, Mode.REVIEW)
+  expect('全局访问仍遵守主机模式上限', access.policy.mode, Mode.ASSIST)
   await expectReject('全局访问仍禁止受限主机写入', resolveHostAccess(restricted._id, ctx, Effect.WRITE), /仅允许/)
   await expectReject('全局访问仍禁止禁用 AI 主机', resolveHostAccess(disabled._id, ctx, Effect.READ), /禁止/)
   await expectReject('全局访问仍拒绝缺少主机 ID', resolveHostAccess('', ctx, Effect.READ), /缺少/)

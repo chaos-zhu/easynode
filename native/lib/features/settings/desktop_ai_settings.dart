@@ -11,6 +11,7 @@ import '../../state/agent_providers.dart';
 import '../../state/desktop_server_catalog_provider.dart';
 import '../../state/storage_providers.dart';
 import '../ai_agent/agent_models.dart';
+import '../ai_agent/agent_ui_tokens.dart';
 import 'desktop_mcp_settings.dart';
 import 'desktop_settings_widgets.dart';
 
@@ -706,9 +707,13 @@ class _DesktopAiSettingsState extends ConsumerState<DesktopAiSettings> {
     ),
     DesktopSelect(
       options: {
-        'review': mx(context, '审查', 'Review'),
         'assist': mx(context, '协助', 'Assist'),
         'authorized': mx(context, '授权', 'Authorized'),
+        'full_access': mx(context, '完全', 'Full'),
+      },
+      optionColors: {
+        'authorized': AgentUiTokens.authorizedColor,
+        'full_access': AgentUiTokens.fullAccessColor,
       },
       values: [p.maxMode],
       onSelected: (v) =>
@@ -730,7 +735,7 @@ class _DesktopAiSettingsState extends ConsumerState<DesktopAiSettings> {
                   final next = p.copyWith(
                     enabled: true,
                     maxEffect: 'write',
-                    maxMode: 'authorized',
+                    maxMode: 'full_access',
                   );
                   setState(() => _policies[p.hostId] = next);
                   unawaited(_savePolicy(next));

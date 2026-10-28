@@ -17,7 +17,7 @@ import { getScriptById, listScripts } from '../../services/script-library.js'
 import { execCommand, withSftp, DEFAULT_TIMEOUT_MS } from '../ssh.js'
 import { fit, read as readOutput } from '../output-store.js'
 import { writeAudit, ACTION } from '../audit.js'
-import { DEFAULT_HOST_POLICY } from '../policy.js'
+import { normalizeHostPolicy } from '../policy.js'
 import { resolveHostAccess } from '../host-access.js'
 import { classifyReadPath, DataRisk, stricterDataRisk } from '../data-policy.js'
 import { Effect } from '../policy.js'
@@ -148,7 +148,7 @@ export async function hostList(ctx, input) {
       return [host.name, host.host, group].some((field) => String(field || '').toLowerCase().includes(keyword))
     })
     .map((host) => {
-      const policy = { ...DEFAULT_HOST_POLICY, ...(host.aiPolicy || {}) }
+      const policy = normalizeHostPolicy(host.aiPolicy)
       return {
         hostId: host._id,
         name: host.name,

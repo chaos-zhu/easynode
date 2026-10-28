@@ -17,7 +17,7 @@
       <span v-else class="tool_spacer" />
 
       <span v-if="part.risk?.level" class="risk_tag" :class="`risk_${part.risk.level}`">
-        {{ part.risk.level === 'deny' ? '已拦截' : '需审查' }}
+        {{ part.risk.level === 'deny' ? '已拦截' : '高危' }}
       </span>
 
       <span v-if="part.approval" class="approval_tag">

@@ -15,6 +15,7 @@ class DesktopSelect extends StatefulWidget {
     required this.onSelected,
     this.onRemoved,
     this.descriptions = const {},
+    this.optionColors = const {},
     this.placeholder,
     this.errorText,
     this.helperText,
@@ -33,6 +34,7 @@ class DesktopSelect extends StatefulWidget {
   final ValueChanged<String> onSelected;
   final ValueChanged<String>? onRemoved;
   final Map<String, String> descriptions;
+  final Map<String, Color> optionColors;
   final String? placeholder;
   final String? errorText;
   final String? helperText;
@@ -231,6 +233,7 @@ class _DesktopSelectState extends State<DesktopSelect> {
                             key: ValueKey(option.key),
                             label: option.value,
                             description: widget.descriptions[option.key],
+                            color: widget.optionColors[option.key],
                             selected: selected.contains(option.key),
                             autofocus:
                                 !widget.allowCreate && option.key == first,
@@ -270,6 +273,9 @@ class _DesktopSelectState extends State<DesktopSelect> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final multiple = widget.onRemoved != null;
+    final tone = multiple || widget.values.isEmpty
+        ? null
+        : widget.optionColors[widget.values.first];
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -376,7 +382,7 @@ class _DesktopSelectState extends State<DesktopSelect> {
                               style: TextStyle(
                                 color: widget.values.isEmpty
                                     ? colors.softMuted
-                                    : null,
+                                    : tone,
                               ),
                             ),
                     ),
@@ -452,7 +458,9 @@ class _SelectOption extends StatelessWidget {
     required this.autofocus,
     required this.onPressed,
     this.description,
+    this.color,
   });
+  final Color? color;
   final String label;
   final String? description;
   final bool selected;
@@ -480,7 +488,7 @@ class _SelectOption extends StatelessWidget {
             ),
           ),
           foregroundColor: WidgetStatePropertyAll(
-            selected ? colors.accent : colors.text,
+            color ?? (selected ? colors.accent : colors.text),
           ),
           backgroundColor: WidgetStatePropertyAll(
             selected ? colors.accentSoft : Colors.transparent,

@@ -32,7 +32,7 @@ void main() {
     expect(model.canConnect, isTrue);
     expect(model.aiPolicy.enabled, isFalse);
     expect(model.aiPolicy.maxEffect, 'read');
-    expect(model.aiPolicy.maxMode, 'review');
+    expect(model.aiPolicy.maxMode, 'assist');
   });
 
   test('falls back to _id and default port', () {
@@ -52,7 +52,7 @@ void main() {
     expect(model.tag, isEmpty);
     expect(model.aiPolicy.enabled, isTrue);
     expect(model.aiPolicy.maxEffect, 'write');
-    expect(model.aiPolicy.maxMode, 'authorized');
+    expect(model.aiPolicy.maxMode, 'full_access');
   });
 
   test('canConnect mirrors isConfig state', () {

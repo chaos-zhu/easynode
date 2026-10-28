@@ -2,7 +2,7 @@
   <el-dropdown trigger="click" placement="top-start" @command="emit('change', $event)">
     <span class="mode_trigger" :class="[`is_${modelValue}`, { 'is_dark': isDark }]">
       <el-icon><component :is="currentIcon" /></el-icon>
-      <span>{{ currentPreset?.label || '审查' }}</span>
+      <span>{{ currentPreset?.label || '协助' }}</span>
       <el-icon class="arrow"><ArrowDown /></el-icon>
     </span>
 
@@ -14,7 +14,7 @@
           :command="preset.key"
           :class="{ 'is_active': preset.key === modelValue }"
         >
-          <div class="mode_option">
+          <div class="mode_option" :class="{ 'is_full_access': preset.key === 'full_access' }">
             <el-icon class="option_icon" :class="`is_${preset.key}`">
               <component :is="ICONS[preset.key] || Setting" />
             </el-icon>
@@ -34,14 +34,14 @@
 
 <script setup>
 import { computed, getCurrentInstance } from 'vue'
-import { View, Lightning, Unlock, ArrowDown, Check, Setting } from '@element-plus/icons-vue'
+import { Lightning, Unlock, WarnTriangleFilled, ArrowDown, Check, Setting } from '@element-plus/icons-vue'
 
 const { proxy: { $store } } = getCurrentInstance()
 
 const props = defineProps({
   modelValue: {
     type: String,
-    default: 'review'
+    default: 'assist'
   },
   presets: {
     type: Array,
@@ -54,9 +54,9 @@ const emit = defineEmits(['change',])
 const isDark = computed(() => $store.isDark)
 
 const ICONS = {
-  review: View,
   assist: Lightning,
-  authorized: Unlock
+  authorized: Unlock,
+  full_access: WarnTriangleFilled
 }
 
 const currentPreset = computed(() => props.presets.find((item) => item.key === props.modelValue))
@@ -84,9 +84,11 @@ const currentIcon = computed(() => ICONS[props.modelValue] || Setting)
     background-color: rgba(255, 255, 255, 0.08);
   }
 
-  &.is_review { color: #909399; }
   &.is_assist { color: #67c23a; }
   &.is_authorized { color: #e6a23c; }
+  &.is_full_access {
+    color: #f28b8b;
+  }
 
   .arrow {
     font-size: 12px;
@@ -100,12 +102,16 @@ const currentIcon = computed(() => ICONS[props.modelValue] || Setting)
   padding: 2px 0;
   min-width: 200px;
 
+  &.is_full_access {
+    color: #f28b8b;
+  }
+
   .option_icon {
     margin-top: 3px;
 
-    &.is_review { color: #909399; }
     &.is_assist { color: #67c23a; }
     &.is_authorized { color: #e6a23c; }
+    &.is_full_access { color: #f28b8b; }
   }
 
   .option_text {
@@ -129,4 +135,5 @@ const currentIcon = computed(() => ICONS[props.modelValue] || Setting)
     }
   }
 }
+
 </style>

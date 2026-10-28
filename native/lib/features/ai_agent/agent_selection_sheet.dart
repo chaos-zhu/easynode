@@ -14,6 +14,7 @@ class AgentSelectionOption<T> {
     this.icon = Icons.circle_outlined,
     this.enabled = true,
     this.searchText = '',
+    this.color,
   });
 
   final T value;
@@ -22,6 +23,7 @@ class AgentSelectionOption<T> {
   final IconData icon;
   final bool enabled;
   final String searchText;
+  final Color? color;
 }
 
 Future<T?> showAgentSingleSelectionSheet<T>({
@@ -110,9 +112,11 @@ class _AgentSelectionPopoverState<T> extends State<_AgentSelectionPopover<T>> {
         ))
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: option.value == widget.selected
-                  ? context.colors.accent
-                  : context.colors.text,
+              foregroundColor:
+                  option.color ??
+                  (option.value == widget.selected
+                      ? context.colors.accent
+                      : context.colors.text),
               alignment: Alignment.centerLeft,
               minimumSize: const Size(0, 32),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
@@ -491,7 +495,9 @@ class _AgentSelectionSheetState<T> extends State<_AgentSelectionSheet<T>> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AgentUiTokens.radiusMedium),
             border: Border.all(
-              color: checked ? context.colors.primary : context.colors.border,
+              color: checked
+                  ? (option.color ?? context.colors.primary)
+                  : context.colors.border,
               width: checked ? 1.4 : 1,
             ),
           ),
@@ -510,7 +516,7 @@ class _AgentSelectionSheetState<T> extends State<_AgentSelectionSheet<T>> {
                   option.icon,
                   size: 18,
                   color: option.enabled
-                      ? context.colors.primary
+                      ? (option.color ?? context.colors.primary)
                       : context.colors.softMuted,
                 ),
               ),
@@ -525,7 +531,7 @@ class _AgentSelectionSheetState<T> extends State<_AgentSelectionSheet<T>> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: option.enabled
-                            ? context.colors.text
+                            ? (option.color ?? context.colors.text)
                             : context.colors.softMuted,
                         fontWeight: FontWeight.w700,
                       ),
@@ -556,7 +562,7 @@ class _AgentSelectionSheetState<T> extends State<_AgentSelectionSheet<T>> {
                     ? Icons.radio_button_checked
                     : Icons.radio_button_off,
                 color: checked
-                    ? context.colors.primary
+                    ? (option.color ?? context.colors.primary)
                     : context.colors.softMuted,
               ),
             ],

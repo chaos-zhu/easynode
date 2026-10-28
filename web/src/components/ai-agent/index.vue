@@ -228,20 +228,11 @@
                 <ModeSwitcher :model-value="settings.preset" :presets="presets" @change="setPreset" />
               </div>
 
-              <el-select
+              <ModelSelect
                 :model-value="settings.modelId"
-                size="small"
-                class="model_select"
-                placeholder="选择模型"
+                :models="options.models"
                 @update:model-value="setModel"
-              >
-                <el-option
-                  v-for="model in options.models"
-                  :key="model"
-                  :label="model"
-                  :value="model"
-                />
-              </el-select>
+              />
 
               <span class="footer_spacer" />
             </div>
@@ -266,6 +257,7 @@ import ChatSender from '../common/chat-sender.vue'
 import MessageItem from './message-item.vue'
 import ApprovalPrompt from './approval-prompt.vue'
 import ModeSwitcher from './mode-switcher.vue'
+import ModelSelect from './model-select.vue'
 import SessionList from './session-list.vue'
 import AssistantInfoPopover from './assistant-info-popover.vue'
 import { useAgentSession } from '@/composables/useAgentSession'
@@ -1011,12 +1003,6 @@ async function handleClearSessions() {
         min-width: 0;
       }
 
-      .model_select {
-        flex: 0 1 150px;
-        min-width: 110px;
-        width: 150px;
-      }
-
       .footer_spacer {
         flex: 1;
       }
@@ -1045,11 +1031,6 @@ async function handleClearSessions() {
 
       .mode_control {
         grid-column: 1 / -1;
-      }
-
-      .model_select {
-        width: 100%;
-        min-width: 0;
       }
 
       .footer_spacer {

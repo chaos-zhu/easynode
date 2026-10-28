@@ -16,7 +16,7 @@ import {
   fromModelMessages,
   emptyUsage
 } from './agentMessages'
-import { DEFAULT_PRESET } from '@/components/ai-agent/presets'
+import { DEFAULT_PRESET, PRESET_FALLBACK, normalizeMode } from '@/components/ai-agent/presets'
 
 export function useAgentSession(config = {}) {
   const store = useStore()
@@ -61,14 +61,18 @@ export function useAgentSession(config = {}) {
 
   const settings = reactive({
     modelId: localStorage.getItem(scope === 'terminal' ? 'terminalAgentModel' : 'agentModel') || '',
-    preset: localStorage.getItem('agentMode') || DEFAULT_PRESET,
-    terminalPermission: ['review', 'assist', 'authorized',].includes(savedTerminalPermission)
-      ? savedTerminalPermission
-      : DEFAULT_PRESET
+    preset: normalizeMode(localStorage.getItem('agentMode')),
+    terminalPermission: normalizeMode(savedTerminalPermission)
   })
 
   const sessions = ref([])
   const historyNotice = ref('')
+  let policyNotice = null
+
+  function clearPolicyNotice() {
+    if (policyNotice && historyNotice.value === policyNotice.text) historyNotice.value = ''
+    policyNotice = null
+  }
   const panelDomains = new Set()
   let panelRefreshTimer = null
   let panelRefreshRunning = false
@@ -181,17 +185,28 @@ export function useAgentSession(config = {}) {
     dismissPlusRequired()
     deferredTerminalEndEvent = null
     historyNotice.value = ''
+    policyNotice = null
   }
 
   function handleEvent(event) {
+    if (['turn_start', 'finish', 'aborted', 'stopped', 'error',].includes(event.type)
+      || (event.type === 'tool_result' && event.toolCallId && event.toolCallId === policyNotice?.toolCallId)) {
+      clearPolicyNotice()
+    }
     switch (event.type) {
       case 'panel_data_changed':
         schedulePanelRefresh(event.domains)
         return
+      case 'policy_clamped': {
+        const label = PRESET_FALLBACK.find(preset => preset.key === event.mode)?.label || '协助'
+        historyNotice.value = `主机「${ event.hostName }」限制了权限，本次操作按「${ label }」模式执行`
+        policyNotice = { toolCallId: event.toolCallId, text: historyNotice.value }
+        return
+      }
       case 'ready':
         applyModels(event.models, event.defaultModel)
-        options.presets = event.presets || []
-        options.defaultPreset = event.defaultPreset || DEFAULT_PRESET
+        options.presets = (event.presets || []).filter(preset => PRESET_FALLBACK.some(item => item.key === preset.key))
+        options.defaultPreset = normalizeMode(event.defaultPreset)
         options.tools = Array.isArray(event.tools) ? event.tools : []
         options.plusAvailable = Boolean(event.plusAvailable)
         return
@@ -281,6 +296,7 @@ export function useAgentSession(config = {}) {
     })
     instance.on('disconnect', () => {
       connected.value = false
+      clearPolicyNotice()
       // 后端在 socket 断开时会中止本轮并清掉挂起的审批，前端必须同步收尾：
       // 只把 running 置 false 的话，进行中和等待确认的卡片会永远转圈
       const disconnectEvent = { type: 'error', message: '与服务端的连接已断开，本次任务已中止' }
@@ -296,6 +312,7 @@ export function useAgentSession(config = {}) {
   }
 
   function disconnect() {
+    clearPolicyNotice()
     if (!socket.value) return
     cancelActiveTerminalRequests('Agent 面板已关闭，正在中断远端命令')
     socket.value.off('agent_event', handleEvent)
@@ -308,6 +325,7 @@ export function useAgentSession(config = {}) {
     const content = String(text || '').trim()
     if (!content || !canSend.value) return
 
+    clearPolicyNotice()
     state.messages.push(createUserMessage(content))
     state.aborted = false
     state.error = null
@@ -441,7 +459,8 @@ export function useAgentSession(config = {}) {
     state.messages.push(...fromModelMessages(data.messages, data.toolMeta, data.turnMeta))
     state.usage = { ...emptyUsage(), ...(data.usage || {}) }
     if (data.modelId && options.models.includes(data.modelId)) settings.modelId = data.modelId
-    if (data.permission) settings.preset = data.permission
+    if (scope === 'terminal') settings.terminalPermission = normalizeMode(data.permission)
+    else settings.preset = normalizeMode(data.permission)
   }
 
   async function forkSession(turnIndex, messageIndex) {
@@ -480,12 +499,12 @@ export function useAgentSession(config = {}) {
   }
 
   function setPreset(preset) {
-    settings.preset = preset
-    localStorage.setItem('agentMode', preset)
+    settings.preset = normalizeMode(preset)
+    localStorage.setItem('agentMode', settings.preset)
   }
 
   function setTerminalPermission(permission) {
-    settings.terminalPermission = ['review', 'assist', 'authorized',].includes(permission) ? permission : DEFAULT_PRESET
+    settings.terminalPermission = normalizeMode(permission)
     localStorage.setItem('terminalAgentMode', settings.terminalPermission)
   }
 

@@ -1,5 +1,7 @@
 import 'dart:collection';
 
+import '../../core/ai/agent_mode.dart';
+
 Map<String, dynamic> stringMap(Object? value) {
   if (value is! Map) return const {};
   return value.map((key, item) => MapEntry(key.toString(), item));
@@ -106,7 +108,7 @@ class AgentHostPolicy {
     required this.address,
     this.enabled = true,
     this.maxEffect = 'write',
-    this.maxMode = 'authorized',
+    this.maxMode = defaultAgentHostMode,
   });
 
   final String hostId;
@@ -134,7 +136,7 @@ class AgentHostPolicy {
   Map<String, dynamic> toJson() => {
     'enabled': enabled,
     'maxEffect': maxEffect,
-    'maxMode': maxMode,
+    'maxMode': normalizeAgentMode(maxMode),
   };
 }
 
@@ -228,7 +230,7 @@ class AgentSession {
     title: json['title']?.toString() ?? '',
     scope: json['scope']?.toString() ?? 'ops',
     modelId: json['modelId']?.toString() ?? '',
-    permission: json['permission']?.toString() ?? 'review',
+    permission: normalizeAgentMode(json['permission']?.toString()),
     hostIds: json['hostIds'] is List
         ? (json['hostIds'] as List)
               .map((item) => item.toString())
@@ -459,7 +461,7 @@ class AgentPreset {
   final String desc;
 
   factory AgentPreset.fromJson(Map<String, dynamic> json) => AgentPreset(
-    key: json['key']?.toString() ?? 'review',
+    key: normalizeAgentMode(json['key']?.toString()),
     label: json['label']?.toString() ?? '',
     desc: json['desc']?.toString() ?? '',
   );

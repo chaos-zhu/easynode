@@ -545,6 +545,10 @@ String _noticeText(AppLocalizations l, String notice) {
     'history_repaired' => l.trf('agent.notice.historyRepaired', [parts.last]),
     'compacted' => l.trf('agent.notice.compacted', [parts.last]),
     'pending_approvals' => l.trf('agent.notice.pendingApprovals', [parts.last]),
+    'policy_clamped' => l.trf('agent.notice.policyClamped', [
+      parts.skip(2).join(':'),
+      _modeLabel(l, parts[1]),
+    ]),
     'panel_refresh_failed' => l.tr('agent.panel.refreshFailed'),
     'stream_error' => parts.skip(1).join(':'),
     _ => notice,

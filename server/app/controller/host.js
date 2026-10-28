@@ -9,6 +9,7 @@ import {
   ORDER_DOMAIN,
   removeItemsFromOrder
 } from '../services/order-service.js'
+import { normalizeHostPolicy } from '../ai/policy.js'
 import { detachHostsFromScheduledTasks } from '../services/scheduled-task-service.js'
 const hostListDB = new HostListDB().getInstance()
 const currentDir = dirname(fileURLToPath(import.meta.url))
@@ -20,6 +21,7 @@ async function addHost({ res, request }) {
   delete newRecord.index
   delete newRecord.id
   delete newRecord._id
+  newRecord.aiPolicy = normalizeHostPolicy(newRecord.aiPolicy)
   const { authType, tempKey } = newRecord
   if (newRecord[authType] && tempKey) {
     const clearTempKey = await RSADecryptAsync(tempKey)
@@ -43,6 +45,7 @@ async function updateHost({ res, request }) {
   delete updateFiled.id
   const oldRecord = await hostListDB.findOneAsync({ _id: id })
   if (!oldRecord) return res.fail({ msg: '实例不存在' })
+  if (Object.hasOwn(updateFiled, 'aiPolicy')) updateFiled.aiPolicy = normalizeHostPolicy(updateFiled.aiPolicy)
   if (authType && updateFiled[authType]) {
     const clearTempKey = await RSADecryptAsync(tempKey)
     const clearSSHKey = await AESDecryptAsync(updateFiled[authType], clearTempKey)
@@ -115,6 +118,7 @@ async function importHost({ res, request }) {
       return Object.assign(record, { ...extraFiels })
     })
   }
+  newHostList = newHostList.map(record => ({ ...record, aiPolicy: normalizeHostPolicy(record.aiPolicy) }))
   const inserted = await hostListDB.insertAsync(newHostList)
   await addItemsToOrder(ORDER_DOMAIN.HOSTS, inserted)
   res.success({ data: { len: newHostList.length } })

@@ -961,15 +961,17 @@ const Map<String, String> stringsEn = {
   'agent.selection.clearAll': 'Deselect all',
   'agent.selection.selectFiltered': 'Select results',
   'agent.selection.clearFiltered': 'Deselect results',
-  'agent.mode.review': 'Review',
   'agent.mode.assist': 'Assist',
   'agent.mode.authorized': 'Authorized',
-  'agent.mode.reviewDescription':
-      'Ask for confirmation before every operation on a host.',
+  'agent.mode.fullAccess': 'Full',
+  'agent.notice.policyClamped':
+      'Host "{0}" limits this operation to "{1}" mode.',
+  'agent.mode.fullAccessDescription':
+      'Block only built-in high-risk commands; allow all other commands',
   'agent.mode.assistDescription':
-      'Run explicit read-only operations automatically; confirm writes.',
+      'Allow recognized read-only operations; confirm all others',
   'agent.mode.authorizedDescription':
-      'Run ordinary operations automatically within the host policy.',
+      'Allow read-only and recognized editing operations; confirm all others',
   'agent.thinking': 'Thinking…',
   'agent.scrollToBottom': 'Scroll to bottom',
   'agent.analyzingTools': 'Analyzing tool results…',

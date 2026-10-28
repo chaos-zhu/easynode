@@ -183,10 +183,11 @@
             </el-table-column>
             <el-table-column label="最高权限模式" min-width="180">
               <template #default="{ row }">
-                <el-select v-model="row.aiPolicy.maxMode">
+                <el-select v-model="row.aiPolicy.maxMode" :class="{ full_access_select: row.aiPolicy.maxMode === 'full_access' }">
                   <el-option
                     v-for="item in MODES"
                     :key="item.value"
+                    :style="item.value === 'full_access' ? { color: '#f28b8b' } : undefined"
                     :label="item.label"
                     :value="item.value"
                   />
@@ -214,6 +215,7 @@
 </template>
 
 <script setup>
+import { normalizeMode } from '@/components/ai-agent/presets'
 import { computed, getCurrentInstance, onMounted, ref, watch } from 'vue'
 import { Connection, Cpu, Lock } from '@element-plus/icons-vue'
 import AgentMcp from './agent-mcp.vue'
@@ -232,15 +234,15 @@ const EFFECTS = [
 ]
 
 const MODES = [
-  { value: 'review', label: '审查' },
   { value: 'assist', label: '协助' },
   { value: 'authorized', label: '授权' },
+  { value: 'full_access', label: '完全' },
 ]
 
 const DEFAULT_HOST_POLICY = {
   enabled: true,
   maxEffect: 'write',
-  maxMode: 'authorized'
+  maxMode: 'full_access'
 }
 
 const DEFAULT_CONTEXT_LIMIT = 64 * 1024
@@ -322,9 +324,7 @@ function syncHostPolicies(hosts) {
     aiPolicy: {
       enabled: host.aiPolicy?.enabled !== false,
       maxEffect: ['read', 'write',].includes(host.aiPolicy?.maxEffect) ? host.aiPolicy.maxEffect : 'write',
-      maxMode: ['review', 'assist', 'authorized',].includes(host.aiPolicy?.maxMode)
-        ? host.aiPolicy.maxMode
-        : 'authorized'
+      maxMode: normalizeMode(host.aiPolicy?.maxMode ?? DEFAULT_HOST_POLICY.maxMode)
     }
   }))
 }
@@ -517,5 +517,11 @@ onMounted(async () => {
   :deep(.provider_form .el-form-item) { display: block; }
   :deep(.provider_form .el-form-item__label) { width: auto !important; justify-content: flex-start; }
   :deep(.provider_form .el-form-item__content) { margin-left: 0 !important; }
+}
+.full_access_select :deep(.el-select__wrapper) {
+  color: #f28b8b;
+}
+.full_access_select :deep(.el-select__selected-item) {
+  color: #f28b8b;
 }
 </style>

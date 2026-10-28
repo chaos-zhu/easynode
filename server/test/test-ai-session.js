@@ -55,6 +55,22 @@ const toolResultMsg = (id, name = 'exec_command') => ({
   content: [{ type: 'tool-result', toolCallId: id, toolName: name, output: { type: 'text', value: 'ok' } }]
 })
 
+// Read compatibility must not rewrite legacy records until the next save.
+{
+  const { AgentSessionDB } = await import('../app/utils/db-class.js')
+  const db = new AgentSessionDB().getInstance()
+  const legacy = await db.insertAsync({ permission: 'review', messages: [], title: 'legacy' })
+  expect('旧会话读取映射协助', (await store.getSession(legacy._id)).permission, 'assist')
+  expect('只读兼容不改写数据库', (await db.findOneAsync({ _id: legacy._id })).permission, 'review')
+  await store.appendTurn(legacy._id, { permission: 'full_access', newMessages: [userMsg('hello'), assistantMsg('hello')] })
+  expect('续聊保存完全访问', (await store.getSession(legacy._id)).permission, 'full_access')
+  expect('分支保留完全访问', (await store.forkSession(legacy._id, 0)).permission, 'full_access')
+  await store.updateSession(legacy._id, { permission: 'unknown' })
+  expect('无效模式保存为协助', (await db.findOneAsync({ _id: legacy._id })).permission, 'assist')
+  expect('新会话默认协助', (await store.createSession()).permission, 'assist')
+  for (const record of await store.listSessions()) await store.removeSession(record.id)
+}
+
 console.log('\n========== 消息完整性修复 ==========')
 
 // 完整的序列不该被改动

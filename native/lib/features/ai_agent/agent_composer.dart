@@ -35,8 +35,11 @@ class _AgentComposer extends ConsumerWidget {
                     child: Builder(
                       builder: (anchor) => _ComposerPickerButton(
                         desktopLayout: desktopLayout,
-                        icon: Icons.shield_outlined,
+                        icon: state.mode == 'full_access'
+                            ? Icons.warning_amber_rounded
+                            : Icons.shield_outlined,
                         label: _modeLabel(l, state.mode),
+                        tone: AgentUiTokens.modeColor(state.mode),
                         tooltip: l.tr('agent.selectMode'),
                         enabled: !state.conversation.running,
                         onTap: () => _pickMode(anchor, ref),
@@ -130,6 +133,7 @@ class _AgentComposer extends ConsumerWidget {
               title: _modeLabel(l, preset.key),
               subtitle: _modeDescription(l, preset.key),
               icon: _modeIcon(preset.key),
+              color: AgentUiTokens.modeColor(preset.key),
             ),
           )
           .toList(growable: false),
@@ -180,8 +184,10 @@ class _ComposerPickerButton extends StatelessWidget {
     required this.enabled,
     required this.onTap,
     this.desktopLayout = false,
+    this.tone,
   });
 
+  final Color? tone;
   final IconData icon;
   final bool desktopLayout;
   final String label;
@@ -217,7 +223,7 @@ class _ComposerPickerButton extends StatelessWidget {
                   icon,
                   size: 17,
                   color: enabled
-                      ? context.colors.primary
+                      ? (tone ?? context.colors.primary)
                       : context.colors.softMuted,
                 ),
                 const SizedBox(width: 7),
@@ -228,7 +234,7 @@ class _ComposerPickerButton extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: enabled
-                          ? context.colors.text
+                          ? (tone ?? context.colors.text)
                           : context.colors.softMuted,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -254,17 +260,20 @@ class _ComposerPickerButton extends StatelessWidget {
 String _modeLabel(AppLocalizations l, String mode) => switch (mode) {
   'assist' => l.tr('agent.mode.assist'),
   'authorized' => l.tr('agent.mode.authorized'),
-  _ => l.tr('agent.mode.review'),
+  'full_access' => l.tr('agent.mode.fullAccess'),
+  _ => l.tr('agent.mode.assist'),
 };
 
 String _modeDescription(AppLocalizations l, String mode) => switch (mode) {
   'assist' => l.tr('agent.mode.assistDescription'),
   'authorized' => l.tr('agent.mode.authorizedDescription'),
-  _ => l.tr('agent.mode.reviewDescription'),
+  'full_access' => l.tr('agent.mode.fullAccessDescription'),
+  _ => l.tr('agent.mode.assistDescription'),
 };
 
 IconData _modeIcon(String mode) => switch (mode) {
   'assist' => Icons.visibility_outlined,
   'authorized' => Icons.bolt_outlined,
-  _ => Icons.fact_check_outlined,
+  'full_access' => Icons.warning_amber_rounded,
+  _ => Icons.visibility_outlined,
 };

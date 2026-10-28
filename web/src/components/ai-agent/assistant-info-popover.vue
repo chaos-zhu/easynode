@@ -90,7 +90,7 @@ const props = defineProps({
   },
   preset: {
     type: String,
-    default: 'review'
+    default: 'assist'
   },
   selectedHostCount: {
     type: Number,
@@ -130,9 +130,9 @@ const emptyDescription = computed(() => {
 })
 
 const toolNotice = computed(() => (
-  props.scope === 'terminal'
-    ? '终端命令按当前权限模式执行；需审查操作需要确认，永久禁止的操作始终拦截。'
-    : '工具按权限模式和目标主机策略执行；需审查操作需要确认，永久禁止的操作始终拦截。'
+  props.preset === 'full_access'
+    ? '在目标主机策略允许的范围内，仅拦截内置永久拒绝命令，其余工具调用自动执行。'
+    : '工具按权限模式和目标主机策略执行；高危操作需要确认，永久禁止的操作始终拦截。'
 ))
 
 function toolLabel(name) {

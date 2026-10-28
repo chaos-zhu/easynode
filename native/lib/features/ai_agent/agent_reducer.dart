@@ -15,6 +15,7 @@ class AgentConversationState {
     this.aborted = false,
     this.error,
     this.notice,
+    this.policyNoticeToolCallId = '',
     this.plusRequired,
     this.policy,
     this.clamped,
@@ -31,6 +32,7 @@ class AgentConversationState {
   final bool aborted;
   final String? error;
   final String? notice;
+  final String policyNoticeToolCallId;
   final String? plusRequired;
   final Map<String, dynamic>? policy;
   final Map<String, dynamic>? clamped;
@@ -49,6 +51,7 @@ class AgentConversationState {
     bool clearError = false,
     String? notice,
     bool clearNotice = false,
+    String? policyNoticeToolCallId,
     String? plusRequired,
     bool clearPlusRequired = false,
     Map<String, dynamic>? policy,
@@ -65,6 +68,9 @@ class AgentConversationState {
     aborted: aborted ?? this.aborted,
     error: clearError ? null : error ?? this.error,
     notice: clearNotice ? null : notice ?? this.notice,
+    policyNoticeToolCallId: clearNotice
+        ? ''
+        : policyNoticeToolCallId ?? this.policyNoticeToolCallId,
     plusRequired: clearPlusRequired ? null : plusRequired ?? this.plusRequired,
     policy: policy ?? this.policy,
     clamped: clamped ?? this.clamped,
@@ -96,6 +102,19 @@ AgentConversationState applyAgentEvent(
   Map<String, dynamic> event,
 ) {
   final type = event['type']?.toString() ?? '';
+  if (state.notice?.startsWith('policy_clamped:') == true &&
+      (const {
+            'turn_start',
+            'finish',
+            'aborted',
+            'stopped',
+            'error',
+          }.contains(type) ||
+          (type == 'tool_result' &&
+              state.policyNoticeToolCallId.isNotEmpty &&
+              event['toolCallId'] == state.policyNoticeToolCallId))) {
+    state = state.copyWith(clearNotice: true);
+  }
   switch (type) {
     case 'session_created':
       final session = stringMap(event['session']);
@@ -138,6 +157,11 @@ AgentConversationState applyAgentEvent(
         (part) => part.copyWith(status: AgentToolStatus.denied, error: reason),
       );
       return updated.copyWith(plusRequired: reason);
+    case 'policy_clamped':
+      return state.copyWith(
+        notice: 'policy_clamped:${event['mode']}:${event['hostName']}',
+        policyNoticeToolCallId: event['toolCallId']?.toString() ?? '',
+      );
     case 'turn_start':
       return state.copyWith(
         running: true,

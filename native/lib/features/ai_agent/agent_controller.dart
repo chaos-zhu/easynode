@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../../core/ai/agent_mode.dart';
+
 import '../../core/storage/app_storage.dart';
 import 'agent_models.dart';
 import 'terminal_agent_binding.dart';
@@ -18,11 +20,7 @@ String resolveAgentModel({
   return models.firstOrNull ?? '';
 }
 
-String resolveAgentMode(String candidate, {String fallback = 'review'}) {
-  const modes = {'review', 'assist', 'authorized'};
-  if (modes.contains(candidate)) return candidate;
-  return modes.contains(fallback) ? fallback : 'review';
-}
+String resolveAgentMode(String candidate) => normalizeAgentMode(candidate);
 
 class AgentState {
   const AgentState({
@@ -32,25 +30,27 @@ class AgentState {
     this.models = const [],
     this.presets = const [
       AgentPreset(
-        key: 'review',
-        label: 'Review',
-        desc: 'Confirm all host operations',
-      ),
-      AgentPreset(
         key: 'assist',
         label: 'Assist',
-        desc: 'Automatically run explicit read-only operations',
+        desc: 'Allow recognized read-only operations; confirm all others',
       ),
       AgentPreset(
         key: 'authorized',
         label: 'Authorized',
-        desc: 'Automatically run ordinary operations',
+        desc:
+            'Allow read-only and recognized editing operations; confirm all others',
+      ),
+      AgentPreset(
+        key: 'full_access',
+        label: 'Full',
+        desc:
+            'Block only built-in high-risk commands; allow all other commands',
       ),
     ],
     this.tools = const [],
     this.plusAvailable = false,
     this.modelId = '',
-    this.mode = 'review',
+    this.mode = 'assist',
     this.sessions = const [],
     this.sessionsLoading = false,
   });
@@ -163,6 +163,12 @@ class AgentController {
       clearConnectionError: status != AgentConnectionStatus.disconnected,
     );
     if (status == AgentConnectionStatus.disconnected &&
+        next.conversation.notice?.startsWith('policy_clamped:') == true) {
+      next = next.copyWith(
+        conversation: next.conversation.copyWith(clearNotice: true),
+      );
+    }
+    if (status == AgentConnectionStatus.disconnected &&
         next.conversation.running) {
       next = next.copyWith(
         conversation: applyAgentEvent(next.conversation, const {
@@ -205,9 +211,10 @@ class AgentController {
         currentModel: current.modelId,
         defaultModel: event['defaultModel']?.toString() ?? '',
       );
-      final presets = mapList(
-        event['presets'],
-      ).map(AgentPreset.fromJson).toList();
+      final presets = mapList(event['presets'])
+          .where((preset) => agentModes.contains(preset['key']))
+          .map(AgentPreset.fromJson)
+          .toList();
       _emit(
         current.copyWith(
           models: models,
@@ -259,6 +266,9 @@ class AgentController {
           running: true,
           aborted: false,
           clearError: true,
+          clearNotice:
+              current.conversation.notice?.startsWith('policy_clamped:') ==
+              true,
         ),
       ),
     );
@@ -351,7 +361,7 @@ class AgentController {
   }
 
   Future<void> setMode(String mode) async {
-    if (!const {'review', 'assist', 'authorized'}.contains(mode)) return;
+    mode = normalizeAgentMode(mode);
     if (terminalBinding == null) {
       await _storage.setAgentMode(mode);
     } else {
@@ -384,7 +394,7 @@ class AgentController {
               ? session.modelId
               : current.modelId,
         ),
-        mode: resolveAgentMode(session.permission, fallback: current.mode),
+        mode: resolveAgentMode(session.permission),
       ),
     );
   }

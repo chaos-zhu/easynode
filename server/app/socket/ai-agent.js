@@ -22,7 +22,7 @@ import { runTurn } from '../ai/runtime.js'
 import { resolveApproval, clearSession, listPending } from '../ai/approval.js'
 import { clearBySession } from '../ai/output-store.js'
 import { disconnect as disconnectHost } from '../ai/ssh.js'
-import { PRESETS, DEFAULT_PRESET } from '../ai/policy.js'
+import { PRESETS, DEFAULT_PRESET, normalizeMode } from '../ai/policy.js'
 import { listConfiguredModels } from '../ai/provider.js'
 import { listToolMetadata } from '../ai/tools/registry.js'
 // 会话的读取走 REST（controller/agent-session.js），socket 只负责跑 turn。
@@ -106,6 +106,9 @@ export default (httpServer) => {
     socket.on('ws_agent_run', async (payload = {}) => {
       const { input, modelId, permission, hostIds, hostId, terminalContext, terminalPermission } = payload
       const scope = payload.scope === 'terminal' ? 'terminal' : 'ops'
+      // 只有未传字段才继承旧客户端字段或历史值；显式无效值必须回退协助。
+      const requestedPermission = scope === 'terminal' && terminalPermission !== undefined
+        ? terminalPermission : permission
       // 全局助手统一按面板范围工作，忽略旧客户端的选择；终端仍须显式绑定。
       const selectedHostIds = scope === 'terminal' && Array.isArray(hostIds) ? hostIds : []
 
@@ -138,7 +141,7 @@ export default (httpServer) => {
           session = await createSession({
             hostIds: selectedHostIds,
             modelId,
-            permission: permission || DEFAULT_PRESET,
+            permission: normalizeMode(requestedPermission),
             scope,
             hostId: scope === 'terminal' ? hostId : ''
           })
@@ -168,6 +171,7 @@ export default (httpServer) => {
         emit({ type: 'pending_approvals', items: pendingApprovals })
       }
 
+      const requestedMode = normalizeMode(requestedPermission === undefined ? session.permission : requestedPermission)
       const turnCreatedAt = Date.now()
       const userMessage = { role: 'user', content: input }
       let turnResult = null
@@ -181,12 +185,12 @@ export default (httpServer) => {
           userId: operator,
           userMessage,
           modelId: modelId || session.modelId,
-          permission: permission || session.permission || DEFAULT_PRESET,
+          permission: requestedMode,
           hostIds: selectedHostIds,
           usedHostIds,
           scope,
           terminalHostId: scope === 'terminal' ? hostId : undefined,
-          terminalPermission: scope === 'terminal' ? terminalPermission : undefined,
+          terminalPermission: scope === 'terminal' ? requestedMode : undefined,
           terminalContext: scope === 'terminal' ? terminalContext : undefined,
           signal: controller.signal,
           emit
@@ -199,6 +203,7 @@ export default (httpServer) => {
         // 已产生的工具调用也必须连同结果一起存，否则历史会残缺
         try {
           const saved = await appendTurn(session.id, {
+            permission: requestedMode,
             newMessages: [userMessage, ...(turnResult?.responseMessages || [])],
             createdAt: turnCreatedAt,
             toolMeta: turnResult?.toolMeta,

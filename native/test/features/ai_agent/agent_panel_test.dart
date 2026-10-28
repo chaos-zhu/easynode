@@ -65,6 +65,15 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(find.text('Assist'), findsOneWidget);
+    await tester.tap(find.byTooltip('Select mode'));
+    await tester.pumpAndSettle();
+    expect(find.text('Review'), findsNothing);
+    expect(find.text('Full'), findsOneWidget);
+    await tester.tap(find.text('Full'));
+    await tester.pumpAndSettle();
+    expect(storage.agentMode, 'full_access');
+    expect(notifier.state.mode, 'full_access');
     await tester.enterText(
       find.byKey(const Key('agent-composer-input')),
       'Hello',

@@ -45,6 +45,7 @@ const suites = {
     'test-scheduled-tasks.js',
     'test-ai-config.js',
     'test-ai-session-run-lock.js',
+    'test-ai-socket-mode.js',
     'test-ai-safety.js',
     'test-ai-session.js',
     'test-ai-compaction.js',

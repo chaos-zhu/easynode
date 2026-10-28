@@ -89,9 +89,12 @@ class _HostPolicyEditorSheetState extends State<_HostPolicyEditorSheet> {
                     ),
                     Divider(height: 1, color: context.colors.border),
                     _SheetChoiceRow(
-                      icon: Icons.shield_outlined,
+                      icon: policy.maxMode == 'full_access'
+                          ? Icons.warning_amber_rounded
+                          : Icons.shield_outlined,
                       label: l.tr('agent.settings.maxMode'),
                       value: _modeLabel(l, policy.maxMode),
+                      tone: AgentUiTokens.modeColor(policy.maxMode),
                       onTap: _pickMode,
                     ),
                   ],
@@ -138,13 +141,14 @@ class _HostPolicyEditorSheetState extends State<_HostPolicyEditorSheet> {
       title: l.tr('agent.settings.maxMode'),
       icon: Icons.shield_outlined,
       selected: policy.maxMode,
-      options: const ['review', 'assist', 'authorized']
+      options: const ['assist', 'authorized', 'full_access']
           .map(
             (mode) => AgentSelectionOption(
               value: mode,
               title: _modeLabel(l, mode),
               subtitle: _modeDescription(l, mode),
               icon: _modeIcon(mode),
+              color: AgentUiTokens.modeColor(mode),
             ),
           )
           .toList(growable: false),
@@ -206,12 +210,14 @@ class _SheetChoiceRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.tone,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final Color? tone;
   final VoidCallback onTap;
 
   @override
@@ -219,9 +225,9 @@ class _SheetChoiceRow extends StatelessWidget {
     color: Colors.transparent,
     child: ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-      leading: Icon(icon, color: context.colors.primary),
+      leading: Icon(icon, color: tone ?? context.colors.primary),
       title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(value),
+      subtitle: Text(value, style: TextStyle(color: tone)),
       trailing: Icon(
         Icons.keyboard_arrow_up_rounded,
         color: context.colors.muted,
@@ -237,17 +243,20 @@ String _effectLabel(AppLocalizations l, String effect) =>
 String _modeLabel(AppLocalizations l, String mode) => switch (mode) {
   'assist' => l.tr('agent.mode.assist'),
   'authorized' => l.tr('agent.mode.authorized'),
-  _ => l.tr('agent.mode.review'),
+  'full_access' => l.tr('agent.mode.fullAccess'),
+  _ => l.tr('agent.mode.assist'),
 };
 
 String _modeDescription(AppLocalizations l, String mode) => switch (mode) {
   'assist' => l.tr('agent.mode.assistDescription'),
   'authorized' => l.tr('agent.mode.authorizedDescription'),
-  _ => l.tr('agent.mode.reviewDescription'),
+  'full_access' => l.tr('agent.mode.fullAccessDescription'),
+  _ => l.tr('agent.mode.assistDescription'),
 };
 
 IconData _modeIcon(String mode) => switch (mode) {
   'assist' => Icons.visibility_outlined,
   'authorized' => Icons.bolt_outlined,
-  _ => Icons.fact_check_outlined,
+  'full_access' => Icons.warning_amber_rounded,
+  _ => Icons.visibility_outlined,
 };
