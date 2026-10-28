@@ -191,7 +191,7 @@
           placement="bottom"
         >
           <el-button link class="single_window_ai_button" @click="changeTerminalAi">
-            <el-icon><ChatDotRound /></el-icon>
+            <el-icon><svg-icon name="icon-a-AIzhushou2x" class="terminal_ai_icon" /></el-icon>
           </el-button>
         </el-tooltip>
       </div>
@@ -281,7 +281,7 @@
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': showTerminalAi }]">
               <span title="终端助手 · 当前终端" @click="changeTerminalAi">
-                <el-icon class="icon"><ChatDotRound /></el-icon>
+                <svg-icon name="icon-a-AIzhushou2x" class="icon terminal_ai_icon" />
               </span>
             </div>
             <div :class="['tab_content_wrap_header_item', { 'active': showDockerDialog }]">
@@ -491,7 +491,7 @@ import {
   onMounted,
   onUnmounted
 } from 'vue'
-import { ArrowDown, ChatDotRound, VideoPause, Setting } from '@element-plus/icons-vue'
+import { ArrowDown, VideoPause, Setting } from '@element-plus/icons-vue'
 import useMobileWidth from '@/composables/useMobileWidth'
 import { terminalStatusList, terminalStatus } from '@/utils/enum'
 import { useContextMenu } from '@/composables/useContextMenu'
@@ -1349,6 +1349,11 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  .terminal_ai_icon {
+    // 补偿 SVG 留白及偏上的图形重心，对齐同排图标的视觉大小和中心。
+    transform: translateY(0.05em) scale(1.2);
+  }
 
   :deep(.el-tabs__content) {
     min-height: 0;
