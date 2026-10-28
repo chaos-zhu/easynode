@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance, watch } from 'vue'
+import { ref, computed, getCurrentInstance } from 'vue'
 import { ArrowRight, Loading, CircleCheck, CircleClose, WarningFilled, Clock, CopyDocument } from '@element-plus/icons-vue'
 import clipboard from '@/utils/clipboard'
 
@@ -87,8 +87,8 @@ const props = defineProps({
   }
 })
 
-// 失败和被拦截的调用默认展开 —— 用户最需要看的就是这两种
-const expanded = ref(['error', 'denied',].includes(props.part.status))
+// 所有工具卡片默认折叠，展开状态仅由用户点击控制。
+const expanded = ref(false)
 const isDark = computed(() => $store.isDark)
 
 const batchStatus = { success: '全部成功', partial: '部分成功', failed: '未完成' }
@@ -144,11 +144,6 @@ const formattedInput = computed(() => stringify(props.part.input))
 
 const hasOutput = computed(() => props.part.output !== undefined && props.part.output !== null)
 const isRunningWithProgress = computed(() => props.part.status === 'running' && Boolean(props.part.progressOutput))
-
-// 长任务一旦有输出就自动展开，用户不必每隔几秒手动点开查看进度。
-watch(() => props.part.progressOutput, (output) => {
-  if (output) expanded.value = true
-})
 
 const formattedOutput = computed(() => {
   const output = props.part.output
