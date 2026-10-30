@@ -76,7 +76,9 @@ Native端复用现有EasyNode后端，在移动设备上提供服务器管理、
 
 ### docker-compose部署
 
-部署本项目的 [docker-compose.yml](https://github.com/chaos-zhu/easynode/blob/main/docker-compose.yml) 默认采用[腾讯云CNB自动构建镜像](https://cnb.cool/chaoszhu/easynode)，大陆服务器可直接部署使用，如发现服务不可用请自行替换或移除加速
+> 部署本项目的 [docker-compose.yml](https://github.com/chaos-zhu/easynode/blob/main/docker-compose.yml) 默认采用[腾讯云CNB自动构建镜像](https://cnb.cool/chaoszhu/easynode)，大陆服务器可直接部署使用。
+
+- **使用仓库提供的docker-compose.yml部署即可自动升级EasyNode，免去再额外登录其他终端软件烦恼，以及第一时间收到底层组件的安全更新。**
 
 ```shell
 # docker compose快速部署
@@ -155,13 +157,15 @@ docker compose up -d easynode
 
 1. 请妥善利用面板提供MFA2、IP白名单等安全功能, 如需加强建议搭配**OpenVPN**、**TailScale** 等手段访问。**建议面板服务不要暴露到公网**。
 
-2. webssh与监控服务都将以`该服务器作为中转`。中国大陆用户建议使用香港、新加坡、日本、韩国等地区的低延迟服务器来安装服务端面板。
+2. 近些年AI挖掘漏洞能力突出，EasyNode难免也会受底层组件的影响，但一旦发现漏洞作者会第一时间推送更新，所以请配置好自动升级，请勿使用其他的魔改版本，以免收不到安全更新。
 
-3. 及时升级面板，EasyNode会不定期升级底层安全依赖。建议使用上面提供的docker-compose.yml一键部署，可自动检测更新并升级。
+3. webssh与监控服务都将以`该服务器作为中转`。中国大陆用户建议使用香港、新加坡、日本、韩国等地区的低延迟服务器来安装服务端面板。
+
+4. 及时升级面板，EasyNode会不定期升级底层安全依赖。建议使用上面提供的docker-compose.yml一键部署，可自动检测更新并升级。
 
 ## 声明
 
-EasyNode于2022年8月首次发布，作者在开发该面板时已尽可能确保其安全性。EasyNode同其他项目一样，都会依赖流行的第三方库，而这些第三方库的安全性无法得到永久保障。因此，如果您的服务器具备重要的数据价值，请避免将该项目部署在公网环境或者不使用此项目。对于因安全漏洞造成的任何损失，作者概不承担任何责任。
+EasyNode于2022年8月首次发布，作者在开发该面板时已尽可能确保其安全性。EasyNode同其他项目一样，都会依赖流行的第三方库，而这些第三方库的安全性无法得到永久保障。因此，如果您的服务器具备非常重要的数据价值，请避免将该项目部署在公网环境或者不使用此项目。对于因安全漏洞造成的任何损失，作者概不承担任何责任。
 
 ---
 
