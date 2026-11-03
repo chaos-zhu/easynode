@@ -129,7 +129,7 @@ export function resolveTerminalTheme(settings, transparent = false) {
   if (appearance.overrides?.foreground) theme.foreground = appearance.overrides.foreground
   if (appearance.overrides?.cursor) theme.cursor = appearance.overrides.cursor
   if (appearance.overrides?.selectionBackground) theme.selectionBackground = appearance.overrides.selectionBackground
-  if (transparent) theme.background = 'transparent'
+  if (transparent) theme.background = '#00000000'
   return theme
 }
 

@@ -7,6 +7,8 @@ EasyNode treats terminal appearance as four independent layers:
 3. A workspace overlay controls decorative-background readability without changing terminal colors.
 4. Content highlighting adds semantic styles to matched text after the theme has resolved ANSI colors.
 
+Terminals use xterm.js 6 with matching fit, search, and web-links addons. Desktop-width terminals load the WebGL addon after opening; initialization failure or an unrecovered context loss disposes the addon and falls back to the built-in DOM renderer without reconnecting SSH. Mobile-width terminals and the highlighting preview use DOM rendering. Theme backgrounds are managed through xterm's theme API, including its scrollable element; the legacy viewport remains transparent.
+
 Built-in themes come from EasyNode's existing `xterm-theme` dependency and remain immutable. Custom themes use EasyNode's own V2 data model and default palette, and support only create, edit, rename, and delete operations.
 
 Appearance editing uses a transient Pinia draft. The draft is consumed by active terminal instances immediately, but is never sent to the server until the user saves. Cancelling or unmounting the settings workbench removes the draft and restores persisted appearance.

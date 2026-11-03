@@ -222,10 +222,11 @@ assert.equal(isProxy(disposal.terminal.term.value), false)
 for (const addon of [new fit.FitAddon(), new search.SearchAddon(), new webLinks.WebLinksAddon(),]) {
   disposal.terminal.term.value.loadAddon(addon)
 }
+let addonDisposed = false
+realTerminal.loadAddon({ activate() {}, dispose() { addonDisposed = true } })
 assert.doesNotThrow(() => disposal.unmount(), '真实 xterm 插件必须可以正常卸载')
 assert.equal(disposal.terminal.term.value, null)
-assert.equal(disposal.timers.size, 1, '渲染器在下一任务释放，避开 xterm 视口初始化回调')
-assert.doesNotThrow(() => disposal.flushTimers(), '延迟释放必须实际完成真实插件销毁')
+assert.equal(addonDisposed, true, 'xterm 6 卸载时立即释放真实终端和插件')
 assert.equal(disposal.timers.size, 0)
 
 console.log('Web 终端连接、SFTP 命令与真实 xterm 插件销毁回归测试通过')

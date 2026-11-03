@@ -32,6 +32,7 @@ const server = await createServer({
     },
     transform(code, id) {
       if (id.endsWith('/terminal-wrapper.vue')) return code.replace('</script>', 'defineExpose({ terminalInstances, terminalPanels, handleHorizontalScreen, handleSuspendTerminal })\n</script>')
+      if (id.endsWith('/terminal.vue')) return code.replace('defineExpose({', 'defineExpose({ term, searchAddon,')
     }
   }, vue(),],
   resolve: { alias: { '@': resolve(webRoot, 'src') } },
@@ -45,6 +46,7 @@ try {
   const installedChrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
   browser = await chromium.launch({
     executablePath: process.env.CHROME_PATH || (existsSync(installedChrome) ? installedChrome : undefined),
+    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader',],
     headless: true
   })
   const page = await browser.newPage({ viewport: { width: 1500, height: 900 } })
@@ -187,8 +189,98 @@ try {
   await page.evaluate(() => window.terminalFixture.unmount())
   await page.waitForTimeout(50)
   assert.deepEqual(await page.evaluate(() => window.terminalFixture.errors), [])
+  // xterm 6: real WebGL, search decorations, transparency, scrolling, and DOM fallback.
+  const rendererPage = await browser.newPage({ viewport: { width: 1500, height: 900 } })
+  rendererPage.on('pageerror', error => pageErrors.push(error.stack || error.message))
+  rendererPage.on('console', message => {
+    if (message.type() === 'warning' && message.text().includes('WebGL')) console.warn(message.text())
+  })
+  const loadRendererFixture = async () => {
+    await rendererPage.goto(url)
+    await rendererPage.waitForFunction(() => window.terminalFixture?.sockets.length === 3
+      && window.terminalFixture.sockets.every(socket => socket.sent.some(message => message.event === 'input')))
+    await rendererPage.getByRole('tab', { name: 'Host A', exact: true }).click()
+  }
+  const verifyTerminalRendering = async (renderer) => {
+    assert.equal(await rendererPage.evaluate(() => Boolean(document.querySelector('#pane-0 .xterm-screen canvas:last-of-type')?.getContext('webgl2'))), renderer === 'webgl')
+    if (renderer === 'dom') await rendererPage.locator('#pane-0 .xterm-rows').waitFor()
+    await rendererPage.evaluate(async () => {
+      const { store, sockets, workspace } = window.terminalFixture
+      store.effectiveTerminalSettings.appearance.background.mode = 'html'
+      store.effectiveTerminalSettings.highlighting.enabled = true
+      await new Promise(requestAnimationFrame)
+      sockets[0].receive('output', '\r\nERROR xterm-six-search-target\r\n')
+      const terminal = workspace.value.terminalInstances.A.term
+      await new Promise(resolve => terminal.write('', resolve))
+    })
+    await rendererPage.waitForFunction(() => getComputedStyle(document.querySelector('#pane-0 .xterm-scrollable-element')).backgroundColor === 'rgba(0, 0, 0, 0)')
+    assert.equal(await rendererPage.evaluate(() => {
+      const terminal = window.terminalFixture.workspace.value.terminalInstances.A.term
+      const buffer = terminal.buffer.active
+      for (let row = 0; row < buffer.length; row++) {
+        const line = buffer.getLine(row)
+        if (line.translateToString().startsWith('ERROR xterm-six-search-target')) return line.getCell(0).getFgColor()
+      }
+    }), 1, 'Semantic error highlighting must survive the xterm 6 parser')
+    await rendererPage.locator('#pane-0 .xterm-screen').click()
+    await rendererPage.keyboard.press('Control+f')
+    await rendererPage.getByPlaceholder('查找内容...').fill('xterm-six-search-target')
+    await rendererPage.waitForFunction(() => window.terminalFixture.workspace.value.terminalInstances.A.term.getSelection() === 'xterm-six-search-target')
+    await rendererPage.locator('#pane-0 .xterm-decoration').first().waitFor()
+    await rendererPage.getByPlaceholder('查找内容...').press('Escape')
+    await rendererPage.evaluate(async () => {
+      const terminal = window.terminalFixture.workspace.value.terminalInstances.A.term
+      await new Promise(resolve => terminal.write(Array.from({ length: 100 }, (_, index) => `scroll-${ index }\r\n`).join(''), resolve))
+      terminal.scrollToBottom()
+    })
+    await rendererPage.waitForFunction(() => {
+      const buffer = window.terminalFixture.workspace.value.terminalInstances.A.term.buffer.active
+      return buffer.baseY > 0 && buffer.viewportY === buffer.baseY
+    })
+    await rendererPage.locator('#pane-0 .xterm-screen').hover()
+    await rendererPage.mouse.wheel(0, -500)
+    await rendererPage.waitForFunction(() => {
+      const buffer = window.terminalFixture.workspace.value.terminalInstances.A.term.buffer.active
+      return buffer.viewportY < buffer.baseY
+    })
+    await rendererPage.evaluate(() => window.terminalFixture.workspace.value.terminalInstances.A.term.scrollToBottom())
+    await rendererPage.locator('#pane-0 .xterm-screen').click()
+    await rendererPage.keyboard.type('renderer-input')
+    await rendererPage.waitForFunction(() => window.terminalFixture.sockets[0].sent
+      .filter(message => message.event === 'input').map(message => message.payload).join('').endsWith('renderer-input'))
+    assert.equal(await rendererPage.evaluate(() => window.terminalFixture.sockets.length), 3, 'Renderer changes must preserve SSH sessions')
+  }
+  await loadRendererFixture()
+  await verifyTerminalRendering('webgl')
+  await rendererPage.evaluate(() => {
+    const canvas = document.querySelector('#pane-0 .xterm-screen canvas:last-of-type')
+    const extension = canvas.getContext('webgl2').getExtension('WEBGL_lose_context')
+    if (!extension) throw new Error('Context loss extension unavailable')
+    extension.loseContext()
+  })
+  await rendererPage.locator('#pane-0 .xterm-rows').waitFor()
+  await verifyTerminalRendering('dom')
+  await rendererPage.evaluate(() => window.terminalFixture.unmount())
+  assert.deepEqual(await rendererPage.evaluate(() => window.terminalFixture.errors), [])
+  await rendererPage.close()
+
+  const domPage = await browser.newPage({ viewport: { width: 1500, height: 900 } })
+  domPage.on('pageerror', error => pageErrors.push(error.stack || error.message))
+  await domPage.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function(type, ...args) {
+      return type.startsWith('webgl') ? null : getContext.call(this, type, ...args)
+    }
+  })
+  await domPage.goto(url)
+  await domPage.waitForFunction(() => window.terminalFixture?.sockets.length === 3
+    && window.terminalFixture.sockets.every(socket => socket.sent.some(message => message.event === 'input')))
+  assert.equal(await domPage.locator('.xterm-rows').count(), 3, 'Unavailable WebGL must fall back to DOM for every terminal')
+  await domPage.evaluate(() => window.terminalFixture.unmount())
+  assert.deepEqual(await domPage.evaluate(() => window.terminalFixture.errors), [])
+  await domPage.close()
   assert.deepEqual(pageErrors, [])
-  console.log('真实浏览器 / Element Plus / xterm：终端布局、会话关闭与挂起、脚本菜单焦点恢复、分屏和同步输入及卸载通过')
+  console.log('真实浏览器 / Element Plus / xterm 6：布局、会话、输入、搜索、高亮、透明背景、滚动、WebGL 与 DOM 回退及卸载通过')
 } finally {
   await browser?.close()
   await server.close()

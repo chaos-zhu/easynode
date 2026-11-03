@@ -13,7 +13,9 @@
             主机
           </div>
         </template>
-        <span class="host-info-ip" :title="host">{{ host }}</span>
+        <el-tooltip content="点击复制" placement="top" :show-after="500">
+          <span class="host-info-ip" @click="handleCopy">{{ host }}</span>
+        </el-tooltip>
         <LatencyDetail
           :total="pingValue"
           :local-to-service="localToServiceMs"
@@ -22,7 +24,6 @@
         >
           <span class="host-ping" :style="{backgroundColor: handlePingColor(pingValue)}">{{ pingText }}</span>
         </LatencyDetail>
-        <el-tag size="small" style="cursor: pointer;margin-left: 10px;" @click="handleCopy">复制</el-tag>
         <el-tooltip content="重新连接状态监控" placement="bottom" :show-after="300">
           <el-button
             class="monitor-reconnect-button"
@@ -421,8 +422,14 @@ const triggerStaleDataReconnect = () => {
 }
 
 const handleManualReconnect = () => {
+  if (!reconnect()) return
   clearDataHistory()
-  reconnect()
+  networkHistory.value = { upload: [], download: [], timestamps: [] }
+  if (chartInstance.value) {
+    chartInstance.value.data.labels = []
+    chartInstance.value.data.datasets.forEach(dataset => { dataset.data = [] })
+    chartInstance.value.update('none')
+  }
 }
 
 // 工具函数
@@ -633,11 +640,17 @@ onBeforeUnmount(() => {
 
   .monitor-reconnect-button {
     min-height: 20px;
-    margin-left: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
     padding: 2px;
     color: var(--el-text-color-secondary);
+    opacity: 0.5;
+    transition: opacity 0.18s ease, color 0.18s ease;
 
-    &:hover { color: var(--el-color-primary); }
+    &:hover {
+      color: var(--el-color-primary);
+      opacity: 1;
+    }
   }
 
   // 连接状态指示器
@@ -755,6 +768,14 @@ onBeforeUnmount(() => {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    cursor: copy;
+    border-bottom: 1px dashed transparent;
+    transition: color 0.18s ease, border-color 0.18s ease;
+
+    &:hover {
+      color: var(--el-color-primary);
+      border-color: var(--el-color-primary-light-5);
+    }
   }
 
   .host-ping {

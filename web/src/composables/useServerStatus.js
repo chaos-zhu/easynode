@@ -118,7 +118,10 @@ function createStatusEntry(hostId) {
   const beginReconnect = () => {
     clearReconnectTimer()
     clearProbeTimer()
-    markDataUnavailable()
+    serverData.value = createEmptyServerStatus()
+    localLatencyHistory.length = 0
+    localToServiceAvailable.value = false
+    localToServiceMs.value = null
     connectionState.value = 'connecting'
     isReconnecting.value = true
     reconnectTimer = setTimeout(() => {

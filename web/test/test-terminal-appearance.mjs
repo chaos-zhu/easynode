@@ -33,7 +33,7 @@ assert.equal(resolveThemeEntity(settings).id, 'builtin:Cobalt_Neon')
 
 settings.appearance.overrides.foreground = '#ffffff'
 assert.equal(resolveTerminalTheme(settings).foreground, '#ffffff')
-assert.equal(resolveTerminalTheme(settings, true).background, 'transparent')
+assert.equal(resolveTerminalTheme(settings, true).background, '#00000000')
 assert.equal(resolveOverlayColor(settings), '0, 0, 0')
 settings.appearance.overrides.foreground = '#000000'
 assert.equal(resolveOverlayColor(settings), '255, 255, 255')

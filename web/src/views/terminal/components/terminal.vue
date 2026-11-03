@@ -27,7 +27,7 @@ import { ref, shallowRef, onMounted, computed, onBeforeUnmount, getCurrentInstan
 import TerminalSearch from './terminal-search.vue'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
-import { CanvasAddon } from '@xterm/addon-canvas'
+import { WebglAddon } from '@xterm/addon-webgl'
 import { FitAddon } from '@xterm/addon-fit'
 import { SearchAddon } from '@xterm/addon-search'
 // import { SearchBarAddon } from 'xterm-addon-search-bar'
@@ -139,8 +139,6 @@ const applyTerminalTheme = () => {
   if (!term.value || !terminalRef.value) return
 
   term.value.options.theme = theme.value
-  const viewport = terminalRef.value.querySelector('.xterm-viewport')
-  if (viewport) viewport.style.setProperty('background-color', theme.value.background || '#1e1e1e', 'important')
 }
 
 watch(theme, () => nextTick(applyTerminalTheme))
@@ -392,7 +390,6 @@ const reconnectTerminal = (isCommonTips = false, tips) => {
 
 const createLocalTerminal = () => {
   let terminalInstance = new Terminal({
-    bellStyle: 'sound',
     convertEol: false,
     cursorBlink: true,
     disableStdin: false,
@@ -404,24 +401,24 @@ const createLocalTerminal = () => {
     theme: theme.value,
     scrollback: 10000, // 缓冲行数
     tabStopWidth: 4,
-    windowsMode: false, // 禁用Windows模式提升性能
     macOptionIsMeta: true, // macOS优化
     smoothScrollDuration: 0 // 平滑滚动时间
   })
 
-  const canvasAddon = new CanvasAddon()
-  // const webglAddon = new WebglAddon()
-
-  // Canvas渲染器错误处理
-  // if (canvasAddon.onContextLoss) {
-  //   canvasAddon.onContextLoss(() => {
-  //     console.warn('Canvas context lost, attempting to recover...')
-  //   })
-  // }
-  // terminalInstance.loadAddon(canvasAddon)
   term.value = terminalInstance
   terminalInstance.open(terminalRef.value)
-  !isMobileScreen.value && terminalInstance.loadAddon(canvasAddon)
+  if (!isMobileScreen.value) {
+    let webglAddon
+    try {
+      webglAddon = new WebglAddon()
+      // 释放 WebGL 插件会恢复内置 DOM 渲染器，保留当前缓冲区和会话。
+      webglAddon.onContextLoss(() => webglAddon.dispose())
+      terminalInstance.loadAddon(webglAddon)
+    } catch (error) {
+      webglAddon?.dispose()
+      console.warn('WebGL 渲染器不可用，使用 DOM 渲染器:', error)
+    }
+  }
 
   // 初始化TerminalHighlighter
   highlighter.value = new TerminalHighlighter(terminalInstance, {
@@ -966,9 +963,7 @@ onBeforeUnmount(() => {
   tempPathSyncCallback.value = null
   const terminal = term.value
   term.value = null
-  // xterm 5.5 的 open() 会排入一个未随 dispose 取消的视口初始化定时器。
-  // 连接和组件回调已停用，延至下一任务释放渲染器，让该初始化先完成。
-  if (terminal) setTimeout(() => terminal.dispose(), 0)
+  terminal?.dispose()
 })
 
 // 挂起终端
@@ -1166,7 +1161,6 @@ defineExpose({
     }
 
     :deep(.xterm-viewport) {
-      overflow-y: auto;
       background-color: transparent !important;
     }
 
