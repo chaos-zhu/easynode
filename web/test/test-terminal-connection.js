@@ -6,6 +6,7 @@ import { parse } from '@vue/compiler-sfc'
 import { computed, ref, shallowRef, isProxy } from 'vue'
 import xterm from '@xterm/xterm'
 import { createDefaultTerminalSettings } from '../src/utils/terminal-settings.js'
+import { getTerminalSelectionText } from '../src/utils/terminal-links.js'
 
 // 执行组件自身的 setup，替换浏览器和网络依赖，测试真实连接/命令入口。
 const component = readFileSync(new URL('../src/views/terminal/components/terminal.vue', import.meta.url), 'utf8')
@@ -42,13 +43,15 @@ class FakeSocket extends EventEmitter {
   }
 }
 
-function createHarness({ autoReconnect = true, resumeSessionId = null } = {}) {
+function createHarness({ autoReconnect = true, resumeSessionId = null, copySuccess = true } = {}) {
   const settings = createDefaultTerminalSettings()
   settings.behavior.autoReconnect = autoReconnect
   const sockets = []
   const outputs = []
   const timers = new Map()
   const notifications = []
+  const menus = []
+  const copied = []
   let timerId = 0
   let unmount
   const context = {
@@ -67,7 +70,13 @@ function createHarness({ autoReconnect = true, resumeSessionId = null } = {}) {
       }
     }),
     useMobileWidth: () => ({ isMobileScreen: { value: false } }),
-    useContextMenu: () => ({ isVisible: { value: false } }),
+    useContextMenu: () => ({ isVisible: { value: false }, showMenu: (event, menu) => menus.push(menu) }),
+    getTerminalSelectionText,
+    clipboard: { copy: async text => { copied.push(text); return copySuccess } },
+    isDockerId: () => false,
+    isDockerComposeYml: () => false,
+    requestAnimationFrame: () => 1,
+    cancelAnimationFrame: () => {},
     defineProps: () => ({ hostObj: { id: 'host', key: 'tab', resumeSessionId } }),
     defineEmits: () => () => {},
     defineExpose: () => {},
@@ -86,7 +95,7 @@ function createHarness({ autoReconnect = true, resumeSessionId = null } = {}) {
     window: { removeEventListener: () => {} },
     console: { log: () => {}, warn: () => {}, error: () => {} }
   }
-  const terminal = runInNewContext(`${ setup }\nglobalThis.terminalHarness = { connectIO, reconnectTerminal, inputCommand, term, initCommand, curStatus, socket }`, context)
+  const terminal = runInNewContext(`${ setup }\nglobalThis.terminalHarness = { connectIO, reconnectTerminal, inputCommand, term, initCommand, curStatus, socket, handleRightClick }`, context)
   terminal.term.value = { rows: 40, cols: 120, write: output => outputs.push(output), dispose: () => {} }
   return {
     terminal,
@@ -94,6 +103,8 @@ function createHarness({ autoReconnect = true, resumeSessionId = null } = {}) {
     outputs,
     timers,
     notifications,
+    menus,
+    copied,
     unmount: () => unmount(),
     flushTimers: () => {
       const callbacks = [...timers.values(),]
@@ -104,6 +115,22 @@ function createHarness({ autoReconnect = true, resumeSessionId = null } = {}) {
 }
 
 const command = 'docker compose -f /root/pansou/docker-compose.yml pull && docker compose -f /root/pansou/docker-compose.yml down && docker compose -f /root/pansou/docker-compose.yml up -d\n'
+
+for (const copySuccess of [true, false,]) {
+  const copyHarness = createHarness({ copySuccess })
+  let selection = 'selected-before-tui-redraw'
+  let cleared = false
+  copyHarness.terminal.term.value = {
+    getSelection: () => selection,
+    getSelectionPosition: () => undefined,
+    clearSelection: () => { cleared = true }
+  }
+  await copyHarness.terminal.handleRightClick({})
+  selection = copySuccess ? '' : 'selection-after-redraw'
+  await copyHarness.menus[0].find(item => item.label === '复制').onClick()
+  assert.deepEqual(copyHarness.copied, ['selected-before-tui-redraw',], 'Copy must use the menu snapshot even after the TUI clears or replaces the selection')
+  assert.equal(cleared, copySuccess, 'Only clear the terminal selection after clipboard copying succeeds')
+}
 
 const harness = createHarness()
 harness.terminal.initCommand.value = 'echo init'

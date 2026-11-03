@@ -8,6 +8,7 @@ const testFiles = [
   'test-terminal-connection.js',
   'test-terminal-workspace.js',
   'test-terminal-appearance.mjs',
+  'test-terminal-links.mjs',
   'test-agent-messages.js',
   'test-agent-session.js',
   'test-panel-batch-preview.js',

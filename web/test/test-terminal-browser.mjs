@@ -260,6 +260,151 @@ try {
   })
   await rendererPage.locator('#pane-0 .xterm-rows').waitFor()
   await verifyTerminalRendering('dom')
+  // Reproduce a TUI popup using cursor positioning and real mouse-mode changes.
+  const firstUrlRow = 'https://example.com/device?user_code=ABCD-'
+  const secondUrlRow = 'EFGH&client_id=example-cli'
+  const completeUrl = firstUrlRow + secondUrlRow
+  await rendererPage.evaluate(async ({ first, second }) => {
+    const { store, workspace } = window.terminalFixture
+    store.effectiveTerminalSettings.highlighting.enabled = false
+    await new Promise(requestAnimationFrame)
+    window.openedTerminalUrls = []
+    window.open = uri => { window.openedTerminalUrls.push(uri); return null }
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+      writeText: async text => { window.copiedTerminalText = text }
+    } })
+    const terminal = workspace.value.terminalInstances.A.term
+    await new Promise(resolve => terminal.write(
+      `\x1b[?1049h\x1b[2J\x1b[3;6H\x1b[4;32m${ first }\x1b[0m\x1b[4;6H\x1b[4;32m${ second }\x1b[0m`, resolve
+    ))
+  }, { first: firstUrlRow, second: secondUrlRow })
+  const cellPosition = async (row, column = 6.5) => rendererPage.evaluate(({ row, column }) => {
+    const terminal = window.terminalFixture.workspace.value.terminalInstances.A.term
+    const screen = document.querySelector('#pane-0 .xterm-screen').getBoundingClientRect()
+    return { x: screen.left + column * screen.width / terminal.cols, y: screen.top + (row + 0.5) * screen.height / terminal.rows }
+  }, { row, column })
+  for (const row of [2, 3,]) {
+    const { x, y } = await cellPosition(row)
+    await rendererPage.mouse.move(x, y)
+    await rendererPage.waitForTimeout(100)
+    await rendererPage.keyboard.down('Alt')
+    await rendererPage.mouse.click(x, y)
+    await rendererPage.keyboard.up('Alt')
+  }
+  assert.deepEqual(await rendererPage.evaluate(() => window.openedTerminalUrls), [completeUrl, completeUrl,], 'Clicking either popup row must open the complete URL')
+  // Alt+click also enables column selection; return to normal selection first.
+  await rendererPage.locator('#pane-0 .xterm-screen').click({ position: { x: 20, y: 10 } })
+  const copyMenu = rendererPage.locator('.custom_context_menu:visible').getByText('复制', { exact: true })
+  const drawPopup = async (mouseMode = true, autoMenu = true) => rendererPage.evaluate(async ({ first, second, mouseMode, autoMenu }) => {
+    const { store, workspace } = window.terminalFixture
+    store.effectiveTerminalSettings.behavior.autoShowContextMenu = autoMenu
+    window.copiedTerminalText = null
+    const terminal = workspace.value.terminalInstances.A.term
+    await new Promise(resolve => terminal.write(
+      `\x1b[?1002${ mouseMode ? 'h' : 'l' }\x1b[?1006h\x1b[2J\x1b[3;6H\x1b[4;32m${ first }\x1b[0m\x1b[4;6H\x1b[4;32m${ second }\x1b[0m`, resolve
+    ))
+    terminal.clearSelection()
+  }, { first: firstUrlRow, second: secondUrlRow, mouseMode, autoMenu })
+  const dragBetween = async (start, end, beforeRelease) => {
+    await rendererPage.mouse.move(start.x, start.y)
+    await rendererPage.mouse.down()
+    await rendererPage.mouse.move(end.x, end.y, { steps: 8 })
+    if (beforeRelease) await beforeRelease()
+    await rendererPage.mouse.up()
+  }
+  const startOfUrl = await cellPosition(2, 5.1)
+  const endOfUrl = await cellPosition(3, 5.1 + secondUrlRow.length)
+  const repaintSelection = async () => rendererPage.evaluate(async ({ first, second }) => {
+    const terminal = window.terminalFixture.workspace.value.terminalInstances.A.term
+    await new Promise(resolve => terminal.write(
+      `\x1b[3;6H\x1b[0;30;48;5;215m${ first }\x1b[0m\x1b[4;6H\x1b[30;48;5;215m${ second }\x1b[0m`, resolve
+    ))
+  }, { first: firstUrlRow, second: secondUrlRow })
+  // Real pointer dragging while the TUI consumes mouse input, without term.select in the test.
+  await drawPopup()
+  const mouseReportsBefore = await rendererPage.evaluate(() => window.terminalFixture.sockets[0].sent.length)
+  await dragBetween(startOfUrl, endOfUrl, async () => {
+    assert.equal(await rendererPage.evaluate(() => window.terminalFixture.workspace.value.terminalInstances.A.term.getSelection()), '', 'Mouse reporting leaves no native xterm selection during the drag')
+    // OpenTUI may repaint its orange selection and remove the URL underline.
+    await repaintSelection()
+  })
+  await copyMenu.waitFor()
+  assert.ok(await rendererPage.evaluate(before => window.terminalFixture.sockets[0].sent.slice(before)
+    .some(message => message.event === 'input' && message.payload.startsWith('\x1b[<')), mouseReportsBefore), 'Selection support must preserve TUI mouse reports')
+  await copyMenu.click()
+  assert.equal(await rendererPage.evaluate(() => window.copiedTerminalText), completeUrl, 'TUI dragging must automatically offer and copy the complete URL even after repainting')
+
+  await drawPopup()
+  await dragBetween(endOfUrl, startOfUrl)
+  await copyMenu.click()
+  assert.equal(await rendererPage.evaluate(() => window.copiedTerminalText), completeUrl, 'Reverse TUI dragging must copy the complete URL')
+
+  await drawPopup()
+  await dragBetween(startOfUrl, await cellPosition(2, 5.1 + 10))
+  await copyMenu.click()
+  assert.equal(await rendererPage.evaluate(() => window.copiedTerminalText), firstUrlRow.slice(0, 10), 'Partial selections must remain partial')
+
+  await drawPopup(true, false)
+  await dragBetween(startOfUrl, endOfUrl, repaintSelection)
+  await rendererPage.waitForFunction(() => window.terminalFixture.workspace.value.terminalInstances.A.term.getSelection().includes('EFGH&client_id=example-cli'))
+  assert.equal(await copyMenu.count(), 0, 'Disabling the automatic menu must be respected')
+  await rendererPage.mouse.click(startOfUrl.x + 20, startOfUrl.y, { button: 'right' })
+  await copyMenu.click()
+  assert.equal(await rendererPage.evaluate(() => window.copiedTerminalText), completeUrl, 'Manual context-menu copying must retain the complete dragged URL')
+
+  await drawPopup(false)
+  await dragBetween(startOfUrl, endOfUrl)
+  await copyMenu.click()
+  assert.equal(await rendererPage.evaluate(() => window.copiedTerminalText), completeUrl, 'Native xterm selection must also automatically open the menu after mouseup finishes')
+
+  await drawPopup()
+  await rendererPage.keyboard.down('Shift')
+  await dragBetween(startOfUrl, endOfUrl)
+  await rendererPage.keyboard.up('Shift')
+  await copyMenu.click()
+  assert.equal(await rendererPage.evaluate(() => window.copiedTerminalText), completeUrl, 'Shift dragging must select in mouse mode on both macOS and other platforms')
+
+  await drawPopup()
+  await rendererPage.mouse.click(startOfUrl.x, startOfUrl.y)
+  assert.equal(await copyMenu.count(), 0, 'A TUI click without dragging must not open a selection menu')
+  const openSelectionMenu = async () => {
+    const selection = await rendererPage.evaluate(async () => {
+      const { getTerminalSelectionText } = await import('/src/utils/terminal-links.js')
+      const terminal = window.terminalFixture.workspace.value.terminalInstances.A.term
+      terminal.select(5, 2, terminal.cols + 'EFGH&client_id=example-cli'.length)
+      return { text: getTerminalSelectionText(terminal), position: terminal.getSelectionPosition(), raw: terminal.getSelection() }
+    })
+    assert.equal(selection.text, completeUrl, JSON.stringify(selection))
+    await rendererPage.locator('#pane-0 .xterm-screen').dispatchEvent('contextmenu', { clientX: 300, clientY: 250 })
+    await rendererPage.locator('.custom_context_menu:visible').getByText('复制', { exact: true }).waitFor()
+  }
+  await openSelectionMenu()
+  await rendererPage.evaluate(async () => {
+    const terminal = window.terminalFixture.workspace.value.terminalInstances.A.term
+    await new Promise(resolve => terminal.write('\x1b[?1000h\x1b[?1006h', resolve))
+    if (terminal.getSelection()) throw new Error('Mouse tracking should clear the live xterm selection')
+  })
+  await rendererPage.locator('.custom_context_menu:visible').getByText('复制', { exact: true }).click()
+  assert.equal(await rendererPage.evaluate(() => window.copiedTerminalText), completeUrl, 'The menu must copy its captured URL after the live selection is cleared')
+  await rendererPage.getByText('全屏', { exact: true }).click()
+  await rendererPage.waitForFunction(() => Boolean(document.fullscreenElement))
+  await rendererPage.waitForTimeout(150)
+  await rendererPage.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined })
+    document.addEventListener('copy', event => {
+      const textarea = document.activeElement
+      window.legacyCopiedTerminalText = textarea.value?.slice(textarea.selectionStart, textarea.selectionEnd)
+      window.copyTargetInFullscreen = document.fullscreenElement.contains(textarea)
+      event.preventDefault()
+    })
+  })
+  assert.equal(await rendererPage.evaluate(async text => {
+    const { copyText } = await import('/src/utils/clipboard.js')
+    return copyText(text, false)
+  }, completeUrl), true)
+  await rendererPage.waitForFunction(expected => window.legacyCopiedTerminalText === expected, completeUrl)
+  assert.equal(await rendererPage.evaluate(() => window.copyTargetInFullscreen), true, 'Legacy copying must focus an element inside the fullscreen panel')
+  await rendererPage.getByText('退出全屏', { exact: true }).click()
   await rendererPage.evaluate(() => window.terminalFixture.unmount())
   assert.deepEqual(await rendererPage.evaluate(() => window.terminalFixture.errors), [])
   await rendererPage.close()
@@ -280,7 +425,7 @@ try {
   assert.deepEqual(await domPage.evaluate(() => window.terminalFixture.errors), [])
   await domPage.close()
   assert.deepEqual(pageErrors, [])
-  console.log('真实浏览器 / Element Plus / xterm 6：布局、会话、输入、搜索、高亮、透明背景、滚动、WebGL 与 DOM 回退及卸载通过')
+  console.log('真实浏览器 / Element Plus / xterm 6：布局、会话、渲染、TUI 跨行链接、真实拖选自动菜单、右键选区快照及全屏剪贴板回退通过')
 } finally {
   await browser?.close()
   await server.close()

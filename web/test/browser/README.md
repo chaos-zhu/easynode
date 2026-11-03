@@ -8,6 +8,8 @@
 
 普通 `yarn workspace web test` 包含真实 xterm 插件销毁测试，无需浏览器；浏览器测试单独运行。
 
+TUI 回归使用真实 xterm 的备用屏幕、光标定位和鼠标报告模式模拟认证弹窗，验证两行链接都打开完整 URL、真实鼠标正反向拖选后自动弹菜单、TUI 重绘选区后仍复制完整链接、部分选区保持原文、关闭自动菜单后手动复制、普通 xterm 拖选，以及菜单打开后选区丢失仍复制原文和全屏下的传统剪贴板降级。不会连接真实认证服务或使用真实授权码。
+
 ## 批量指令浏览器回归测试
 
 运行 `yarn workspace web run test:onekey:browser`，浏览器与 Playwright 的配置方式同上。测试使用真实批量指令页面和 Element Plus，仅模拟 API 与 Socket.IO，不会执行真实 SSH 指令。

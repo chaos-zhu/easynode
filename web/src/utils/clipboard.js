@@ -24,9 +24,12 @@ function copyWithLegacyAPI(text) {
   textarea.style.opacity = '0'
   textarea.setAttribute('readonly', '')
 
-  document.body.appendChild(textarea)
+  const container = document.fullscreenElement || document.body
+  container.appendChild(textarea)
 
   try {
+    textarea.focus({ preventScroll: true })
+    if (document.activeElement !== textarea) return false
     textarea.select()
     textarea.setSelectionRange(0, textarea.value.length)
     const successful = document.execCommand('copy')
@@ -35,7 +38,7 @@ function copyWithLegacyAPI(text) {
     console.error('复制失败:', err)
     return false
   } finally {
-    document.body.removeChild(textarea)
+    textarea.remove()
   }
 }
 

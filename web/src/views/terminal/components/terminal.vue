@@ -32,6 +32,8 @@ import { FitAddon } from '@xterm/addon-fit'
 import { SearchAddon } from '@xterm/addon-search'
 // import { SearchBarAddon } from 'xterm-addon-search-bar'
 import { WebLinksAddon } from '@xterm/addon-web-links'
+import { getTerminalSelectionText, TuiLinksAddon } from '@/utils/terminal-links'
+import { TerminalSelectionAddon } from '@/utils/terminal-selection'
 import { terminalStatus } from '@/utils/enum'
 import { hasDecorativeBackground, resolveTerminalTheme, TERMINAL_WELCOME_LINES } from '@/utils/terminal-settings'
 
@@ -434,6 +436,7 @@ const createLocalTerminal = () => {
   }
   onFindText()
   onWebLinks()
+  terminalInstance.loadAddon(new TerminalSelectionAddon(handleSelectionComplete, handleRightClick))
   onResize()
 
   // 初始化主题设置
@@ -508,9 +511,11 @@ const onResize = () => {
 }
 
 const onWebLinks = () => {
-  term.value.loadAddon(new WebLinksAddon((event, uri) => {
-    if (event.ctrlKey || event.altKey) window.open(uri, '_blank')
-  }))
+  const activateLink = (event, uri) => {
+    if (event.ctrlKey || event.altKey) window.open(uri, '_blank', 'noopener,noreferrer')
+  }
+  term.value.loadAddon(new TuiLinksAddon(activateLink))
+  term.value.loadAddon(new WebLinksAddon(activateLink))
 }
 
 // 终端搜索功能
@@ -570,24 +575,20 @@ const onData = () => {
   })
 }
 
-const handleCopySelection = async () => {
-  let str = term.value.getSelection().trim()
-  if (!str) return
-
-  await clipboard.copy(str)
-  term.value.clearSelection()
+const handleCopySelection = async (text) => {
+  if (!text) return false
+  const copied = await clipboard.copy(text)
+  if (copied) term.value?.clearSelection()
+  return copied
 }
 
 const handleMouseUp = async (e) => {
   if (e.button === 1) return handlePaste() // 鼠标中键粘贴
-  if (e.button === 0) {
-    let str = term.value.getSelection().trim()
-    if (!str) return closeMenu()
-    // 根据配置决定是否自动显示右键菜单
-    if (autoShowContextMenu.value) {
-      handleRightClick(e)
-    }
-  }
+}
+
+const handleSelectionComplete = (e, text) => {
+  if (!text) return closeMenu()
+  if (autoShowContextMenu.value) handleRightClick(e, text)
 }
 
 const plusTips = () => {
@@ -669,8 +670,8 @@ const syncPathToSftp = () => {
   }, 100)
 }
 
-const handleRightClick = async (e) => {
-  let str = term.value.getSelection().trim()
+const handleRightClick = async (e, selectedText) => {
+  const str = selectedText ?? getTerminalSelectionText(term.value)
   const sendToAI = str ? {
     label: '发送到AI会话',
     onClick: () => {
@@ -695,15 +696,13 @@ const handleRightClick = async (e) => {
   const copySelection = str ? {
     label: '复制',
     onClick: async () => {
-      await handleCopySelection()
-      focusTab()
+      if (await handleCopySelection(str)) focusTab()
     }
   } : null
   const pasteSelection = str ? {
     label: '粘贴选中内容',
     onClick: async () => {
-      await handleCopySelection()
-      handlePaste()
+      if (await handleCopySelection(str)) handlePaste()
     }
   } : null
   const clear = {
