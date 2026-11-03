@@ -44,6 +44,11 @@ export default defineConfig({
     // outDir: '../server/app/static', // local test
     emptyOutDir: true
   },
+  esbuild: {
+    // esbuild 0.25.1 drops xterm 6's local enum declaration in requestMode.
+    // Keep identifier/whitespace minification, but preserve valid mode replies.
+    minifySyntax: false
+  },
   define: {
     'process.env': {
       serviceURI,
