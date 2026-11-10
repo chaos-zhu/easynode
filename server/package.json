@@ -71,7 +71,7 @@
     "ssh2-sftp-client": "10.0.3",
     "ua-parser-js": "^2.0.6",
     "uuid": "11.1.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "eslint": "^9.26.0",
