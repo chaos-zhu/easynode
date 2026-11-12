@@ -872,9 +872,9 @@
   integrity sha512-Waj1cwPXJDucOib4a3bAISsKJVb15MKi9IvmTI/7ssVEm6sywXGjVJDhl6/umt1pK1ZS7PacXU3A1PmFKHEZ2w==
 
 "@hono/node-server@^1.19.9 || ^2.0.5":
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/@hono/node-server/-/node-server-2.1.1.tgz#9cfa8649e9ecbcd48edf505b103002402ea51e70"
-  integrity sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg==
+  version "2.1.8"
+  resolved "https://registry.yarnpkg.com/@hono/node-server/-/node-server-2.1.8.tgz#a66faf844024bfe2a4ef1fd794f69e7547a8492c"
+  integrity sha512-jdf7FHh6A1lzjpHHQUgxsg2GeER2vMetnAOfeActzcoli6jamlK+NAwL6Dsr5Fl3BS3tYUQzCdtZjU8Qxv7bEA==
 
 "@humanfs/core@^0.19.1":
   version "0.19.1"
