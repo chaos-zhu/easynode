@@ -5465,9 +5465,9 @@ qrcode@^1.5.4:
     yargs "^15.3.1"
 
 qs@6.13.1, qs@^6.11.0, qs@^6.14.0, qs@^6.14.1, qs@^6.15.2, qs@^6.5.2:
-  version "6.15.3"
-  resolved "https://registry.yarnpkg.com/qs/-/qs-6.15.3.tgz#76852132a58ed5c7c0ef67e4441b9bb5d6061b3b"
-  integrity sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==
+  version "6.17.1"
+  resolved "https://registry.yarnpkg.com/qs/-/qs-6.17.1.tgz#43ac71d29ca0e9d0eed16a218e35b6cde5628e81"
+  integrity sha512-jd3COkaKVgGUW+ZHyEHCG9bH7RoaaiWuMgzsIBjUMVjLAaWGWpoUAVwljVvBHxRu/2qEHnadLGZrkutYUBPQJA==
   dependencies:
     es-define-property "^1.0.1"
     side-channel "^1.1.1"
@@ -7001,15 +7001,10 @@ zod@^3.19.1:
   resolved "https://registry.yarnpkg.com/zod/-/zod-3.25.76.tgz#26841c3f6fd22a6a2760e7ccb719179768471e34"
   integrity sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==
 
-"zod@^3.25 || ^4.0":
-  version "4.5.2"
-  resolved "https://registry.yarnpkg.com/zod/-/zod-4.5.2.tgz#b580586f06ac3758aea39b2c2a319f90987aa477"
-  integrity sha512-XkYXCol10+ba/6F/cueWV+TezUeOqXW0hdeJt5CdXjTYeAgAQg5N03RQdJ80mhfFE72+pblvYMW4wy2Qp4Qbrg==
-
-zod@^4.4.3:
-  version "4.4.3"
-  resolved "https://registry.yarnpkg.com/zod/-/zod-4.4.3.tgz#b680f172885d18bbebf21a834ea25e55a1bbf356"
-  integrity sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==
+"zod@^3.25 || ^4.0", zod@^4.6.6:
+  version "4.6.6"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-4.6.6.tgz#0bb0cf57b87011a71ec28ed2e1b51f6455563f9a"
+  integrity sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==
 
 zwitch@^2.0.4:
   version "2.0.4"
