@@ -58,6 +58,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.44.1'
           cache: true
 
       - name: Flutter pub get
