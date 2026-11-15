@@ -246,8 +246,6 @@
 <script setup>
 import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, getCurrentInstance, watch } from 'vue'
 import { setCustomComponents } from 'markstream-vue'
-import 'markstream-vue/index.css'
-import 'highlight.js/styles/github-dark.css'
 import {
   Plus, Close, Setting, Expand, Fold, ChatDotRound, Bottom, CopyDocument, FullScreen
 } from '@element-plus/icons-vue'
@@ -584,8 +582,7 @@ watch(isMobileScreen, (mobile) => {
 onMounted(() => {
   restoreWindowGeometry()
   window.addEventListener('resize', handleViewportResize)
-  // 让 markdown 里的代码块带上「复制 / 在终端执行」按钮。
-  // custom-id 要与 message-item.vue 里传给 MarkdownRender 的一致。
+  // 全局助手的代码块只提供复制按钮。
   setCustomComponents('agent', { code_block: CustomCodeBlock })
 })
 

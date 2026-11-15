@@ -22,17 +22,23 @@
       </div>
     </div>
     <!-- 代码内容 -->
-    <div class="code_block_content">
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <pre><code :class="languageClass" v-html="highlightedCode" /></pre>
-    </div>
+    <CodeBlockNode
+      class="code_block_content"
+      :node="node"
+      :is-dark="isDark"
+      :loading="loading"
+      :stream="stream"
+      :theme="codeBlockTheme"
+      :code-block-options="codeBlockOptions"
+      :show-header="false"
+    />
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import hljs from 'highlight.js'
+import { CodeBlockNode } from 'markstream-vue'
 import clipboard from '@/utils/clipboard'
 import { EventBus } from '@/utils'
 
@@ -49,68 +55,39 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  isDark: {
+    type: Boolean,
+    default: false
+  },
   customId: {
     type: String,
-    default: ''
-  },
-  indexKey: {
-    type: [String, Number,],
     default: ''
   }
 })
 
-// 从 store 获取暗色模式状态
-import useStore from '@/store'
-const $store = useStore()
-const isDark = computed(() => $store.isDark)
+const codeBlockTheme = { dark: 'dark-plus', light: 'github-light' }
+const codeBlockOptions = {
+  fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+  fontSize: 13,
+  lineHeight: 19.5,
+  padding: 12,
+  disableLineNumbers: true,
+  overflow: 'scroll',
+  diffStyle: 'unified',
+  mergeConflict: false
+}
+
 // 全局 AI 助手的代码块没有执行入口；只有绑定到某个 Web 终端的 AI 对话才允许。
 const canExecute = computed(() => props.customId.startsWith('terminal-agent-'))
 
 // 获取语言标签
 const languageLabel = computed(() => {
-  const lang = props.node?.language || props.node?.lang || ''
-  return lang || 'text'
-})
-
-// 获取语言类名
-const languageClass = computed(() => {
-  const lang = props.node?.language || props.node?.lang || ''
-  return lang ? `language-${ lang }` : ''
-})
-
-// HTML 转义
-const escapeHtml = (text) => {
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    '\'': '&#039;'
-  }
-  return text.replace(/[&<>"']/g, m => map[m])
-}
-
-// 高亮代码
-const highlightedCode = computed(() => {
-  const code = props.node?.code || props.node?.value || ''
-  const lang = props.node?.language || props.node?.lang || ''
-
-  if (!code) return ''
-
-  try {
-    if (lang && hljs.getLanguage(lang)) {
-      return hljs.highlight(code, { language: lang }).value
-    }
-    return hljs.highlightAuto(code).value
-  } catch {
-    // 如果高亮失败，返回转义后的原始代码
-    return escapeHtml(code)
-  }
+  return props.node.language || (props.node.diff ? 'diff' : 'text')
 })
 
 // 处理复制
 const handleCopy = () => {
-  const code = props.node?.code || props.node?.value || ''
+  const code = props.node.diff ? props.node.raw : props.node.code
   clipboard.copy(code)
 }
 
@@ -125,6 +102,8 @@ const handleExec = () => {
 
 <style lang="scss" scoped>
 .custom_code_block {
+  --markstream-code-theme-bg: #fff;
+  --markstream-code-theme-fg: #24292e;
   width: 100%;
   border-radius: 6px;
   overflow: hidden;
@@ -132,6 +111,8 @@ const handleExec = () => {
   border: 1px solid rgba(0, 0, 0, 0.1);
 
   &.is_dark {
+    --markstream-code-theme-bg: #1e1e1e;
+    --markstream-code-theme-fg: #d4d4d4;
     border-color: rgba(255, 255, 255, 0.1);
 
     .code_block_header {
@@ -148,18 +129,6 @@ const handleExec = () => {
         &:hover {
           color: #58a6ff;
           background-color: rgba(255, 255, 255, 0.1);
-        }
-      }
-    }
-
-    .code_block_content {
-      background-color: #1e1e1e;
-
-      pre {
-        background-color: #1e1e1e;
-
-        code {
-          color: #d4d4d4;
         }
       }
     }
@@ -207,24 +176,11 @@ const handleExec = () => {
   }
 
   .code_block_content {
-    background-color: #f6f8fa;
-
-    pre {
-      margin: 0;
-      padding: 12px;
-      overflow-x: auto;
-      background-color: #f6f8fa;
-
-      code {
-        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-        font-size: 13px;
-        line-height: 1.5;
-        color: #24292e;
-        white-space: pre;
-        word-break: normal;
-        word-wrap: normal;
-      }
-    }
+    min-width: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 </style>

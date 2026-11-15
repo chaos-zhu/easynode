@@ -78,6 +78,7 @@
           v-else-if="part.text"
           class="markdown_body"
           :content="part.text"
+          :final="!running"
           :is-dark="isDark"
           :typewriter="true"
           :code-block-stream="running"
@@ -148,6 +149,7 @@
 <script setup>
 import { computed, getCurrentInstance, nextTick, ref, watch } from 'vue'
 import MarkdownRender from 'markstream-vue'
+import 'markstream-vue/index.css'
 import dayjs from 'dayjs'
 import {
   CopyDocument, EditPen, InfoFilled, Loading, RefreshRight, Share
