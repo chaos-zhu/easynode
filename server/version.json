@@ -1,5 +1,27 @@
 [
   {
+    "version": "v3.8.5",
+    "date": "2026-11-15",
+    "nativeVersion": "native-v1.3.3",
+    "nativeReleaseUrl": "https://github.com/chaos-zhu/easynode/releases",
+    "iosReleaseUrl": "https://apps.apple.com/th/app/easynode-terminal/id6777670133",
+    "ohosReleaseUrl": "",
+    "features": [
+      "AI Agent 调整权限模式：默认使用协助模式，新增完全模式",
+      "优化 AI 工具卡片、模型选择及代码块渲染",
+      "升级 Web 终端组件，优化渲染、链接识别和选区复制",
+      "修复执行脚本后终端焦点恢复问题",
+      "更新 Docker Compose 镜像及健康检查配置",
+      "其他依赖更新与问题修复"
+    ],
+    "nativeFeatures": [
+      "登录页新增验证码粘贴，默认登录有效期由 3 天调整为 30 天",
+      "AI Agent 新增完全模式，默认改为协助模式，旧审查模式自动兼容为协助模式",
+      "优化登录会话和安全存储处理，存储不可用时支持重试",
+      "修复 Android 偏好存储插件可能导致的启动异常"
+    ]
+  },
+  {
     "version": "v3.8.4",
     "date": "2026-10-21",
     "nativeVersion": "native-v1.3.2",
