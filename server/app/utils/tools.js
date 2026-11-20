@@ -34,12 +34,14 @@ const getNetIPInfo = async (searchIp = '') => {
       `https://api.ipgeolocation.io/ipgeo?apiKey=105fc2c7e8864ec08b98e1ad4e8cbc6d&ip=${ searchIp }`,
       // 1000次/天(依赖IP计算调用次数)
       `https://ipapi.co${ searchIp ? `/${ searchIp }` : '' }/json`,
+      // 无需密钥, 仅国家: https://internetdata.io/terms#no-key https://internetdata.io/privacy
+      `https://api.internetdata.io/${ searchIp || 'myip' }`,
       // 国内IP138提供(无限制)
       `https://sp1.baidu.com/8aQDcjqpAAV3otqbppnN2DJv/api.php?query=${ searchIp }&resource_id=5809`
     ]
     let result = await Promise.allSettled(ipUrls.map(url => request.get(url)))
 
-    let [ipApi, ipwho, ipdata, ipinfo, ipgeolocation, ipApi01, ip138] = result
+    let [ipApi, ipwho, ipdata, ipinfo, ipgeolocation, ipApi01, internetdata, ip138] = result
 
     let searchResult = []
     if (ipApi.status === 'fulfilled') {
@@ -70,6 +72,11 @@ const getNetIPInfo = async (searchIp = '') => {
     if (ipApi01.status === 'fulfilled') {
       let { ip, country_name: country, region: regionName, city } = ipApi01.value?.data || {}
       searchResult.push({ ip, country, city: `${ regionName } ${ city }`, date })
+    }
+
+    if (internetdata.status === 'fulfilled') {
+      let { ip, location: { country_name: country } = {} } = internetdata.value?.data || {}
+      searchResult.push({ ip, country, city: '', date })
     }
 
     if (ip138.status === 'fulfilled') {
