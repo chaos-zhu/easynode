@@ -57,43 +57,46 @@ const verifyAuthSync = async (token, session) => {
   }
 }
 
-const verifyWsAuthSync = async (socket, next) => {
+const checkWsAuth = async (socket) => {
   const requestIP = getClientIP(socket.conn.remoteAddress, socket.handshake.headers['x-forwarded-for'])
   // console.log('ws terminal requestIP:', requestIP)
   // IP 白名单检查
   if (!isAllowedIp(requestIP)) {
     logger.warn('ws终端连接IP不在白名单中: ', requestIP)
-    return next(new Error('IP not allowed')) // ✅ 使用 next(error)
+    return new Error('IP not allowed')
   }
   // Cookie 检查
   const cookies = socket.handshake.headers.cookie
   if (!cookies) {
     logger.warn('终端连接缺少 Cookie')
-    return next(new Error('No Cookie'))
+    return new Error('No Cookie')
   }
   // Session 检查
   const { session } = parseCookies(cookies)
   // console.log('ws terminal session:', session)
   if (!session) {
     logger.warn('终端连接缺少 Session Cookie')
-    return next(new Error('No Session Cookie'))
+    return new Error('No Session Cookie')
   }
   // Token 检查
   const { token } = socket.handshake.auth || {}
   // console.log('ws terminal token:', token)
   if (!token) {
     logger.warn('终端连接缺少 Token')
-    return next(new Error('No Token'))
+    return new Error('No Token')
   }
   // 验证身份
   const { success, code } = await verifyAuthSync(token, session)
   if (!success) {
     logger.warn('ws终端连接身份验证失败, code:', code)
-    return next(new Error('Authentication Failed'))
+    return new Error('Authentication Failed')
   }
   socket.data.authSession = session
-  // console.log('🤓 ws terminal auth success')
-  next()
+}
+
+const verifyWsAuthSync = (socket, next) => {
+  // Socket.IO middleware reports failures through next(error).
+  checkWsAuth(socket).then(next, () => next(new Error('Authentication Failed')))
 }
 
 export {

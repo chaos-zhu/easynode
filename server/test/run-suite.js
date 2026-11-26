@@ -17,6 +17,7 @@ const suites = {
     'test-login-attempt-limiter.js',
     'test-login-ip-async.js',
     'test-auth-session.js',
+    'test-ws-auth.js',
     'test-ip-access.js',
     'test-ping-output.js',
     'test-free-output.js',
@@ -32,6 +33,7 @@ const suites = {
     'test-login-attempt-limiter.js',
     'test-login-ip-async.js',
     'test-auth-session.js',
+    'test-ws-auth.js',
     'test-ip-access.js',
     'test-sftp-cache-path.js',
     'test-rsync-command.js',
@@ -39,7 +41,7 @@ const suites = {
     'test-ssl-cert-persistence.js'
   ],
   api: ['test-rest-api-auth.js'],
-  ws: ['test-terminal-lifecycle.js', 'test-ws-comprehensive.js'],
+  ws: ['test-terminal-lifecycle.js', 'test-ws-auth.js', 'test-ws-comprehensive.js'],
   mobile: ['test-mobile-crypto.js', 'test-mobile-ssh-payload.js'],
   ai: [
     'test-scheduled-tasks.js',
