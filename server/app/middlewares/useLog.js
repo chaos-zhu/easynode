@@ -1,17 +1,23 @@
-import { logConfig } from '../config/index.js'
+import { apiPrefix, logConfig } from '../config/index.js'
 import { getClientIP } from '../utils/tools.js'
 
 const { DEBUG } = logConfig
+const PRIVATE_KEY_DECRYPT_PATH = `${ apiPrefix }/decrypt-private-key`
+const MASKED = '[MASKED]'
 
 // ------------------ 脱敏 ------------------
 // 可能包含敏感信息的 header key（小写比较）
-const SENSITIVE_HEADER_KEYS = ['authorization', 'cookie', 'token', 'uid']
+const SENSITIVE_HEADER_KEYS = [
+  'authorization', 'proxy-authorization', 'cookie', 'token', 'uid',
+  'api-key', 'x-api-key'
+]
 // 需要打码的 body 字段（小写比较）
 const SENSITIVE_BODY_KEYS = [
   'password', 'pwd', 'code', 'captcha', 'token',
   'oldloginname', 'oldpwd', 'newloginname', 'newpwd',
   'loginname', 'ciphertext', 'jwtexpires', 'mfa2token',
-  'encryptedkey', 'privatekey', 'passphrase', 'secret', 'authorization'
+  'encryptedkey', 'privatekey', 'passphrase', 'secret', 'authorization',
+  'tempkey', 'opensshkeypassword', 'apikey', 'session', 'qrimage'
 ]
 
 const MAX_BODY_LOG_LEN = 1000 // 请求 body 最多记录长度
@@ -22,7 +28,7 @@ function maskSensitiveHeaders(headers = {}) {
   for (const [key, value] of Object.entries(headers)) {
     const lowerKey = key.toLowerCase()
     if (SENSITIVE_HEADER_KEYS.includes(lowerKey)) {
-      safeHeaders[key] = '[MASKED]'
+      safeHeaders[key] = MASKED
     } else {
       safeHeaders[key] = value
     }
@@ -39,7 +45,7 @@ function maskSensitiveBody(body) {
     const lowerKey = key.toLowerCase()
 
     if (SENSITIVE_BODY_KEYS.includes(lowerKey)) {
-      clone[key] = '[MASKED]'
+      clone[key] = MASKED
     } else if (value && typeof value === 'object') {
       clone[key] = maskSensitiveBody(value)
     } else {
@@ -60,7 +66,7 @@ function safeStringify(obj, maxLen) {
   try {
     const json = JSON.stringify(obj)
     return truncateString(json, maxLen) // 避免循环引用
-  } catch (e) {
+  } catch {
     return '[Unserializable object]'
   }
 }
@@ -69,9 +75,9 @@ function safeStringify(obj, maxLen) {
 function formatBodyForLog(body) {
   if (!body) return 'no body'
 
-  // 如果是字符串，直接截断
+  // 文本请求体没有可用于脱敏的字段名。
   if (typeof body === 'string') {
-    return truncateString(body, MAX_BODY_LOG_LEN)
+    return `[text length=${ body.length }]`
   }
 
   // 其它类型（对象、数组等）先脱敏再 stringify
@@ -103,72 +109,41 @@ function formatResultForLog(result) {
   return safeStringify(masked, MAX_RESULT_LOG_LEN)
 }
 
-const useLog = () => {
-  return async (ctx, next) => {
-    const {
+const useLog = async (ctx, next) => {
+  if (!DEBUG) return next()
+
+  const start = Date.now()
+  await next()
+
+  try {
+    const { method, path, origin, query, body, headers } = ctx.request
+    const { status } = ctx
+    // 路由允许大小写变体和末尾斜杠，解密结果放在通用的 data 字段。
+    const decryptsPrivateKey = path.toLowerCase().replace(/\/$/, '') === PRIVATE_KEY_DECRYPT_PATH
+    const text = safeStringify({
       method,
       path,
       origin,
-      query,
-      body,
-      headers
-    } = ctx.request
+      ip: getClientIP(ctx.socket.remoteAddress, ctx.get('x-forwarded-for')),
+      query: Object.fromEntries(Object.keys(query).map(key => [key, MASKED])),
+      cost: Date.now() - start,
+      headers: maskSensitiveHeaders(headers),
+      body: decryptsPrivateKey ? MASKED : formatBodyForLog(body),
+      status,
+      params: ctx.params,
+      result: decryptsPrivateKey || ctx.state.omitLogResult ? MASKED : formatResultForLog(ctx.body)
+    })
 
-    const ip = getClientIP(ctx.socket.remoteAddress, ctx.get('x-forwarded-for'))
-
-    const start = Date.now()
-
-    // 先让后续中间件 / 路由处理
-    try {
-      await next()
-    } catch (err) {
-      ctx._logError = err
-      throw err
-    } finally {
-      // eslint-disable-next-line no-unsafe-finally
-      if (!DEBUG) return
-
-      const cost = Date.now() - start
-
-      const logData = {
-        method,
-        path,
-        origin,
-        ip,
-        query,
-        cost, // 花费时间 ms
-        headers: maskSensitiveHeaders(headers),
-        body: formatBodyForLog(body),
-        status: ctx.status,
-        params: ctx.params,
-        result: formatResultForLog(ctx.body)
-      }
-
-      // 如果有未捕获异常，可以顺带记一下
-      if (ctx._logError) {
-        logData.error = {
-          message: ctx._logError.message,
-          stack: ctx._logError.stack
-        }
-      }
-
-      // 状态码分级：5xx error，4xx warn，其它 info
-      const status = Number(ctx.status) || 0
-      const text = safeStringify(logData)
-
-      try {
-        if (status >= 500) {
-          logger.error(text)
-        } else if (status >= 400) {
-          logger.warn(text)
-        } else {
-          logger.info(text)
-        }
-      } catch (e) {
-        logger.error('记录日志时发生错误', e)
-      }
+    if (status >= 500) {
+      logger.error(text)
+    } else if (status >= 400) {
+      logger.warn(text)
+    } else {
+      logger.info(text)
     }
+  } catch (error) {
+    logger.error('记录日志时发生错误', error)
   }
 }
 
-export default useLog()
+export default useLog

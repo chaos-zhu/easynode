@@ -47,7 +47,6 @@ const updateSSH = async ({ res, request }) => {
     record[authType] = oldRecord[authType]
   } else {
     const clearTempKey = await RSADecryptAsync(tempKey)
-    console.log('clearTempKey:', clearTempKey)
     const clearSSHKey = await AESDecryptAsync(record[authType], clearTempKey)
     record[authType] = await AESEncryptAsync(clearSSHKey)
   }

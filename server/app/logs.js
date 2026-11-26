@@ -13,7 +13,7 @@ log4js.configure({
     },
     file: {
       type: 'file',
-      maxLogSize: 10 * 1024 * 10, // 10MB
+      maxLogSize: 10 * 1024 * 1024, // 10 MiB
       filename: `${ outDir }/debug.log`,
       backups: 10,
       compress: true,

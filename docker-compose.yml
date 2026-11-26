@@ -1,9 +1,17 @@
+x-logging: &container-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+    compress: "true"
+
 services:
   easynode:
     container_name: easynode
     # image: chaoszhu/easynode:latest
     image: docker.cnb.cool/chaoszhu/easynode:latest # cnb自动同步
     restart: always
+    logging: *container-logging
     ports:
       - 8082:8082 # http建议仅内网访问
       - 8092:8092 # https 端口，访问时需手动加 https://ip:8092
@@ -36,6 +44,7 @@ services:
     # image: guacamole/guacd:latest # 截止 2026/10/22，官方 latest 仅支持x86架构，arm 架构自查
     image: docker.cnb.cool/chaoszhu/easynode/guacd:latest # cnb加速，amd64 跟随上游 latest，arm64 取 1.6.0【自动兼容】
     restart: always
+    logging: *container-logging
     expose:
       - "4822"
     healthcheck:
@@ -54,6 +63,7 @@ services:
     # image: nickfedor/watchtower:latest
     image: docker.cnb.cool/chaoszhu/easynode/watchtower:latest # cnb加速
     restart: always
+    logging: *container-logging
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --schedule "0 */5 * * * *" --label-enable # 每5分钟检测一次更新

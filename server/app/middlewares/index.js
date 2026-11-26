@@ -17,9 +17,9 @@ export default [
   history,
   useStatic, // staic先注册，不然会被useAuth拦截
   // useCors,
+  useLog, // 等待错误处理完成后记录最终响应
   responseHandler,
-  useKoaBody, // 先处理body，log和router都要用到
-  useLog, // 日志记录开始【该module使用到了fs.mkdir()等读写api， 设置保存日志的目录需使用process.cwd()】
+  useKoaBody, // 路由执行前解析请求体
   useAuth,
   useAllowedMethods,
   useRoutes

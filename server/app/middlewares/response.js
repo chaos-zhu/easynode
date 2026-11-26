@@ -22,8 +22,13 @@ const responseHandler = async (ctx, next) => {
   try {
     await next() // 每个中间件都需等待next完成调用，不然会返回404给前端!!!
   } catch (err) {
-    console.dir(err)
-    logger.error('中间件错误：', err)
+    if (Object.hasOwn(err, 'body')) {
+      // 解析错误可能附带原始请求体，错误消息也可能包含请求内容。
+      ctx.state.omitLogResult = true
+      logger.error('请求体解析失败:', { status: err.status, name: err.name })
+    } else {
+      logger.error('中间件错误：', err)
+    }
     if (err.status)
       ctx.res.fail({ status: err.status, msg: err.message }) // 自己主动抛出的错误 throwError
     else
